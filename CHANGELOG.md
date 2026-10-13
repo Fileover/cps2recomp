@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- The check of a rewrite compares video RAM too for a rewrite that names `kChecksVideo` (a routine
+  that writes a scroll screen's map or the row scroll table).
+- The code for three lines of 0.2.0's list, which was released without it: `kFeatureFirstPage`,
+  `Video::wide.rows` and `Video::objectsTaken`; and the board's own picture drawn by a form of the
+  renderer that knows its width.
+
 ## 0.2.0 (2026-10-13)
 
 - A wider picture for a game's sources to ask for (`Video::wide`): up to 64 more columns on each side
@@ -11,6 +17,13 @@
   the readout, screenshots and `--present-test` take the picture at the width it has; the window
   starts in the shape `Game::widestPicture` gives. With nothing asked for, the picture and the
   state hashes are what they were.
+- A feature's switch can be on the launcher's first page, under "Full screen", instead of on its
+  Features page: the feature has `kFeatureFirstPage`, and the game's `game.cfg` names it in
+  `display` (name | title | what it says). The launcher says at every start whether it is on.
+- `Video::wide.rows`: the scroll screen of 16-pixel tiles moved by its own amount on each row of the
+  row scroll table.
+- `Video::objectsTaken`: the sources may change the object list the picture is made from, when
+  the board has taken it.
 - `Machine::ObjectsToCome`: the object list the next picture will be made from.
 - `CPS2RECOMP_WIDE=n`: n more columns on each side whatever the sources ask, to see what a game has
   beyond its picture's edges.
