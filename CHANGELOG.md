@@ -1,5 +1,18 @@
 # Changelog
 
+## Unreleased
+
+- A wider picture for a game's sources to ask for (`Video::wide`): up to 64 more columns on each side
+  of the board's 384 (512 is the whole raster: 16:9), each scroll screen and each object drawn moved
+  sideways as the sources say, and a scroll screen's tiles outside the board's own columns taken
+  from the sources where the game only keeps its map up for its own picture. The window, the menu,
+  the readout, screenshots and `--present-test` take the picture at the width it has; the window
+  starts in the shape `Game::widestPicture` gives. With nothing asked for, the picture and the
+  state hashes are what they were.
+- `Machine::ObjectsToCome`: the object list the next picture will be made from.
+- `CPS2RECOMP_WIDE=n`: n more columns on each side whatever the sources ask, to see what a game has
+  beyond its picture's edges.
+
 ## 0.1.0
 
 The first public version: the toolkit as its first game, Vampire Savior Recomp, uses it.
