@@ -12,6 +12,12 @@
 - `Machine::ObjectsToCome`: the object list the next picture will be made from.
 - `CPS2RECOMP_WIDE=n`: n more columns on each side whatever the sources ask, to see what a game has
   beyond its picture's edges.
+- recomp-common 0.4.0: the launcher works with a gamepad, or the arrow keys, alone, and has a
+  "Muted" switch (the game is started with `--mute`).
+- The in-game menu's buttons are the same whatever the game's are set to: the arrows, the d-pad and
+  the left stick; Space, Enter and a gamepad's A choose; Backspace and B go back (leave a page,
+  close the menu from the first). A "Sound" row switches the sound off and on; `--mute` starts with
+  it off (the sound device is opened all the same, so that the row can switch it on).
 
 ## 0.1.0
 
