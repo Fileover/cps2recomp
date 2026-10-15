@@ -2,7 +2,9 @@
 
 ## Unreleased
 
-- recomp-common 0f10506: in the in-game menu, Right on a page's row goes into that page; the
+## 0.3.0 (2026-10-15)
+
+- recomp-common 0.5.0: in the in-game menu, Right on a page's row goes into that page; the
   launcher's Features page has a search box (Ctrl+F or Cmd+F; Esc empties it, a second Esc leaves it;
   a gamepad's A goes in and B leaves with what was typed kept).
 - The in-game menu's first page has a "Test menu" row: it presses the board's test switch (as F2
