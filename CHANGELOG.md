@@ -12,7 +12,11 @@
   windowed program (no console window beside it).
 - recomp-common 394d613: the menu leaves room for a page's longest description (it ran over the hint),
   a value too long for its row is drawn small, and the panel is opaque.
-
+- Display options for every game (the port's features, on the Display page of the launcher and the
+  in-game menu): Scaling (Sharp, as before; Whole pixels; Smooth), Picture shape (4:3, as before;
+  Square pixels; Fill) and Window size (3x, as before; 2x to 6x). A window takes the new shape or
+  size at once. `FitPicture` and `Presenter::SetScaling` (present.h); `--scale` still goes before the
+  setting, and `--present-size WxH` draws `--present-test`'s picture in a window that size.
 - `SetSlowMotion`: a game's sources can ask for the game to run slowly (a frame in every so many
   pictures); the slower of that and the menu's speed is used.
 - The check of a rewrite compares video RAM too for a rewrite that names `kChecksVideo` (a routine
