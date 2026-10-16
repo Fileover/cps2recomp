@@ -47,7 +47,8 @@ TheGame().songs = {{0x01, "ryu", "Ryu's theme"}, {0x15, "versus", "Versus screen
 ```
 
 A song is music when its data starts with a 0 (`machine/soundtrack.h` finds them all from the table); `songs` gives
-the ones that are known a name for the player's files and says which the board plays once. Find the table from
+the ones that are known a name for the player's files and says which the board plays once. (A folder with no file
+named for a song is a playlist: every piece of music is replaced, and `port/soundtrack.cpp` plays the files on.) Find the table from
 the numbers a game asks for (`CPS2RECOMP_SOUNDTRACK_LOG`, or the shared memory's first sixteen bytes), find what
 each piece is by playing (the arcade ladder with each character, attract mode, a lost game), and which end of
 themselves with `--music-test 5400` (with `--test-switch 300:99999999`, so that the game asks for nothing).

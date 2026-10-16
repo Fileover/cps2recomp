@@ -113,6 +113,7 @@ struct Port {
     // The custom soundtrack (soundtrack.h): its files, played while the port's custom_soundtrack feature is on
     SoundtrackPlayer soundtrack;
     bool soundtrackOn = false;
+    int soundtrackValue = 0; // (the feature's choice: 1 on, 2 on with the playlist shuffled)
     std::string SoundtrackFolder() const;
     void SoundtrackFollow(); // (each frame: the feature switched on or off in the menu)
     // One frame: input (window, movie or made up), the machine, the per-frame outputs

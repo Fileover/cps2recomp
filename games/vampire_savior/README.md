@@ -54,8 +54,9 @@ QSound chip, the sound CPU and its registers) is code written for this project, 
   the game's own test menu from the in-game menu.
 - A search box on the launcher's Features page (Ctrl+F or Cmd+F) finds any feature by a word in its
   name, description or choices.
-- **A custom soundtrack**: your own music files (an arranged soundtrack, say) in place of the board's music, with
-  the board's sound effects and voices. The `songs.txt` the game writes in the soundtrack folder names all 80 pieces
+- **A custom soundtrack**: your own music in place of the board's music, with the board's sound effects and voices:
+  a folder of music plays as a playlist (in order or shuffled), or files named for the game's songs replace those
+  songs. The `songs.txt` the game writes in the soundtrack folder names all 80 pieces
   of its music (each stage's, each character's win and ending, the opening and the screens between fights). [How →](../../README.md#a-custom-soundtrack)
 - Your ROM set is only ever read. Settings, save states and the board's settings memory go in your
   own user folder.

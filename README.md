@@ -103,16 +103,23 @@ a later one wins.
 ### A custom soundtrack
 
 Each game can play your own music files in place of the board's music: an arranged soundtrack, say. The sound
-effects and voices stay the board's, and a song you have no file for plays as the board has it.
+effects and voices stay the board's.
 
 1. Switch on **Custom soundtrack** (the Features page, under Sound; it is on in Enhanced, off in Pure).
-2. On a game's page, under Sound, **Choose…** the folder your music files are in. With none chosen, the game uses
-   the `soundtrack` folder in its own settings folder (`~/Library/Application Support/<Game>/` on macOS,
-   `~/.local/share/<Game>/` on Linux and Steam Deck, `%APPDATA%\<Game>\` on Windows), which it makes.
-3. Name each file after the piece of music it replaces, with `.ogg`, `.flac`, `.mp3` or `.wav`: `ryu.flac`,
-   `player_select.ogg`, `ken_ending.mp3`. The game writes `songs.txt` into the folder, with every piece of its
-   music by name and number and what it is (Street Fighter Alpha 2 has 59: each character's theme, each ending,
-   the staff rolls, the title and the screens between fights).
+2. On a game's page, under Sound, **Choose…** the folder your music files are in (`.ogg`, `.flac`, `.mp3` or
+   `.wav`). With none chosen, the game uses the `soundtrack` folder in its own settings folder
+   (`~/Library/Application Support/<Game>/` on macOS, `~/.local/share/<Game>/` on Linux and Steam Deck,
+   `%APPDATA%\<Game>\` on Windows), which it makes.
+
+That is all it takes: **a folder of music plays as a playlist**, in place of all the game's music, one file after
+another in their names' order (`2 ...` before `10 ...`), and from the first again after the last. Choose **On,
+shuffled** for a random order.
+
+**To replace particular songs** instead, name each file after the piece of music it replaces: `ryu.flac`,
+`player_select.ogg`, `ken_ending.mp3`. The game writes `songs.txt` into the folder, with every piece of its music
+by name and number and what it is (Street Fighter Alpha 2 has 59: each character's theme, each ending, the staff
+rolls, the title and the screens between fights). Once one file is named for a song, the folder works this way: a
+song you have no file for plays as the board has it, and other files are left alone.
 
 For files with other names, loops and loudness, put `soundtrack.ini` in the folder:
 
@@ -125,10 +132,11 @@ loop = 0:12.5 - 2:47.25      ; the part that repeats: start - end (minutes:secon
 volume = 90
 ```
 
-A file repeats whole unless it says otherwise: by `loop` in `soundtrack.ini`, `loop = no` to play it once, or the
+A song's file repeats whole unless it says otherwise: by `loop` in `soundtrack.ini`, `loop = no` to play it once, or the
 loop tags many soundtrack packs have (`LOOPSTART`, with `LOOPEND` or `LOOPLENGTH`, in samples). The music the board
 plays once (a fanfare, the versus screen, a game over) is played once. The music keeps the game's time: pausing,
-the menu, slow motion, a save state and run-ahead leave it where the game is. The game plays exactly the same with
+the menu, slow motion, a save state and run-ahead leave it where the game is (a playlist plays on, and waits only
+while the game is held). The game plays exactly the same with
 or without it.
 
 No music is included, and this project can't help you get any: use files you made from discs you own.

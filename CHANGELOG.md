@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- **A custom soundtrack's folder can be any folder of music**: with no file in it named for a song, its files play
+  as a playlist in place of all the game's music, one after another in their names' order ("2 ..." before
+  "10 ..."), from the first again after the last; the feature's new choice "On, shuffled" plays them in a random
+  order, a new one each time round. Files named for songs work as before.
+
 - **A custom soundtrack**, in every game: your own music files (Ogg Vorbis, FLAC, MP3 or WAV; an arranged soundtrack,
   say) in place of the board's music, song by song, with the board's sound effects and voices. The "Custom
   soundtrack" feature (Sound; on in Enhanced) and a folder on each game's page (recomp-common 6c526f4), or
