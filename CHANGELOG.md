@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- The games can run at once, each in its own window (one of each). A shared feature one game's menu changes while
+  another runs is set in that one when it ends. (recomp-common 5e82073)
+
 - `make collection-app` makes the collection's app bundle for your own machine (`build/collection/CPS-2 Recomp.app`:
   the launcher and every built game, with Homebrew's SDL 3 inside), as `make GAME=<id> app` does for one game.
 
