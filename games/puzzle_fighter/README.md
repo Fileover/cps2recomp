@@ -64,6 +64,9 @@ the settings memory) is code written for this project, not an emulator
   you press is seen sooner than on the board.
 - A search box on the launcher's Features page (Ctrl+F or Cmd+F) finds any feature by a word in its
   name, description or choices.
+- **A custom soundtrack**: your own music files (an arranged soundtrack, say) in place of the board's music, with
+  the board's sound effects and voices. The `songs.txt` the game writes in the soundtrack folder names all 24 pieces
+  of its music (each character's theme, the title, the dojo, the intermission and the screens between matches). [How →](../../README.md#a-custom-soundtrack)
 - Your ROM set is only ever read. Settings, save states and the board's settings memory go in your
   own user folder.
 

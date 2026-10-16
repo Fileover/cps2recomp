@@ -33,6 +33,9 @@ This page is for people making or working on ports. To play, see the [main page]
 - **Players' own colours.** Text files a character, or a ROM file changed with PalMod, recolour the
   characters, and a colour editor in the model viewer makes them; a game only says where its colours
   are (`fight/colours.h`).
+- **A custom soundtrack.** The player's own music files in place of the board's music, caught where the game
+  asks the sound CPU for it, played in the game's time; a game only says where its sound program's table of songs
+  is, and names its music (`machine/soundtrack.h`, `port/soundtrack.h`; [docs/FEATURES.md](FEATURES.md)).
 - **Features players expect.** Save states, run-ahead (a press seen a frame or two sooner, with the
   game running exactly as without it), speed, pause and frame advance, slow motion, cheats and
   options a game declares once, and the in-game menu and launcher the recomp ports share
@@ -94,9 +97,10 @@ name and choices in each: the collection's launcher then shows it once, for all 
 | --- | --- |
 | `tools/` | The translators (`recomp.py`, `m68k.py`; `recompz80.py`, `z80.py`), `gamecfg.py`, the checks (`check.sh`, `check_sound.sh`, `check_release.sh`, `at-once.sh`), finding a game's code by made-up play (`explore.sh`), reading the listing (`lst.py`, `tracechanges.py`, `ramfind.py`), `gen_shaders.py`, `sync-common.sh`, `audit.sh`, `collection.sh`, and the release builds (`release/`) |
 | `runtime/` | What translated code is written in terms of; hooks and readable rewrites (`lift.h`); features and settings (`game.h`); save states (`state.h`); spare machines a game's modes run beside the port's (`spare.h`) |
-| `machine/` | The 68000, bus, interrupts, timing, settings EEPROM, ROM set and cipher |
+| `machine/` | The 68000, bus, interrupts, timing, settings EEPROM, ROM set and cipher; the custom soundtrack's catching of the game's music (`soundtrack.h`) |
 | `video/`, `sound/` | The picture; the Z80 and QSound; Capcom's sound driver (version 2.01b) as ordinary code (`driver.cpp`) |
-| `port/` | The frontend (SDL 3), putting the picture on the screen (`present.*`; shaders in `shaders/`, compiled into `shaders.inc` by `tools/gen_shaders.py`), the in-game menu adapter, the HUD, control bindings |
+| `third_party/` | The sound file decoders the custom soundtrack reads with (stb_vorbis, dr_flac, dr_mp3, dr_wav), as their projects publish them |
+| `port/` | The frontend (SDL 3), the custom soundtrack's player (`soundtrack.*`, `decoders.*`), putting the picture on the screen (`present.*`; shaders in `shaders/`, compiled into `shaders.inc` by `tools/gen_shaders.py`), the in-game menu adapter, the HUD, control bindings |
 | `fight/` | What a fighting game's training mode has in common, and the players' own colours ([docs/FIGHT.md](FIGHT.md)) |
 | `recomp-common/` | A copy of [recomp-common](https://github.com/tmcleroy/recomp-common) (the in-game menu, the settings rules, the launcher), made by `tools/sync-common.sh`; never changed here |
 | `launcher/` | What this toolkit tells the shared launcher (`recomp-common/launcher`; SDL 3 + Dear ImGui): `src/description.cpp` has the words for a ROM set, the check of the player's, the game's arguments and the buttons that can be chosen, for one game's launcher or the collection's |

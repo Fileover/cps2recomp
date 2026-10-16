@@ -384,6 +384,15 @@ attacks past 30 gems in `CounterStrength`, attacks capped at 250, rounds longer 
 - Tables reached with `lea table(pc)` are read as data: they are in `program.bin.data`, not
   `program.bin` (which is the deciphered view, right for code and for `move.w table(pc,d0)`).
 
+## Custom soundtrack (2026-10-16)
+
+The toolkit's custom soundtrack (machine/soundtrack.h) with the game's music named in `src/music.cpp`. The sound
+program (driver 2.01b) keeps its table of songs at 6000 (a word, 0x500 songs; song 0's entry at 6005). Music is
+01-17 and 1E (24 pieces, all named): the characters' themes 01-0B in the game's order (Devilot's 09 and Dan's 0B
+by it), the title 0C, the dojo 0D, mode and character select 0E, the logo before each match 0F, winner 10,
+intermission 11, continue 12, challenger 13, game over 14, the rankings 15 and 16, the ending and staff roll 17, the
+QSound logo 1E. The game sends FF08 (the music faster) when a player is in danger; a file is not made faster.
+
 ## Not done
 
 - Not rewritten: the frame interrupt's reading of

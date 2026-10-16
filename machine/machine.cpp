@@ -86,6 +86,7 @@ void Machine::Reset() {
     std::fill(extraRam.begin(), extraRam.end(), 0);
     memset(soundRam, 0, sizeof(soundRam));
     memset(soundRam2, 0, sizeof(soundRam2));
+    soundtrack.Reset();
     memset(cpsA, 0, sizeof(cpsA));
     memset(cpsB, 0, sizeof(cpsB));
     memset(objectRegs, 0, sizeof(objectRegs));
@@ -143,6 +144,7 @@ void Machine::RunFrame() {
     do {
         RunLine();
     } while (m_line != kBlankingLine);
+    soundtrack.Frame();
     frame++;
 }
 
@@ -448,7 +450,11 @@ void Machine::WriteRegister(uint32_t address, uint16_t value, uint16_t mask) {
     }
     if (address >= 0x618000 && address < 0x61A000) {
         if (mask & 0x00FF) {
-            soundRam[(address - 0x618000) / 2] = static_cast<uint8_t>(value);
+            const uint32_t at = (address - 0x618000) / 2;
+            soundRam[at] = static_cast<uint8_t>(value);
+            if (at == 0x00F && soundRam[0x00F] != 0xFF) { // (a request is there: soundtrack.h)
+                soundtrack.Request(soundRam, frame);
+            }
         }
         return;
     }
@@ -626,6 +632,11 @@ void Machine::Serialize(Archive &ar) {
     ar.Vec(m_chipQueue);
     ar.Pod(m_chipNext);
     ar.Pod(m_chipLast);
+    if (ar.version == 0 || ar.version >= 6) { // (a save state from before soundtracks has none)
+        soundtrack.Serialize(ar);
+    } else if (!ar.Saving()) {
+        soundtrack.Reset();
+    }
 }
 
 // (CPS2RECOMP_SOUND_GAPS, with --sound check) how long the Z80 took to come to each of its writes and how

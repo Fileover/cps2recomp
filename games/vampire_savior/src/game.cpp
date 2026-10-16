@@ -47,7 +47,10 @@ void RegisterWidescreen(); // widescreen.cpp
 void WidescreenBeforeFrame(Machine &machine);
 void RegisterColours(); // colours.cpp (the toolkit's fight/colours.h)
 
+void RegisterMusic(); // music.cpp
+
 void RegisterGame() {
+    RegisterMusic();
     RegisterModes();
     RegisterBattle();
     RegisterModel();

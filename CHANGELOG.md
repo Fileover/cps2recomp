@@ -2,6 +2,20 @@
 
 ## Unreleased
 
+- **A custom soundtrack**, in every game: your own music files (Ogg Vorbis, FLAC, MP3 or WAV; an arranged soundtrack,
+  say) in place of the board's music, song by song, with the board's sound effects and voices. The "Custom
+  soundtrack" feature (Sound; on in Enhanced) and a folder on each game's page (recomp-common 6c526f4), or
+  `--soundtrack DIR`. Files are named after the songs, which each game names in the `songs.txt` it writes there
+  (Street Fighter Alpha 2's 59, Vampire Savior's 80, Super Puzzle Fighter II Turbo's 24); `soundtrack.ini` names
+  other files, their loops and loudness. The music the game asks for is caught where it leaves its requests for the
+  sound CPU (`machine/soundtrack.h`), which is then told to stop its music, and played in the game's time: save
+  states (now version 6; version 5's still load), run-ahead and spare machines keep it where the game is. With the
+  feature off, or no files, nothing changes. Decoders: stb_vorbis, dr_flac, dr_mp3, dr_wav (`third_party/`,
+  public domain).
+- `CPS2RECOMP_SOUNDTRACK_LOG` lists each piece of music the game asks for, with the frame; `--music-test FRAMES`
+  plays each on the board in turn and says how long it lasts; `--soundtrack-dump FILE` writes what the soundtrack
+  plays (headless).
+
 - The games can run at once, each in its own window (one of each). A shared feature one game's menu changes while
   another runs is set in that one when it ends. (recomp-common 5e82073)
 

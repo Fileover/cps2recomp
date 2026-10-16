@@ -48,7 +48,10 @@ void RegisterMachines(); // machines.cpp
 void RegisterTitle();    // title.cpp
 void TitleFrame(Machine &machine);
 
+void RegisterMusic(); // music.cpp
+
 void RegisterGame() {
+    RegisterMusic();
     RegisterMachines();
     RegisterModes();
     RegisterBattle();

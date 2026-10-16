@@ -13,8 +13,9 @@ git ls-files > "$LIST"
 
 fail=0
 check() { if [ -n "$2" ]; then echo "AUDIT FAIL: $1"; echo "$2" | head -10; fail=1; else echo "ok: $1"; fi; }
-# (this script names the things it looks for, so it is not searched itself)
-grep_files() { grep -v '^tools/audit\.sh$' "$LIST" | tr '\n' '\0' | xargs -0 grep -nIE "$@" 2>/dev/null || true; }
+# (this script names the things it looks for, so it is not searched itself; nor are third_party/'s decoders, other
+# projects' files as they publish them, which only the ones the notices list may be: checked below)
+grep_files() { grep -v -e '^tools/audit\.sh$' -e '^third_party/' "$LIST" | tr '\n' '\0' | xargs -0 grep -nIE "$@" 2>/dev/null || true; }
 
 check "no game, key, save or archive file types" "$(grep -iE '\.(zip|7z|rar|key|bin|rom|chd|state|sav|eep|nv|lst)$|(^|/)[a-z0-9]{2,5}\.[0-9]{2}[a-z]?m?$' "$LIST" || true)"
 # (a game's movies are the player's key presses, as text: they are allowed, in games/<id>/movies/)
@@ -30,7 +31,9 @@ check "no board key written out, and no tool that writes key files" "$(grep_file
 check "no home folder paths" "$(grep_files -e '/Users/[a-z]' -e '/home/[a-z]+/' -e 'C:\\\\Users\\\\[a-z]' || true)"
 check "no private session links or private network addresses" "$(grep_files -e 'claude\.ai/code/session' -e '\b192\.168\.[0-9]+\.[0-9]+' -e '\b10\.[0-9]+\.[0-9]+\.[0-9]+\b' || true)"
 # (the README's pictures may be larger: a moving picture is a few megabytes)
-check "no file over 512 KB (the README's pictures: 6 MB)" "$( (grep -v '^docs/screenshots/' "$LIST" | tr '\n' '\0' | xargs -0 find 2>/dev/null -prune -type f -size +512k; \
+# (the sound file decoders in third_party/ are kept as their projects publish them: dr_flac is a little over)
+check "no file over 512 KB (the README's pictures: 6 MB; third_party/'s decoders: 1 MB)" "$( (grep -v -e '^docs/screenshots/' -e '^third_party/' "$LIST" | tr '\n' '\0' | xargs -0 find 2>/dev/null -prune -type f -size +512k; \
+    grep '^third_party/' "$LIST" | tr '\n' '\0' | xargs -0 find 2>/dev/null -prune -type f -size +1024k; \
     grep '^docs/screenshots/' "$LIST" | tr '\n' '\0' | xargs -0 find 2>/dev/null -prune -type f -size +6144k) || true)"
 # (ports that are not public yet are not named here)
 check "no names of ports that are still private" "$(grep_files -i -e 'snesrecomp' -e 'fighting.?vipers' -e 'bonkers' -e 'muscle.?march-dev' || true)"
@@ -41,7 +44,9 @@ check "no emulator's sources in the tree" "$(grep -iE '(^|/)(third_party|vendor|
 # Files of another project's say so in their first lines; each must be one THIRD_PARTY_NOTICES.md lists
 check "files of another project's are only the ones the notices list" "$(grep_files -l -e '^(//|#) *license: *BSD' -e 'SPDX-License-Identifier: (GPL-3\.0-or-later|BSD|MIT|Zlib)' \
     | grep -vE '^machine/cps2crypt\.cpp$|^recomp-common/launcher/src/(ui\.cpp|ui\.h|embedded\.h)$|^(THIRD_PARTY_NOTICES|CONTRIBUTING)\.md$' || true)"
-check "every source file has a license line" "$(grep -E '\.(h|c|cpp|inc|frag|vert|py|sh|mk|cmake|cfg)$|CMakeLists\.txt$|(^|/)Makefile$' "$LIST" | tr '\n' '\0' | xargs -0 grep -LiE 'SPDX-License-Identifier:|^// license:' 2>/dev/null || true)"
+# (third_party/'s files have their licences at their ends, and are named in the notices)
+check "every source file has a license line" "$(grep -E '\.(h|c|cpp|inc|frag|vert|py|sh|mk|cmake|cfg)$|CMakeLists\.txt$|(^|/)Makefile$' "$LIST" | grep -v '^third_party/' | tr '\n' '\0' | xargs -0 grep -LiE 'SPDX-License-Identifier:|^// license:' 2>/dev/null || true)"
+check "third_party/ holds only what the notices list" "$(grep '^third_party/' "$LIST" | while read -r f; do grep -qF "\`$f\`" THIRD_PARTY_NOTICES.md || echo "$f"; done)"
 check "the README and the notices are there" "$(for f in README.md LICENSE THIRD_PARTY_NOTICES.md CONTRIBUTING.md CODE_OF_CONDUCT.md SECURITY.md CHANGELOG.md VERSION; do [ -f "$f" ] || echo "missing: $f"; done)"
 [ "$fail" = 0 ] || { echo "audit failed"; exit 1; }
 echo "audit passed ($(wc -l < "$LIST" | tr -d ' ') files)"

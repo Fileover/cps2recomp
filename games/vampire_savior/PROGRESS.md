@@ -474,6 +474,18 @@ rewrites beside the game's code, none differ); with the feature, each of the thr
 players in training, and the endless battle's fighters (Dark Gallon against Oboro), in pictures. Not
 played by hand; Shadow's change of character through a one-player game not run.
 
+## Custom soundtrack (2026-10-16)
+
+The toolkit's custom soundtrack (machine/soundtrack.h) with the game's music named in `src/music.cpp`. The sound
+program (driver 1.30) keeps its table of songs at 9000 (a word, 0x6D8 songs; song 0's entry at 9006, four bytes a
+song). Music is 80 pieces: the stages 09-14 (kStageTune), the QSound logo 55, the Capcom logo 57, the opening 01,
+character select 02, between a win and the next versus 03, versus 05, continue 06, game over 07, ranking 08, the
+staff roll 45, the rival 47, Jedah's appearance E2; each character's win screen 15 + their number, and ending 25 +
+their number (Q-Bee's 31 and Lei-Lei's 32 by that order: their ladders, with the byte held, showed no ending).
+Found with CPS2RECOMP_SOUNDTRACK_LOG over the ladder movie with player 1's character held (`--poke 8782=NN`),
+attract mode and a lost game. Not placed yet: 04, 35-3F, 42-44, 46, 4E-54, 478. The game sends FF07 (music down to
+silence at once) before most songs and FF06 (up again over about two seconds) after some; both are followed.
+
 ## Release readiness (audit of 2026-10-12)
 
 - A release's game program holds the translated code, as Muscle March's does (the owner's decision,
