@@ -133,10 +133,11 @@ void RegisterPortFeatures() {
     // (custom_soundtrack: soundtrack.h; for a game whose sources say where its sound program's songs are)
     if (TheGame().songCount) {
         TheGame().features.push_back({"custom_soundtrack", "Sound", "Custom soundtrack",
-                                      "Plays your own music files (an arranged soundtrack, say) in place of the board's music, "
-                                      "for the songs you have a file for; the sound effects and voices are the board's. The "
-                                      "files go in the folder the launcher's game page chooses (songs.txt there names them).",
-                                      kFeatureEnhanced});
+                                      "Plays your own music files in place of the board's music; the sound effects and voices are "
+                                      "the board's. Files named for the game's songs (songs.txt in the folder lists them) replace "
+                                      "those songs; a folder of any other music plays as a playlist, one file after another. The "
+                                      "folder is chosen on the launcher's game page. Shuffled: the playlist in a random order.",
+                                      kFeatureEnhanced, {"Off", "On", "On, shuffled"}});
     }
 }
 
@@ -236,10 +237,12 @@ std::string Port::SoundtrackFolder() const {
 }
 
 void Port::SoundtrackFollow() {
-    const bool on = TheGame().songCount && FeatureOn("custom_soundtrack");
-    if (on == soundtrackOn) {
+    const int value = TheGame().songCount ? FeatureValue("custom_soundtrack") : 0;
+    const bool on = value > 0;
+    if (value == soundtrackValue) {
         return;
     }
+    soundtrackValue = value;
     soundtrackOn = on;
     if (!on) {
         machine->soundtrack.Replace({});
@@ -258,16 +261,17 @@ void Port::SoundtrackFollow() {
     }
     if (std::filesystem::is_directory(dir, error)) {
         const std::string list = "The songs of " GAME_NAME " a custom soundtrack can play: name the file as the first column (or\n"
-                                 "the number, the second), with .ogg, .flac, .mp3 or .wav; or name it in soundtrack.ini.\n\n" +
+                                 "the number, the second), with .ogg, .flac, .mp3 or .wav; or name it in soundtrack.ini.\n"
+                                 "(With no file named for a song, the folder's files play as a playlist instead.)\n\n" +
                                  SongList(machine->soundtrack);
         std::vector<uint8_t> have;
         if (!ReadFile(PathText(dir / "songs.txt"), have) || std::string(have.begin(), have.end()) != list) {
             WriteFile(PathText(dir / "songs.txt"), list.data(), list.size());
         }
     }
-    const int found = soundtrack.Open(folder, machine->soundtrack);
+    const int found = soundtrack.Open(folder, machine->soundtrack, value == 2);
     if (opt.stats || getenv("CPS2RECOMP_SOUNDTRACK_LOG")) {
-        fprintf(stderr, "soundtrack: %d songs from %s\n", found, folder.c_str());
+        fprintf(stderr, "soundtrack: %d %s from %s\n", found, soundtrack.IsPlaylist() ? "files as a playlist" : "songs", folder.c_str());
     }
 }
 
