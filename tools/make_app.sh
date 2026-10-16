@@ -2,32 +2,49 @@
 # SPDX-License-Identifier: GPL-3.0-only
 # Copyright (C) 2026 Tommy McLeroy. Part of cps2recomp.
 #
-# Builds a macOS app bundle from the launcher and the port: make_app.sh GAME
-# The bundle holds the launcher (what opens), the game program and SDL3. No game data: the player
-# points the launcher at their own ROM set. The game program does contain code translated
-# from the game: whether a bundle is given to others is the port owner's decision.
+# Builds a macOS app bundle from the launcher and the port: make_app.sh GAME, or make_app.sh --collection
+# (the collection's launcher with every game built beside it in build/collection: make collection-app).
+# The bundle holds the launcher (what opens), the game programs and SDL3. No game data: the player
+# points the launcher at their own ROM sets. A game program does contain code translated
+# from the game: whether a bundle is given to others is the port owner's decision. (A release's app is
+# made by tools/release/macos.sh, with SDL built in.)
 set -e
-GAME=$1
-B=${B:-build/$GAME}
 CFG="python3 $(dirname "$0")/gamecfg.py"
-NAME=$($CFG name "$GAME")
-APP_ID=$($CFG app_id "$GAME")
+if [ "$1" = "--collection" ]; then
+    B=${B:-build/collection}
+    NAME="CPS-2 Recomp"
+    APP_ID=io.github.tmcleroy.cps2recomp
+    LAUNCHER=cps2recomp-launcher
+    PROGRAMS=$(cd "$B" && for cfg in ../../games/*/game.cfg; do g=$(basename "$(dirname "$cfg")"); [ -f "$g" ] && echo "$g"; done)
+else
+    GAME=$1
+    B=${B:-build/$GAME}
+    NAME=$($CFG name "$GAME")
+    APP_ID=$($CFG app_id "$GAME")
+    LAUNCHER=$GAME-launcher
+    PROGRAMS=$GAME
+fi
 APP="$B/$NAME.app"
 
 # (nothing to do when the bundle is newer than both programs and this script: `make` asks for it every time)
 IN="$APP/Contents/MacOS"
-if [ -z "$FORCE" ] && [ -f "$APP/Contents/Info.plist" ] && [ "$IN/$GAME" -nt "$B/$GAME" ] && [ "$IN/$GAME-launcher" -nt "$B/$GAME-launcher" ] &&
-    [ "$IN/$GAME" -nt "$0" ]; then
+fresh=1
+for exe in $PROGRAMS $LAUNCHER; do
+    { [ -f "$IN/$exe" ] && [ "$IN/$exe" -nt "$B/$exe" ] && [ "$IN/$exe" -nt "$0" ]; } || fresh=""
+done
+if [ -z "$FORCE" ] && [ -f "$APP/Contents/Info.plist" ] && [ -n "$fresh" ]; then
     echo "$APP is up to date"
     exit 0
 fi
 
 rm -rf "$APP"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Frameworks" "$APP/Contents/Resources"
-cp "$B/$GAME-launcher" "$B/$GAME" "$APP/Contents/MacOS/"
+for exe in $LAUNCHER $PROGRAMS; do
+    cp "$B/$exe" "$APP/Contents/MacOS/"
+done
 
 # SDL3 from Homebrew, carried inside the bundle
-for exe in "$APP/Contents/MacOS/$GAME-launcher" "$APP/Contents/MacOS/$GAME"; do
+for exe in "$APP/Contents/MacOS/"*; do
     otool -L "$exe" | awk '/libSDL3/ {print $1}' | while read -r lib; do
         base=$(basename "$lib")
         if [ ! -f "$APP/Contents/Frameworks/$base" ]; then
@@ -47,7 +64,7 @@ cat > "$APP/Contents/Info.plist" <<PLIST
     <key>CFBundleName</key><string>$NAME</string>
     <key>CFBundleDisplayName</key><string>$NAME</string>
     <key>CFBundleIdentifier</key><string>$APP_ID</string>
-    <key>CFBundleExecutable</key><string>$GAME-launcher</string>
+    <key>CFBundleExecutable</key><string>$LAUNCHER</string>
     <key>CFBundlePackageType</key><string>APPL</string>
     <key>CFBundleShortVersionString</key><string>0.1</string>
     <key>CFBundleVersion</key><string>1</string>
