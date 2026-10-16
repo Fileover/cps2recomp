@@ -1,157 +1,184 @@
-# cps2recomp
+# CPS-2 Recomp
 
 [![CI](https://github.com/tmcleroy/cps2recomp/actions/workflows/ci.yml/badge.svg)](https://github.com/tmcleroy/cps2recomp/actions/workflows/ci.yml)
-[![Release](https://img.shields.io/github/v/release/tmcleroy/cps2recomp)](https://github.com/tmcleroy/cps2recomp/releases)
+[![Release](https://img.shields.io/github/v/release/tmcleroy/cps2recomp?include_prereleases)](https://github.com/tmcleroy/cps2recomp/releases)
 [![License: GPL-3.0](https://img.shields.io/badge/license-GPL--3.0-blue)](LICENSE)
 
-**A toolkit for making native PC ports of Capcom CPS-2 arcade games by static recompilation.** A
-game's 68000 program is translated to C++ ahead of time and compiled into the port. There it runs on
-a small machine written for this toolkit: the video, the QSound chip, the sound CPU (with its driver
-translated too, or rewritten as ordinary code), the board's registers and its settings memory. No
-emulator is part of a port, and no game data is in this repository or in a game's.
+**Unofficial native PC ports of Capcom's CPS-2 arcade games, for macOS, Linux (Steam Deck included) and
+Windows, in one download with one launcher.** Each game's program is translated ahead of time into C++ and
+runs on a machine written for this project, not an emulator, and each has a training mode, which no release
+of these games has ever had.
 
-> cps2recomp is not affiliated with or endorsed by Capcom. "Capcom", "CPS-2" and "QSound" are names
-> and trademarks of their owners, used here only to say what the toolkit works with. **No game is
-> included**: a port needs the ROM set of a board its player owns.
+**[Get started: download it and play →](#playing)**
 
-## Ports made with cps2recomp
+> **Beta.** Every game plays from start to ending and its code is checked instruction by instruction, but they
+> have been played on few machines and controllers yet. Expect rough edges, and please
+> [report what you find](#feedback-and-contributing).
 
-| Port | Game | What it adds |
+**No game files are included.** You need your own copy of each game: its arcade ROM set with its key file,
+from a board you own. **Only the version named below works for each game.** This project cannot help you get
+one.
+
+This project is not affiliated with, endorsed by, or sponsored by Capcom. *Street Fighter*, *Super Puzzle
+Fighter*, *Vampire Savior* and *Darkstalkers* are trademarks of Capcom Co., Ltd.; "CPS-2" and "QSound" are names
+and trademarks of their owners, used here only to say what the programs work with.
+
+![The launcher: every game whose ROM set you have, ready to play](docs/screenshots/launcher-games.png)
+
+## The games
+
+| Game | ROM set | What it adds |
 | --- | --- | --- |
-| [**Vampire Savior Recomp**](https://github.com/tmcleroy/vampire-savior-recomp) ([download](https://github.com/tmcleroy/vampire-savior-recomp/releases)) | *Vampire Savior: The Lord of Vampire* (Capcom, 1997) | A full training mode (hit boxes, frame data and a frame meter, input display, a dummy that records, replays and guards), widescreen, free play, save states, key and button remapping. macOS, Linux (Steam Deck included) and Windows |
+| [**Street Fighter Alpha 2**](games/sfa2/README.md) (1996) | `sfa2u` (USA 960430) | A full training mode (hit and throw boxes, frame data and a frame meter, combo, stun and Custom Combo readouts, input display, a dummy that records, replays, guards and answers), widescreen, survival, ring out, endless battle, the stage and model viewers, the hidden characters, custom colours |
+| [**Super Puzzle Fighter II Turbo**](games/puzzle_fighter/README.md) (1996) | `spf2t` (Europe 960529) | A training mode (attack readout, landing guide, input display, a dummy that sends counter gems to cancel, crash gems as you choose), CPU battle, the hidden characters at a kick, custom colours for the characters and the gems |
+| [**Vampire Savior: The Lord of Vampire**](games/vampire_savior/README.md) (1997) | `vsavj` (Japan 970519) | A full training mode (hit boxes, frame data and a frame meter, input display, a dummy that records, replays and guards), widescreen, survival, ring out, endless battle, the stage and model viewers, the hidden characters, custom colours |
 
-[![Vampire Savior Recomp's training mode: hit boxes, input display, frame data and the frame meter](https://raw.githubusercontent.com/tmcleroy/vampire-savior-recomp/main/docs/screenshots/training.png)](https://github.com/tmcleroy/vampire-savior-recomp)
+| | | |
+| --- | --- | --- |
+| [![Street Fighter Alpha 2: training mode](docs/screenshots/sfa2/training.png)](games/sfa2/README.md) | [![Super Puzzle Fighter II Turbo: training mode](docs/screenshots/puzzle_fighter/training.png)](games/puzzle_fighter/README.md) | [![Vampire Savior: training mode](docs/screenshots/vampire_savior/training.png)](games/vampire_savior/README.md) |
 
-To play, download a port, not this toolkit. This repository is for people making or working on
-ports.
+Each game's page has all it does, with pictures.
 
-## What a port gets from it
+## Every game has
 
-- **Translation ahead of time.** `tools/recomp.py` turns the game's 68000 program into C++, and
-  `tools/recompz80.py` does the same for the sound CPU's. The code is found by reading the program
-  and by made-up play (`tools/explore.sh`). Code it has not found yet runs in an interpreter, and is
-  counted, so that the count can be driven to zero.
-- **A machine of its own, not an emulator.** The 68000, the bus, interrupts and timing, the settings
-  EEPROM, the ROM set and its cipher (`machine/`), the picture (`video/`), and the Z80 and QSound
-  (`sound/`). Capcom's sound driver, version 2.01b, is also there as ordinary C++ (`sound/driver.cpp`),
-  used in place of the Z80 for games that have that version.
-- **A native picture.** SDL's GPU API (Metal, Vulkan or Direct3D 12), with SDL's renderer where
-  there is no GPU device, and a wider picture (up to 16:9) for games whose sources ask for it. The
-  Display page lets players choose how it fits the window: sharp, whole pixels or smooth; 4:3, square
-  pixels or the whole screen; and the window's size.
-- **Readable rewrites, with proof.** A game's routines can be rewritten by hand as ordinary C++. A
-  checker runs the original and the rewrite on every call and compares memory, registers, timing and,
-  when asked, video RAM ([docs/READABLE.md](docs/READABLE.md)).
-- **A training mode's parts.** `fight/` has what fighting games share: frame data and a frame meter,
-  a log of every move, the input display in numpad notation, the combo readout, a dummy that stands,
-  crouches, jumps, guards, records and replays, and hit boxes drawn through the game's camera. A
-  game's sources only say, from its own memory, what the players are doing
-  ([docs/FIGHT.md](docs/FIGHT.md)).
-- **Players' own colours.** Text files a character, or a ROM file changed with PalMod, recolour the
-  characters, and a colour editor in the model viewer makes them; a game only says where its colours
-  are (`fight/colours.h`).
-- **Features players expect.** Save states, run-ahead (a press seen a frame or two sooner, with the
-  game running exactly as without it), speed, pause and frame advance, slow motion, cheats and
-  options a game declares once, and the in-game menu and launcher the recomp ports share
-  ([recomp-common](https://github.com/tmcleroy/recomp-common); [docs/FEATURES.md](docs/FEATURES.md)).
-  Every change to how a game plays is opt-in: with all features off, the game runs as the board.
-- **Checks at every step.** Translated code is checked against the interpreter, the sound driver's
-  every chip write against the Z80's, and runs of the same input movie must give the same per-frame
-  hashes ([docs/VERIFYING.md](docs/VERIFYING.md)).
-- **macOS, Linux (Steam Deck included) and Windows** through SDL 3. CI builds and starts the toolkit
-  on all three.
+- **Keyboard, gamepad or arcade stick**, with every key and button changeable, for each player, once for all
+  the games (the launcher's Controllers page).
+- **An in-game menu** (Esc or `F1`; on a gamepad, the left stick's click or Start and Select together): the
+  game's modes, save states, speed, pause and frame advance, cheats, and every feature.
+- **Pure or Enhanced.** Pure plays exactly as the board does. Enhanced (the default) adds free play and your
+  own colours. Every other feature is a switch of its own, off unless you choose it.
+- **Run-ahead**: what you press seen a frame or two sooner than on the board, with the game running exactly as
+  without it.
+- **The picture your way**: sharp, whole pixels or smooth; 4:3, square pixels or the whole screen; full screen
+  or a window of the size you choose; widescreen in the fighting games.
+- **The board's operator settings** (difficulty, damage, timer speed, game speed, rounds and the rest), each as
+  the board is set unless you choose, and the game's own test menu.
+- **Straight to the title**: at a start or a reset, everything before the title runs unseen.
+- **Your ROM sets are only ever read.** Settings, save states and each board's settings memory go in your own
+  user folder.
 
-## Trying it with no game
+![The Features page: what the games share, set for all of them at once](docs/screenshots/launcher-features.png)
 
-`make check` needs no game. It audits the files (`tools/audit.sh`: nothing from a game, no keys, no
-personal paths), checks the copy of recomp-common, builds the program with no translated code and
-the launcher for the stand-in game in `example/`, starts both, and tries `sync-toolkit.sh`.
+## Playing
 
-```sh
-git clone https://github.com/tmcleroy/cps2recomp
-cd cps2recomp
-make check
-```
+1. Download the build for your system from the [releases page](https://github.com/tmcleroy/cps2recomp/releases)
+   and unpack it.
+2. Open the launcher (`CPS-2 Recomp.app`, `cps2recomp-launcher`). On its Games page, **Choose folder…** and pick
+   the folder you keep your ROM sets in: it finds each game's by the set's name (`sfa2u.zip`, `spf2t.zip`,
+   `vsavj.zip`, or a folder of the set's files). Or drop a set, or the folder, on the window, or choose each
+   game's set on its own. They stay where they are.
+3. Press **Play** beside a game.
 
-You need a C++20 compiler (Clang, GCC or MinGW-w64), CMake, Ninja, Python 3, zlib and SDL 3. On
-macOS that is `brew install cmake ninja sdl3`. [CONTRIBUTING.md](CONTRIBUTING.md) has the rest, and
-`.github/workflows/ci.yml` shows exactly what each system installs.
+Each game you have a ROM set for gets a page of its own in the sidebar: its Display switches (full screen,
+widescreen), Play, and the features only it has. The **Features** page has what the games share (free play,
+cheats, run-ahead, the picture, training mode's displays and the dummy, and the rest), set for every game at
+once; a feature changed in a game's own menu is set for the others too when you leave the game. The
+**Controllers** page sets the keys and buttons for all of them.
 
-## How a game uses it
+While playing, Esc or `F1` (on a gamepad, the left stick's click, or Start and Select together) opens the
+in-game menu. Only the menu's "Quit game" row (or closing the window) ends the game.
 
-A game is its own repository:
+macOS: the app is not notarized, so the first time, right-click it and choose Open.
+Linux: unpack the archive anywhere and run `cps2recomp-launcher`.
+Windows: run `cps2recomp-launcher.exe`. Opening a game's own program (`sfa2.exe`, say) starts the launcher too,
+at that game's page (or straight into the game once its ROM set has been chosen).
 
-```
-cps2recomp/     a copy of this repository, made by cps2recomp/tools/sync-toolkit.sh (never changed there)
-games/<id>/     game.cfg (the ROM set's files and checksums), src/ (names, features, rewrites), movies/
-Makefile        GAME ?= <id>;  CR ?= cps2recomp;  include $(CR)/build.mk
-```
-
-`build.mk` has the targets (`make`, `make explore`, `make check`, `make check-blocks`,
-`make check-rewrites`, `make launcher`, `make app`). The checks run `make check-toolkit`, which
-fails if the game's copy of the toolkit is not what `sync-toolkit.sh` recorded. `example/` is a game
-repository with no game in it, and
-[Vampire Savior Recomp](https://github.com/tmcleroy/vampire-savior-recomp) is a complete one: start
-from either.
-
-The player's ROM set is only read. The program is deciphered with the set's own key file, as the
-board does when it starts; no key is in this repository or in a game's.
-
-## Working on the toolkit
-
-Change it here, never in a game's copy. Build and check a game against this clone from the game's
-repository:
+### From a terminal
 
 ```sh
-make CR=../cps2recomp
-make CR=../cps2recomp check
+cps2recomp-launcher --play sfa2                 # straight into a game, as the launcher has it set
+cps2recomp-launcher --play sfa2 -- --features widescreen,no_damage
+                                                # with more arguments for the game, after the launcher's own
+cps2recomp-launcher --page vampire_savior       # the launcher, at a game's page
+sfa2 --rom ~/roms/sfa2u.zip --settings my.ini   # a game's own program (beside the launcher), by itself
+sfa2 --help                                     # what a game's program takes
 ```
 
-Such a build goes to `build/<id>-dev`, apart from the game's usual one (the check scripts follow:
-`B=build/<id>-dev`). Commit here, then in each game: `cps2recomp/tools/sync-toolkit.sh`, run the
-game's checks, commit. Anything about one game belongs in that game's `game.cfg` or `src/`, not here.
+The games' ids are `sfa2`, `puzzle_fighter` and `vampire_savior`. `--features` may be given more than once, and
+a later one wins.
 
-## Repository layout
+### Coming from a game's own download
 
-| Path | What |
-| --- | --- |
-| `tools/` | The translators (`recomp.py`, `m68k.py`; `recompz80.py`, `z80.py`), `gamecfg.py`, the checks (`check.sh`, `check_sound.sh`, `at-once.sh`), finding a game's code by made-up play (`explore.sh`), reading the listing (`lst.py`, `tracechanges.py`, `ramfind.py`), `gen_shaders.py`, `sync-toolkit.sh`, `sync-common.sh`, `audit.sh` |
-| `runtime/` | What translated code is written in terms of; hooks and readable rewrites (`lift.h`); features and settings (`game.h`); save states (`state.h`); spare machines a game's modes run beside the port's (`spare.h`) |
-| `machine/` | The 68000, bus, interrupts, timing, settings EEPROM, ROM set and cipher |
-| `video/`, `sound/` | The picture; the Z80 and QSound; Capcom's sound driver (version 2.01b) as ordinary code (`driver.cpp`) |
-| `port/` | The frontend (SDL 3), putting the picture on the screen (`present.*`; shaders in `shaders/`, compiled into `shaders.inc` by `tools/gen_shaders.py`), the in-game menu adapter, the HUD, control bindings |
-| `fight/` | What a fighting game's training mode has in common, and the players' own colours ([docs/FIGHT.md](docs/FIGHT.md)) |
-| `recomp-common/` | A copy of [recomp-common](https://github.com/tmcleroy/recomp-common) (the in-game menu, the settings rules, the launcher), made by `tools/sync-common.sh`; never changed here |
-| `launcher/` | What this toolkit tells the shared launcher (`recomp-common/launcher`; SDL 3 + Dear ImGui): `src/description.cpp` has the words for a ROM set, the check of the player's, the game's arguments and the buttons that can be chosen |
-| `example/` | A stand-in for a game's repository, with no game: what `make check` here builds |
-| `docs/` | `VERIFYING.md`, `READABLE.md`, `FEATURES.md`, `FIGHT.md` |
+Earlier releases came one game at a time (Street Fighter Alpha 2 Recomp, Vampire Savior Recomp). This launcher
+keeps each game's settings, save states and board memory in the same folder as before, and takes the ROM set you
+chose in a game's own launcher, so everything carries on. A game's own release still works.
 
-A game's copy leaves out this repository's own checks, the stand-in game and the project pages
-(`.gitattributes`).
+### Steam Deck
+
+1. Hold the power button and choose **Switch to Desktop**.
+2. Download `CPS2Recomp-linux-x86_64.tar.gz` from the [releases page](https://github.com/tmcleroy/cps2recomp/releases).
+   In the file manager (Dolphin), right-click it and choose **Extract → Extract archive here**, then move the
+   `CPS2Recomp` folder where it can stay (for example a new `Applications` folder in your home folder). If you
+   move it later, do step 5 again.
+3. Copy your ROM sets onto the Deck into one folder, for example from a USB stick or the SD card.
+4. In the `CPS2Recomp` folder, open `cps2recomp-launcher`; on its Games page, **Choose folder…** and pick that
+   folder.
+5. On each game's page, press **Add to Steam**. It adds the game to your library (straight into it), and the
+   first time also **CPS-2 Recomp** (the launcher: ROM sets, features and controls).
+6. Go back to Gaming Mode with the **Return to Gaming Mode** icon on the desktop. They are in your Library under
+   **Non-Steam**.
+
+In a game, click the left stick, or press View and Menu together (the two buttons either side of the screen's
+top), to open the in-game menu; its "Quit game" row ends the game.
+
+## What you need
+
+- The ROM set of each game you want to play, with its key file: `sfa2u` (*Street Fighter Alpha 2*, USA 960430),
+  `spf2t` (*Super Puzzle Fighter II Turbo*, Europe 960529), `vsavj` (*Vampire Savior: The Lord of Vampire*,
+  Japan 970519). As a zip (with its parent set's zip beside it if your collection keeps the shared files there)
+  or a folder of the set's files. The launcher checks every file by checksum and tells you which is missing or
+  different. Sets of other regions and revisions are refused: each port is made from that one version's
+  program, and its features use addresses found in it.
+- One of: macOS 13 or later (Apple silicon or Intel); Linux x86_64 or SteamOS; Windows 10 or 11, 64-bit.
+- A gamepad or stick (six buttons for the fighting games) is recommended.
+
+## How it works
+
+Each game's 68000 program is translated ahead of time into C++ and compiled into that game's program, and the
+parts its features touch are rewritten by hand as readable C++, each checked call by call against the game's
+own code. What the program expects of the board (its video, the QSound chip, the sound CPU and its registers,
+the settings memory) is code written for this project, not an emulator. The [toolkit](docs/TOOLKIT.md) is shared
+by every game, so a fix or a feature there reaches all of them; each game's page says how its port works.
+
+## Building from source
+
+With your own ROM sets in `rom/<id>/` (ignored by Git), CMake, Ninja, SDL 3 and Python 3:
+
+```sh
+make GAME=sfa2              # twice the first time
+make GAME=sfa2 explore      # once, about ten minutes: finds the game's code by made-up play and translates it
+make collection             # every game whose ROM set is here, and the launcher for all of them
+```
+
+[docs/BUILDING.md](docs/BUILDING.md) has every platform, the checks and the release builds, and
+[docs/TOOLKIT.md](docs/TOOLKIT.md) how the toolkit works and how a game is added. `make check` needs no game.
+
+## Feedback and contributing
+
+Bug reports and pull requests are welcome: see [CONTRIBUTING.md](CONTRIBUTING.md) for the rules (above all:
+nothing from any game, ever, and never a key) and each game's roadmap for what is next. Security reports go by
+[SECURITY.md](SECURITY.md).
 
 ## Related projects
 
 | Project | What |
 | --- | --- |
 | [satrecomp](https://github.com/tmcleroy/satrecomp) | The same kind of toolkit for Sega Saturn games |
-| [recomp-common](https://github.com/tmcleroy/recomp-common) | The in-game menu, settings rules and launcher this toolkit and satrecomp share |
+| [recomp-common](https://github.com/tmcleroy/recomp-common) | The in-game menu, settings rules and launcher this project and satrecomp share |
 | [Muscle March Recomp](https://github.com/tmcleroy/muscle-march-recomp) | A native port of *Muscle March* (WiiWare), by the same author |
 | [doaxvb-re](https://github.com/NoRain211/doaxvb-re) | A native Windows port of *Dead or Alive Xtreme Beach Volleyball* (Xbox), by NoRain211; not made with these toolkits |
-
-## Contributing
-
-Bug reports and pull requests are welcome: see [CONTRIBUTING.md](CONTRIBUTING.md). The hard rules:
-nothing from any game, never a key or a tool that writes one, nothing from leaked material, and no
-emulator's code beyond what the notices list. Security reports go by [SECURITY.md](SECURITY.md).
 
 ## License and credits
 
 [GPL-3.0-only](LICENSE). [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) has the notices in full.
 
-- The program cipher (`machine/cps2crypt.*`) is MAME's (BSD-3-Clause; its header says so), worked
-  out by Andreas Naive and Nicola Salmoria. The QSound model follows MAME's.
+- The program cipher (`machine/cps2crypt.*`) is MAME's (BSD-3-Clause; its header says so), worked out by
+  Andreas Naive and Nicola Salmoria. The QSound model follows MAME's high-level one (superctr, Valley Bell), and
+  the hardware facts follow MAME's CPS-2 driver.
 - The launcher's look, and the files that make it, come from the launcher of
-  [wiiparty-recomp](https://github.com/arelkair/wiiparty-recomp) by arelkair (GPL-3.0-or-later). They
-  are in `recomp-common/launcher/`, with the notices in recomp-common's `THIRD_PARTY_NOTICES.md`.
-- The launcher's build downloads SDL 3 (zlib license), Dear ImGui (MIT) and the Inter font (SIL OFL
-  1.1, compiled into the program). A launcher given out as a binary must carry those three licenses.
+  [wiiparty-recomp](https://github.com/arelkair/wiiparty-recomp) by arelkair (GPL-3.0-or-later). They are in
+  `recomp-common/launcher/`, with the notices in recomp-common's `THIRD_PARTY_NOTICES.md`.
+- The programs use SDL 3 (zlib license), Dear ImGui (MIT) and the Inter font (SIL OFL 1.1, compiled into the
+  launcher); the release archives carry their licenses.
+
+The repository holds no game data and nothing derived from it.

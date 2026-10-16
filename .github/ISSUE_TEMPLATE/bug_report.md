@@ -1,21 +1,19 @@
 ---
 name: Bug report
-about: Something in the toolkit doesn't build, crashes, or does the wrong thing
+about: A game works differently from the arcade board, or something does not work or build
 labels: bug
 ---
 
-**What happened, and what did you expect?**
+**What happened, and what you expected**
 
-**How to make it happen again** (which game's repository, which command):
+**How to make it happen**
+Steps, or an input movie made with `--record FILE` (it holds only what was pressed).
 
-**System**
-- OS and version:
-- CPU / GPU:
-- Toolkit commit:
+**Details**
+- Game (or the launcher, or the toolkit):
+- Release version or commit:
+- System (OS and version, CPU, GPU):
+- Controller or stick:
+- Features: Pure, Enhanced, or the ones switched on:
 
-**What was printed:**
-
-```
-```
-
-Please don't attach game files, ROMs, keys, save states, entry lists or generated code.
+Please do not attach ROM sets, key files, save states or anything else from the game.

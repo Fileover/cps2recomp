@@ -1,17 +1,19 @@
 # Contributing
 
-Thanks for helping! cps2recomp is the toolkit the CPS-2 ports are built with; a change here reaches
-every game that takes a copy of it.
+Thanks for helping! This repository is CPS-2 Recomp: the toolkit, the launcher, and every game ported with
+them (`games/<id>/`). A change to the toolkit reaches every game at once.
 
 ## The rules that keep this project legal
 
 These aren't negotiable; pull requests that break them are closed.
 
 1. **Never add anything from a game.** No ROM or part of one, no extracted graphics, sounds or text,
-   no settings memory, save states, RAM dumps, video or screenshots, and nothing generated from a
-   game: generated C++ (`gen/`), entry lists (`entries.txt`), disassembly listings, input movies.
-   The only "game" here is the stand-in in `example/`, which has no ROM set. The same goes for
-   issues: attach logs, not game files.
+   no settings memory, save states, RAM dumps or video, and nothing generated from a game: generated
+   C++ (`gen/`), entry lists (`entries.txt`), disassembly listings. What a game's folder may hold is its
+   own code, its `game.cfg` (the ROM set's file names and checksums), notes found by playing and
+   watching memory, and input movies (text: which buttons were held on which frame). The README's
+   pictures of the games are made by the programs and kept few. The same goes for issues: attach
+   logs, not game files.
 2. **Never add a key**, a key file, key values, or a tool that writes key files; and never point to
    where ROM sets or keys can be found.
 3. **Nothing from leaked material**: no leaked source, and no names taken from it.
@@ -23,32 +25,35 @@ These aren't negotiable; pull requests that break them are closed.
 
 ## Where things go
 
-Nothing here may be about one game: no addresses, names or special cases of a game's. What a game
-needs that others do not goes in that game's `game.cfg` or its own sources (`games/<id>/src` in its
-repository), through the hooks in `runtime/lift.h` and `runtime/game.h`.
+The toolkit (everything outside `games/`) may not be about one game: no addresses, names or special cases
+of a game's. What a game needs that others do not goes in that game's `game.cfg` or its own sources
+(`games/<id>/src`), through the hooks in `runtime/lift.h` and `runtime/game.h`. A feature every game can have
+belongs in the toolkit; the launcher shows a feature that more than one game has, under the same name and
+with the same choices, once for all of them (a game marks one that must stay its own: `OwnFeatures`).
 
 `recomp-common/` is a copy of another repository and is never changed here: changes go to
 [recomp-common](https://github.com/tmcleroy/recomp-common), then `tools/sync-common.sh`.
 
 ## Building and testing
 
-`make check` here needs no game: it audits the files (`tools/audit.sh`), checks the copy of
-recomp-common, builds the program with no translated code and the launcher for the stand-in game in
-`example/`, starts both, and tries `tools/sync-toolkit.sh`. CI runs the same on macOS, Linux and
-Windows.
+`make check` needs no game: it audits the files (`tools/audit.sh`), checks the copy of recomp-common,
+builds the program with no translated code and the launcher for the stand-in game in `example/`, and
+starts both. CI builds and starts every game's program (with no translated code) and the collection's
+launcher on macOS, Linux and Windows. [docs/BUILDING.md](docs/BUILDING.md) has the rest.
 
-A change to the translators, the machine, the picture or the sound needs a game as well, which only
-someone with its ROM set can run. From the game's repository, against your clone of this one
-(`make CR=../cps2recomp`, see [README.md](README.md)):
+A change to the translators, the machine, the picture, the sound or a game's code needs the games as well,
+which only someone with their ROM sets can run (`rom/<id>/`):
 
-- `make CR=../cps2recomp check`: the interpreter and the translated code must give the same state
-  after every frame, and two runs must be alike;
-- `make CR=../cps2recomp check-rewrites`: every hand-written routine of the game against the code
-  it replaces; `check-sound`: the sound driver against the game's sound program;
-- with every feature off the game must run exactly as before: the same movie must give the same
-  hashes (`--movie`, `--hash-log`).
+- `make GAME=<id> check FRAMES=40000 MOVIE=games/<id>/movies/ladder.txt`: the interpreter and the translated
+  code must give the same state after every frame, and two runs must be alike;
+- `make GAME=<id> check-rewrites`: every hand-written routine of the game against the code it replaces;
+  `check-blocks`: every translated block beside the interpreter; `check-sound`: the sound driver against the
+  game's sound program;
+- with every feature off a game must run exactly as before: the same movie must give the same hashes
+  (`--movie`, `--hash-log`).
 
-Say in the pull request which game it was checked with. Nothing may add input lag or slow a game
+A toolkit change is checked with every game, a game's change with that game. Say in the pull request which
+were run. Nothing may add input lag or slow a game
 down: measure when in doubt. Both the keyboard and gamepads must keep working.
 
 ## Code style

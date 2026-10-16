@@ -11,7 +11,7 @@
 # (default ":400": from frame 400, both players; ":400:1": one player, so that it goes up the arcade ladder).
 # Cheats help it get far: --features free_play,no_damage,one_hit
 GAME=${GAME:-vampire_savior}
-ROM=${ROM:-rom}
+ROM=${ROM:-rom/$GAME}
 first=$1; runs=$2; frames=$3; shift 3
 work=work/$GAME
 port=${B:-build/$GAME}/$GAME

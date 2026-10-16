@@ -19,6 +19,12 @@ if (FeatureOn("free_play")) { ... }
 `kFeatureEnhanced` puts a feature in the launcher's Enhanced preset; `kFeatureExclusive` allows one
 of its category at a time. `--list-features` prints them all (the launcher reads that).
 
+The collection's launcher shows a feature that more than one game has, under the same name and with the
+same choices, once on its Features page and sets it for every game; the rest are on each game's page. So a
+feature every game can have keeps one name and one list of choices everywhere. A game marks a feature of
+its own that only shares a name with another game's (a record, an animation's number) with `OwnFeatures`
+(`kFeatureOwn`): it stays on that game's page.
+
 A feature can be a choice of several things instead of on or off (`choices` in its entry; the first
 means off; `FeatureValue` gives the number chosen; `--features name=2`), can last for one run only
 (`kFeatureSession`: not kept in settings.ini, off again at Reset), and the menu shows each category
