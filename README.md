@@ -67,7 +67,7 @@ Each game's page has all it does, with pictures.
    the folder you keep your ROM sets in: it finds each game's by the set's name (`sfa2u.zip`, `spf2t.zip`,
    `vsavj.zip`, or a folder of the set's files). Or drop a set, or the folder, on the window, or choose each
    game's set on its own. They stay where they are.
-3. Press **Play** beside a game.
+3. Press **Play** beside a game. Several games can run at once, each in its own window.
 
 Each game you have a ROM set for gets a page of its own in the sidebar: its Display switches (full screen,
 widescreen), Play, and the features only it has. The **Features** page has what the games share (free play,
