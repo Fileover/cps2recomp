@@ -1,23 +1,29 @@
 # SPDX-License-Identifier: GPL-3.0-only
 # Copyright (C) 2026 Tommy McLeroy. Part of cps2recomp.
-# Checks every push and pull request without a game: nothing from a game can be in the repository.
-# It audits the files (tools/audit.sh) and builds, on macOS, Linux and Windows, the program with no
-# translated code (the machine, the interpreters, the picture) and the launcher for the stand-in
-# game in example/, starts both, and tries tools/sync-toolkit.sh (tools/ci_smoke.sh).
-# The checks that play a game need its ROM set: they are run from the game's repository.
+# Every push and pull request, without any game: nothing from a game can be in the repository, so CI cannot
+# build what a release holds (a game's program translated to C++ needs its ROM set). It audits the files
+# (tools/audit.sh) and proves that everything compiles, packs and starts on each system: the collection as a
+# release has it (tools/release/), with every game's program built with no translated code (NO_GAME_CODE=1:
+# it runs a ROM set in the port's interpreters), and the toolkit's stand-in game (tools/ci_smoke.sh). The
+# checks that need a ROM set (make GAME=<id> check, check-blocks, check-rewrites, check-release) and the
+# release archives are made on a contributor's own machine.
 name: CI
 
 on:
   push:
     branches: [main]
   pull_request:
+  workflow_call:
 
 permissions:
   contents: read
 
 env:
-  SDL_VERSION: 3.4.16
-  SDL_SHA256: 7322236cd12090c3eb40b9728be4d49c76f66ad17d04369584d4ecad5cf77c68
+  NO_GAME_CODE: 1
+  LINUX_PACKAGES: >-
+    ninja-build zlib1g-dev libx11-dev libxext-dev libxrandr-dev libxcursor-dev libxi-dev libxss-dev
+    libxtst-dev libxkbcommon-dev libwayland-dev wayland-protocols libdecor-0-dev libegl-dev libgl-dev
+    libpulse-dev libasound2-dev libudev-dev libdbus-1-dev libpipewire-0.3-dev
 
 jobs:
   audit:
@@ -27,63 +33,80 @@ jobs:
       - run: tools/audit.sh
       - run: tools/sync-common.sh --check
 
-  build-unix:
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-24.04, macos-14]
-    runs-on: ${{ matrix.os }}
+  macos:
+    runs-on: macos-14
     steps:
       - uses: actions/checkout@v4
-      - name: Packages (Linux)
-        if: runner.os == 'Linux'
+      - run: brew install ninja
+      - name: Build and pack (Apple silicon and Intel)
+        run: tools/release/macos.sh
+      - name: Start the programs with no display
         run: |
-          sudo apt-get update
-          sudo apt-get install -y --no-install-recommends ninja-build zlib1g-dev libx11-dev libxext-dev libxrandr-dev \
-            libxcursor-dev libxi-dev libxss-dev libxtst-dev libxkbcommon-dev libwayland-dev wayland-protocols \
-            libdecor-0-dev libegl-dev libgl-dev libvulkan-dev libpulse-dev libasound2-dev libudev-dev libdbus-1-dev \
-            libpipewire-0.3-dev
-      - name: Packages (macOS)
-        if: runner.os == 'macOS'
-        run: brew install ninja sdl3
-      - name: SDL 3 (Linux, cached)
-        if: runner.os == 'Linux'
-        id: sdl
-        uses: actions/cache@v4
-        with:
-          path: ~/sdl3
-          key: sdl3-${{ env.SDL_VERSION }}-${{ matrix.os }}
-      - name: SDL 3 (Linux, built)
-        if: runner.os == 'Linux' && steps.sdl.outputs.cache-hit != 'true'
-        run: |
-          curl -fsSL -o sdl3.tar.gz "https://github.com/libsdl-org/SDL/releases/download/release-$SDL_VERSION/SDL3-$SDL_VERSION.tar.gz"
-          echo "$SDL_SHA256  sdl3.tar.gz" | sha256sum -c -
-          tar -xzf sdl3.tar.gz
-          cmake -S "SDL3-$SDL_VERSION" -B sdl3-build -G Ninja -DCMAKE_BUILD_TYPE=Release -DSDL_SHARED=OFF -DSDL_STATIC=ON \
-            -DSDL_TEST_LIBRARY=OFF -DCMAKE_INSTALL_PREFIX="$HOME/sdl3" -DCMAKE_INSTALL_LIBDIR=lib
-          cmake --build sdl3-build
-          cmake --install sdl3-build
-      - name: Build the program (no translated code) and the launcher, for the stand-in game
-        run: |
-          export CMAKE_PREFIX_PATH="$HOME/sdl3"
-          make example
-      - name: Start them
-        run: tools/ci_smoke.sh
+          app="build/release/CPS-2 Recomp.app/Contents/MacOS"
+          for game in $(cd games && ls); do
+            "$app/$game" --list-features | grep -q free_play
+            arch -x86_64 "$app/$game" --list-features | grep -q free_play
+          done
+          mkdir -p "$RUNNER_TEMP/home"
+          SDL_VIDEO_DRIVER=dummy SDL_RENDER_DRIVER=software CPS2RECOMP_HOME="$RUNNER_TEMP/home" \
+            "$app/cps2recomp-launcher" --screenshot "$RUNNER_TEMP/page"
+          ls "$RUNNER_TEMP"/page*.png
 
-  build-windows:
-    runs-on: windows-latest
-    defaults:
-      run:
-        shell: msys2 {0}
+  linux:
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
-      - uses: msys2/setup-msys2@v2
+      - run: sudo apt-get update -qq && sudo apt-get install -y -qq --no-install-recommends $LINUX_PACKAGES
+      - name: Build and pack
+        run: tools/release/linux.sh
+      - name: Start the programs with no display
+        run: |
+          tar -xzf build/release/CPS2Recomp-linux-x86_64.tar.gz -C "$RUNNER_TEMP"
+          for game in $(cd games && ls); do
+            "$RUNNER_TEMP/CPS2Recomp/$game" --list-features | grep -q free_play
+          done
+          mkdir -p "$RUNNER_TEMP/home"
+          SDL_VIDEO_DRIVER=dummy SDL_RENDER_DRIVER=software CPS2RECOMP_HOME="$RUNNER_TEMP/home" \
+            "$RUNNER_TEMP/CPS2Recomp/cps2recomp-launcher" --screenshot "$RUNNER_TEMP/page"
+          ls "$RUNNER_TEMP"/page*.png
+      - name: The stand-in game (the toolkit with no game) built and started
+        run: |
+          export CMAKE_PREFIX_PATH="$PWD/build/deps/sdl-linux"
+          make example
+          tools/ci_smoke.sh
+
+  windows-build:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - run: >
+          sudo apt-get update -qq && sudo apt-get install -y -qq --no-install-recommends ninja-build zip
+          g++-mingw-w64-x86-64-posix gcc-mingw-w64-x86-64-posix binutils-mingw-w64-x86-64 libz-mingw-w64-dev
+      - name: Build and pack (cross-compiled)
+        run: tools/release/windows.sh
+      # (handed to the Windows machine below to be started; no translated code in it, and not a release)
+      - uses: actions/upload-artifact@v4
         with:
-          msystem: MINGW64
-          install: >-
-            make git mingw-w64-x86_64-gcc mingw-w64-x86_64-cmake mingw-w64-x86_64-ninja mingw-w64-x86_64-python
-            mingw-w64-x86_64-sdl3 mingw-w64-x86_64-zlib
-      - name: Build the program (no translated code) and the launcher, for the stand-in game
-        run: make example
-      - name: Start them
-        run: tools/ci_smoke.sh
+          name: windows-no-game-code
+          path: build/release/CPS2Recomp-windows-x64.zip
+          retention-days: 1
+
+  windows-run:
+    needs: windows-build
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: windows-no-game-code
+      - name: Start the programs on Windows with no display
+        shell: bash
+        run: |
+          unzip -q CPS2Recomp-windows-x64.zip -d "$RUNNER_TEMP"
+          for game in $(cd games && ls); do
+            "$RUNNER_TEMP/CPS2Recomp/$game.exe" --list-features | grep -q free_play
+          done
+          mkdir -p "$RUNNER_TEMP/home"
+          SDL_VIDEO_DRIVER=dummy SDL_RENDER_DRIVER=software CPS2RECOMP_HOME="$RUNNER_TEMP/home" \
+            "$RUNNER_TEMP/CPS2Recomp/cps2recomp-launcher.exe" --screenshot "$RUNNER_TEMP/page"
+          ls "$RUNNER_TEMP"/page*.png

@@ -884,7 +884,8 @@ void Usage() {
             "  --test-switch FROM:TO  the operator's test switch held from frame FROM to TO\n"
             "  --record-entries FILE  add the places reached by computed jumps to FILE (for tools/recomp.py)\n"
             "  --state-save F:FILE  --state-load F:FILE   at frame F\n"
-            "  --features A,B         switch optional features on (--list-features lists them; -NAME: off)\n"
+            "  --features A,B         switch optional features on (--list-features lists them; -NAME: off; given\n"
+            "                         more than once, all of them in order)\n"
             "  --settings FILE        settings.ini with the player's feature choices\n"
             "  --poke A=B,...         write byte B at RAM address A after every frame (hex)\n"
             "  --dump-ram F:FILE      write work RAM after frame F (and FILE.video, .objects, .regs)\n"
@@ -990,7 +991,9 @@ bool ParseArgs(int argc, char **argv, port::Options &o) {
         } else if (a == "--settings") {
             o.settingsPath = next();
         } else if (a == "--features") {
-            o.features = next();
+            // (given more than once, all of them, in order: what the launcher says, then what follows it)
+            const std::string more = next();
+            o.features = o.features.empty() ? more : o.features + "," + more;
         } else if (a == "--watch") {
             // LOW[-HIGH] (hex): who writes there; needs the interpreter, so the run is done block by block
             const std::string v = next();
@@ -1026,30 +1029,39 @@ bool ParseArgs(int argc, char **argv, port::Options &o) {
 
 // The game's program opened by itself, with nothing to say what to play (a double click on it rather than on
 // the launcher): the launcher beside it is started instead, straight into the game if the player has chosen
-// their ROM set in it before (its --play), or at its first page to choose one. True: it was started.
+// their ROM set in it before (its --play), or at its first page to choose one. The launcher is the game's own, or
+// the collection's (cps2recomp-launcher: then at this game's page, or --play ID). True: it was started.
 bool StartLauncher() {
     const char *base = SDL_GetBasePath();
     if (!base) {
         return false;
     }
 #ifdef _WIN32
-    const std::string launcher = std::string(base) + GAME_ID "-launcher.exe";
+    const char *kExe = ".exe";
 #else
-    const std::string launcher = std::string(base) + GAME_ID "-launcher";
+    const char *kExe = "";
 #endif
+    std::string launcher = std::string(base) + GAME_ID "-launcher" + kExe;
     std::error_code missing;
+    bool collection = false;
     if (!std::filesystem::exists(launcher, missing)) {
-        return false;
+        launcher = std::string(base) + "cps2recomp-launcher" + kExe;
+        collection = true;
+        if (!std::filesystem::exists(launcher, missing)) {
+            return false;
+        }
     }
     bool setUp = false;
-    if (char *folder = SDL_GetPrefPath("", GAME_NAME)) { // (the launcher's own folder and file)
+    // (the launcher's own folder and file; the collection's keeps each game's file in a section of its own)
+    if (char *folder = SDL_GetPrefPath("", collection ? "CPS-2 Recomp" : GAME_NAME)) {
         recomp::Ini prefs(std::filesystem::path(folder) / "launcher.ini");
         SDL_free(folder);
         prefs.load();
-        setUp = !prefs.get("game", "rom").empty();
+        setUp = !prefs.get(collection ? "game." GAME_ID : "game", "rom").empty();
     }
-    const char *args[] = {launcher.c_str(), setUp ? "--play" : nullptr, nullptr};
-    SDL_Process *process = SDL_CreateProcess(args, false);
+    const char *own[] = {launcher.c_str(), setUp ? "--play" : nullptr, nullptr};
+    const char *theirs[] = {launcher.c_str(), setUp ? "--play" : "--page", GAME_ID, nullptr};
+    SDL_Process *process = SDL_CreateProcess(collection ? theirs : own, false);
     if (!process) {
         return false;
     }

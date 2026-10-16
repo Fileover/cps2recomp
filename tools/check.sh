@@ -11,7 +11,7 @@
 # Without a movie the input is made up (--auto 7:400). Run from the repository's top. The sound program runs
 # on the Z80 here whether or not there is a driver for it (tools/check_sound.sh checks that).
 GAME=${GAME:-vampire_savior}
-ROM=${ROM:-rom}
+ROM=${ROM:-rom/$GAME}
 frames=${1:-3000}; movie=$2
 [ $# -ge 2 ] && shift 2 || shift $#
 extra="$*"

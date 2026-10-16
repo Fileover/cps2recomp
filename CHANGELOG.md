@@ -2,6 +2,31 @@
 
 ## Unreleased
 
+CPS-2 Recomp: the toolkit and its games in one repository, and one launcher for all of them.
+
+- **The games are here**: Street Fighter Alpha 2 (`games/sfa2`), Super Puzzle Fighter II Turbo
+  (`games/puzzle_fighter`) and Vampire Savior (`games/vampire_savior`), each with its README, docs, movies and
+  checks. Each was its own repository with a copy of the toolkit; their histories until now are in their own
+  changelogs (`games/<id>/CHANGELOG.md`). A toolkit change now reaches every game at once, and is checked with
+  every game. `tools/sync-toolkit.sh` and the toolkit copies are gone.
+- **One launcher for every game** (recomp-common's collection launcher; `make collection`): a Games page that
+  finds each game's ROM set in a folder you choose (or one dropped on the window), a Features page with what the
+  games share, set for all of them at once (a feature changed in one game's own menu is set for the others when
+  it ends), the Controllers page for all of them, and a page for each game whose ROM set you have, with its
+  Display switches, Play, and the features only it has. Each game keeps its own settings folder, as its own
+  launcher did, and the ROM set chosen there is taken over.
+- From a terminal: `cps2recomp-launcher --play ID` (straight into a game), `--play ID -- ARGS` (more arguments
+  for the game, after the launcher's own), `--page ID`. A game's program still runs by itself, with all its
+  arguments; `--features` may now be given more than once (later ones win). A game's program opened by itself
+  starts the collection's launcher at its page when there is no launcher of its own beside it.
+- The release is the collection: `CPS2Recomp-macOS.zip`, `CPS2Recomp-linux-x86_64.tar.gz`,
+  `CPS2Recomp-windows-x64.zip`, each with the launcher and every game (`tools/release/`). CI builds and starts all
+  of it, with no translated code, on all three systems.
+- Build from the top: `make GAME=<id>` and its targets as before, `make games`, `make collection`,
+  `make collection-app`; ROM sets in `rom/<id>/`.
+- Settings: `kFeatureOwn` (`OwnFeatures`), a game's feature that the collection never sets for another game (the
+  survival and ring out records, the animations' numbers).
+
 ## 0.3.0 (2026-10-15)
 
 - recomp-common 0.5.0: in the in-game menu, Right on a page's row goes into that page; the

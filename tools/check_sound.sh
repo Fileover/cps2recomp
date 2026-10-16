@@ -12,7 +12,7 @@
 #
 #   check_sound.sh [RUNS [FRAMES]]     from the repository's top; a few minutes
 GAME=${GAME:-vampire_savior}
-ROM=${ROM:-rom}
+ROM=${ROM:-rom/$GAME}
 runs=${1:-8}; frames=${2:-150000}
 work=work/$GAME/check
 port=${B:-build/$GAME}/$GAME

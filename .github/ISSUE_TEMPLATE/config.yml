@@ -1,5 +1,3 @@
-blank_issues_enabled: true
-contact_links:
-  - name: A problem with a game
-    url: https://github.com/tmcleroy/cps2recomp#how-a-game-uses-it
-    about: A bug you meet while playing belongs in that game's repository. This project can't help you find game files; issues asking for them are closed.
+# Requests for ROM sets, key files or where to find them are closed without an answer: the port
+# works with your own copy of the game, and this project cannot help anyone get one.
+blank_issues_enabled: false
