@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- `make collection-app` makes the collection's app bundle for your own machine (`build/collection/CPS-2 Recomp.app`:
+  the launcher and every built game, with Homebrew's SDL 3 inside), as `make GAME=<id> app` does for one game.
+
 ## 0.4.0-beta.1
 
 CPS-2 Recomp: the toolkit and its games in one repository, and one launcher for all of them.
