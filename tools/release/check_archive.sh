@@ -23,7 +23,7 @@ for archive in "$@"; do
     names="$(cd "$dir" && find . -type f | sort)"
     found="$(echo "$names" | grep -iE '\.(zip|7z|key|bin|rom|state|sav|eep|lst)$|/[a-z0-9]{2,5}\.[0-9]{2}[a-z]?m?$' || true)"
     [ -z "$found" ] || bad "game or data files: $found"
-    for need in LICENSE.txt THIRD_PARTY_NOTICES.md licenses/SDL3.txt licenses/DearImGui.txt licenses/Inter-OFL.txt SOURCE.txt; do
+    for need in LICENSE.txt THIRD_PARTY_NOTICES.md licenses/SDL3.txt licenses/DearImGui.txt licenses/Inter-OFL.txt licenses/sound-decoders.txt SOURCE.txt; do
         echo "$names" | grep -q "/$need\$" || bad "missing $need"
     done
     # A game's program: the port, its interpreters and SDL come to 3 MB or so for each processor it is built

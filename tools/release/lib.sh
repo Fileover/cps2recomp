@@ -89,5 +89,9 @@ add_notices() {
     cp "$DEPS/SDL3-$SDL_VERSION/LICENSE.txt" "$1/licenses/SDL3.txt"
     cp "$2/_deps/imgui-src/LICENSE.txt" "$1/licenses/DearImGui.txt"
     cp "$(find "$2/_deps/inter-src" -iname 'LICENSE*' | head -1)" "$1/licenses/Inter-OFL.txt"
+    # (the sound file decoders of the custom soundtrack: their licence statements, from the end of each file)
+    { echo "stb_vorbis (third_party/stb_vorbis.c):"; sed -n '/^ALTERNATIVE A - MIT License/,$p' "$ROOT/third_party/stb_vorbis.c"
+      for f in dr_flac dr_mp3 dr_wav; do echo; echo "$f (third_party/$f.h):"; sed -n '/^ALTERNATIVE 1 - Public Domain/,$p' "$ROOT/third_party/$f.h"; done
+    } > "$1/licenses/sound-decoders.txt"
     printf 'Source for this version (GPL-3.0): https://github.com/tmcleroy/cps2recomp/tree/v%s\n' "$VERSION" > "$1/SOURCE.txt"
 }

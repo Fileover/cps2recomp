@@ -201,6 +201,18 @@ event A5 (0 off, 1 one match, which clears continue: 00ADF6), +16 automatic BB (
 D2 (not on the pages). Checked headless: the variables with and without choices, the test menu showing the
 board's, and the choices back in a game after it.
 
+## Custom soundtrack (2026-10-16)
+
+The toolkit's custom soundtrack (machine/soundtrack.h) with the game's music named in `src/music.cpp`. The sound
+program (driver 1.05C) keeps its table of songs at 9000 (a word, 0x400 songs; two volume bytes; song 0's entry at
+9006, four bytes a song: a three-byte address, high byte first). Music is 01-3A and 3E (59 pieces): the 18
+characters' themes 01-12 (kStageTunes), the title 3E, the attract introduction 13, player select 14, versus 15,
+winner 16, continue 17, challenger 18, game over 19, ranking 1B, the rival's words 34, Sagat's last fight 35, the
+endings 1C-31 and 36-38, 3A, and three staff rolls 32, 33, 39. Found with CPS2RECOMP_SOUNDTRACK_LOG over the ladder
+movie with each of the 18 characters (Akuma, M. Bison and Dan, who are not on the select grid, with their byte
+held: `--poke 8482=02`), attract mode and a lost game; `--music-test 5400` for the 13 that end of themselves.
+Not seen: where 1A (a 4.4 s fanfare) plays. Not heard by a person: a real arranged soundtrack in a window.
+
 ## Readable code
 
 Rewrites (`cps2recomp/docs/READABLE.md`), each run beside the game's own code on every call by `make

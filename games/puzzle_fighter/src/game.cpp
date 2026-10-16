@@ -41,7 +41,10 @@ void BoardBeforeFrame(Machine &machine);
 void RegisterTitle(); // title.cpp
 void TitleFrame(Machine &machine);
 
+void RegisterMusic(); // music.cpp
+
 void RegisterGame() {
+    RegisterMusic();
     RegisterCoins();
     RegisterBoard(); // (its page right after the Game page's first features)
     RegisterTraining();

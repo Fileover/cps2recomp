@@ -7,6 +7,7 @@
 #include "../machine/machine.h"
 #include "menu.h"
 #include "present.h"
+#include "soundtrack.h"
 
 #include <cstdint>
 #include <cstdio>
@@ -27,6 +28,8 @@ struct Options {
     std::string recordEntries; // entries file to add to (tools/recomp.py reads it)
     std::string dumpProgram;   // write the deciphered program here and stop
     std::string audioDump;     // WAV file of the sound (headless)
+    std::string soundtrack;    // --soundtrack DIR: the custom soundtrack's folder (soundtrack.h; default: beside settings.ini)
+    std::string soundtrackDump; // --soundtrack-dump FILE: WAV file of what the custom soundtrack plays (headless)
     std::string settingsPath;  // settings.ini with the player's feature choices
     std::string features;      // --features A,B,-C
     std::string menuTest;      // --menu FRAME:KEYS[:shot.png]
@@ -42,6 +45,7 @@ struct Options {
     uint64_t shotEvery = 0;
     uint64_t autoSeed = 0;     // --auto: made-up input from this seed
     uint64_t soundTest = 0;    // --sound-test SEED[:EVERY]: every song and command sent to the sound side
+    unsigned musicTest = 0;    // --music-test FRAMES: each piece of music on the board in turn
     unsigned soundTestEvery = 30;
     uint64_t autoFrom = 0;     // ... from this frame on
     int autoPlayers = 2;       // ... for this many players
@@ -106,10 +110,18 @@ struct Port {
     std::string StatePath(int slot) const;
 
     bool Init(std::string &error);
+    // The custom soundtrack (soundtrack.h): its files, played while the port's custom_soundtrack feature is on
+    SoundtrackPlayer soundtrack;
+    bool soundtrackOn = false;
+    std::string SoundtrackFolder() const;
+    void SoundtrackFollow(); // (each frame: the feature switched on or off in the menu)
     // One frame: input (window, movie or made up), the machine, the per-frame outputs
     void RunFrame();
     void RunAhead();
     void SoundTest();
+    void MusicTest();
+    uint64_t musicTestAt = 0, musicTestHeard = 0;
+    size_t musicTestIndex = 0;
     uint64_t soundTestState = 0;
     uint16_t soundTestSong = 0;
     void Finish();

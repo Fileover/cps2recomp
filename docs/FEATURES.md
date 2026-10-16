@@ -35,6 +35,24 @@ the Game page, and on the Display page how the picture is fitted to the window (
 `display_shape`: `port/present.h`) and the size it opens at (`window_size`). The first choice of each
 is how the port always drew it, so they are the same in every preset.
 
+## A custom soundtrack
+
+Every game whose sources say where its sound program keeps its songs gets the port's `custom_soundtrack` feature:
+the player's own music files in place of the board's music (`port/soundtrack.h` has the folder's rules).
+
+```cpp
+TheGame().songTable = 0x9006;  // song 0's entry in the sound program's table (four bytes a song)
+TheGame().songCount = 0x400;
+TheGame().songs = {{0x01, "ryu", "Ryu's theme"}, {0x15, "versus", "Versus screen", true}, ...};
+```
+
+A song is music when its data starts with a 0 (`machine/soundtrack.h` finds them all from the table); `songs` gives
+the ones that are known a name for the player's files and says which the board plays once. Find the table from
+the numbers a game asks for (`CPS2RECOMP_SOUNDTRACK_LOG`, or the shared memory's first sixteen bytes), find what
+each piece is by playing (the arcade ladder with each character, attract mode, a lost game), and which end of
+themselves with `--music-test 5400` (with `--test-switch 300:99999999`, so that the game asks for nothing).
+`games/<id>/src/music.cpp` is each game's.
+
 ## Commands
 
 `TheGame().commands` are things the game's sources do when asked: a row of the menu (on the first

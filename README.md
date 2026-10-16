@@ -54,6 +54,8 @@ Each game's page has all it does, with pictures.
 - **The board's operator settings** (difficulty, damage, timer speed, game speed, rounds and the rest), each as
   the board is set unless you choose, and the game's own test menu.
 - **Straight to the title**: at a start or a reset, everything before the title runs unseen.
+- **A custom soundtrack**: your own music files (an arranged soundtrack from a console version, say) in place of
+  the board's music, song by song, with the board's sound effects and voices. [How →](#a-custom-soundtrack)
 - **Your ROM sets are only ever read.** Settings, save states and each board's settings memory go in your own
   user folder.
 
@@ -91,11 +93,45 @@ cps2recomp-launcher --play sfa2 -- --features widescreen,no_damage
                                                 # with more arguments for the game, after the launcher's own
 cps2recomp-launcher --page vampire_savior       # the launcher, at a game's page
 sfa2 --rom ~/roms/sfa2u.zip --settings my.ini   # a game's own program (beside the launcher), by itself
+sfa2 --soundtrack ~/music/sfa2-arranged          # a custom soundtrack's folder (with the feature on)
 sfa2 --help                                     # what a game's program takes
 ```
 
 The games' ids are `sfa2`, `puzzle_fighter` and `vampire_savior`. `--features` may be given more than once, and
 a later one wins.
+
+### A custom soundtrack
+
+Each game can play your own music files in place of the board's music: an arranged soundtrack, say. The sound
+effects and voices stay the board's, and a song you have no file for plays as the board has it.
+
+1. Switch on **Custom soundtrack** (the Features page, under Sound; it is on in Enhanced, off in Pure).
+2. On a game's page, under Sound, **Choose…** the folder your music files are in. With none chosen, the game uses
+   the `soundtrack` folder in its own settings folder (`~/Library/Application Support/<Game>/` on macOS,
+   `~/.local/share/<Game>/` on Linux and Steam Deck, `%APPDATA%\<Game>\` on Windows), which it makes.
+3. Name each file after the piece of music it replaces, with `.ogg`, `.flac`, `.mp3` or `.wav`: `ryu.flac`,
+   `player_select.ogg`, `ken_ending.mp3`. The game writes `songs.txt` into the folder, with every piece of its
+   music by name and number and what it is (Street Fighter Alpha 2 has 59: each character's theme, each ending,
+   the staff rolls, the title and the screens between fights).
+
+For files with other names, loops and loudness, put `soundtrack.ini` in the folder:
+
+```ini
+volume = 80                  ; every song, in percent
+
+[ryu]                        ; a song by its name (or its number: [01])
+file = 05 Ryu's Theme.flac
+loop = 0:12.5 - 2:47.25      ; the part that repeats: start - end (minutes:seconds, or seconds)
+volume = 90
+```
+
+A file repeats whole unless it says otherwise: by `loop` in `soundtrack.ini`, `loop = no` to play it once, or the
+loop tags many soundtrack packs have (`LOOPSTART`, with `LOOPEND` or `LOOPLENGTH`, in samples). The music the board
+plays once (a fanfare, the versus screen, a game over) is played once. The music keeps the game's time: pausing,
+the menu, slow motion, a save state and run-ahead leave it where the game is. The game plays exactly the same with
+or without it.
+
+No music is included, and this project can't help you get any: use files you made from discs you own.
 
 ### Coming from a game's own download
 
