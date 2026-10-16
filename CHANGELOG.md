@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.4.0-beta.1
+
 CPS-2 Recomp: the toolkit and its games in one repository, and one launcher for all of them.
 
 - **The games are here**: Street Fighter Alpha 2 (`games/sfa2`), Super Puzzle Fighter II Turbo
