@@ -173,7 +173,7 @@ void Machine::RunLine() {
     if (m_line == kBlankingLine) {
         m_blankInterrupt = true;
         UpdateInterruptLevel();
-        video.LatchObjects(&objectRam[m_objectBank ? 0x2000 : 0]);
+        video.LatchObjects(&objectRam[m_objectBank ? 0x2000 : 0], m_extra ? objectsFromExtra[m_objectBank ? 1 : 0] : nullptr);
     }
 
     // (the board's timing: the video chip's DMA holds the 68000's bus at the start of the line)
@@ -379,6 +379,7 @@ uint16_t Machine::Read16(uint32_t address) {
         return Word(&videoRam[address - 0x900000]);
     }
     if (InExtra(address)) {
+        m_readExtra = true;
         return Word(&m_extra->program[address - m_extraBase]);
     }
     return ReadRegister(address);
@@ -395,6 +396,7 @@ uint8_t Machine::Read8(uint32_t address) {
         return videoRam[address - 0x900000];
     }
     if (InExtra(address)) {
+        m_readExtra = true;
         return m_extra->program[address - m_extraBase];
     }
     const uint16_t word = ReadRegister(address & ~1u);
@@ -522,10 +524,12 @@ void Machine::WriteRegister(uint32_t address, uint16_t value, uint16_t mask) {
     }
     if (address >= 0x700000 && address < 0x702000) {
         combineBytes(&objectRam[m_objectBank * 0x2000 + (address & 0x1FFE)]);
+        ObjectWritten(m_objectBank, address);
         return;
     }
     if (address >= 0x708000 && address < 0x710000) {
         combineBytes(&objectRam[(m_objectBank ^ 1) * 0x2000 + (address & 0x1FFE)]);
+        ObjectWritten(m_objectBank ^ 1, address);
         return;
     }
     const uint32_t chip = address & ~0x4000u; // (the video chips answer at 8001xx as well as 8041xx)
@@ -667,6 +671,9 @@ void Machine::Serialize(Archive &ar) {
     ar.Vec(ram);
     ar.Vec(videoRam);
     ar.Vec(objectRam);
+    if (m_extra) {
+        ar.Pod(objectsFromExtra);
+    }
     ar.Vec(extraRam);
     ar.Pod(soundRam);
     ar.Pod(soundRam2);
