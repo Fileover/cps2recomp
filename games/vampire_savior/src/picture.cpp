@@ -42,7 +42,9 @@ namespace {
     // The frame's lists of records to draw: each a place that goes down as records are added (longs, from
     // A5) and how many (bytes). The first is all the things thrown, for the hit tests too (kThrownInUse).
     constexpr int32_t kLists = AtA5(0x7982), kListCounts = AtA5(0x79C5);
-    enum { kListThrown = 0, kListThrownBehind = 1, kListThrownInFront = 2, kListEight = 3, kListTwelve = 4, kListPieces = 11 };
+    // (the objects of kind 12 have a list for each of their depths: family.h says how many; the pieces' follow)
+    enum { kListThrown = 0, kListThrownBehind = 1, kListThrownInFront = 2, kListEight = 3, kListTwelve = 4,
+           kListPieces = kListTwelve + family::kTwelveLists };
     constexpr int32_t kNothingDrawn = AtA5(0x118); // from A5, a byte: not zero: no piece of the stage is drawn
     // The board's picture, and the margins about it inside which a thing is still drawn
     constexpr int kMarginLeft = 0x40, kMarginTop = 0x40, kAcross = 0x200, kAcrossWide = 0x280, kUp = 0x180;
@@ -102,7 +104,7 @@ namespace {
             break;
         case 0x0C:
             SetLow8(c.d[0], Ram8(object + kDepth));
-            SetLow16(c.d[1], 0x0E + (c.d[0] & 0xFF) * 8);
+            SetLow16(c.d[1], family::kTwelveLists * 2 + (c.d[0] & 0xFF) * 8); // (as the game's table of the lists leaves it)
             AddToList(c, kListTwelve + static_cast<int>((c.d[0] & 0xFF) / 2));
             break;
         case 0x10:

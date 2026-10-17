@@ -37,6 +37,26 @@ inline constexpr const char *kStageNames[] = {
     "Vanity Paradise", "War Agony", "Forever Torment", "Green Scream", "Iron Horse, Iron Terror", "Fetus of God",
 };
 
+// The frame's lists of objects to draw that the objects of kind 12 have, one for each depth (src/picture.cpp)
+inline constexpr int kTwelveLists = 7;
+
+// Where the hit test goes on to when an attack has hit (src/collision.cpp): HitLands (018230)
+inline constexpr uint32_t kHitTestHit = 0x018230;
+
+// How the fight's rules differ from game to game (src/fight.cpp, src/edges.cpp; 0: as in Vampire Savior):
+// - a byte of the attacker's record that, set, has all of a hit's damage taken for good, and where (from A5) the game
+//   keeps A0 while it looks
+// - one more kind of attack that is an overhead
+// - a byte of the victim's record that, set, lets it guard the attacks that cannot be guarded
+// - how near (across) the other player has to be for a player to guard by being near
+// - a byte of a player's record set (FF) when the player is kept in at the picture's edge
+inline constexpr uint32_t kAllForGood = 0;
+inline constexpr int32_t kAllForGoodKeep = 0;
+inline constexpr uint8_t kOverheadToo = 0;
+inline constexpr uint32_t kGuardsAnything = 0;
+inline constexpr uint16_t kGuardNear = 0x80;
+inline constexpr uint32_t kAtEdgeToo = 0;
+
 // The ROM file whose colours PalMod changes, where it is in the program, and which set it is
 inline constexpr const char *kColoursFile = "vm3j.10b", *kColoursFileWhose = "the Japanese set's, 970519";
 

@@ -9,7 +9,8 @@
 // below or above the stage's own row. The step is the camera's travel from its start over a number of
 // the stage's. So the floor's rows go faster the nearer they are, and the wall's go slower the higher up,
 // down to a row above which everything goes at one rate. Ten stages have such a table; the last two have
-// none.
+// none. (Each stage's code is the one its entry of the game's table of them names: in the games made from
+// this program a stage may share another's.)
 #include "stage.h"
 
 namespace cps2recomp {
@@ -45,20 +46,26 @@ namespace {
         int divisor, floor, floorSame, wall, wallSkips, wallSame;
     };
     constexpr int kOfRow = -1;
-    constexpr Rows kRows[kStages] = {
-        {0x68, 18, 22, 24, 8, 38},  // Feast of the Damned
-        {0, 40, 0, 15, 0, 201},     // Concrete Cave
-        {0x70, 40, 0, 72, 0, 0},    // Tower of Arrogance
-        {0x50, 40, 0, 48, 0, 122},  // Red Thirst
-        {0x70, 40, 0, 24, 8, 192},  // Deserted Chateau
-        {0xC0, 40, 0, 1, 0, 215},   // Abaraya
-        {0x70, 40, 0, 10, 0, 206},  // Vanity Paradise
-        {0x48, 40, 0, 8, 0, 208},   // War Agony
-        {0x60, 40, 0, 24, kOfRow, 192}, // Forever Torment
-        {0x58, 40, 0, 8, 0, 208},   // Green Scream
-        {},                         // Iron Horse, Iron Terror: no table
-        {},                         // Fetus of God: none
+    // By the stage's code: where it is in the program, and the table it makes
+    struct StageRows {
+        uint32_t code;
+        Rows rows;
     };
+    constexpr StageRows kRows[] = {
+        {At(0x01FEA0), {0x68, 18, 22, 24, 8, 38}},  // Feast of the Damned
+        {At(0x01FF1A), {0, 40, 0, 15, 0, 201}},     // Concrete Cave
+        {At(0x01FF76), {0x70, 40, 0, 72, 0, 0}},    // Tower of Arrogance
+        {At(0x01FFCE), {0x50, 40, 0, 48, 0, 122}},  // Red Thirst
+        {At(0x02002E), {0x70, 40, 0, 24, 8, 192}},  // Deserted Chateau
+        {At(0x0200A2), {0xC0, 40, 0, 1, 0, 215}},   // Abaraya
+        {At(0x020108), {0x70, 40, 0, 10, 0, 206}},  // Vanity Paradise
+        {At(0x02016A), {0x48, 40, 0, 8, 0, 208}},   // War Agony
+        {At(0x0201CC), {0x60, 40, 0, 24, kOfRow, 192}}, // Forever Torment
+        {At(0x020236), {0x58, 40, 0, 8, 0, 208}},   // Green Scream
+        // (Iron Horse, Iron Terror and Fetus of God: no table, their code only returns)
+    };
+    // The table of the stages' code: a word a stage, its distance from the table
+    constexpr uint32_t kStageCode = At(0x01FE88);
 
     void SetMem16(M68K &c, uint32_t address, uint32_t value) {
         c.Write(address, 1, value & 0xFFFF);
@@ -157,11 +164,14 @@ namespace {
         }
         SetRam32(record + kRowsCameraX, Ram32(kCameraRecord + kLayerX));
         SetRam32(record + kRowsCameraY, Ram32(kCameraRecord + kLayerY));
-        const Rows &rows = kRows[Ram16(kStage) / 2];
-        if (rows.floor) {
-            MakeRows(c, rows);
-        } else {
-            SetLow16(c.d[1], 0x0410); // (what the game's own way to the stage's code leaves there)
+        // (the stage's code: as the game's own way to it leaves D1)
+        const uint16_t distance = static_cast<uint16_t>((c.opcodes[kStageCode + Ram16(kStage)] << 8) | c.opcodes[kStageCode + Ram16(kStage) + 1]);
+        SetLow16(c.d[1], distance);
+        const uint32_t code = kStageCode + static_cast<uint32_t>(static_cast<int16_t>(distance));
+        for (const StageRows &stage : kRows) {
+            if (stage.code == code) {
+                MakeRows(c, stage.rows);
+            }
         }
         if (Ram8(Var(c, kBackdrop))) {
             WaveRows(c);

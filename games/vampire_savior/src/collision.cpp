@@ -191,8 +191,8 @@ namespace {
         if (!Ram8(Var(c, kHitParts))) {
             return;
         }
-        // It hit: the game's code for what happens next
-        for (const uint32_t routine : {0x018230u, 0x0189BAu, 0x0188BAu, 0x018E8Au, 0x019030u, 0x01904Eu}) {
+        // It hit: the game's code for what happens next (family.h: the first is where this game's goes on to)
+        for (const uint32_t routine : {family::kHitTestHit, At(0x0189BA), At(0x0188BA), At(0x018E8A), At(0x019030), At(0x01904E)}) {
             Call(c, routine);
         }
     }

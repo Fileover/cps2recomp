@@ -117,12 +117,17 @@ namespace {
     bool Frozen(M68K &c) {
         return Ram8(Var(c, kFrozen)) != 0;
     }
-    // What a script begins with: its step, and (as the game's own way to the step's code leaves it) the
-    // distance of that code from the script's table of steps
-    int Step(M68K &c, const uint16_t distances[4]) {
+    // A word of the program as the 68000 reads its code (a table read through the program counter)
+    uint16_t ProgramWord(M68K &c, uint32_t address) {
+        return static_cast<uint16_t>((c.opcodes[address] << 8) | c.opcodes[address + 1]);
+    }
+    // What a script (at `script` in the program) begins with: its step, and (as the game's own way to the step's
+    // code leaves it) the distance of that code from the script's table of steps, which follows its first
+    // three instructions
+    int Step(M68K &c, uint32_t script) {
         const int step = Ram8((c.a[6] & 0xFFFFFF) + kStep);
         SetLow8(c.d[0], step);
-        SetLow16(c.d[1], distances[(step >> 1) & 3]);
+        SetLow16(c.d[1], ProgramWord(c, script + 0x0C + static_cast<uint32_t>(step & 6)));
         return step;
     }
     void PieceDrawn(M68K &c) {
@@ -134,9 +139,8 @@ namespace {
     // 07D354 (script 0). A piece that does nothing but go through its animation, drawn while the camera
     // is to its side of a place
     void Plain(M68K &c) {
-        static constexpr uint16_t kDistances[4] = {0x08, 0x2A, 0x3C, 0x3C};
         const uint32_t piece = c.a[6] & 0xFFFFFF;
-        switch (Step(c, kDistances)) {
+        switch (Step(c, At(0x07D354))) {
         case 0:
             SetRam8(piece + kStep, 2);
             SetStageAnimation(c, Ram8(piece + kWhich));
@@ -158,9 +162,8 @@ namespace {
     // 07D3A2 (script 1). As a plain piece, but a frame of its animation with an event is shown for up to
     // three frames longer, by chance (the candles' flames)
     void Flickering(M68K &c) {
-        static constexpr uint16_t kDistances[4] = {0x08, 0x18, 0x42, 0x42};
         const uint32_t piece = c.a[6] & 0xFFFFFF;
-        switch (Step(c, kDistances)) {
+        switch (Step(c, At(0x07D3A2))) {
         case 0:
             SetRam8(piece + kStep, 2);
             SetStageAnimation(c, Ram8(piece + kWhich));
@@ -263,10 +266,9 @@ namespace {
     }
 
     void Dancers(M68K &c) {
-        static constexpr uint16_t kDistances[4] = {0x08, 0x36, 0xB2, 0xB2};
         const uint32_t piece = c.a[6] & 0xFFFFFF;
         const bool cameraRight = Ram16(kCameraX) >= kDancersChange;
-        switch (Step(c, kDistances)) {
+        switch (Step(c, At(0x07D3F6))) {
         case 0:
             SetRam8(piece + kStep, 2);
             SetRam8(piece + kHalf, 1);
@@ -304,12 +306,11 @@ namespace {
     constexpr uint16_t kLadyFrom = 0x170;
     constexpr uint32_t kStageColours = At(0x38C298), kLadyColours = 0x90C3C0;
     constexpr int32_t kColoursOf = AtA5(0x140); // from A5, a word: which of the long table's entries is this stage's
-    constexpr uint16_t kLadyPoses[6] = {0x0000, 0x0100, 0x1120, 0x1100, 0x1140, 0x1160}; // by the event, in twos
+    constexpr uint32_t kLadyPoses = At(0x07D522); // a word by the event (in twos): where the pose's colours are in the stage's
 
     void Lady(M68K &c) {
-        static constexpr uint16_t kDistances[4] = {0x08, 0x14, 0x68, 0x68};
         const uint32_t piece = c.a[6] & 0xFFFFFF;
-        switch (Step(c, kDistances)) {
+        switch (Step(c, At(0x07D4BA))) {
         case 0:
             SetRam8(piece + kStep, 2);
             SetStageAnimation(c, 0x18);
@@ -327,7 +328,7 @@ namespace {
                     SetLow16(c.d[0], static_cast<int8_t>(c.d[0]));
                     SetLow16(c.d[1], Ram16(Var(c, kColoursOf)));
                     c.a[0] = Mem32(c, kStageColours + static_cast<uint32_t>(static_cast<int16_t>(c.d[1])));
-                    c.a[0] += static_cast<uint32_t>(static_cast<int16_t>(kLadyPoses[((c.d[0] & 0xFFFF) >> 1) % 6]));
+                    c.a[0] += static_cast<uint32_t>(static_cast<int16_t>(ProgramWord(c, kLadyPoses + (c.d[0] & 0xFFFF))));
                     c.a[1] = kLadyColours;
                     c.d[7] = 0;
                     Call(c, kCopyColours);
@@ -346,9 +347,8 @@ namespace {
     constexpr uint32_t kLetGo = 0x01010500; // the new record's first four bytes: in use, drawn, script 5
 
     void Thrower(M68K &c) {
-        static constexpr uint16_t kDistances[4] = {0x08, 0x14, 0x56, 0x56};
         const uint32_t piece = c.a[6] & 0xFFFFFF;
-        switch (Step(c, kDistances)) {
+        switch (Step(c, At(0x07D534))) {
         case 0:
             SetRam8(piece + kStep, 2);
             SetStageAnimation(c, 0);
@@ -2054,10 +2054,6 @@ namespace {
 
     // A word of the game's program as the 68000 reads it when it reads by its program counter (the
     // deciphered program; reads through an address register get the ROM as it is)
-    uint16_t ProgramWord(M68K &c, uint32_t address) {
-        return static_cast<uint16_t>((c.opcodes[address] << 8) | c.opcodes[address + 1]);
-    }
-
     // --- pieces that fly a path ---
     //
     // A path is legs in the ROM, each: a word of frames, where the leg starts (two words), and six longs:
@@ -2976,7 +2972,7 @@ namespace {
     // nothing is not a find).
     unsigned OnLists(M68K &c) {
         unsigned n = 0;
-        for (int list = 0; list < 15; list++) {
+        for (int list = 0; list < family::kTwelveLists + 8; list++) {
             n += Ram8(Var(c, AtA5(0x79C5) + list));
         }
         return n;
