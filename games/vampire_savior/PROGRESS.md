@@ -603,6 +603,18 @@ A5 (0 normal, 1 one match, which clears continue), +16 automatic BB (0 none, 1 f
 the variables with and without choices, the test menu showing the board's, and difficulty 8 back in FF80BE
 in the game after it.
 
+## The games made from this program (2026-10-16)
+
+Vampire Savior 2 (`games/vsav2`) and Vampire Hunter 2 (`games/vhunt2`) build these sources. Every place they name in
+the program or memory is written `At(0x...)` or `AtA5(...)` (`src/places.h`); this game's `family.h` has no list, so
+here a place is where it is said to be. What is a game's own is in its `family.h`: the roster and hidden characters,
+the stages and their tunes, the music, the tiles the port tells apart, the colours file and mask, and the rules of
+the fight that differ (`kAllForGood`, `kOverheadToo`, `kGuardsAnything`, `kGuardNear`, `kAtEdgeToo`, `kHitTestHit`,
+`kTwelveLists`). Rewrites that read tables of this game's ROM read them from the game's program (the stage scripts'
+tables of steps, the lady's poses, the stages' row scroll code). With all of it, this game's state hashes are the
+same frame for frame as before (versus and ladder movies, training wide with the aids, the viewers, the hidden
+characters). [games/vsav2/PROGRESS.md](../vsav2/PROGRESS.md) has what differs in the other two.
+
 ## Approximate, or left to the interpreters
 
 - The Z80 sound driver is translated too (4,498 instructions, 62 routines; 142 million of its

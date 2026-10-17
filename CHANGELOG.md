@@ -2,6 +2,21 @@
 
 ## Unreleased
 
+- **Two more games: Vampire Savior 2 and Vampire Hunter 2** (`games/vsav2`, `games/vhunt2`; ROM sets `vsav2`, Japan
+  970913, and `vhunt2`, Japan 970929). Capcom made both from Vampire Savior's program: Vampire Savior 2 brings back
+  Donovan, Phobos (Huitzil) and Pyron, Vampire Hunter 2 is Night Warriors' cast on Vampire Savior's engine, and
+  both have a thirteenth stage (Donovan's). They build Vampire Savior's sources, so each has everything its port
+  has: the training mode and the dummy, widescreen and invisible walls, survival, the endless battle, ring out, the
+  stage and model viewers, attract mode, the hidden characters (each game's own: Oboro Bishamon as the board gives
+  him, Shadow, Dark Gallon in Vampire Hunter 2), custom colours and the colour editor (PalMod's file in Vampire Savior
+  2 only), a custom soundtrack with each game's music named, the board's settings, save states and run-ahead. Every
+  rewrite is checked against each game's own code (`make GAME=<id> check-rewrites`), and widescreen as Vampire
+  Savior's is (`check-widescreen`).
+- **A game made from another's program builds that game's sources** ([docs/TOOLKIT.md](docs/TOOLKIT.md)): a
+  `game.cfg`'s `sources`, places named `At()` and `AtA5()` and listed in the game's `family.h`, `tools/portmap.py`
+  (where one program's code and variables are in another's) and `tools/places.py` (that list); a hook or rewrite at
+  place 0 (`kNoPlace`) is not made. Vampire Savior is as it was, frame for frame.
+
 - **A custom soundtrack's folder can be any folder of music**: with no file in it named for a song, its files play
   as a playlist in place of all the game's music, one after another in their names' order ("2 ..." before
   "10 ..."), from the first again after the last; the feature's new choice "On, shuffled" plays them in a random
