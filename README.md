@@ -20,7 +20,7 @@ from a board you own. **Only the version named below works for each game.** This
 one.
 
 This project is not affiliated with, endorsed by, or sponsored by Capcom. *Street Fighter*, *Super Puzzle
-Fighter*, *Vampire Savior* and *Darkstalkers* are trademarks of Capcom Co., Ltd.; "CPS-2" and "QSound" are names
+Fighter*, *Vampire Savior*, *Vampire Hunter* and *Darkstalkers* are trademarks of Capcom Co., Ltd.; "CPS-2" and "QSound" are names
 and trademarks of their owners, used here only to say what the programs work with.
 
 ![The launcher: every game whose ROM set you have, ready to play](docs/screenshots/launcher-games.png)
@@ -32,10 +32,13 @@ and trademarks of their owners, used here only to say what the programs work wit
 | [**Street Fighter Alpha 2**](games/sfa2/README.md) (1996) | `sfa2u` (USA 960430) | A full training mode (hit and throw boxes, frame data and a frame meter, combo, stun and Custom Combo readouts, input display, a dummy that records, replays, guards and answers), widescreen, survival, ring out, endless battle, the stage and model viewers, the hidden characters, custom colours |
 | [**Super Puzzle Fighter II Turbo**](games/puzzle_fighter/README.md) (1996) | `spf2t` (Europe 960529) | A training mode (attack readout, landing guide, input display, a dummy that sends counter gems to cancel, crash gems as you choose), CPU battle, the hidden characters at a kick, custom colours for the characters and the gems |
 | [**Vampire Savior: The Lord of Vampire**](games/vampire_savior/README.md) (1997) | `vsavj` (Japan 970519) | A full training mode (hit boxes, frame data and a frame meter, input display, a dummy that records, replays and guards), widescreen, survival, ring out, endless battle, the stage and model viewers, the hidden characters, custom colours |
+| [**Vampire Savior 2: The Lord of Vampire**](games/vsav2/README.md) (1997) | `vsav2` (Japan 970913) | Donovan, Phobos and Pyron back, and Donovan's stage; everything Vampire Savior's port has (its sources, checked against this game's code) |
+| [**Vampire Hunter 2: Darkstalkers Revenge**](games/vhunt2/README.md) (1997) | `vhunt2` (Japan 970929) | Night Warriors' cast on Vampire Savior's engine, each fighter's own theme; everything Vampire Savior's port has, and Dark Gallon among the hidden characters |
 
 | | | |
 | --- | --- | --- |
 | [![Street Fighter Alpha 2: training mode](docs/screenshots/sfa2/training.png)](games/sfa2/README.md) | [![Super Puzzle Fighter II Turbo: training mode](docs/screenshots/puzzle_fighter/training.png)](games/puzzle_fighter/README.md) | [![Vampire Savior: training mode](docs/screenshots/vampire_savior/training.png)](games/vampire_savior/README.md) |
+| [![Vampire Savior 2: Phobos, Pyron and Donovan](docs/screenshots/vsav2/returning.png)](games/vsav2/README.md) | [![Vampire Hunter 2: Gallon, Aulbath and Sasquatch](docs/screenshots/vhunt2/night-warriors.png)](games/vhunt2/README.md) | [![Vampire Savior 2: training mode on Donovan's stage](docs/screenshots/vsav2/training.png)](games/vsav2/README.md) |
 
 Each game's page has all it does, with pictures.
 
@@ -67,7 +70,7 @@ Each game's page has all it does, with pictures.
    and unpack it.
 2. Open the launcher (`CPS-2 Recomp.app`, `cps2recomp-launcher`). On its Games page, **Choose folder…** and pick
    the folder you keep your ROM sets in: it finds each game's by the set's name (`sfa2u.zip`, `spf2t.zip`,
-   `vsavj.zip`, or a folder of the set's files). Or drop a set, or the folder, on the window, or choose each
+   `vsavj.zip`, `vsav2.zip`, `vhunt2.zip`, or a folder of the set's files). Or drop a set, or the folder, on the window, or choose each
    game's set on its own. They stay where they are.
 3. Press **Play** beside a game. Several games can run at once, each in its own window.
 
@@ -169,7 +172,8 @@ top), to open the in-game menu; its "Quit game" row ends the game.
 
 - The ROM set of each game you want to play, with its key file: `sfa2u` (*Street Fighter Alpha 2*, USA 960430),
   `spf2t` (*Super Puzzle Fighter II Turbo*, Europe 960529), `vsavj` (*Vampire Savior: The Lord of Vampire*,
-  Japan 970519). As a zip (with its parent set's zip beside it if your collection keeps the shared files there)
+  Japan 970519), `vsav2` (*Vampire Savior 2: The Lord of Vampire*, Japan 970913), `vhunt2` (*Vampire Hunter 2:
+  Darkstalkers Revenge*, Japan 970929). As a zip (with its parent set's zip beside it if your collection keeps the shared files there)
   or a folder of the set's files. The launcher checks every file by checksum and tells you which is missing or
   different. Sets of other regions and revisions are refused: each port is made from that one version's
   program, and its features use addresses found in it.
@@ -182,7 +186,9 @@ Each game's 68000 program is translated ahead of time into C++ and compiled into
 parts its features touch are rewritten by hand as readable C++, each checked call by call against the game's
 own code. What the program expects of the board (its video, the QSound chip, the sound CPU and its registers,
 the settings memory) is code written for this project, not an emulator. The [toolkit](docs/TOOLKIT.md) is shared
-by every game, so a fix or a feature there reaches all of them; each game's page says how its port works.
+by every game, so a fix or a feature there reaches all of them; each game's page says how its port works. Games
+Capcom made from another's program (Vampire Savior 2 and Vampire Hunter 2, from Vampire Savior's) build that game's
+sources, with a list of where each place they name is in the other game, so they have all of its features.
 
 ## Building from source
 

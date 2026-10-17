@@ -38,8 +38,18 @@ namespace {
 
         SetRam16(Var(c, kHealthCeilingBefore), Ram16(victim + kHealthCeiling));
         SetRam16(Var(c, kHealthBefore), Ram16(victim + kHealth));
-        SetRam16(victim + kHealthCeiling, static_cast<uint16_t>(Ram16(victim + kHealthCeiling) - forGood));
         const uint16_t all = static_cast<uint16_t>(forGood + besides);
+        // (family.h: in some games an attacker can take all of it for good; A0 is kept while that is looked at)
+        bool allForGood = false;
+        if (family::kAllForGood) {
+            SetRam32(Var(c, family::kAllForGoodKeep), c.a[0]);
+            c.a[0] = static_cast<uint32_t>(static_cast<int16_t>(Ram16(Var(c, kHitAttacker2))));
+            allForGood = Mem8(c, c.a[0] + family::kAllForGood) != 0;
+            if (!allForGood) {
+                c.a[0] = Ram32(Var(c, family::kAllForGoodKeep));
+            }
+        }
+        SetRam16(victim + kHealthCeiling, static_cast<uint16_t>(Ram16(victim + kHealthCeiling) - (allForGood ? all : forGood)));
         SetLow16(c.d[4], all);
         SetRam16(victim + kHealth, static_cast<uint16_t>(Ram16(victim + kHealth) - all));
 
@@ -75,8 +85,9 @@ namespace {
     bool IsLow(uint8_t kind) { // (guarded crouching only)
         return kind == 0x02 || kind == 0x03 || kind == 0x38 || kind == 0x39;
     }
-    bool IsOverhead(uint8_t kind) { // (guarded standing only)
-        return kind == 0x4D || kind == 0x4A || kind == 0x2C || kind == 0x37 || kind == 0x42 || kind == 0x48;
+    bool IsOverhead(uint8_t kind) { // (guarded standing only; family.h: some games have one more kind)
+        return kind == 0x4D || kind == 0x4A || kind == 0x2C || kind == 0x37 || kind == 0x42 || kind == 0x48 ||
+               (family::kOverheadToo && kind == family::kOverheadToo);
     }
     bool IsJumpAttack(uint8_t kind) { // (guarded standing only when its player is in the air)
         return kind == 0x00 || kind == 0x01;
@@ -94,15 +105,15 @@ namespace {
         auto set16 = [&](uint32_t address, uint16_t value) { c.Write(address, 1, value); };
         auto reaction = [&](uint8_t which) { // 018968: which reaction the player goes into
             SetLow8(c.d[0], which);
-            Call(c, 0x018968);
+            Call(c, At(0x018968));
         };
         auto after = [&](bool landed) { // what follows, for a hit that landed and for a guarded one
             if (landed) {
-                Call(c, 0x01841C);
+                Call(c, At(0x01841C));
             }
-            Call(c, 0x01884E);
-            Call(c, 0x018952);
-            Call(c, 0x018980);
+            Call(c, At(0x01884E));
+            Call(c, At(0x018952));
+            Call(c, At(0x018980));
             const int player = victim == Player(0) ? 0 : victim == Player(1) ? 1 : -1;
             if (player >= 0) {
                 TrainingContact(player, !landed, kind);
@@ -167,10 +178,10 @@ namespace {
             set8(victim + 0x163, 1);
             set8(victim + 0x14E, 0x18);
             set16(victim + 0x182, 4);
-            Call(c, 0x01884E);
-            Call(c, 0x0188BA);
-            Call(c, 0x018952);
-            Call(c, 0x018980);
+            Call(c, At(0x01884E));
+            Call(c, At(0x0188BA));
+            Call(c, At(0x018952));
+            Call(c, At(0x018980));
             if (victim == Player(0) || victim == Player(1)) {
                 TrainingContact(victim == Player(0) ? 0 : 1, false, kind);
             }
@@ -182,7 +193,8 @@ namespace {
         set8(victim + kArmourTimer, 0);
         // Guarded? Only from a guarding pose, and then by the attack's kind
         auto guarded = [&]() {
-            if (kind == kKindNoGuard) {
+            // (family.h: in some games a victim with this byte set guards it as any other)
+            if (kind == kKindNoGuard && !(family::kGuardsAnything && Mem8(c, victim + family::kGuardsAnything))) {
                 return false;
             }
             c.a[0] = Mem32(c, victim + kFrame);
@@ -203,7 +215,7 @@ namespace {
             if (Mem8(c, victim + kAutoGuard) || (byPlayer && Mem8(c, attacker + 0x190))) {
                 return true;
             }
-            if (Mem8(c, Var(c, 0x85)) && (Mem8(c, Var(c, 0x7421)) & 0x20)) {
+            if (Mem8(c, Var(c, AtA5(0x85))) && (Mem8(c, Var(c, AtA5(0x7421))) & 0x20)) {
                 return true;
             }
             if (!crouching) {
@@ -227,13 +239,13 @@ namespace {
     // the round is decided hands on to what comes after.
     void RoundFighting(M68K &c) {
         if (Ram8(Var(c, kRoundPaused))) {
-            SetRam8(Var(c, 0x12D), 0);
-            SetRam8(Var(c, 0xBD), 0xFF);
-            SetRam8(Var(c, 0x10E), 0xFF);
-            Call(c, 0x00995A);
+            SetRam8(Var(c, AtA5(0x12D)), 0);
+            SetRam8(Var(c, AtA5(0xBD)), 0xFF);
+            SetRam8(Var(c, AtA5(0x10E)), 0xFF);
+            Call(c, At(0x00995A));
             return;
         }
-        Call(c, 0x00A60A);
+        Call(c, At(0x00A60A));
         const bool training = TrainingMode();
         if (training) {
             // (whatever else takes health off: not below nothing)
@@ -258,7 +270,7 @@ namespace {
             const uint8_t part = static_cast<uint8_t>(Ram8(Var(c, kRoundClockPart)) - 1);
             SetRam8(Var(c, kRoundClockPart), part);
             if (part == 0) {
-                Call(c, 0x00A3EA); // (the frames of the next second)
+                Call(c, At(0x00A3EA)); // (the frames of the next second)
                 if (!FeatureOn("infinite_time") && !training && !BattleNoClock()) {
                     const uint8_t seconds = static_cast<uint8_t>(Ram8(Var(c, kRoundClock)) - 1);
                     SetRam8(Var(c, kRoundClock), seconds);
@@ -266,8 +278,8 @@ namespace {
                         // Time is up: whoever has more health left has won
                         SetRam8(Var(c, kRoundClock), 0);
                         SetRam8(Var(c, kRoundTimeOver), 0xFF);
-                        SetRam8(Var(c, 0x14C), 1);
-                        Call(c, 0x00A3B2);
+                        SetRam8(Var(c, AtA5(0x14C)), 1);
+                        Call(c, At(0x00A3B2));
                     }
                 }
             }
@@ -278,19 +290,19 @@ namespace {
             return;
         }
         // Decided: on to the end of the round
-        Call(c, 0x009880);
-        Call(c, 0x0099A8);
-        SetRam16(Var(c, 0x0C), static_cast<uint16_t>(Ram16(Var(c, 0x0C)) + 2));
+        Call(c, At(0x009880));
+        Call(c, At(0x0099A8));
+        SetRam16(Var(c, AtA5(0x0C)), static_cast<uint16_t>(Ram16(Var(c, AtA5(0x0C))) + 2));
         c.d[0] = 0;
-        SetRam32(Var(c, 0x10), 0);
-        SetRam8(Var(c, 0x8F), 1);
-        SetRam8(Var(c, 0xBD), 0xFF);
-        SetRam8(Var(c, 0x107), 1);
-        SetRam8(Var(c, 0x10E), 1);
-        SetRam8(Var(c, 0x12D), 0);
-        SetRam8(Var(c, 0x125), 0);
-        Call(c, 0x00995A);
-        Call(c, 0x00D560);
+        SetRam32(Var(c, AtA5(0x10)), 0);
+        SetRam8(Var(c, AtA5(0x8F)), 1);
+        SetRam8(Var(c, AtA5(0xBD)), 0xFF);
+        SetRam8(Var(c, AtA5(0x107)), 1);
+        SetRam8(Var(c, AtA5(0x10E)), 1);
+        SetRam8(Var(c, AtA5(0x12D)), 0);
+        SetRam8(Var(c, AtA5(0x125)), 0);
+        Call(c, At(0x00995A));
+        Call(c, At(0x00D560));
     }
 
     // 0276A6. Is something of the other side's near enough to the player at A6 that it should guard? Yes
@@ -363,8 +375,8 @@ namespace {
             c.a[0] += kFrameSize;
         }
         // No attack box to come: near enough anyway?
-        const uint16_t apart = static_cast<uint16_t>(Mem16(c, player + kX) - Mem16(c, other + kX) + 0x80);
-        return answer(apart < 0x100);
+        const uint16_t apart = static_cast<uint16_t>(Mem16(c, player + kX) - Mem16(c, other + kX) + family::kGuardNear);
+        return answer(apart < 2 * family::kGuardNear);
     }
 
     // 027694. The same for a player who has to be holding away to guard (or has chosen to guard by itself)

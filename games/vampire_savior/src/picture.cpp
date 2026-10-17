@@ -41,9 +41,11 @@ namespace {
     constexpr uint32_t kWhile = 0x28;    // long: a piece of the stage that is drawn only while the camera is to one side of a place
     // The frame's lists of records to draw: each a place that goes down as records are added (longs, from
     // A5) and how many (bytes). The first is all the things thrown, for the hit tests too (kThrownInUse).
-    constexpr int32_t kLists = 0x7982, kListCounts = 0x79C5;
-    enum { kListThrown = 0, kListThrownBehind = 1, kListThrownInFront = 2, kListEight = 3, kListTwelve = 4, kListPieces = 11 };
-    constexpr int32_t kNothingDrawn = 0x118; // from A5, a byte: not zero: no piece of the stage is drawn
+    constexpr int32_t kLists = AtA5(0x7982), kListCounts = AtA5(0x79C5);
+    // (the objects of kind 12 have a list for each of their depths: family.h says how many; the pieces' follow)
+    enum { kListThrown = 0, kListThrownBehind = 1, kListThrownInFront = 2, kListEight = 3, kListTwelve = 4,
+           kListPieces = kListTwelve + family::kTwelveLists };
+    constexpr int32_t kNothingDrawn = AtA5(0x118); // from A5, a byte: not zero: no piece of the stage is drawn
     // The board's picture, and the margins about it inside which a thing is still drawn
     constexpr int kMarginLeft = 0x40, kMarginTop = 0x40, kAcross = 0x200, kAcrossWide = 0x280, kUp = 0x180;
     constexpr int kThrownMarginLeft = 0x60, kThrownAcross = 0x240;
@@ -90,7 +92,7 @@ namespace {
         SetRam8(object + kDrawn, 1);
         c.d[0] = Ram8(object + kKind);
         // (the game goes on to the code for the object's kind through A3)
-        static constexpr uint32_t kThen[5] = {0x01555C, 0x0155BA, 0x0155FC, 0x01560C, 0x015698};
+        static constexpr uint32_t kThen[5] = {At(0x01555C), At(0x0155BA), At(0x0155FC), At(0x01560C), At(0x015698)};
         c.a[3] = kThen[c.d[0] <= 0x10 ? c.d[0] >> 2 : 0];
         switch (c.d[0]) {
         case 0x04: // (a thing thrown)
@@ -102,7 +104,7 @@ namespace {
             break;
         case 0x0C:
             SetLow8(c.d[0], Ram8(object + kDepth));
-            SetLow16(c.d[1], 0x0E + (c.d[0] & 0xFF) * 8);
+            SetLow16(c.d[1], family::kTwelveLists * 2 + (c.d[0] & 0xFF) * 8); // (as the game's table of the lists leaves it)
             AddToList(c, kListTwelve + static_cast<int>((c.d[0] & 0xFF) / 2));
             break;
         case 0x10:
@@ -252,18 +254,18 @@ namespace {
 } // namespace
 
 void RegisterPicture() {
-    AddRewrite(0x01BBC2, "PlaceOfPlayers", PlaceOfPlayers, kFreeFlags, 221);
-    AddRewrite(0x01BC3A, "PlaceOfPieces", PlaceOfPieces, kFreeFlags, 203);
-    AddRewrite(0x01BC88, "PlaceOfPanel", PlaceOfPanel, kFreeFlags, 40);
+    AddRewrite(At(0x01BBC2), "PlaceOfPlayers", PlaceOfPlayers, kFreeFlags, 221);
+    AddRewrite(At(0x01BC3A), "PlaceOfPieces", PlaceOfPieces, kFreeFlags, 203);
+    AddRewrite(At(0x01BC88), "PlaceOfPanel", PlaceOfPanel, kFreeFlags, 40);
     // (the last number is the time a call is charged: the game's own, as the check measured it)
-    AddRewrite(0x01559E, "PlaneOf", PlaneOf, kFreeFlags, 34);
-    AddRewrite(0x015572, "PlaneAndRow", PlaneAndRow, kFreeFlags, 117);
-    AddRewrite(0x015696, "PieceDrawn", PieceDrawn, kFreeFlags, 106);
-    AddRewrite(0x015546, "Drawn", Drawn, kFreeFlags, 158);
-    AddRewrite(0x0154FE, "DrawnIfInWide", DrawnIfInWide, kFreeFlags, 484);
-    AddRewrite(0x01551A, "DrawnIfInPicture", DrawnIfInPicture, kFreeFlags, 370);
-    AddRewrite(0x01549A, "ThrownGone", ThrownGone, kFreeFlags, 255);
-    AddRewrite(0x0154CC, "PieceByCamera", PieceByCamera, kFreeFlags, 136);
+    AddRewrite(At(0x01559E), "PlaneOf", PlaneOf, kFreeFlags, 34);
+    AddRewrite(At(0x015572), "PlaneAndRow", PlaneAndRow, kFreeFlags, 117);
+    AddRewrite(At(0x015696), "PieceDrawn", PieceDrawn, kFreeFlags, 106);
+    AddRewrite(At(0x015546), "Drawn", Drawn, kFreeFlags, 158);
+    AddRewrite(At(0x0154FE), "DrawnIfInWide", DrawnIfInWide, kFreeFlags, 484);
+    AddRewrite(At(0x01551A), "DrawnIfInPicture", DrawnIfInPicture, kFreeFlags, 370);
+    AddRewrite(At(0x01549A), "ThrownGone", ThrownGone, kFreeFlags, 255);
+    AddRewrite(At(0x0154CC), "PieceByCamera", PieceByCamera, kFreeFlags, 136);
 }
 
 } // namespace cps2recomp

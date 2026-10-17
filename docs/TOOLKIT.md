@@ -84,6 +84,29 @@ in `games/` (`tools/gamecfg.py --collection` writes its table from their `game.c
 The player's ROM set is only read. The program is deciphered with the set's own key file, as the
 board does when it starts; no key is in this repository.
 
+
+## A game made from another's program
+
+Capcom made several games from one program, changed here and there (Vampire Savior 2 and Vampire Hunter 2 from
+Vampire Savior's). Such a game builds the first game's sources rather than having its own: its `game.cfg` says
+`sources = vampire_savior`, CMake compiles that game's `src/` too, and the game's own `family.h` (in its folder, on
+the include path) says what is its own.
+
+- The shared sources name places as `At(0x...)` (the ROM or work RAM, as the first game has them) and `AtA5(...)` (a
+  variable by its distance from A5), worked out when compiling from `family.h`'s list (`games/vampire_savior/src/places.h`).
+  The first game's list is empty: a place is where it is said to be. A place the list lacks stops the build.
+- `tools/portmap.py` maps the two programs: anchors (runs alike but for the places they name), then both programs'
+  code walked side by side from the anchors and from jump tables, then what is left between two placed
+  instructions matched by what the instructions do. It also pairs the places matched instructions name.
+- `tools/places.py` writes `family.h`'s list from that map, choosing for a code place the candidate where most
+  instructions on do the same; a line marked "by hand" is kept.
+- What differs in the other game's code is a fact in `family.h` that the shared code follows (a byte the rules test,
+  a range of tiles, the roster), or, where a routine is too different to share, the place 0 (`kNoPlace`, `lift.h`):
+  no rewrite is made there and the game's own code runs. `tools/recomp.py` takes hooks written `At(0x...)` and
+  places a `family.h` names.
+- The shared rewrites are checked against the other game's own code like any rewrite
+  (`games/vampire_savior/check_family.sh`).
+
 ## Working on the toolkit
 
 A toolkit change is checked with every game: build each (`make GAME=<id>`) and run its checks

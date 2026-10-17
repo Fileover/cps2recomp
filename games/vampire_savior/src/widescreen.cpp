@@ -70,7 +70,7 @@ namespace {
 
     // Between a match's screens the game draws a curtain of red blocks across the board's picture, and only
     // that wide: while any of it is in the object list the picture is the board's. (Its objects: colour set
-    // 3, tiles 2C600-2FDFF, which nothing else on a stage uses.)
+    // 3, tiles family.h names, which nothing else on a stage uses.)
     bool CurtainDrawn(const Machine &machine) {
         const uint8_t *list = machine.ObjectsToCome();
         for (int n = 0; n < 0x400; n++, list += 8) {
@@ -79,7 +79,7 @@ namespace {
                 break; // (the list's end)
             }
             const unsigned tile = ((list[4] << 8) | list[5]) + ((y & 0x6000) << 3);
-            if ((attributes & 0x1F) == 3 && tile >= 0x2C600 && tile < 0x2FE00) {
+            if ((attributes & 0x1F) == 3 && tile >= family::kCurtainTiles[0] && tile < family::kCurtainTiles[1]) {
                 return true;
             }
         }

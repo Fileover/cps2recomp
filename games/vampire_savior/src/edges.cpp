@@ -74,6 +74,9 @@ namespace {
         if (static_cast<uint16_t>(Ram16(player + kX) - half) <= left) {
             Move(player, c.d[0]);
             SetRam8(player + kAtEdge, 1);
+            if (family::kAtEdgeToo) {
+                SetRam8(player + family::kAtEdgeToo, 0xFF);
+            }
         } else {
             // (and how far its right edge is beyond the picture's)
             SetLow16(c.d[2], half * 2);
@@ -83,6 +86,9 @@ namespace {
             }
             Move(player, c.d[0]);
             SetRam8(player + kAtEdge, 2);
+            if (family::kAtEdgeToo) {
+                SetRam8(player + family::kAtEdgeToo, 0xFF);
+            }
         }
 
         // The corner's push back: the player is being knocked back on the floor, and the attacker is near
@@ -139,8 +145,8 @@ namespace {
 
 void RegisterEdges() {
     // (the last number is the time a call is charged: the game's own, as the check measured it)
-    AddRewrite(0x028192, "KeepIn", KeepIn, kFreeFlags, 338);
-    AddRewrite(0x02824C, "KeepBothIn", KeepBothIn, kFreeFlags, 104);
+    AddRewrite(At(0x028192), "KeepIn", KeepIn, kFreeFlags, 338);
+    AddRewrite(At(0x02824C), "KeepBothIn", KeepBothIn, kFreeFlags, 104);
 }
 
 } // namespace cps2recomp

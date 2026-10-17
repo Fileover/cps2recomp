@@ -51,28 +51,33 @@ namespace {
 
 void RegisterColours() {
     colours::Description d;
-    d.characters = {
-        {0, "Bulleta", "BB Hood"},   {1, "Demitri", nullptr},    {2, "Gallon", "Talbain"},
-        {3, "Victor", nullptr},      {4, "Zabel", "Lord Raptor"}, {5, "Morrigan", nullptr},
-        {6, "Anakaris", nullptr},    {7, "Felicia", nullptr},    {8, "Bishamon", nullptr},
-        {9, "Aulbath", "Rikuo"},     {10, "Sasquatch", nullptr}, {12, "Q-Bee", nullptr},
-        {13, "Lei-Lei", "Hsien-Ko"}, {14, "Lilith", nullptr},    {15, "Jedah", nullptr},
-        {kDarkGallon, "Dark Gallon", "Dark Talbain"}, {kOboroBishamon, "Oboro Bishamon", nullptr},
-    };
+    // (the characters, then the hidden ones: family.h)
+    for (const vsav::Character &c : kRoster) {
+        d.characters.push_back({c.number, c.name, c.otherName});
+    }
+    for (const vsav::Character &c : family::kHidden) {
+        d.characters.push_back({c.number, c.name, c.otherName});
+    }
     // (by what chooses them: vsav.h, kColours)
     d.setNames = {"LP", "MP", "HP", "LK", "MK", "HK", "PP", "KK", "AUTO1", "AUTO2"};
     d.palettesInSet = kPalettesInSet;
     d.setAddress = SetAddress;
     d.ranges = Ranges;
-    d.romFile = "vm3j.10b";
+    d.romFile = family::kColoursFile; // (none: the game's colours are not in one file)
     d.romFileAt = 0x380000;
     d.romFileSize = 0x80000;
     d.same = {kColourSets, kEffectColours + kColourNumbers * 4};
-    d.romFileWhose = "the Japanese set's, 970519";
-    d.featureDescription = "Characters in the colours of the files in the \"palettes\" folder in the game's data folder: a "
-                           "vm3j.10b changed with PalMod, and text files, one a character (Morrigan.txt), which go before "
-                           "it. With no files the game's own colours. They are taken when a player is coloured: at the next "
-                           "round.";
+    d.romFileWhose = family::kColoursFileWhose;
+    static const std::string description =
+        family::kColoursFile ? std::string("Characters in the colours of the files in the \"palettes\" folder in the game's data folder: a ") +
+                                   family::kColoursFile + " changed with PalMod, and text files, one a character (" + kRoster[0].name +
+                                   ".txt), which go before it. With no files the game's own colours. They are taken when a player is "
+                                   "coloured: at the next round."
+                             : std::string("Characters in the colours of the text files in the \"palettes\" folder in the game's data "
+                                           "folder, one a character (") +
+                                   kRoster[0].name + ".txt). With no files the game's own colours. They are taken when a player is "
+                                                     "coloured: at the next round.";
+    d.featureDescription = description.c_str();
     d.originalHelp = "# To change them, copy this file to the palettes folder and change the colours there. Each set\n"
                      "# is chosen by the buttons in its name ([PP]: two punches at once, [KK]: two kicks; [AUTO1] and\n"
                      "# [AUTO2]: chosen for auto guard) and has four lines of 16 colours; the character is drawn in\n"
@@ -87,8 +92,15 @@ void RegisterColours() {
     d.animationStep = ModelAnimationStep;
     d.animationNames = ModelAnimationNames;
     d.animationForLine = ModelAnimationForLine;
-    d.backgrounds = {"Stage 1", "Stage 2", "Stage 3", "Stage 4", "Stage 5", "Stage 6", "Stage 7",
-                     "Stage 8", "Stage 9", "Stage 10", "Stage 11", "Stage 12", "White", "Black"};
+    static std::vector<std::string> stages;
+    for (int n = 1; n <= kStages; n++) {
+        stages.push_back("Stage " + std::to_string(n));
+    }
+    for (const std::string &stage : stages) {
+        d.backgrounds.push_back(stage.c_str());
+    }
+    d.backgrounds.push_back("White");
+    d.backgrounds.push_back("Black");
     colours::Register(d);
 }
 

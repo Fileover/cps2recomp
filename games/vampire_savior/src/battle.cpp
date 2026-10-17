@@ -31,12 +31,8 @@ namespace {
     constexpr const char *kModes = "Alternative modes", *kSurvival = "Survival", *kEndless = "Endless battle";
     constexpr const char *kRingOut = "Ring out";
 
-    // The characters by their numbers (11 is nobody), as this set of the game names them
-    constexpr const char *kNames[kCharacters] = {"Bulleta", "Demitri", "Gallon", "Victor", "Zabel", "Morrigan", "Anakaris", "Felicia",
-                                                 "Bishamon", "Aulbath", "Sasquatch", nullptr, "Q-Bee", "Lei-Lei", "Lilith", "Jedah"};
-    constexpr int kNobody = 11;
 
-    constexpr uint32_t kResult = 0xFF810C;  // the round's result (vsav.h, kRoundResult)
+    constexpr uint32_t kResult = At(0xFF810C);  // the round's result (vsav.h, kRoundResult)
     constexpr int kStartMost = 9000;        // frames after which getting to a round is given up
     constexpr int kAfter = 230;             // frames a decided round is left to play out before the next match
     constexpr int kFade = 24;               //   the last of which, and the next match's first, go to and from black
@@ -178,8 +174,8 @@ namespace {
     // A character at random: not `not1`, not `not2`
     int AnyCharacter(int not1 = -1, int not2 = -1) {
         for (;;) {
-            const int c = static_cast<int>(Random() % kCharacters);
-            if (c != kNobody && c != not1 && c != not2) {
+            const int c = static_cast<int>(Random() % kCharacterSpan);
+            if (Choosable(c) && c != not1 && c != not2) {
                 return c;
             }
         }
@@ -190,12 +186,7 @@ namespace {
         if (choice <= 0) {
             return -1;
         }
-        for (int c = 0; c < kCharacters; c++) {
-            if (c != kNobody && --choice == 0) {
-                return c;
-            }
-        }
-        return -1;
+        return choice <= static_cast<int>(std::size(kRoster)) ? kRoster[choice - 1].number : -1;
     }
     // The endless battle's stage: its feature's choices are two ways of changing it, then the stages
     int ChosenStage() {
@@ -927,21 +918,13 @@ void RegisterBattle() {
                              "Two fighters played by the game: no bars, no clock, and the one knocked down is replaced. Press "
                              "anything to take a fighter over; ten idle seconds give it back.",
                              StartEndless});
-    std::vector<const char *> fighters = {"Random"};
-    for (const char *name : kNames) {
-        if (name) {
-            fighters.push_back(name);
-        }
-    }
+    const std::vector<const char *> fighters = RosterChoices({"Random"});
     game.features.push_back({"endless_one", kEndless, "Fighter 1", "Who is on player 1's side: someone new each time, or always the same.", 0, fighters});
     game.features.push_back({"endless_two", kEndless, "Fighter 2", "Who is on player 2's side: someone new each time, or always the same.", 0, fighters});
     game.features.push_back({"endless_stage", kEndless, "Stage",
                              "Where they fight. Shuffle: a stage that fades into another every so often. Scroll: the stages "
                              "go by, one after another, and the fighters are carried along. Or one stage.",
-                             0,
-                             {"Shuffle", "Scroll", "Feast of the Damned", "Concrete Cave", "Tower of Arrogance", "Red Thirst", "Deserted Chateau",
-                              "Abaraya", "Vanity Paradise", "War Agony", "Forever Torment", "Green Scream", "Iron Horse, Iron Terror",
-                              "Fetus of God"}});
+                             0, StageChoices({"Shuffle", "Scroll"})});
     game.features.push_back({"endless_shuffle", kEndless, "Shuffle every",
                              "Shuffle: how long they fight on a stage before it fades into another.", 0,
                              {"1 minute", "2 minutes", "3 minutes", "5 minutes", "10 minutes"}});

@@ -22,15 +22,15 @@ namespace cps2recomp {
 namespace {
     using namespace vsav;
 
-    constexpr uint32_t kPieces = 0xFFC800, kPieceSize = 0x80;
+    constexpr uint32_t kPieces = At(0xFFC800), kPieceSize = 0x80;
     constexpr int kPieceRecords = 24;
-    constexpr int32_t kPiecesLeft = 0xB5;  // from A5, a byte: the records the frame has still to run
-    constexpr int32_t kFrozen = 0x134;     // from A5, a byte: not zero: nothing on the stage is animated (a super move's flash)
+    constexpr int32_t kPiecesLeft = AtA5(0xB5);  // from A5, a byte: the records the frame has still to run
+    constexpr int32_t kFrozen = AtA5(0x134);     // from A5, a byte: not zero: nothing on the stage is animated (a super move's flash)
     // The records not in use: a list of them (a long from A5: its end, going down) and how many (a byte)
-    constexpr int32_t kFreePieces = 0x7972, kFreePiecesCount = 0x79C1;
-    constexpr uint32_t kTakePiece = 0x016FD0; // a free record in A4, if there is one
-    constexpr uint32_t kRandom = 0x014E8A;    // a made-up byte in D0
-    constexpr uint32_t kCopyColours = 0x01C3A4; // sets of sixteen colours from A0 to A1: D7 and one more
+    constexpr int32_t kFreePieces = AtA5(0x7972), kFreePiecesCount = AtA5(0x79C1);
+    constexpr uint32_t kTakePiece = At(0x016FD0); // a free record in A4, if there is one
+    constexpr uint32_t kRandom = At(0x014E8A);    // a made-up byte in D0
+    constexpr uint32_t kCopyColours = At(0x01C3A4); // sets of sixteen colours from A0 to A1: D7 and one more
 
     // A piece's record
     constexpr uint32_t kScript = 0x02;    // byte: which script
@@ -51,7 +51,7 @@ namespace {
     // frames of eight bytes, of which the first four are copied to the record's kTimer on: how long it is
     // shown, the end's mark, and an event for the script. The second byte of a frame says what follows it:
     // 0 the next frame, below nothing a jump (to the long after it), bit 6 the end.
-    constexpr uint32_t kStageAnimations = 0x2776B0;
+    constexpr uint32_t kStageAnimations = At(0x2776B0);
 
     void SetFrame(M68K &c) {
         const uint32_t piece = c.a[6] & 0xFFFFFF;
@@ -117,16 +117,21 @@ namespace {
     bool Frozen(M68K &c) {
         return Ram8(Var(c, kFrozen)) != 0;
     }
-    // What a script begins with: its step, and (as the game's own way to the step's code leaves it) the
-    // distance of that code from the script's table of steps
-    int Step(M68K &c, const uint16_t distances[4]) {
+    // A word of the program as the 68000 reads its code (a table read through the program counter)
+    uint16_t ProgramWord(M68K &c, uint32_t address) {
+        return static_cast<uint16_t>((c.opcodes[address] << 8) | c.opcodes[address + 1]);
+    }
+    // What a script (at `script` in the program) begins with: its step, and (as the game's own way to the step's
+    // code leaves it) the distance of that code from the script's table of steps, which follows its first
+    // three instructions
+    int Step(M68K &c, uint32_t script) {
         const int step = Ram8((c.a[6] & 0xFFFFFF) + kStep);
         SetLow8(c.d[0], step);
-        SetLow16(c.d[1], distances[(step >> 1) & 3]);
+        SetLow16(c.d[1], ProgramWord(c, script + 0x0C + static_cast<uint32_t>(step & 6)));
         return step;
     }
     void PieceDrawn(M68K &c) {
-        Call(c, 0x015696); // (picture.cpp)
+        Call(c, At(0x015696)); // (picture.cpp)
     }
 
     // --- every stage ---
@@ -134,9 +139,8 @@ namespace {
     // 07D354 (script 0). A piece that does nothing but go through its animation, drawn while the camera
     // is to its side of a place
     void Plain(M68K &c) {
-        static constexpr uint16_t kDistances[4] = {0x08, 0x2A, 0x3C, 0x3C};
         const uint32_t piece = c.a[6] & 0xFFFFFF;
-        switch (Step(c, kDistances)) {
+        switch (Step(c, At(0x07D354))) {
         case 0:
             SetRam8(piece + kStep, 2);
             SetStageAnimation(c, Ram8(piece + kWhich));
@@ -145,7 +149,7 @@ namespace {
             if (!Frozen(c)) {
                 Animate(c);
             }
-            Call(c, 0x0154CC);
+            Call(c, At(0x0154CC));
             break;
         default:
             GiveBack(c);
@@ -158,9 +162,8 @@ namespace {
     // 07D3A2 (script 1). As a plain piece, but a frame of its animation with an event is shown for up to
     // three frames longer, by chance (the candles' flames)
     void Flickering(M68K &c) {
-        static constexpr uint16_t kDistances[4] = {0x08, 0x18, 0x42, 0x42};
         const uint32_t piece = c.a[6] & 0xFFFFFF;
-        switch (Step(c, kDistances)) {
+        switch (Step(c, At(0x07D3A2))) {
         case 0:
             SetRam8(piece + kStep, 2);
             SetStageAnimation(c, Ram8(piece + kWhich));
@@ -175,7 +178,7 @@ namespace {
                 }
                 Animate(c);
             }
-            Call(c, 0x0154CC);
+            Call(c, At(0x0154CC));
             break;
         default:
             GiveBack(c);
@@ -263,10 +266,9 @@ namespace {
     }
 
     void Dancers(M68K &c) {
-        static constexpr uint16_t kDistances[4] = {0x08, 0x36, 0xB2, 0xB2};
         const uint32_t piece = c.a[6] & 0xFFFFFF;
         const bool cameraRight = Ram16(kCameraX) >= kDancersChange;
-        switch (Step(c, kDistances)) {
+        switch (Step(c, At(0x07D3F6))) {
         case 0:
             SetRam8(piece + kStep, 2);
             SetRam8(piece + kHalf, 1);
@@ -302,14 +304,13 @@ namespace {
     // animation with an event, the set of colours for that pose is copied in. She is there only while the
     // camera is far enough right for her to be in the picture.
     constexpr uint16_t kLadyFrom = 0x170;
-    constexpr uint32_t kStageColours = 0x38C298, kLadyColours = 0x90C3C0;
-    constexpr int32_t kColoursOf = 0x140; // from A5, a word: which of the long table's entries is this stage's
-    constexpr uint16_t kLadyPoses[6] = {0x0000, 0x0100, 0x1120, 0x1100, 0x1140, 0x1160}; // by the event, in twos
+    constexpr uint32_t kStageColours = At(0x38C298), kLadyColours = 0x90C3C0;
+    constexpr int32_t kColoursOf = AtA5(0x140); // from A5, a word: which of the long table's entries is this stage's
+    constexpr uint32_t kLadyPoses = At(0x07D522); // a word by the event (in twos): where the pose's colours are in the stage's
 
     void Lady(M68K &c) {
-        static constexpr uint16_t kDistances[4] = {0x08, 0x14, 0x68, 0x68};
         const uint32_t piece = c.a[6] & 0xFFFFFF;
-        switch (Step(c, kDistances)) {
+        switch (Step(c, At(0x07D4BA))) {
         case 0:
             SetRam8(piece + kStep, 2);
             SetStageAnimation(c, 0x18);
@@ -327,7 +328,7 @@ namespace {
                     SetLow16(c.d[0], static_cast<int8_t>(c.d[0]));
                     SetLow16(c.d[1], Ram16(Var(c, kColoursOf)));
                     c.a[0] = Mem32(c, kStageColours + static_cast<uint32_t>(static_cast<int16_t>(c.d[1])));
-                    c.a[0] += static_cast<uint32_t>(static_cast<int16_t>(kLadyPoses[((c.d[0] & 0xFFFF) >> 1) % 6]));
+                    c.a[0] += static_cast<uint32_t>(static_cast<int16_t>(ProgramWord(c, kLadyPoses + (c.d[0] & 0xFFFF))));
                     c.a[1] = kLadyColours;
                     c.d[7] = 0;
                     Call(c, kCopyColours);
@@ -346,9 +347,8 @@ namespace {
     constexpr uint32_t kLetGo = 0x01010500; // the new record's first four bytes: in use, drawn, script 5
 
     void Thrower(M68K &c) {
-        static constexpr uint16_t kDistances[4] = {0x08, 0x14, 0x56, 0x56};
         const uint32_t piece = c.a[6] & 0xFFFFFF;
-        switch (Step(c, kDistances)) {
+        switch (Step(c, At(0x07D534))) {
         case 0:
             SetRam8(piece + kStep, 2);
             SetStageAnimation(c, 0);
@@ -529,26 +529,26 @@ namespace {
     }
     // 015036. The animation's next frame now, however long the one shown had left
     void NextFrame(M68K &c) {
-        Call(c, 0x015036);
+        Call(c, At(0x015036));
     }
     void StartAs(M68K &c, uint32_t animation) {
         SetRam8((c.a[6] & 0xFFFFFF) + kStep, Ram8((c.a[6] & 0xFFFFFF) + kStep) + 2);
         SetStageAnimation(c, animation);
     }
     void ByCamera(M68K &c) {
-        Call(c, 0x0154CC); // (picture.cpp)
+        Call(c, At(0x0154CC)); // (picture.cpp)
     }
     void IfInPicture(M68K &c) {
-        Call(c, 0x01551A);
+        Call(c, At(0x01551A));
     }
-    constexpr int32_t kRoundDecided = 0x107;     // from A5, a byte: not zero from a knock-out until the next round (the round is decided)
-    constexpr int32_t kOddFrame = 0xB4;     // from A5, a byte: bit 0 turns over each frame (things drawn every other frame)
+    constexpr int32_t kRoundDecided = AtA5(0x107);     // from A5, a byte: not zero from a knock-out until the next round (the round is decided)
+    constexpr int32_t kOddFrame = AtA5(0xB4);     // from A5, a byte: bit 0 turns over each frame (things drawn every other frame)
     constexpr uint32_t kCameraStep = 0x285; // the camera's record: the step of its own script (the train's start)
     constexpr uint32_t kSpare = 0x22;       // byte: the third of an animation frame's four bytes
 
     // 07FF76 (script 41, the train): goes through its animation once a round is decided (a knock-out), and is not there before
     void Script41(M68K &c) {
-        static constexpr Steps kSteps = {0x07FF76, {0x07FF8A, 0x07FF9A, 0x07FFAE, 0x07FFAE}};
+        static constexpr Steps kSteps = {At(0x07FF76), {At(0x07FF8A), At(0x07FF9A), At(0x07FFAE), At(0x07FFAE)}};
         const uint32_t piece = c.a[6] & 0xFFFFFF;
         switch (StepAt(c, kSteps)) {
         case 0:
@@ -568,7 +568,7 @@ namespace {
 
     // 07FBC4 (script 36, the train): there until the camera's own script has got to its step 6
     void Script36(M68K &c) {
-        static constexpr Steps kSteps = {0x07FBC4, {0x07FBD8, 0x07FBE8, 0x07FC06, 0x07FC06}};
+        static constexpr Steps kSteps = {At(0x07FBC4), {At(0x07FBD8), At(0x07FBE8), At(0x07FC06), At(0x07FC06)}};
         const uint32_t piece = c.a[6] & 0xFFFFFF;
         switch (StepAt(c, kSteps)) {
         case 0:
@@ -591,7 +591,7 @@ namespace {
 
     // 07FB5E (script 35, the train): one animation until then, the next after
     void Script35(M68K &c) {
-        static constexpr Steps kSteps = {0x07FB5E, {0x07FB72, 0x07FB82, 0x07FBAC, 0x07FBBE}};
+        static constexpr Steps kSteps = {At(0x07FB5E), {At(0x07FB72), At(0x07FB82), At(0x07FBAC), At(0x07FBBE)}};
         const uint32_t piece = c.a[6] & 0xFFFFFF;
         switch (StepAt(c, kSteps)) {
         case 0:
@@ -621,7 +621,7 @@ namespace {
 
     // 07DECE (script 9, Concrete Cave): at an event of its animation, one time in four, the animation again from its start
     void Script9(M68K &c) {
-        static constexpr Steps kSteps = {0x07DECE, {0x07DEE2, 0x07DEEE, 0x07DF18, 0x07DF18}};
+        static constexpr Steps kSteps = {At(0x07DECE), {At(0x07DEE2), At(0x07DEEE), At(0x07DF18), At(0x07DF18)}};
         const uint32_t piece = c.a[6] & 0xFFFFFF;
         switch (StepAt(c, kSteps)) {
         case 0:
@@ -648,7 +648,7 @@ namespace {
 
     // 07E10E (script 12, Concrete Cave): when its animation ends, another: number 2 one time in four, else 3
     void Script12(M68K &c) {
-        static constexpr Steps kSteps = {0x07E10E, {0x07E122, 0x07E12E, 0x07E15C, 0x07E15C}};
+        static constexpr Steps kSteps = {At(0x07E10E), {At(0x07E122), At(0x07E12E), At(0x07E15C), At(0x07E15C)}};
         const uint32_t piece = c.a[6] & 0xFFFFFF;
         switch (StepAt(c, kSteps)) {
         case 0:
@@ -672,7 +672,7 @@ namespace {
 
     // 080768 (script 52, Concrete Cave): waits for the event 2 of the piece that made it, then goes through its animation
     void Script52(M68K &c) {
-        static constexpr Steps kSteps = {0x080768, {0x08077C, 0x080792, 0x0807A8, 0x0807BA}};
+        static constexpr Steps kSteps = {At(0x080768), {At(0x08077C), At(0x080792), At(0x0807A8), At(0x0807BA)}};
         const uint32_t piece = c.a[6] & 0xFFFFFF;
         switch (StepAt(c, kSteps)) {
         case 0:
@@ -701,7 +701,7 @@ namespace {
     // 0806FA (script 51, Concrete Cave): there while the spare byte of its maker's frame is not zero; at an
     // event, three times in four, another of three animations
     void Script51(M68K &c) {
-        static constexpr Steps kSteps = {0x0806FA, {0x08070E, 0x080724, 0x080762, 0x080762}};
+        static constexpr Steps kSteps = {At(0x0806FA), {At(0x08070E), At(0x080724), At(0x080762), At(0x080762)}};
         const uint32_t piece = c.a[6] & 0xFFFFFF;
         switch (StepAt(c, kSteps)) {
         case 0:
@@ -739,7 +739,7 @@ namespace {
         SetStageAnimation(c, (c.d[0] + 0x0C + Ram8(piece + kWhich)) & 0xFF);
     }
     void Script7(M68K &c) {
-        static constexpr Steps kSteps = {0x07DDD8, {0x07DDEC, 0x07DE0A, 0x07DE2C, 0x07DE2C}};
+        static constexpr Steps kSteps = {At(0x07DDD8), {At(0x07DDEC), At(0x07DE0A), At(0x07DE2C), At(0x07DE2C)}};
         const uint32_t piece = c.a[6] & 0xFFFFFF;
         switch (StepAt(c, kSteps)) {
         case 0:
@@ -766,7 +766,7 @@ namespace {
     // 07EE90 (script 21, Abaraya): its animation over, it waits (180 frames the first time, then 90) and
     // then, one time in four, goes through it again
     void Script21(M68K &c) {
-        static constexpr Steps kSteps = {0x07EE90, {0x07EEA4, 0x07EEB6, 0x07EEE6, 0x07EEE6}};
+        static constexpr Steps kSteps = {At(0x07EE90), {At(0x07EEA4), At(0x07EEB6), At(0x07EEE6), At(0x07EEE6)}};
         const uint32_t piece = c.a[6] & 0xFFFFFF;
         switch (StepAt(c, kSteps)) {
         case 0:
@@ -798,7 +798,7 @@ namespace {
 
     // 07F1A4 (script 25, Vanity Paradise): as the candles of Feast of the Damned, and drawn every other frame
     void Script25(M68K &c) {
-        static constexpr Steps kSteps = {0x07F1A4, {0x07F1B8, 0x07F1C8, 0x07F1FC, 0x07F1FC}};
+        static constexpr Steps kSteps = {At(0x07F1A4), {At(0x07F1B8), At(0x07F1C8), At(0x07F1FC), At(0x07F1FC)}};
         const uint32_t piece = c.a[6] & 0xFFFFFF;
         switch (StepAt(c, kSteps)) {
         case 0:
@@ -826,7 +826,7 @@ namespace {
     // 080094 (script 44, Fetus of God): its animation's frames by their own time until a round is decided,
     // then one each frame
     void Script44(M68K &c) {
-        static constexpr Steps kSteps = {0x080094, {0x0800A8, 0x0800B8, 0x0800D4, 0x0800E6}};
+        static constexpr Steps kSteps = {At(0x080094), {At(0x0800A8), At(0x0800B8), At(0x0800D4), At(0x0800E6)}};
         const uint32_t piece = c.a[6] & 0xFFFFFF;
         switch (StepAt(c, kSteps)) {
         case 0:
@@ -861,7 +861,7 @@ namespace {
         SetStageAnimation(c);
     }
     void Script33(M68K &c) {
-        static constexpr Steps kSteps = {0x07FA82, {0x07FA96, 0x07FADA, 0x07FAFC, 0x07FAFC}};
+        static constexpr Steps kSteps = {At(0x07FA82), {At(0x07FA96), At(0x07FADA), At(0x07FAFC), At(0x07FAFC)}};
         const uint32_t piece = c.a[6] & 0xFFFFFF;
         switch (StepAt(c, kSteps)) {
         case 0: {
@@ -897,7 +897,7 @@ namespace {
     // 0807C0 (script 53, Tower of Arrogance): goes where its maker is, with the animation the spare byte
     // of its maker's frame names; drawn every other frame
     void Script53(M68K &c) {
-        static constexpr Steps kSteps = {0x0807C0, {0x0807D4, 0x0807F4, 0x080834, 0x080834}};
+        static constexpr Steps kSteps = {At(0x0807C0), {At(0x0807D4), At(0x0807F4), At(0x080834), At(0x080834)}};
         const uint32_t piece = c.a[6] & 0xFFFFFF;
         switch (StepAt(c, kSteps)) {
         case 0:
@@ -947,7 +947,7 @@ namespace {
         Call(c, kTakePiece);
         return any;
     }
-    constexpr uint32_t kMoveBySpeed = 0x015466; // the piece's place moved by its speed, its speed by its pull
+    constexpr uint32_t kMoveBySpeed = At(0x015466); // the piece's place moved by its speed, its speed by its pull
     constexpr uint32_t kSpeedX = 0x40, kSpeedY = 0x44, kPullY = 0x4C;
 
     // 08083A (script 54, Vanity Paradise): goes where the piece that made it is
@@ -955,8 +955,8 @@ namespace {
         const uint32_t piece = c.a[6] & 0xFFFFFF, maker = Maker(c);
         const int step = Ram8(piece + kStep);
         SetLow8(c.d[0], step);
-        static constexpr uint32_t kAt[4] = {0x080852, 0x080864, 0x080876, 0x080876};
-        SetLow16(c.d[1], kAt[(step >> 1) & 3] - 0x08084A);
+        static constexpr uint32_t kAt[4] = {At(0x080852), At(0x080864), At(0x080876), At(0x080876)};
+        SetLow16(c.d[1], kAt[(step >> 1) & 3] - At(0x08084A));
         switch (step) {
         case 0:
             SetRam8(piece + 0x0D, 0xFF);
@@ -978,7 +978,7 @@ namespace {
     // 07EEEC (script 22, Abaraya): once a round is decided, a frame of its animation every frame, and at
     // each frame with an event it lets a piece go (script 23), told how many frames have gone by
     void Script22(M68K &c) {
-        static constexpr Steps kSteps = {0x07EEEC, {0x07EF00, 0x07EF0C, 0x07EF22, 0x07EF76}};
+        static constexpr Steps kSteps = {At(0x07EEEC), {At(0x07EF00), At(0x07EF0C), At(0x07EF22), At(0x07EF76)}};
         const uint32_t piece = c.a[6] & 0xFFFFFF;
         switch (StepAt(c, kSteps)) {
         case 0:
@@ -1018,7 +1018,7 @@ namespace {
     // 07E162 (script 13, Tower of Arrogance): bobs up and down (its speed up or down changing by a pull
     // that turns about every 256 frames), and makes a piece that goes with it (script 53)
     void Script13(M68K &c) {
-        static constexpr Steps kSteps = {0x07E162, {0x07E176, 0x07E1D6, 0x07E208, 0x07E208}};
+        static constexpr Steps kSteps = {At(0x07E162), {At(0x07E176), At(0x07E1D6), At(0x07E208), At(0x07E208)}};
         const uint32_t piece = c.a[6] & 0xFFFFFF;
         switch (StepAt(c, kSteps)) {
         case 0:
@@ -1063,7 +1063,7 @@ namespace {
     // 07E5A8 (script 15, Red Thirst): nine animations in turn, each for its own time
     constexpr uint16_t kScript15Times[9] = {288, 288, 288, 288, 288, 288, 288, 384, 256};
     void Script15(M68K &c) {
-        static constexpr Steps kSteps = {0x07E5A8, {0x07E5BC, 0x07E5D6, 0x07E604, 0x07E604}};
+        static constexpr Steps kSteps = {At(0x07E5A8), {At(0x07E5BC), At(0x07E5D6), At(0x07E604), At(0x07E604)}};
         const uint32_t piece = c.a[6] & 0xFFFFFF;
         switch (StepAt(c, kSteps)) {
         case 0:
@@ -1092,9 +1092,9 @@ namespace {
     // 07F9E4 (script 32, Green Scream): makes a piece (script 33) and tells it, in a word, which of four
     // animations: another by chance at each event of its own; when the byte at 10B(A5) is set, the fifth
     // for good
-    constexpr int32_t kScript32Ends = 0x10B; // from A5
+    constexpr int32_t kScript32Ends = AtA5(0x10B); // from A5
     void Script32(M68K &c) {
-        static constexpr Steps kSteps = {0x07F9E4, {0x07F9F8, 0x07FA1C, 0x07FA6A, 0x07FA7C}};
+        static constexpr Steps kSteps = {At(0x07F9E4), {At(0x07F9F8), At(0x07FA1C), At(0x07FA6A), At(0x07FA7C)}};
         const uint32_t piece = c.a[6] & 0xFFFFFF;
         switch (StepAt(c, kSteps)) {
         case 0:
@@ -1142,7 +1142,7 @@ namespace {
     // until its maker's byte kHalf is set; then it goes by its speed for as long as that stays set; then
     // it is put back where it started, to wait again.
     void Script29(M68K &c) {
-        static constexpr Steps kSteps = {0x07F79E, {0x07F7B2, 0x07F808, 0x07F86A, 0x07F86A}};
+        static constexpr Steps kSteps = {At(0x07F79E), {At(0x07F7B2), At(0x07F808), At(0x07F86A), At(0x07F86A)}};
         static constexpr uint32_t kKept[6][2] = {{0x10, 0x50}, {0x14, 0x54}, {0x40, 0x58}, {0x44, 0x5C}, {0x48, 0x60}, {0x4C, 0x64}};
         const uint32_t piece = c.a[6] & 0xFFFFFF;
         switch (StepAt(c, kSteps)) {
@@ -1162,7 +1162,7 @@ namespace {
         }
         case 2: {
             const uint32_t maker = Maker(c);
-            if (InnerStep(c, 0x07F818, 0x07F81C, 0x07F828) == 0) {
+            if (InnerStep(c, At(0x07F818), At(0x07F81C), At(0x07F828)) == 0) {
                 if (Ram8(maker + kHalf)) {
                     SetRam8(piece + kInner, 2);
                 }
@@ -1191,7 +1191,7 @@ namespace {
     // one time in four, it shakes (a pixel up and across, then back, every fourth frame) through its
     // animation's events
     void Script30(M68K &c) {
-        static constexpr Steps kSteps = {0x07F870, {0x07F884, 0x07F896, 0x07F922, 0x07F922}};
+        static constexpr Steps kSteps = {At(0x07F870), {At(0x07F884), At(0x07F896), At(0x07F922), At(0x07F922)}};
         const uint32_t piece = c.a[6] & 0xFFFFFF;
         switch (StepAt(c, kSteps)) {
         case 0:
@@ -1203,7 +1203,7 @@ namespace {
                 break;
             }
             if (!Frozen(c)) {
-                if (InnerStep(c, 0x07F8B8, 0x07F8BC, 0x07F8EA) == 0) {
+                if (InnerStep(c, At(0x07F8B8), At(0x07F8BC), At(0x07F8EA)) == 0) {
                     SetRam16(piece + kTurn, static_cast<uint16_t>(Ram16(piece + kTurn) - 1));
                     if (Ram16(piece + kTurn) & 0x8000) {
                         SetRam16(piece + kTurn, 0xB4);
@@ -1246,7 +1246,7 @@ namespace {
     // about at each end, for a time; then goes through another animation standing; then walks again for
     // a time made up anew
     void Script31(M68K &c) {
-        static constexpr Steps kSteps = {0x07F928, {0x07F93C, 0x07F95C, 0x07F9DE, 0x07F9DE}};
+        static constexpr Steps kSteps = {At(0x07F928), {At(0x07F93C), At(0x07F95C), At(0x07F9DE), At(0x07F9DE)}};
         const uint32_t piece = c.a[6] & 0xFFFFFF;
         switch (StepAt(c, kSteps)) {
         case 0:
@@ -1257,7 +1257,7 @@ namespace {
             break;
         case 2:
             if (!Frozen(c)) {
-                if (InnerStep(c, 0x07F97A, 0x07F97E, 0x07F9B2) == 0) {
+                if (InnerStep(c, At(0x07F97A), At(0x07F97E), At(0x07F9B2)) == 0) {
                     SetRam16(piece + kTurn, static_cast<uint16_t>(Ram16(piece + kTurn) - 1));
                     if (Ram16(piece + kTurn) & 0x8000) {
                         SetRam8(piece + kInner, 2);
@@ -1293,7 +1293,7 @@ namespace {
     // 07FE06 (script 39, the train): there only with the camera right of a place; goes through its
     // animation once and is then done; drawn every other frame
     void Script39(M68K &c) {
-        static constexpr Steps kSteps = {0x07FE06, {0x07FE1A, 0x07FE26, 0x07FE54, 0x07FE54}};
+        static constexpr Steps kSteps = {At(0x07FE06), {At(0x07FE1A), At(0x07FE26), At(0x07FE54), At(0x07FE54)}};
         const uint32_t piece = c.a[6] & 0xFFFFFF;
         switch (StepAt(c, kSteps)) {
         case 0:
@@ -1322,7 +1322,7 @@ namespace {
     // 07FB02 (script 34, Green Scream): there only with the camera left of a place; at an event of its
     // animation, one time in four, it goes to the animation the event names
     void Script34(M68K &c) {
-        static constexpr Steps kSteps = {0x07FB02, {0x07FB16, 0x07FB22, 0x07FB58, 0x07FB58}};
+        static constexpr Steps kSteps = {At(0x07FB02), {At(0x07FB16), At(0x07FB22), At(0x07FB58), At(0x07FB58)}};
         const uint32_t piece = c.a[6] & 0xFFFFFF;
         switch (StepAt(c, kSteps)) {
         case 0:
@@ -1354,7 +1354,7 @@ namespace {
     // 07DF1E (script 10, Concrete Cave): with the camera left of a place it goes left 48 at each end of
     // its animation, as far as 192; with the camera right of the place it is put back at its start
     void Script10(M68K &c) {
-        static constexpr Steps kSteps = {0x07DF1E, {0x07DF32, 0x07DF4C, 0x07DF96, 0x07DF96}};
+        static constexpr Steps kSteps = {At(0x07DF1E), {At(0x07DF32), At(0x07DF4C), At(0x07DF96), At(0x07DF96)}};
         const uint32_t piece = c.a[6] & 0xFFFFFF;
         switch (StepAt(c, kSteps)) {
         case 0:
@@ -1412,18 +1412,18 @@ namespace {
         }
     }
     void Script46(M68K &c) {
-        static constexpr Steps kSteps = {0x080378, {0x08038C, 0x0803A4, 0x0803E2, 0x0803E2}};
+        static constexpr Steps kSteps = {At(0x080378), {At(0x08038C), At(0x0803A4), At(0x0803E2), At(0x0803E2)}};
         SelfPlaced(c, kSteps, 0x10, 0x278, PlaceAQuarter);
     }
     void Script47(M68K &c) {
-        static constexpr Steps kSteps = {0x0803E8, {0x0803FC, 0x080414, 0x08045C, 0x08045C}};
+        static constexpr Steps kSteps = {At(0x0803E8), {At(0x0803FC), At(0x080414), At(0x08045C), At(0x08045C)}};
         SelfPlaced(c, kSteps, 3, 0x1E0, PlaceThreeQuarters);
     }
 
     // 07DE32, 0809E4, 080970 (scripts 8, 57 and 56): the pieces that are two by turns (above), whole
-    constexpr int32_t kScript8Other = 0x90; // from A5, a word: at 8, the right one's picture is another
+    constexpr int32_t kScript8Other = AtA5(0x90); // from A5, a word: at 8, the right one's picture is another
     void Script8(M68K &c) {
-        static constexpr Steps kSteps = {0x07DE32, {0x07DE46, 0x07DE78, 0x07DEC8, 0x07DEC8}};
+        static constexpr Steps kSteps = {At(0x07DE32), {At(0x07DE46), At(0x07DE78), At(0x07DEC8), At(0x07DEC8)}};
         const uint32_t piece = c.a[6] & 0xFFFFFF;
         switch (StepAt(c, kSteps)) {
         case 0:
@@ -1442,7 +1442,7 @@ namespace {
         }
     }
     void Script57(M68K &c) {
-        static constexpr Steps kSteps = {0x0809E4, {0x0809F8, 0x080A20, 0x080A7A, 0x080A7A}};
+        static constexpr Steps kSteps = {At(0x0809E4), {At(0x0809F8), At(0x080A20), At(0x080A7A), At(0x080A7A)}};
         const uint32_t piece = c.a[6] & 0xFFFFFF;
         switch (StepAt(c, kSteps)) {
         case 0:
@@ -1461,7 +1461,7 @@ namespace {
         }
     }
     void Script56(M68K &c) {
-        static constexpr Steps kSteps = {0x080970, {0x080984, 0x0809A6, 0x0809DE, 0x0809DE}};
+        static constexpr Steps kSteps = {At(0x080970), {At(0x080984), At(0x0809A6), At(0x0809DE), At(0x0809DE)}};
         const uint32_t piece = c.a[6] & 0xFFFFFF;
         switch (StepAt(c, kSteps)) {
         case 0:
@@ -1496,8 +1496,8 @@ namespace {
     // up, more steeply as it goes, turns, comes back across from the left, waits for the event 2 of the
     // piece that made it, and goes on a little before it is done.
     void Script5(M68K &c) {
-        static constexpr Steps kSteps = {0x07D59C, {0x07D5B0, 0x07D600, 0x07D70A, 0x07D70A}};
-        static constexpr uint32_t kInnerAt[6] = {0x07D62A, 0x07D656, 0x07D68A, 0x07D6D4, 0x07D6E6, 0x07D6FE};
+        static constexpr Steps kSteps = {At(0x07D59C), {At(0x07D5B0), At(0x07D600), At(0x07D70A), At(0x07D70A)}};
+        static constexpr uint32_t kInnerAt[6] = {At(0x07D62A), At(0x07D656), At(0x07D68A), At(0x07D6D4), At(0x07D6E6), At(0x07D6FE)};
         constexpr uint32_t kPullX = 0x48;
         const uint32_t piece = c.a[6] & 0xFFFFFF;
         switch (StepAt(c, kSteps)) {
@@ -1516,7 +1516,7 @@ namespace {
             break;
         case 2:
             if (!Frozen(c)) {
-                switch (InnerStepOf(c, 0x07D61E, kInnerAt)) {
+                switch (InnerStepOf(c, At(0x07D61E), kInnerAt)) {
                 case 0: // (off to the left and up)
                     Call(c, kMoveBySpeed);
                     if (CountedDown(piece + kTurn + 1)) {
@@ -1584,7 +1584,7 @@ namespace {
 
     // 07F202 (script 26, Vanity Paradise): the floating things. Each goes to and fro across (turning
     // about every 128 frames) and up and down by two tables of sines; four kinds, by kWhich
-    constexpr uint32_t kSinesA = 0x0B7640, kSinesB = 0x0B7940;
+    constexpr uint32_t kSinesA = At(0x0B7640), kSinesB = At(0x0B7940);
     struct Floater {
         uint8_t animation;
         uint32_t speed;
@@ -1593,7 +1593,7 @@ namespace {
     constexpr Floater kFloaters[4] = {{0x18, 0x00010000, 0x00, 0x08, 0x00}, {0x18, 0x0000C000, 0x40, 0x0C, 0x08},
                                       {0x19, 0xFFFF4000, 0x20, 0x00, 0x10}, {0x1A, 0x00010000, 0x60, 0x14, 0x18}};
     void Script26(M68K &c) {
-        static constexpr Steps kSteps = {0x07F202, {0x07F216, 0x07F26A, 0x07F2EA, 0x07F2EA}};
+        static constexpr Steps kSteps = {At(0x07F202), {At(0x07F216), At(0x07F26A), At(0x07F2EA), At(0x07F2EA)}};
         const uint32_t piece = c.a[6] & 0xFFFFFF;
         switch (StepAt(c, kSteps)) {
         case 0: {
@@ -1646,7 +1646,7 @@ namespace {
     // 07FC0C (script 37, the train): bounces. It falls back to the height it started at and is thrown up
     // again, by the next of four throws; before the byte at 12C(A5) is 1 with one animation, after with
     // the next. (The kind 3 starts at once; the others sixteen frames later.)
-    constexpr int32_t kScript37Changes = 0x12C; // from A5
+    constexpr int32_t kScript37Changes = AtA5(0x12C); // from A5
     constexpr uint32_t kScript37Throws[4][2] = {{0x10000, 0xFFFFE000}, {0x10000, 0xFFFFD000}, {0x10000, 0xFFFFD000}, {0x10000, 0xFFFFD000}};
     void Thrown37(M68K &c, uint32_t piece) {
         c.d[0] = Ram8(piece + kTurn + 1);
@@ -1654,7 +1654,7 @@ namespace {
         SetRam32(piece + kPullY, kScript37Throws[(c.d[0] >> 3) & 3][1]);
     }
     void Script37(M68K &c) {
-        static constexpr Steps kSteps = {0x07FC0C, {0x07FC20, 0x07FC56, 0x07FC6E, 0x07FCB6}};
+        static constexpr Steps kSteps = {At(0x07FC0C), {At(0x07FC20), At(0x07FC56), At(0x07FC6E), At(0x07FCB6)}};
         const uint32_t piece = c.a[6] & 0xFFFFFF;
         const int step = StepAt(c, kSteps);
         switch (step) {
@@ -1698,9 +1698,9 @@ namespace {
     // 07FFDE (script 43, Fetus of God): the pieces in front that work their place out from the camera's
     // (above). When a player's health is below 48 (and the byte at 10E(A5) is not set) they change: from
     // then, each event of the animation holds its frame for three frames only.
-    constexpr int32_t kScript43Never = 0x10E; // from A5
+    constexpr int32_t kScript43Never = AtA5(0x10E); // from A5
     void Script43(M68K &c) {
-        static constexpr Steps kSteps = {0x07FFDE, {0x07FFF2, 0x08000E, 0x08003C, 0x080060}};
+        static constexpr Steps kSteps = {At(0x07FFDE), {At(0x07FFF2), At(0x08000E), At(0x08003C), At(0x080060)}};
         const uint32_t piece = c.a[6] & 0xFFFFFF;
         switch (StepAt(c, kSteps)) {
         case 0:
@@ -1739,7 +1739,7 @@ namespace {
     // travel, and only while its own place is 496 or more: once the camera has taken it below that it is
     // neither moved nor drawn again. (As the game has it, in a wide picture too.)
     void Script48(M68K &c) {
-        static constexpr Steps kSteps = {0x080462, {0x080476, 0x08048E, 0x0804D2, 0x0804D2}};
+        static constexpr Steps kSteps = {At(0x080462), {At(0x080476), At(0x08048E), At(0x0804D2), At(0x0804D2)}};
         const uint32_t piece = c.a[6] & 0xFFFFFF;
         switch (StepAt(c, kSteps)) {
         case 0:
@@ -1774,7 +1774,7 @@ namespace {
                                                {-2, 28}, {-2, 28}, {-2, 28}, {-2, 28}, {-4, 30}, {-16, 30}, {-2, 30}, {-2, 30},
                                                {-2, 30}, {-2, 30}, {-2, 30}, {-2, 30}, {-2, 30}, {-2, 30}, {-2, 30}};
     void Script55(M68K &c) {
-        static constexpr Steps kSteps = {0x08087C, {0x080890, 0x0808A6, 0x08096A, 0x08096A}};
+        static constexpr Steps kSteps = {At(0x08087C), {At(0x080890), At(0x0808A6), At(0x08096A), At(0x08096A)}};
         const uint32_t piece = c.a[6] & 0xFFFFFF;
         switch (StepAt(c, kSteps)) {
         case 0:
@@ -1817,9 +1817,9 @@ namespace {
     // turn; an event of a frame above nothing copies in a set of colours (by the event, and the game's
     // word for which colours a stage has), and one below nothing lets a piece go (script 39). It makes a
     // piece that goes with it (script 55).
-    constexpr uint32_t kScript38Colours[10] = {0, 0, 0x3A0B20, 0x3A2640, 0x3A1660, 0x3A3180, 0x3A1680, 0x3A31A0, 0x3A16A0, 0x3A31C0};
+    constexpr uint32_t kScript38Colours[10] = {0, 0, At(0x3A0B20), At(0x3A2640), At(0x3A1660), At(0x3A3180), At(0x3A1680), At(0x3A31A0), At(0x3A16A0), At(0x3A31C0)};
     void Script38(M68K &c) {
-        static constexpr Steps kSteps = {0x07FCF0, {0x07FD04, 0x07FD4A, 0x07FE00, 0x07FE00}};
+        static constexpr Steps kSteps = {At(0x07FCF0), {At(0x07FD04), At(0x07FD4A), At(0x07FE00), At(0x07FE00)}};
         const uint32_t piece = c.a[6] & 0xFFFFFF;
         switch (StepAt(c, kSteps)) {
         case 0:
@@ -1882,8 +1882,8 @@ namespace {
     // one time in four, its own again from the start. In the third it waits on two longs of memory that
     // the game reads from below its own record (a slip for the players' states, by the look of it; kept).
     void Script11(M68K &c) {
-        static constexpr Steps kSteps = {0x07DF9C, {0x07DFB0, 0x07E040, 0x07E108, 0x07E108}};
-        static constexpr uint32_t kInnerAt[3] = {0x07E05E, 0x07E0A2, 0x07E0BA};
+        static constexpr Steps kSteps = {At(0x07DF9C), {At(0x07DFB0), At(0x07E040), At(0x07E108), At(0x07E108)}};
+        static constexpr uint32_t kInnerAt[3] = {At(0x07E05E), At(0x07E0A2), At(0x07E0BA)};
         constexpr uint16_t kAwakeFrom = 0x1D0;
         const uint32_t piece = c.a[6] & 0xFFFFFF;
         switch (StepAt(c, kSteps)) {
@@ -1909,7 +1909,7 @@ namespace {
             break;
         case 2:
             if (!Frozen(c)) {
-                switch (InnerStepOf(c, 0x07E058, kInnerAt)) {
+                switch (InnerStepOf(c, At(0x07E058), kInnerAt)) {
                 case 0:
                     if (OutOfView(c, kAwakeFrom, true)) {
                         break;
@@ -1974,11 +1974,11 @@ namespace {
     // them is in a certain state; from the others, the step the frame's event names (from the second and
     // third, when there is an event, only one time in four). The last step, with the camera left of 264,
     // copies in a set of colours and goes back to the first, for good.
-    constexpr uint32_t kScript24Colours[2] = {0x3A1420, 0x3A2F40};
+    constexpr uint32_t kScript24Colours[2] = {At(0x3A1420), At(0x3A2F40)};
     constexpr uint32_t kPlayerState = 0x02001200; // a player's kState but for its last byte
     void Script24(M68K &c) {
-        static constexpr Steps kSteps = {0x07F052, {0x07F066, 0x07F07C, 0x07F19E, 0x07F19E}};
-        static constexpr uint32_t kInnerAt[6] = {0x07F0A6, 0x07F126, 0x07F126, 0x07F150, 0x07F150, 0x07F168};
+        static constexpr Steps kSteps = {At(0x07F052), {At(0x07F066), At(0x07F07C), At(0x07F19E), At(0x07F19E)}};
+        static constexpr uint32_t kInnerAt[6] = {At(0x07F0A6), At(0x07F126), At(0x07F126), At(0x07F150), At(0x07F150), At(0x07F168)};
         const uint32_t piece = c.a[6] & 0xFFFFFF;
         // (the animation for the step within the frame that D0's low byte names)
         auto become = [&] {
@@ -1996,7 +1996,7 @@ namespace {
             break;
         case 2:
             if (!Frozen(c)) {
-                const int inner = InnerStepOf(c, 0x07F09A, kInnerAt);
+                const int inner = InnerStepOf(c, At(0x07F09A), kInnerAt);
                 if (inner == 10) {
                     if (Ram16(kCameraX) < 0x108) {
                         SetRam8(piece + kHalf, 0xFF);
@@ -2054,10 +2054,6 @@ namespace {
 
     // A word of the game's program as the 68000 reads it when it reads by its program counter (the
     // deciphered program; reads through an address register get the ROM as it is)
-    uint16_t ProgramWord(M68K &c, uint32_t address) {
-        return static_cast<uint16_t>((c.opcodes[address] << 8) | c.opcodes[address + 1]);
-    }
-
     // --- pieces that fly a path ---
     //
     // A path is legs in the ROM, each: a word of frames, where the leg starts (two words), and six longs:
@@ -2098,10 +2094,10 @@ namespace {
     // 07EA82 (script 17, Deserted Chateau): waits for a round to be decided, then flies its path's legs one
     // after another (three paths, by kWhich), and at the path's end goes through a last animation and is done
     constexpr uint8_t kScript17Waits[4] = {10, 40, 70, 90};
-    constexpr uint32_t kScript17Paths[3] = {0x07EB48, 0x07EB88, 0x07EBAA};
+    constexpr uint32_t kScript17Paths[3] = {At(0x07EB48), At(0x07EB88), At(0x07EBAA)};
     void Script17(M68K &c) {
-        static constexpr Steps kSteps = {0x07EA82, {0x07EA96, 0x07EAD8, 0x07EB42, 0x07EB42}};
-        static constexpr uint32_t kInnerAt[3] = {0x07EAF6, 0x07EB0A, 0x07EB36};
+        static constexpr Steps kSteps = {At(0x07EA82), {At(0x07EA96), At(0x07EAD8), At(0x07EB42), At(0x07EB42)}};
+        static constexpr uint32_t kInnerAt[3] = {At(0x07EAF6), At(0x07EB0A), At(0x07EB36)};
         const uint32_t piece = c.a[6] & 0xFFFFFF;
         switch (StepAt(c, kSteps)) {
         case 0:
@@ -2114,7 +2110,7 @@ namespace {
             TakeLeg(c);
             break;
         case 2:
-            switch (InnerStepOf(c, 0x07EAF0, kInnerAt)) {
+            switch (InnerStepOf(c, At(0x07EAF0), kInnerAt)) {
             case 0:
                 if (Ram8(Var(c, kRoundDecided))) {
                     SetRam8(piece + kInner, 2);
@@ -2153,11 +2149,11 @@ namespace {
     // kWhich); at the path's end it sits where the next leg starts for a time (one of four by chance, for
     // its kind) and then flies on, or from the path's start again. Once a round is decided, the first sit
     // ends at once.
-    constexpr uint32_t kScript16Paths[4] = {0x07E7B4, 0x07E832, 0x07E8B0, 0x07E9A8};
+    constexpr uint32_t kScript16Paths[4] = {At(0x07E7B4), At(0x07E832), At(0x07E8B0), At(0x07E9A8)};
     constexpr uint16_t kScript16Sits[5][4] = {{180, 360, 900, 1260}, {200, 400, 1000, 1400}, {210, 420, 1050, 1470},
                                               {240, 480, 1200, 1680}, {190, 380, 950, 1330}};
     void Script16(M68K &c) {
-        static constexpr Steps kSteps = {0x07E62C, {0x07E640, 0x07E6A4, 0x07E778, 0x07E778}};
+        static constexpr Steps kSteps = {At(0x07E62C), {At(0x07E640), At(0x07E6A4), At(0x07E778), At(0x07E778)}};
         const uint32_t piece = c.a[6] & 0xFFFFFF;
         switch (StepAt(c, kSteps)) {
         case 0:
@@ -2171,7 +2167,7 @@ namespace {
         case 2: {
             const int inner = Ram8(piece + kInner);
             SetLow8(c.d[0], inner);
-            SetLow16(c.d[0], (inner ? 0x07E746 : 0x07E6C0) - 0x07E6BC); // (the game's way to the step, through D0 here)
+            SetLow16(c.d[0], (inner ? At(0x07E746) : At(0x07E6C0)) - At(0x07E6BC)); // (the game's way to the step, through D0 here)
             if (inner == 0) {
                 // (flying)
                 SetRam16(piece + kLegLeft, static_cast<uint16_t>(Ram16(piece + kLegLeft) - 1));
@@ -2228,13 +2224,13 @@ namespace {
     // from another list of records, and four of script 20), and from then lets pieces go (script 19) from
     // six places by lists in the ROM (which place, and how long till the next; at a list's end another
     // of four by chance), and every 43 frames one more from one of two places
-    constexpr uint32_t kTakeOther = 0x016FFC;  // a free record of another list in A4
-    constexpr int32_t kOtherCount = 0x79C3;    // from A5, a byte: how many that list has
-    constexpr uint32_t kScript18First = 0x07ED42, kScript18ListEnds = 0x0036A4;
-    constexpr uint32_t kScript18Lists[4] = {0x07ED32, 0x07ED44, 0x07ED52, 0x07ED64};
+    constexpr uint32_t kTakeOther = At(0x016FFC);  // a free record of another list in A4
+    constexpr int32_t kOtherCount = AtA5(0x79C3);    // from A5, a byte: how many that list has
+    constexpr uint32_t kScript18First = At(0x07ED42), kScript18ListEnds = At(0x0036A4);
+    constexpr uint32_t kScript18Lists[4] = {At(0x07ED32), At(0x07ED44), At(0x07ED52), At(0x07ED64)};
     constexpr uint16_t kScript18Places[6][2] = {{523, 47}, {555, 94}, {604, 98}, {660, 72}, {684, 103}, {701, 49}};
     void Script18(M68K &c) {
-        static constexpr Steps kSteps = {0x07EBEA, {0x07EBFE, 0x07EC0A, 0x07EC6E, 0x07ED2C}};
+        static constexpr Steps kSteps = {At(0x07EBEA), {At(0x07EBFE), At(0x07EC0A), At(0x07EC6E), At(0x07ED2C)}};
         const uint32_t piece = c.a[6] & 0xFFFFFF;
         auto takeOther = [&] {
             const bool any = Ram8(Var(c, kOtherCount)) != 0;
@@ -2293,8 +2289,8 @@ namespace {
                         // (the lists name a seventh place, which the table has not got: the game takes the
                         // words that follow the table in its program, and so is this done)
                         const uint32_t place = (c.d[4] & 0xFFFF) >> 2;
-                        SetRam16(made + kX, place < 6 ? kScript18Places[place][0] : ProgramWord(c, 0x07ED14 + place * 4));
-                        SetRam16(made + kY, place < 6 ? kScript18Places[place][1] : ProgramWord(c, 0x07ED16 + place * 4));
+                        SetRam16(made + kX, place < 6 ? kScript18Places[place][0] : ProgramWord(c, At(0x07ED14) + place * 4));
+                        SetRam16(made + kY, place < 6 ? kScript18Places[place][1] : ProgramWord(c, At(0x07ED16) + place * 4));
                         SetRam32(piece + 0x44, c.a[2]);
                     }
                 }
@@ -2329,7 +2325,7 @@ namespace {
     // one of twelve in turn (a new one every fifteen frames) and another on every other frame. It makes
     // two pieces that go with it (script 54).
     void Script27(M68K &c) {
-        static constexpr Steps kSteps = {0x07F2F0, {0x07F304, 0x07F3A2, 0x07F432, 0x07F432}};
+        static constexpr Steps kSteps = {At(0x07F2F0), {At(0x07F304), At(0x07F3A2), At(0x07F432), At(0x07F432)}};
         constexpr uint16_t kHighest = 0x4E, kHeight = 0x46;
         const uint32_t piece = c.a[6] & 0xFFFFFF;
         switch (StepAt(c, kSteps)) {
@@ -2390,7 +2386,7 @@ namespace {
     // 07FE5A (script 40, the train): a piece whose animation's events change something of the scroll
     // screens' tiles (the game's own code still: 01520A, by a table at 357CA4). Until a round is decided,
     // every 180 frames one of two animations; then a last one, and a piece let go (script 41).
-    constexpr uint32_t kScript40Tiles = 0x357CA4, kChangeTiles = 0x01520A;
+    constexpr uint32_t kScript40Tiles = At(0x357CA4), kChangeTiles = At(0x01520A);
     void Script40Tiles(M68K &c, uint32_t piece) {
         SetLow8(c.d[1], Ram8(piece + kEvent));
         if ((c.d[1] & 0xFF) == Ram8(piece + kHalf)) {
@@ -2402,13 +2398,13 @@ namespace {
         SetLow16(c.d[0], Mem16(c, c.a[0] + 0x10) + c.d[1]);
         c.a[0] += static_cast<uint32_t>(static_cast<int16_t>(c.d[0]));
         c.a[0] = Mem32(c, c.a[0] + 4);
-        c.d[0] = (static_cast<uint32_t>(Ram16(Var(c, 0x1A))) << 8) + 0x3764;
+        c.d[0] = (static_cast<uint32_t>(Ram16(Var(c, AtA5(0x1A)))) << 8) + 0x3764;
         c.a[2] = c.d[0];
         c.d[2] = 1;
         Call(c, kChangeTiles);
     }
     void Script40(M68K &c) {
-        static constexpr Steps kSteps = {0x07FE5A, {0x07FE6E, 0x07FE84, 0x07FF1A, 0x07FF30}};
+        static constexpr Steps kSteps = {At(0x07FE5A), {At(0x07FE6E), At(0x07FE84), At(0x07FF1A), At(0x07FF30)}};
         const uint32_t piece = c.a[6] & 0xFFFFFF;
         switch (StepAt(c, kSteps)) {
         case 0:
@@ -2418,7 +2414,7 @@ namespace {
             break;
         case 2:
             if (!Frozen(c)) {
-                if (InnerStep(c, 0x07FEA6, 0x07FEAA, 0x07FECA) == 0) {
+                if (InnerStep(c, At(0x07FEA6), At(0x07FEAA), At(0x07FECA)) == 0) {
                     SetRam16(piece + kTurn, static_cast<uint16_t>(Ram16(piece + kTurn) - 1));
                     if (Ram16(piece + kTurn) & 0x8000) {
                         SetRam8(piece + kInner, 2);
@@ -2470,19 +2466,19 @@ namespace {
         SetLow16(c.d[0], number);
         c.a[4] = c.a[6] + slot;
         c.a[0] = table;
-        Call(c, 0x09192A);
+        Call(c, At(0x09192A));
     }
     void ColoursFrame(M68K &c, uint32_t slot) {
         c.a[4] = c.a[6] + slot;
-        Call(c, 0x09190A);
+        Call(c, At(0x09190A));
     }
 
     // 0800EC (script 45, Fetus of God): at each end of its animation another of four by chance, with that
     // one's colours; when a round is decided, a last one, and a piece let go (script 20)
     constexpr uint8_t kScript45Next[32] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 3, 3, 2, 2, 2, 2, 2, 3, 3, 3};
-    constexpr uint32_t kScript45Colours = 0x0801F2;
+    constexpr uint32_t kScript45Colours = At(0x0801F2);
     void Script45(M68K &c) {
-        static constexpr Steps kSteps = {0x0800EC, {0x080100, 0x08011C, 0x0801CE, 0x0801EC}};
+        static constexpr Steps kSteps = {At(0x0800EC), {At(0x080100), At(0x08011C), At(0x0801CE), At(0x0801EC)}};
         const uint32_t piece = c.a[6] & 0xFFFFFF;
         switch (StepAt(c, kSteps)) {
         case 0:
@@ -2541,8 +2537,8 @@ namespace {
     // four lists by chance: pairs of a colours' number and how long; a number below nothing ends the
     // list, and then its picture is the other of two and another list is taken). It makes two pieces
     // (script 7), which take the colours' number from it.
-    constexpr uint32_t kScript6Lists = 0x07D87C;
-    constexpr uint32_t kScript6Colours[3][2] = {{0x50, 0x07D8C4}, {0x58, 0x07D8D4}, {0x60, 0x07D8DC}};
+    constexpr uint32_t kScript6Lists = At(0x07D87C);
+    constexpr uint32_t kScript6Colours[3][2] = {{0x50, At(0x07D8C4)}, {0x58, At(0x07D8D4)}, {0x60, At(0x07D8DC)}};
     void Script6List(M68K &c) {
         Call(c, kRandom);
         SetLow16(c.d[0], c.d[0] & 6);
@@ -2557,7 +2553,7 @@ namespace {
         ColoursBegin(c, kScript6Colours[2][0], kScript6Colours[2][1], Ram16(piece + kMakersChoice));
     }
     void Script6(M68K &c) {
-        static constexpr Steps kSteps = {0x07D710, {0x07D724, 0x07D7C6, 0x07D820, 0x07D820}};
+        static constexpr Steps kSteps = {At(0x07D710), {At(0x07D724), At(0x07D7C6), At(0x07D820), At(0x07D820)}};
         constexpr uint32_t kListLeft = 0x46, kListAt = 0x40;
         const uint32_t piece = c.a[6] & 0xFFFFFF;
         auto nextOfList = [&] {
@@ -2622,7 +2618,7 @@ namespace {
     // with three pieces it makes that go with it (script 29). It waits (900 or 964 frames), sets off to
     // the left gathering speed; from 640 its colours' two animations run; left of 416 it looks for their
     // ends and starts two more; at 192 it is put back at the right to wait again.
-    constexpr uint32_t kScript28Colours = 0x07F63A;
+    constexpr uint32_t kScript28Colours = At(0x07F63A);
     void Script28Waits(M68K &c, uint32_t piece) {
         SetRam16(piece + kX, 0x400);
         SetRam16(piece + kY, 0xE6);
@@ -2640,8 +2636,8 @@ namespace {
         SetRam32(piece + kPullY, 0xFFFFFFF0);
     }
     void Script28(M68K &c) {
-        static constexpr Steps kSteps = {0x07F438, {0x07F44C, 0x07F546, 0x07F634, 0x07F634}};
-        static constexpr uint32_t kInnerAt[4] = {0x07F55A, 0x07F56A, 0x07F5A8, 0x07F5DA};
+        static constexpr Steps kSteps = {At(0x07F438), {At(0x07F44C), At(0x07F546), At(0x07F634), At(0x07F634)}};
+        static constexpr uint32_t kInnerAt[4] = {At(0x07F55A), At(0x07F56A), At(0x07F5A8), At(0x07F5DA)};
         const uint32_t piece = c.a[6] & 0xFFFFFF;
         switch (StepAt(c, kSteps)) {
         case 0:
@@ -2668,7 +2664,7 @@ namespace {
             Script28Waits(c, piece);
             break;
         case 2:
-            switch (InnerStepOf(c, 0x07F552, kInnerAt)) {
+            switch (InnerStepOf(c, At(0x07F552), kInnerAt)) {
             case 0:
                 SetRam16(piece + kTurn, static_cast<uint16_t>(Ram16(piece + kTurn) - 1));
                 if (Ram16(piece + kTurn) & 0x8000) {
@@ -2706,7 +2702,7 @@ namespace {
                             c.d[0] = 1 + n * 2;
                             ColoursBegin(c, 0x50 + n * 8, kScript28Colours, 1 + n * 2);
                         }
-                        Call(c, 0x09190A);
+                        Call(c, At(0x09190A));
                     }
                     if (Ram16(piece + kX) <= 0xC0) {
                         SetRam8(piece + kInner, 0);
@@ -2730,7 +2726,7 @@ namespace {
     // its animation's frame, its place, and where it is in a list in the ROM of moves (a byte for double
     // speed, a byte for which way of a table of ways, a word of frames; a byte below nothing ends the
     // list, and the light starts again from its first place).
-    constexpr uint32_t kScript14Lists = 0x07E4E0, kScript14Places = 0x07E360, kScript14Ways = 0x07E3E0;
+    constexpr uint32_t kScript14Lists = At(0x07E4E0), kScript14Places = At(0x07E360), kScript14Ways = At(0x07E3E0);
     constexpr uint32_t kLightList = 0x08, kLightDouble = 0x10, kLightWay = 0x12, kLightLeft = 0x14, kLightX = 0x18, kLightY = 0x1C;
     void LightKeepsFrame(M68K &c) {
         const uint32_t piece = c.a[6] & 0xFFFFFF, light = c.a[4] & 0xFFFFFF;
@@ -2779,7 +2775,7 @@ namespace {
         }
     }
     void Script14(M68K &c) {
-        static constexpr Steps kSteps = {0x07E20E, {0x07E222, 0x07E2A8, 0x07E2F6, 0x07E2F6}};
+        static constexpr Steps kSteps = {At(0x07E20E), {At(0x07E222), At(0x07E2A8), At(0x07E2F6), At(0x07E2F6)}};
         const uint32_t piece = c.a[6] & 0xFFFFFF;
         auto listOf = [&](uint32_t number) { // (the lists' table has each list's distance from the table)
             SetLow16(c.d[1], Mem16(c, kScript14Lists + number * 2));
@@ -2842,7 +2838,7 @@ namespace {
     // 07ED72 (script 19, Deserted Chateau: let go by script 18): one of two animations by chance; a frame
     // with an event above nothing takes it up 3, one below nothing ends it
     void Script19(M68K &c) {
-        static constexpr Steps kSteps = {0x07ED72, {0x07ED86, 0x07EDBA, 0x07EDD8, 0x07EDD8}};
+        static constexpr Steps kSteps = {At(0x07ED72), {At(0x07ED86), At(0x07EDBA), At(0x07EDD8), At(0x07EDD8)}};
         const uint32_t piece = c.a[6] & 0xFFFFFF;
         switch (StepAt(c, kSteps)) {
         case 0:
@@ -2880,7 +2876,7 @@ namespace {
     // 07EDDE (script 20, Deserted Chateau and Fetus of God: made by scripts 18 and 45): at a place of four
     // by kWhich; one of two animations by chance, begun again after a wait made up anew each time
     void Script20(M68K &c) {
-        static constexpr Steps kSteps = {0x07EDDE, {0x07EDF2, 0x07EE64, 0x07EE8A, 0x07EE8A}};
+        static constexpr Steps kSteps = {At(0x07EDDE), {At(0x07EDF2), At(0x07EE64), At(0x07EE8A), At(0x07EE8A)}};
         const uint32_t piece = c.a[6] & 0xFFFFFF;
         switch (StepAt(c, kSteps)) {
         case 0:
@@ -2895,8 +2891,8 @@ namespace {
             SetRam16(piece + kRow, 0x48);
             SetRam8(piece + kFacesRight, Ram8(piece + kWhich) >> 1);
             c.d[0] = Ram8(piece + kWhich) * 4u;
-            SetRam16(piece + kX, ProgramWord(c, 0x07EE54 + c.d[0]));
-            SetRam16(piece + kY, ProgramWord(c, 0x07EE56 + c.d[0]));
+            SetRam16(piece + kX, ProgramWord(c, At(0x07EE54) + c.d[0]));
+            SetRam16(piece + kY, ProgramWord(c, At(0x07EE56) + c.d[0]));
             c.d[6] = 8;
             Call(c, kRandom);
             if (!(c.d[0] & 0x80)) {
@@ -2925,7 +2921,7 @@ namespace {
     // gave it (which side and how far forward by its low two bits, how hard across by the high byte), and
     // falls; done when its animation ends
     void Script23(M68K &c) {
-        static constexpr Steps kSteps = {0x07EF7C, {0x07EF90, 0x07F030, 0x07F04C, 0x07F04C}};
+        static constexpr Steps kSteps = {At(0x07EF7C), {At(0x07EF90), At(0x07F030), At(0x07F04C), At(0x07F04C)}};
         constexpr uint32_t kPullX = 0x48;
         const uint32_t piece = c.a[6] & 0xFFFFFF;
         switch (StepAt(c, kSteps)) {
@@ -2935,12 +2931,12 @@ namespace {
             SetRam32(piece + kSpeedY, 0x18000);
             SetRam32(piece + kPullY, 0xFFFFF400);
             SetLow16(c.d[0], (Ram16(piece + kTurn) & 3) * 2);
-            SetRam8(piece + kFacesRight, c.opcodes[0x07EFE8 + (c.d[0] & 0xFFFF)]);
-            SetRam8(piece + kDepth, c.opcodes[0x07EFE9 + (c.d[0] & 0xFFFF)]);
+            SetRam8(piece + kFacesRight, c.opcodes[At(0x07EFE8) + (c.d[0] & 0xFFFF)]);
+            SetRam8(piece + kDepth, c.opcodes[At(0x07EFE9) + (c.d[0] & 0xFFFF)]);
             SetLow8(c.d[0], Ram8(piece + kTurn));
             SetLow16(c.d[0], (c.d[0] & 0x0F) << 2);
-            SetRam32(piece + kPullX, (static_cast<uint32_t>(ProgramWord(c, 0x07EFF0 + (c.d[0] & 0xFFFF))) << 16) |
-                                         ProgramWord(c, 0x07EFF2 + (c.d[0] & 0xFFFF)));
+            SetRam32(piece + kPullX, (static_cast<uint32_t>(ProgramWord(c, At(0x07EFF0) + (c.d[0] & 0xFFFF))) << 16) |
+                                         ProgramWord(c, At(0x07EFF2) + (c.d[0] & 0xFFFF)));
             if (!Ram8(piece + kFacesRight)) {
                 SetRam32(piece + kSpeedX, 0u - Ram32(piece + kSpeedX));
                 SetRam32(piece + kPullX, 0u - Ram32(piece + kPullX));
@@ -2963,11 +2959,11 @@ namespace {
 
     // The scripts, by a record's kScript: where each is in the game's program
     constexpr uint32_t kScripts[58] = {
-        0x07D354, 0x07D3A2, 0x07D3F6, 0x07D4BA, 0x07D534, 0x07D59C, 0x07D710, 0x07DDD8, 0x07DE32, 0x07DECE, 0x07DF1E, 0x07DF9C,
-        0x07E10E, 0x07E162, 0x07E20E, 0x07E5A8, 0x07E62C, 0x07EA82, 0x07EBEA, 0x07ED72, 0x07EDDE, 0x07EE90, 0x07EEEC, 0x07EF7C,
-        0x07F052, 0x07F1A4, 0x07F202, 0x07F2F0, 0x07F438, 0x07F79E, 0x07F870, 0x07F928, 0x07F9E4, 0x07FA82, 0x07FB02, 0x07FB5E,
-        0x07FBC4, 0x07FC0C, 0x07FCF0, 0x07FE06, 0x07FE5A, 0x07FF76, 0x07FFB4, 0x07FFDE, 0x080094, 0x0800EC, 0x080378, 0x0803E8,
-        0x080462, 0x0804D8, 0x0805A4, 0x0806FA, 0x080768, 0x0807C0, 0x08083A, 0x08087C, 0x080970, 0x0809E4,
+        At(0x07D354), At(0x07D3A2), At(0x07D3F6), At(0x07D4BA), At(0x07D534), At(0x07D59C), At(0x07D710), At(0x07DDD8), At(0x07DE32), At(0x07DECE), At(0x07DF1E), At(0x07DF9C),
+        At(0x07E10E), At(0x07E162), At(0x07E20E), At(0x07E5A8), At(0x07E62C), At(0x07EA82), At(0x07EBEA), At(0x07ED72), At(0x07EDDE), At(0x07EE90), At(0x07EEEC), At(0x07EF7C),
+        At(0x07F052), At(0x07F1A4), At(0x07F202), At(0x07F2F0), At(0x07F438), At(0x07F79E), At(0x07F870), At(0x07F928), At(0x07F9E4), At(0x07FA82), At(0x07FB02), At(0x07FB5E),
+        At(0x07FBC4), At(0x07FC0C), At(0x07FCF0), At(0x07FE06), At(0x07FE5A), At(0x07FF76), At(0x07FFB4), At(0x07FFDE), At(0x080094), At(0x0800EC), At(0x080378), At(0x0803E8),
+        At(0x080462), At(0x0804D8), At(0x0805A4), At(0x0806FA), At(0x080768), At(0x0807C0), At(0x08083A), At(0x08087C), At(0x080970), At(0x0809E4),
     };
 
     // For finding pieces that a wide picture should show and the game does not draw (VSAV_PIECES=1): for
@@ -2976,8 +2972,8 @@ namespace {
     // nothing is not a find).
     unsigned OnLists(M68K &c) {
         unsigned n = 0;
-        for (int list = 0; list < 15; list++) {
-            n += Ram8(Var(c, 0x79C5 + list));
+        for (int list = 0; list < family::kTwelveLists + 8; list++) {
+            n += Ram8(Var(c, AtA5(0x79C5) + list));
         }
         return n;
     }
@@ -3017,68 +3013,68 @@ namespace {
 
 void RegisterPieces() {
     // (the last number is the time a call is charged: the game's own, as the check measured it)
-    AddRewrite(0x015030, "Animate", Animate, kFreeFlags, 45);
-    AddRewrite(0x015084, "SetAnimation", SetAnimation, kFreeFlags, 78);
-    AddRewrite(0x07D372, "SetStageAnimation", [](M68K &c) { SetStageAnimation(c); }, kFreeFlags);
-    AddRewrite(0x0170A6, "GiveBack", GiveBack, kFreeFlags, 158);
-    AddRewrite(0x07D354, "PiecePlain", Plain, kFreeFlags, 130);
-    AddRewrite(0x07D3A2, "PieceFlickering", Flickering, kFreeFlags, 177);
-    AddRewrite(0x07D3F6, "PieceDancers", Dancers, kFreeFlags, 100);
-    AddRewrite(0x07D4BA, "PieceLady", Lady, kFreeFlags, 166);
-    AddRewrite(0x07D534, "PieceThrower", Thrower, kFreeFlags, 134);
-    AddRewrite(0x07D240, "AllPieces", AllPieces, kFreeFlags);
-    AddRewrite(0x07E672, "TakeLeg", TakeLeg, kFreeFlags, 180);
-    AddRewrite(0x07E77E, "FlyLeg", FlyLeg, kFreeFlags, 180);
-    AddRewrite(0x07EA82, "Script17", Script17, kFreeFlags, 200);
-    AddRewrite(0x07E62C, "Script16", Script16, kFreeFlags, 200);
-    AddRewrite(0x07F2F0, "Script27", Script27, kFreeFlags, 250);
-    AddRewrite(0x07ED72, "Script19", Script19, kFreeFlags, 150);
-    AddRewrite(0x07EDDE, "Script20", Script20, kFreeFlags, 150);
-    AddRewrite(0x07EF7C, "Script23", Script23, kFreeFlags, 200);
-    AddRewrite(0x07F438, "Script28", Script28, kFreeFlags, 200);
-    AddRewrite(0x07E20E, "Script14", Script14, kFreeFlags, 400);
-    AddRewrite(0x07FE5A, "Script40", Script40, kFreeFlags, 200);
-    AddRewrite(0x07EBEA, "Script18", Script18, kFreeFlags, 200);
-    AddRewrite(0x0800EC, "Script45", Script45, kFreeFlags, 150);
-    AddRewrite(0x07D710, "Script6", Script6, kFreeFlags, 200);
-    AddRewrite(0x07F052, "Script24", Script24, kFreeFlags, 150);
-    AddRewrite(0x07FCF0, "Script38", Script38, kFreeFlags, 150);
-    AddRewrite(0x07DF9C, "Script11", Script11, kFreeFlags, 150);
-    AddRewrite(0x07D59C, "Script5", Script5, kFreeFlags, 200);
-    AddRewrite(0x07F202, "Script26", Script26, kFreeFlags, 250);
-    AddRewrite(0x07FC0C, "Script37", Script37, kFreeFlags, 150);
-    AddRewrite(0x07FFDE, "Script43", Script43, kFreeFlags, 200);
-    AddRewrite(0x080462, "Script48", Script48, kFreeFlags, 150);
-    AddRewrite(0x08087C, "Script55", Script55, kFreeFlags, 150);
-    AddRewrite(0x07DF1E, "Script10", Script10, kFreeFlags, 120);
-    AddRewrite(0x080378, "Script46", Script46, kFreeFlags, 150);
-    AddRewrite(0x0803E8, "Script47", Script47, kFreeFlags, 180);
-    AddRewrite(0x07DE32, "Script8", Script8, kFreeFlags, 100);
-    AddRewrite(0x0809E4, "Script57", Script57, kFreeFlags, 100);
-    AddRewrite(0x080970, "Script56", Script56, kFreeFlags, 100);
-    AddRewrite(0x08083A, "Script54", Script54, kFreeFlags, 120);
-    AddRewrite(0x07EEEC, "Script22", Script22, kFreeFlags, 120);
-    AddRewrite(0x07E162, "Script13", Script13, kFreeFlags, 150);
-    AddRewrite(0x07E5A8, "Script15", Script15, kFreeFlags, 120);
-    AddRewrite(0x07F9E4, "Script32", Script32, kFreeFlags, 120);
-    AddRewrite(0x07F79E, "Script29", Script29, kFreeFlags, 120);
-    AddRewrite(0x07F870, "Script30", Script30, kFreeFlags, 150);
-    AddRewrite(0x07F928, "Script31", Script31, kFreeFlags, 150);
-    AddRewrite(0x07FE06, "Script39", Script39, kFreeFlags, 120);
-    AddRewrite(0x07FB02, "Script34", Script34, kFreeFlags, 120);
-    AddRewrite(0x07FF76, "Script41", Script41, kFreeFlags, 120);
-    AddRewrite(0x07FBC4, "Script36", Script36, kFreeFlags, 120);
-    AddRewrite(0x07FB5E, "Script35", Script35, kFreeFlags, 120);
-    AddRewrite(0x07DECE, "Script9", Script9, kFreeFlags, 120);
-    AddRewrite(0x07E10E, "Script12", Script12, kFreeFlags, 120);
-    AddRewrite(0x080768, "Script52", Script52, kFreeFlags, 120);
-    AddRewrite(0x0806FA, "Script51", Script51, kFreeFlags, 120);
-    AddRewrite(0x07DDD8, "Script7", Script7, kFreeFlags, 120);
-    AddRewrite(0x07EE90, "Script21", Script21, kFreeFlags, 120);
-    AddRewrite(0x07F1A4, "Script25", Script25, kFreeFlags, 120);
-    AddRewrite(0x080094, "Script44", Script44, kFreeFlags, 120);
-    AddRewrite(0x07FA82, "Script33", Script33, kFreeFlags, 120);
-    AddRewrite(0x0807C0, "Script53", Script53, kFreeFlags, 120);
+    AddRewrite(At(0x015030), "Animate", Animate, kFreeFlags, 45);
+    AddRewrite(At(0x015084), "SetAnimation", SetAnimation, kFreeFlags, 78);
+    AddRewrite(At(0x07D372), "SetStageAnimation", [](M68K &c) { SetStageAnimation(c); }, kFreeFlags);
+    AddRewrite(At(0x0170A6), "GiveBack", GiveBack, kFreeFlags, 158);
+    AddRewrite(At(0x07D354), "PiecePlain", Plain, kFreeFlags, 130);
+    AddRewrite(At(0x07D3A2), "PieceFlickering", Flickering, kFreeFlags, 177);
+    AddRewrite(At(0x07D3F6), "PieceDancers", Dancers, kFreeFlags, 100);
+    AddRewrite(At(0x07D4BA), "PieceLady", Lady, kFreeFlags, 166);
+    AddRewrite(At(0x07D534), "PieceThrower", Thrower, kFreeFlags, 134);
+    AddRewrite(At(0x07D240), "AllPieces", AllPieces, kFreeFlags);
+    AddRewrite(At(0x07E672), "TakeLeg", TakeLeg, kFreeFlags, 180);
+    AddRewrite(At(0x07E77E), "FlyLeg", FlyLeg, kFreeFlags, 180);
+    AddRewrite(At(0x07EA82), "Script17", Script17, kFreeFlags, 200);
+    AddRewrite(At(0x07E62C), "Script16", Script16, kFreeFlags, 200);
+    AddRewrite(At(0x07F2F0), "Script27", Script27, kFreeFlags, 250);
+    AddRewrite(At(0x07ED72), "Script19", Script19, kFreeFlags, 150);
+    AddRewrite(At(0x07EDDE), "Script20", Script20, kFreeFlags, 150);
+    AddRewrite(At(0x07EF7C), "Script23", Script23, kFreeFlags, 200);
+    AddRewrite(At(0x07F438), "Script28", Script28, kFreeFlags, 200);
+    AddRewrite(At(0x07E20E), "Script14", Script14, kFreeFlags, 400);
+    AddRewrite(At(0x07FE5A), "Script40", Script40, kFreeFlags, 200);
+    AddRewrite(At(0x07EBEA), "Script18", Script18, kFreeFlags, 200);
+    AddRewrite(At(0x0800EC), "Script45", Script45, kFreeFlags, 150);
+    AddRewrite(At(0x07D710), "Script6", Script6, kFreeFlags, 200);
+    AddRewrite(At(0x07F052), "Script24", Script24, kFreeFlags, 150);
+    AddRewrite(At(0x07FCF0), "Script38", Script38, kFreeFlags, 150);
+    AddRewrite(At(0x07DF9C), "Script11", Script11, kFreeFlags, 150);
+    AddRewrite(At(0x07D59C), "Script5", Script5, kFreeFlags, 200);
+    AddRewrite(At(0x07F202), "Script26", Script26, kFreeFlags, 250);
+    AddRewrite(At(0x07FC0C), "Script37", Script37, kFreeFlags, 150);
+    AddRewrite(At(0x07FFDE), "Script43", Script43, kFreeFlags, 200);
+    AddRewrite(At(0x080462), "Script48", Script48, kFreeFlags, 150);
+    AddRewrite(At(0x08087C), "Script55", Script55, kFreeFlags, 150);
+    AddRewrite(At(0x07DF1E), "Script10", Script10, kFreeFlags, 120);
+    AddRewrite(At(0x080378), "Script46", Script46, kFreeFlags, 150);
+    AddRewrite(At(0x0803E8), "Script47", Script47, kFreeFlags, 180);
+    AddRewrite(At(0x07DE32), "Script8", Script8, kFreeFlags, 100);
+    AddRewrite(At(0x0809E4), "Script57", Script57, kFreeFlags, 100);
+    AddRewrite(At(0x080970), "Script56", Script56, kFreeFlags, 100);
+    AddRewrite(At(0x08083A), "Script54", Script54, kFreeFlags, 120);
+    AddRewrite(At(0x07EEEC), "Script22", Script22, kFreeFlags, 120);
+    AddRewrite(At(0x07E162), "Script13", Script13, kFreeFlags, 150);
+    AddRewrite(At(0x07E5A8), "Script15", Script15, kFreeFlags, 120);
+    AddRewrite(At(0x07F9E4), "Script32", Script32, kFreeFlags, 120);
+    AddRewrite(At(0x07F79E), "Script29", Script29, kFreeFlags, 120);
+    AddRewrite(At(0x07F870), "Script30", Script30, kFreeFlags, 150);
+    AddRewrite(At(0x07F928), "Script31", Script31, kFreeFlags, 150);
+    AddRewrite(At(0x07FE06), "Script39", Script39, kFreeFlags, 120);
+    AddRewrite(At(0x07FB02), "Script34", Script34, kFreeFlags, 120);
+    AddRewrite(At(0x07FF76), "Script41", Script41, kFreeFlags, 120);
+    AddRewrite(At(0x07FBC4), "Script36", Script36, kFreeFlags, 120);
+    AddRewrite(At(0x07FB5E), "Script35", Script35, kFreeFlags, 120);
+    AddRewrite(At(0x07DECE), "Script9", Script9, kFreeFlags, 120);
+    AddRewrite(At(0x07E10E), "Script12", Script12, kFreeFlags, 120);
+    AddRewrite(At(0x080768), "Script52", Script52, kFreeFlags, 120);
+    AddRewrite(At(0x0806FA), "Script51", Script51, kFreeFlags, 120);
+    AddRewrite(At(0x07DDD8), "Script7", Script7, kFreeFlags, 120);
+    AddRewrite(At(0x07EE90), "Script21", Script21, kFreeFlags, 120);
+    AddRewrite(At(0x07F1A4), "Script25", Script25, kFreeFlags, 120);
+    AddRewrite(At(0x080094), "Script44", Script44, kFreeFlags, 120);
+    AddRewrite(At(0x07FA82), "Script33", Script33, kFreeFlags, 120);
+    AddRewrite(At(0x0807C0), "Script53", Script53, kFreeFlags, 120);
     // (the frames that begin with a test of the camera: the script, the place, which side, where it goes on)
 }
 
