@@ -63,16 +63,20 @@ void RegisterColours() {
     d.palettesInSet = kPalettesInSet;
     d.setAddress = SetAddress;
     d.ranges = Ranges;
-    d.romFile = family::kColoursFile;
+    d.romFile = family::kColoursFile; // (none: the game's colours are not in one file)
     d.romFileAt = 0x380000;
     d.romFileSize = 0x80000;
     d.same = {kColourSets, kEffectColours + kColourNumbers * 4};
     d.romFileWhose = family::kColoursFileWhose;
-    static const std::string description = std::string("Characters in the colours of the files in the \"palettes\" folder in the "
-                                                       "game's data folder: a ") + family::kColoursFile +
-                                           " changed with PalMod, and text files, one a character (" + kRoster[0].name +
-                                           ".txt), which go before it. With no files the game's own colours. They are taken when a "
-                                           "player is coloured: at the next round.";
+    static const std::string description =
+        family::kColoursFile ? std::string("Characters in the colours of the files in the \"palettes\" folder in the game's data folder: a ") +
+                                   family::kColoursFile + " changed with PalMod, and text files, one a character (" + kRoster[0].name +
+                                   ".txt), which go before it. With no files the game's own colours. They are taken when a player is "
+                                   "coloured: at the next round."
+                             : std::string("Characters in the colours of the text files in the \"palettes\" folder in the game's data "
+                                           "folder, one a character (") +
+                                   kRoster[0].name + ".txt). With no files the game's own colours. They are taken when a player is "
+                                                     "coloured: at the next round.";
     d.featureDescription = description.c_str();
     d.originalHelp = "# To change them, copy this file to the palettes folder and change the colours there. Each set\n"
                      "# is chosen by the buttons in its name ([PP]: two punches at once, [KK]: two kicks; [AUTO1] and\n"

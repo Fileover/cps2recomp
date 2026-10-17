@@ -148,23 +148,47 @@ namespace {
     }
 } // namespace
 
+namespace {
+    // A game made from this program whose own choosing code is not rewritten here (family.h): the feature through
+    // hooks on that code. Where it stores the colours chosen (D1), the character decided: Gallon (if the game has
+    // a Dark Gallon) and Bishamon become their hidden forms, a punch their first colours and a kick their second
+    bool HiddenAtColours(M68K &c) {
+        const uint32_t me = c.a[6] & 0xFFFFFF;
+        const uint8_t character = Ram8(me + kCharacter);
+        if (HiddenFor(Ram8(me + kNumber)) && ((character == kGallon && kDarkGallon) || character == kBishamon)) {
+            SetRam8(me + kCharacter, character == kGallon ? kDarkGallon : kOboro);
+            const uint32_t colours = c.d[1] & 0xFF; // (0-2 and 6 by punches, 3-5 and 7 by kicks)
+            SetLow8(c.d[1], (colours >= 3 && colours <= 5) || colours == 7 ? 1 : 0);
+        }
+        return false; // (and on with the game's own code)
+    }
+    // Where the game counts Start on the "?" box for Shadow's code: on the box, the code is given
+    bool HiddenShadow(M68K &c) {
+        const uint32_t me = c.a[6] & 0xFFFFFF;
+        if (Ram8(me + kCursor) == kRandomBox && HiddenFor(Ram8(me + kNumber))) {
+            SetRam8(me + kShadowCode, 0xFF);
+            Return(c);
+            return true;
+        }
+        return false;
+    }
+} // namespace
+
 // A mode's fighter (modes.h, MatchWanted): its hidden form, if the feature asks for one on that side
 int HiddenForm(int n, int character) {
     if (!HiddenFor(n)) {
         return character;
     }
-    return character == kGallon ? kDarkGallon : character == kBishamon ? kOboro : character;
+    return character == kGallon && kDarkGallon ? kDarkGallon : character == kBishamon ? kOboro : character;
 }
 
 void RegisterChoosing() {
     AddRewrite(At(0x020B38), "ChooseColours", ChooseColours, kFreeFlags, 365);
     AddRewrite(At(0x020C98), "CountShadowCode", CountShadowCode, kFreeFlags);
-    TheGame().features.push_back({"hidden_characters", "Game", "Hidden characters",
-                                  "Choosing Gallon gives Dark Gallon and choosing Bishamon gives Oboro Bishamon (the "
-                                  "last boss, not chosen by any code on the board); a punch chooses their first colours, "
-                                  "a kick their second. The \"?\" box gives Shadow, who becomes each opponent beaten. "
-                                  "For player 1, player 2 or both; the alternative modes' fighters too.",
-                                  0, {"Off", "Player 1", "Player 2", "Both"}});
+    AddHook(family::kHiddenAtColours, "HiddenAtColours", HiddenAtColours);
+    AddHook(family::kHiddenShadow, "HiddenShadow", HiddenShadow);
+    TheGame().features.push_back({"hidden_characters", "Game", "Hidden characters", family::kHiddenWords, 0,
+                                  {"Off", "Player 1", "Player 2", "Both"}});
 }
 
 } // namespace cps2recomp

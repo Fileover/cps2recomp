@@ -599,8 +599,19 @@ inline constexpr Character kRoster[] = {
     {0x0C, "Q-Bee", nullptr},     {0x0D, "Lei-Lei", "Hsien-Ko"}, {0x0E, "Lilith", nullptr}, {0x0F, "Jedah", nullptr},
     {0x10, "Phobos", "Huitzil"},  {0x11, "Pyron", nullptr},   {0x13, "Donovan", nullptr},
 };
-inline constexpr Character kHidden[] = {{0x18, "Oboro Bishamon", nullptr}};
-inline constexpr uint8_t kDarkGallon = 0x12, kOboroBishamon = 0x18;
+// The hidden ones (src/choosing.cpp). This game's own choosing code (not rewritten: its hidden characters differ)
+// gives Oboro Bishamon as 19 (Bishamon chosen with Start held and a button: 01F84C), Shadow (Start five times on the
+// "?" box: 01F8C4) and Marionette (seven times: 01F930), and Phobos and Donovan another way with Start held (the
+// byte at +3C2); 18 is Oboro Bishamon as the last opponent. The "Hidden characters" feature hooks that code: where
+// it stores the colours (01F7EC) and where it counts Shadow's code
+inline constexpr Character kHidden[] = {{0x19, "Oboro Bishamon", nullptr}, {0x18, "Oboro Bishamon (the boss)", nullptr}};
+inline constexpr uint8_t kDarkGallon = 0, kOboroBishamon = 0x19;
+inline constexpr uint32_t kHiddenAtColours = 0x01F7EC, kHiddenShadow = 0x01F8C4;
+inline constexpr const char *kHiddenWords =
+    "Choosing Bishamon gives Oboro Bishamon (on the board: Start held as he is chosen); a punch chooses his first "
+    "colours, a kick his second. The \"?\" box gives Shadow, who becomes each opponent beaten (on the board: Start five "
+    "times on it). For player 1, player 2 or both; the alternative modes' fighters too. (Also on the board: Start seven "
+    "times on the box for Marionette, and Start held as Phobos or Donovan is chosen for their other way.)";
 
 // The stages, in the order of their numbers (the word at FF8100 is the number doubled)
 inline constexpr const char *kStageNames[] = {
@@ -616,6 +627,72 @@ inline constexpr int kTwelveLists = 8;
 // Each stage's own tune (src/modes.cpp: the stage viewer's music): Vampire Savior's, and the thirteenth stage's (the
 // empty hall, Donovan's) a new one
 inline constexpr uint16_t kStageTunes[] = {0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F, 0x10, 0x11, 0x12, 0x13, 0x14, 0x15};
+
+// Its music, for a custom soundtrack (src/music.cpp): the sound program keeps a table of its songs at 9000 (a word,
+// how many; song 0's entry four bytes on). Which are music, from that table (their data starts with a 0); what each
+// is, from the arcade ladder played to its end with a character held, attract mode and the stages
+// (CPS2RECOMP_SOUNDTRACK_LOG)
+struct Song {
+    uint16_t number;
+    const char *name, *title;
+    bool once = false;
+};
+inline constexpr uint32_t kSongTable = 0x9006, kSongCount = 0xA70;
+inline constexpr Song kSongs[] = {
+    // Around the fights (as Vampire Savior has them: the character select, the versus screen, game over seen)
+    {0x01, "opening", "The opening", true},
+    {0x02, "character_select", "Character select"},
+    {0x03, "next", "Between a win and the next versus screen"},
+    {0x05, "versus", "Versus screen", true},
+    {0x06, "continue", "Continue?"},
+    {0x07, "game_over", "Game over", true},
+    {0x08, "ranking", "Score ranking", true},
+    // Each stage's own (kStageTunes)
+    {0x09, "feast_of_the_damned", "Feast of the Damned"},
+    {0x0A, "concrete_cave", "Concrete Cave"},
+    {0x0B, "tower_of_arrogance", "Tower of Arrogance"},
+    {0x0C, "red_thirst", "Red Thirst"},
+    {0x0D, "deserted_chateau", "Deserted Chateau"},
+    {0x0E, "abaraya", "Abaraya"},
+    {0x0F, "vanity_paradise", "Vanity Paradise"},
+    {0x10, "war_agony", "War Agony"},
+    {0x11, "forever_torment", "Forever Torment"},
+    {0x12, "green_scream", "Green Scream"},
+    {0x13, "iron_horse_iron_terror", "Iron Horse, Iron Terror"},
+    {0x14, "fetus_of_god", "Fetus of God"},
+    {0x15, "feast_of_the_damned_empty", "Feast of the Damned, empty"},
+    {0x30, "rival", "Before the last fight (the rival)"},
+    {0xE2, "jedah_appears", "Jedah appears", true},
+    // After Jedah is beaten: the ending, then one of two ways on
+    {0x38, "ending", "The ending"},
+    {0x39, "ending_2", "The ending, on (one way)"},
+    {0x3A, "ending_3", "The ending, on (the other way)"},
+    // The winner's, on the screen after a win (17 and the character's number)
+    {0x17, "bulleta_win", "Bulleta wins"},
+    {0x18, "demitri_win", "Demitri wins"},
+    {0x1A, "victor_win", "Victor wins"},
+    {0x1B, "zabel_win", "Zabel wins"},
+    {0x1C, "morrigan_win", "Morrigan wins"},
+    {0x1D, "anakaris_win", "Anakaris wins"},
+    {0x1E, "felicia_win", "Felicia wins"},
+    {0x1F, "bishamon_win", "Bishamon wins"},
+    {0x23, "qbee_win", "Q-Bee wins"},
+    {0x24, "leilei_win", "Lei-Lei wins"},
+    {0x25, "lilith_win", "Lilith wins"},
+    {0x26, "jedah_win", "Jedah wins"},
+    {0x27, "phobos_win", "Phobos wins"},
+    {0x28, "pyron_win", "Pyron wins"},
+    {0x2A, "donovan_win", "Donovan wins"},
+    // Music the game has whose place is not known yet
+    {0x04, "music_04", "Where it plays is not known yet"},
+    {0x16, "music_16", "Where it plays is not known yet"},
+    {0x2B, "music_2b", "Where it plays is not known yet"},
+    {0x2C, "music_2c", "Where it plays is not known yet"},
+    {0x2F, "music_2f", "Where it plays is not known yet"},
+    {0x31, "music_31", "Where it plays is not known yet"},
+    {0x3B, "music_3b", "Where it plays is not known yet"},
+    {0x3C, "music_3c", "Where it plays is not known yet"},
+};
 
 // Where the hit test goes on to when an attack has hit (src/collision.cpp): not HitLands itself as in Vampire Savior
 // (018230), but a test before it of the victim's guarding pose (whose code goes on into HitLands)
@@ -644,6 +721,9 @@ inline constexpr uint32_t kAtEdgeToo = 0x148;
 inline constexpr uint32_t kShadowTiles[2] = {0x30F88, 0x30FC8};
 inline constexpr uint32_t kPanelTiles[2] = {0x14200, 0x14E00};
 inline constexpr uint32_t kCurtainTiles[2] = {0x04400, 0x05100};
+
+// The characters whose three other palettes go elsewhere when their effects need them, a bit by number (02A108)
+inline constexpr uint32_t kFirstLineOnly = 0xEF9AEF96;
 
 // The ROM file whose colours PalMod changes, and which set it is
 inline constexpr const char *kColoursFile = "vs2j.10", *kColoursFileWhose = "Vampire Savior 2's, 970913";

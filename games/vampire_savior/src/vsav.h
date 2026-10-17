@@ -243,7 +243,7 @@ constexpr int kColourNumbers = 32; // entries of the two tables (kEffectColours 
 // The game puts the set's four palettes from there on, but for the characters whose bit is set in
 // kFirstLineOnly (by number; 02ADB2), whose other three go elsewhere when their effects need them.
 constexpr uint32_t kPaletteBuffer = At(0xFF80D0), kPaletteSlot = 0x18B;
-constexpr uint32_t kFirstLineOnly = 0xEF92EF96;
+constexpr uint32_t kFirstLineOnly = family::kFirstLineOnly;
 constexpr int kEffectPalettes = 66;
 // How fast a player is moving, and how that changes each frame (longs: 65536 a pixel)
 constexpr uint32_t kSpeedX = 0x40, kSpeedY = 0x44, kPullX = 0x48, kPullY = 0x4C;
