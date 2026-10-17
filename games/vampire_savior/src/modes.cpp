@@ -458,18 +458,14 @@ void RegisterModes() {
     game.features.push_back({"viewer_stage", kViewer, "Stage",
                              "The stage the viewer shows, or Infinite: every stage in turn, each scrolling into the next with its "
                              "own tune. Changing it while viewing goes to the new one.",
-                             0, {"Feast of the Damned", "Concrete Cave", "Tower of Arrogance", "Red Thirst", "Deserted Chateau", "Abaraya",
-                                 "Vanity Paradise", "War Agony", "Forever Torment", "Green Scream", "Iron Horse, Iron Terror", "Fetus of God",
-                                 "Infinite"}});
+                             0, StageChoices({}, {"Infinite"})});
     game.features.push_back({"viewer_scroll", kViewer, "Scrolling",
                              "How the viewer moves across the stage: with the stick, or by itself from one end to the other and back "
                              "(Infinite: always onwards).",
                              0, {"With the stick", "Slow", "Medium", "Fast"}});
     game.features.push_back({"viewer_music", kViewer, "Music",
                              "The tune that plays in the viewer: the stage's own, or another's. (Infinite plays each stage's own.)", 0,
-                             {"The stage's own", "Feast of the Damned", "Concrete Cave", "Tower of Arrogance", "Red Thirst", "Deserted Chateau",
-                              "Abaraya", "Vanity Paradise", "War Agony", "Forever Torment", "Green Scream", "Iron Horse, Iron Terror",
-                              "Fetus of God", "Character select"}});
+                             StageChoices({"The stage's own"}, {"Character select"})});
 }
 
 } // namespace cps2recomp

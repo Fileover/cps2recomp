@@ -382,9 +382,7 @@ void RegisterTraining() {
     game.features.push_back({"training_stage", "Training mode", "Stage",
                              "Where a training session's fight is: the game's own choice (at random, from those that go with player "
                              "2's character) or a stage named here. Takes effect when the characters are next chosen.",
-                             0, {"The game's choice", "Feast of the Damned", "Concrete Cave", "Tower of Arrogance", "Red Thirst", "Deserted Chateau",
-                                 "Abaraya", "Vanity Paradise", "War Agony", "Forever Torment", "Green Scream", "Iron Horse, Iron Terror",
-                                 "Fetus of God"}});
+                             0, StageChoices({"The game's choice"})});
     game.features.push_back({"training_mode", "Training mode", "Training session",
                              "The fight has no clock and nobody is knocked out. (\"Start\" above switches this "
                              "on and takes the game to the character choice; Reset ends it.)",

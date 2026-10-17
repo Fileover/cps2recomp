@@ -39,10 +39,15 @@ namespace {
     constexpr const char *kModel = "Model viewer";
     constexpr int kStartMost = 9000; // frames after which getting to a round is given up
 
-    // The characters in the menu's order, by their numbers in the game (11 is nobody)
-    constexpr const char *kCharacterNames[] = {"Bulleta", "Demitri", "Gallon", "Victor", "Zabel", "Morrigan", "Anakaris", "Felicia",
-                                               "Bishamon", "Aulbath", "Sasquatch", "Q-Bee", "Lei-Lei", "Lilith", "Jedah"};
-    constexpr int kCharacterNumbers[] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 13, 14, 15};
+    // The characters in the menu's order (family.h), by their numbers in the game
+    consteval std::array<int, std::size(kRoster)> CharacterNumbers() {
+        std::array<int, std::size(kRoster)> numbers{};
+        for (size_t n = 0; n < std::size(kRoster); n++) {
+            numbers[n] = kRoster[n].number;
+        }
+        return numbers;
+    }
+    constexpr std::array<int, std::size(kRoster)> kCharacterNumbers = CharacterNumbers();
     // The "Background" choice: the twelve stages, then the plain colours
     constexpr int kWhite = kStages, kBlack = kStages + 1;
     // The "Size" choice, in quarters: the character's own size first (a choice's first is what it is when
@@ -607,14 +612,11 @@ void RegisterModel() {
                              "speed, repeating at once, one animation only. (While viewing, the viewer goes to that character and stage.)",
                              ResetChoices});
     game.features.push_back({"model_character", kModel, "Character", "Who is shown. Changing it while viewing goes to the new one.", 0,
-                             {std::begin(kCharacterNames), std::end(kCharacterNames)}});
+                             RosterChoices()});
     game.features.push_back({"model_background", kModel, "Background",
                              "What is behind the character: one of the stages, or plain white or black. Changing it while viewing "
                              "goes to the new one.",
-                             0,
-                             {"Feast of the Damned", "Concrete Cave", "Tower of Arrogance", "Red Thirst", "Deserted Chateau", "Abaraya",
-                              "Vanity Paradise", "War Agony", "Forever Torment", "Green Scream", "Iron Horse, Iron Terror", "Fetus of God",
-                              "White", "Black"}});
+                             0, StageChoices({}, {"White", "Black"})});
     game.features.push_back({"model_foreground", kModel, "Stage in front",
                              "What the stage has in front of the fighters (a table, a fence, a fire): in front of the character "
                              "too, as in a fight, or behind it so that all of it is seen. In front only at the character's own "

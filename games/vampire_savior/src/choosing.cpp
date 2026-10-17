@@ -35,7 +35,8 @@ namespace {
     // From A5: both players are in (kPlayersIn, and who was playing then) and bit n here: player n has chosen
     constexpr int32_t kPlayersInNow = AtA5(0x8D), kPlayersThenVar = AtA5(0xAC), kHaveChosen = AtA5(0x131);
 
-    constexpr uint8_t kGallon = 0x02, kBishamon = 0x08, kOboro = kOboroBishamon; // (kDarkGallon: vsav.h)
+    using family::kDarkGallon;
+    constexpr uint8_t kGallon = 0x02, kBishamon = 0x08, kOboro = family::kOboroBishamon;
     // Buttons, in the word the player holds
     constexpr uint16_t kStartHeld = 0x8000, kPunches = 0x0700, kKicks = 0x7000;
     constexpr uint16_t kButtonColours[6] = {0x0100, 0x0200, 0x0400, 0x1000, 0x2000, 0x4000}; // colours 0-5

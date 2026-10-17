@@ -8,7 +8,11 @@
 #include "lift.h"
 #include "places.h"
 
+#include <array>
 #include <cstdint>
+#include <initializer_list>
+#include <iterator>
+#include <vector>
 
 namespace vsav {
 
@@ -29,9 +33,10 @@ constexpr uint32_t kCameraCopies[] = {At(0xFF8026), At(0xFF82A0), At(0xFF82A8), 
 // at kChooseStage when a match is made: between two players at random from sixteen for player 2's
 // character, in a one-player game the next opponent's own. kPlayersThen is who was playing then, as kPlayersIn.
 constexpr uint32_t kStage = At(0xFF8100), kChooseStage = At(0x00AE7C), kPlayersThen = At(0xFF80AC);
-constexpr int kStages = 12; // in the order of their numbers: Feast of the Damned (the castle's hall), Concrete Cave (the
-// subway), Tower of Arrogance, Red Thirst (the desert), Deserted Chateau, Abaraya, Vanity Paradise, War
-// Agony (the wooden town), Forever Torment, Green Scream, Iron Horse Iron Terror (the train), Fetus of God
+// (the stages are named in family.h: kStages of them; Vampire Savior's twelve in the order of their numbers are
+// Feast of the Damned (the castle's hall), Concrete Cave (the subway), Tower of Arrogance, Red Thirst (the
+// desert), Deserted Chateau, Abaraya, Vanity Paradise, War Agony (the wooden town), Forever Torment, Green
+// Scream, Iron Horse Iron Terror (the train), Fetus of God)
 // A stage's scroll screens have a record each. The one of 8-pixel tiles (the furthest back on most stages):
 // where its picture's left edge is in the stage (a word: the scroll register is this less 64), and a byte
 // that is not zero when its picture is wider than the map's 512 columns and the game draws it into the map
@@ -168,12 +173,57 @@ constexpr int32_t kRoundPaused = AtA5(0x8A);
 // for that side to come back in.
 constexpr uint32_t kCharacter = 0x382, kCharacterAgain = 0x3E0, kColours = 0x3AE; // bytes
 constexpr uint32_t kPlays = 0x380, kComputer = 0x3B4;                              // bytes
-constexpr int kCharacters = 16; // numbers 0-15, of which 11 is nobody
-inline constexpr const char *kCharacterNames[kCharacters] = {"Bulleta", "Demitri", "Gallon", "Victor", "Zabel", "Morrigan",
-                                                            "Anakaris", "Felicia", "Bishamon", "Aulbath", "Sasquatch", nullptr,
-                                                            "Q-Bee", "Lei-Lei", "Lilith", "Jedah"};
-// The hidden characters' numbers (choosing.cpp): Gallon's and Bishamon's with bit 4
-constexpr uint8_t kDarkGallon = 0x12, kOboroBishamon = 0x18;
+// The characters (family.h): numbers are below kCharacters, the hidden ones' too; the ones a player chooses are
+// below kCharacterSpan, and those that are nobody's are passed over
+using family::Character;
+using family::kRoster;
+constexpr int kCharacters = 32;
+consteval int CharacterSpan() {
+    int span = 0;
+    for (const Character &c : kRoster) {
+        span = c.number + 1 > span ? c.number + 1 : span;
+    }
+    return span;
+}
+constexpr int kCharacterSpan = CharacterSpan();
+constexpr bool Choosable(int number) {
+    for (const Character &c : kRoster) {
+        if (c.number == number) {
+            return true;
+        }
+    }
+    return false;
+}
+// What this set calls each number (nullptr: nobody), hidden characters too
+consteval std::array<const char *, kCharacters> CharacterNames() {
+    std::array<const char *, kCharacters> names{};
+    for (const Character &c : kRoster) {
+        names[c.number] = c.name;
+    }
+    for (const Character &c : family::kHidden) {
+        names[c.number] = c.name;
+    }
+    return names;
+}
+inline constexpr std::array<const char *, kCharacters> kCharacterNames = CharacterNames();
+// The names of the characters a player chooses, in the order of their numbers (for a feature's choices), after
+// the choices given
+inline std::vector<const char *> RosterChoices(std::initializer_list<const char *> before = {}) {
+    std::vector<const char *> out(before);
+    for (const Character &c : kRoster) {
+        out.push_back(c.name);
+    }
+    return out;
+}
+// The stages (family.h)
+constexpr int kStages = static_cast<int>(std::size(family::kStageNames));
+// Their names as a feature's choices, between the ones given
+inline std::vector<const char *> StageChoices(std::initializer_list<const char *> before, std::initializer_list<const char *> after = {}) {
+    std::vector<const char *> out(before);
+    out.insert(out.end(), std::begin(family::kStageNames), std::end(family::kStageNames));
+    out.insert(out.end(), after);
+    return out;
+}
 // A character's colours, in the ROM: a long a character (by its number, 0-31) at kColourSets points to its
 // sets, kColourSetSize bytes each: four palettes of 16 colours (words, 4 bits each of red, green and blue;
 // the game keeps the brightness the palette RAM had). kColours picks the set: 0-5 the button the character was
