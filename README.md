@@ -50,6 +50,9 @@ Each game's page has all it does, with pictures.
   game's modes, save states, speed, pause and frame advance, cheats, and every feature.
 - **Pure or Enhanced.** Pure plays exactly as the board does. Enhanced (the default) adds free play and your
   own colours. Every other feature is a switch of its own, off unless you choose it.
+- **Arcade timing**: the processor run as on the arcade board, its waits for memory and the video chip's use of its
+  bus counted, so the game slows down where and as much as the board does (big supers, busy screens). Off unless
+  chosen; checked frame by frame against a cycle-exact model of the board ([docs/TIMING.md](docs/TIMING.md)).
 - **Run-ahead**: what you press seen a frame or two sooner than on the board, with the game running exactly as
   without it.
 - **The picture your way**: sharp, whole pixels or smooth; 4:3, square pixels or the whole screen; full screen

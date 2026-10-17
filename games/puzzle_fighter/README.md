@@ -64,6 +64,8 @@ the settings memory) is code written for this project, not an emulator
   you press is seen sooner than on the board.
 - A search box on the launcher's Features page (Ctrl+F or Cmd+F) finds any feature by a word in its
   name, description or choices.
+- **Arcade timing** (Game page, off unless chosen): the processor run as on the arcade board, so the game slows
+  down where and as much as the board does. [More →](../../docs/TIMING.md)
 - **A custom soundtrack**: your own music in place of the board's music, with the board's sound effects and voices:
   a folder of music plays as a playlist (in order or shuffled), or files named for the game's songs replace those
   songs. The `songs.txt` the game writes in the soundtrack folder names all 24 pieces

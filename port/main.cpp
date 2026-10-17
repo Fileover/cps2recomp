@@ -68,7 +68,7 @@ bool Movie::Save(const std::string &path) const {
 }
 
 namespace {
-    constexpr uint32_t kStateVersion = 6; // (5: the 68000's wait kept; 6: the custom soundtrack's place, which 5 lacks)
+    constexpr uint32_t kStateVersion = 7; // (5: the 68000's wait kept; 6: the custom soundtrack's place; 7: the board timing's palette copy)
 
     bool ReadFile(const std::string &path, std::vector<uint8_t> &data) {
         FILE *f = fopen(path.c_str(), "rb");
@@ -117,6 +117,15 @@ void RegisterPortFeatures() {
                                   "on the board (input lag taken away). The game runs as it does without it; it takes two or three "
                                   "times the processor. Off by itself in the game's own modes beyond fights and training.",
                                   0, {"Off", "1 frame", "2 frames"}});
+    // (arcade_timing: machine.h, SetBoardTiming; docs/TIMING.md)
+    TheGame().features.push_back({"arcade_timing", "Game", "Arcade timing",
+                                  "The processor runs as on the arcade board, waiting for its memory and giving the bus to the "
+                                  "video chip, so the game slows down where and as much as the board does (big supers, busy "
+                                  "screens). Off: it has every clock, and the game seldom slows. Checked frame by frame against "
+                                  "a cycle-exact model of the board. In training mode, the game's other modes, widescreen and "
+                                  "with cheats on, the port's own code for some routines runs, and the timing there is close "
+                                  "but not exact.",
+                                  0});
     // (display_*: how the picture is fitted to the window, present.h; the first of each is how it always was)
     TheGame().features.push_back({"display_scaling", "Display", "Scaling",
                                   "Sharp: as large as fits, each pixel a crisp block. Whole pixels: every pixel the same whole "
@@ -222,6 +231,7 @@ bool Port::Init(std::string &error) {
         machine->soundtrack.FindMusic(roms.soundProgram, TheGame().songTable, TheGame().songCount);
     }
     SoundtrackFollow();
+    machine->SetBoardTiming(FeatureOn("arcade_timing"));
     return true;
 }
 
@@ -517,7 +527,7 @@ bool Port::LoadState(const std::string &path, std::string &error) {
     ar.Mark(0x43505332);
     uint32_t version = 0;
     ar.Pod(version);
-    const bool known = version == kStateVersion || version == 5;
+    const bool known = version >= 5 && version <= kStateVersion;
     ar.version = version;
     if (ar.Ok() && known) {
         machine->Serialize(ar);
@@ -765,6 +775,7 @@ void Port::RunAhead() {
 void Port::RunFrame() {
     ClearSpareRan();
     SoundtrackFollow();
+    machine->SetBoardTiming(FeatureOn("arcade_timing"));
     if (!opt.moviePlay.empty()) {
         auto it = playMovie.changes.find(frame);
         if (it != playMovie.changes.end()) {
