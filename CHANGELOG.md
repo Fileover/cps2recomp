@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+- **Arcade timing** (the `arcade_timing` feature, Game page, off unless chosen): the 68000 runs as on the board,
+  its acknowledge a clock late for every access outside 500000-7FFFFF and its bus taken by the CPS-A's DMA (the row
+  scroll, the scroll layers' tile rows, the palette), so a game slows down where and as much as on the board
+  (`docs/TIMING.md`). Measured with jtcps2 simulated as a reference: without it the port's 68000 did about 1.35 times
+  the board's work in a frame; with it, Street Fighter Alpha 2's work RAM is the reference's at 5,639 of 5,671 frames
+  through a whole fight (the rest are registers kept aside, caught at a different point at the frame's end). With
+  it on, the game's own code runs in place of the readable rewrites, but where training mode, the sources' own
+  modes, widescreen or a cheat need them (`Game::rewritesNeeded`). With it off nothing changes. Save states are
+  version 7 (5 and 6 still load). `CPS2RECOMP_BUS_LOG` logs each frame's waits and DMA.
+
 - **Two more games: Vampire Savior 2 and Vampire Hunter 2** (`games/vsav2`, `games/vhunt2`; ROM sets `vsav2`, Japan
   970913, and `vhunt2`, Japan 970929). Capcom made both from Vampire Savior's program: Vampire Savior 2 brings back
   Donovan, Phobos (Huitzil) and Pyron, Vampire Hunter 2 is Night Warriors' cast on Vampire Savior's engine, and

@@ -40,6 +40,12 @@ routines calling one another on the host's stack, and time running out inside th
 - `tools/explore.sh FIRST RUNS FRAMES`: made-up play in several runs side by side, adding what
   they find to the entries file.
 
+## The board's timing
+
+The arcade timing (`--features arcade_timing`) is checked like the rest: `make check-blocks ARGS="--features
+arcade_timing"` compares translated code and the interpreter with the board's waits counted. How it was checked
+against the board itself (jtcps2, simulated) is in [TIMING.md](TIMING.md).
+
 ## Other aids
 
 - `--shot-every N:PFX` (PNG), `--audio-dump FILE` (WAV), `--state-save F:FILE` / `--state-load`.

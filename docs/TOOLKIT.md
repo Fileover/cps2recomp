@@ -36,6 +36,9 @@ This page is for people making or working on ports. To play, see the [main page]
 - **A custom soundtrack.** The player's own music files in place of the board's music, caught where the game
   asks the sound CPU for it, played in the game's time; a game only says where its sound program's table of songs
   is, and names its music (`machine/soundtrack.h`, `port/soundtrack.h`; [docs/FEATURES.md](FEATURES.md)).
+- **The board's timing, as an option.** The 68000's waits on its memory and the video chip's DMA counted as the
+  board has them, so the games slow down as on the board; checked against a cycle-exact model of the board
+  ([docs/TIMING.md](TIMING.md)).
 - **Features players expect.** Save states, run-ahead (a press seen a frame or two sooner, with the
   game running exactly as without it), speed, pause and frame advance, slow motion, cheats and
   options a game declares once, and the in-game menu and launcher the recomp ports share

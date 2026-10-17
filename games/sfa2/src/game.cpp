@@ -50,6 +50,12 @@ void TitleFrame(Machine &machine);
 
 void RegisterMusic(); // music.cpp
 
+bool TrainingMode(); // training.cpp
+bool AttractMode();  // modes.cpp
+bool StageViewer();
+bool BattleMode();   // battle.cpp
+bool WidePlay();     // widescreen.cpp
+
 void RegisterGame() {
     RegisterMusic();
     RegisterMachines();
@@ -99,6 +105,17 @@ void RegisterGame() {
         ModesState(ar);
         BattleState(ar);
         ModelState(ar);
+    };
+    // With the arcade timing, the game's own code runs in place of the rewrites but where they carry what the
+    // port adds (game.h, rewritesNeeded): training mode, the modes of the sources' own, widescreen, the cheats
+    // that work inside them (the damage, the clock)
+    TheGame().rewritesNeeded = [] {
+        for (const char *name : {"widescreen", "infinite_time", "no_damage", "no_damage_2", "one_hit", "fixed_damage", "no_stun", "no_stun_2"}) {
+            if (FeatureOn(name)) {
+                return true;
+            }
+        }
+        return TrainingMode() || AttractMode() || StageViewer() || BattleMode() || ModelViewer() || WidePlay();
     };
     // Its own, never set for the other games by the collection's launcher: the records, and the animations' numbers
     OwnFeatures({"survival_best", "ringout_best", "model_animation", "colours_animation"});

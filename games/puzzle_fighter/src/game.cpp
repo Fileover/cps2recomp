@@ -43,6 +43,8 @@ void TitleFrame(Machine &machine);
 
 void RegisterMusic(); // music.cpp
 
+bool InAMode(); // modes.cpp
+
 void RegisterGame() {
     RegisterMusic();
     RegisterCoins();
@@ -87,6 +89,19 @@ void RegisterGame() {
     TheGame().state = [](Archive &ar) {
         TrainingState(ar);
         ModesState(ar);
+    };
+    // With the arcade timing, the game's own code runs in place of the rewrites but where they carry what the
+    // port adds (game.h, rewritesNeeded): the modes of the sources' own, training mode, and the features that change
+    // how it plays
+    TheGame().rewritesNeeded = [] {
+        for (const char *name : {"training_mode", "training_crash", "training_speed", "input_display", "attack_readout",
+                                 "landing_guide", "dummy", "dummy_attack", "no_attack", "no_attack_2", "challenger",
+                                 "quick_win", "hard_drop", "hidden_characters", "watch_1", "watch_2"}) {
+            if (FeatureOn(name)) {
+                return true;
+            }
+        }
+        return InAMode();
     };
 }
 

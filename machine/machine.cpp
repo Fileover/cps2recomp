@@ -146,6 +146,14 @@ void Machine::RunFrame() {
     } while (m_line != kBlankingLine);
     soundtrack.Frame();
     frame++;
+    // (CPS2RECOMP_BUS_LOG=FILE: each frame's bus waits and DMA clocks, with the board's timing; docs/TIMING.md)
+    static FILE *busLog = getenv("CPS2RECOMP_BUS_LOG") ? fopen(getenv("CPS2RECOMP_BUS_LOG"), "w") : nullptr;
+    if (busLog) {
+        fprintf(busLog, "%llu %llu %llu\n", static_cast<unsigned long long>(frame), static_cast<unsigned long long>(cpu.waitsCounted),
+                static_cast<unsigned long long>(dmaCounted));
+        cpu.waitsCounted = 0;
+        dmaCounted = 0;
+    }
 }
 
 void Machine::RunLine() {
@@ -166,6 +174,13 @@ void Machine::RunLine() {
         m_blankInterrupt = true;
         UpdateInterruptLevel();
         video.LatchObjects(&objectRam[m_objectBank ? 0x2000 : 0]);
+    }
+
+    // (the board's timing: the video chip's DMA holds the 68000's bus at the start of the line)
+    if (boardTiming) {
+        const uint32_t dma = LineDma();
+        cpu.cycles += dma;
+        dmaCounted += dma;
     }
 
     // (the CPU stops a little after the time it is given, and the next line is that much shorter for it)
@@ -309,6 +324,40 @@ uint16_t Machine::Fetch16(uint32_t address) {
         return Word(&m_roms.opcodes[address]);
     }
     return Read16(address); // (code in RAM is not enciphered)
+}
+
+// The 68000's clocks the CPS-A's DMA holds the bus for at the start of this line (docs/TIMING.md), as jtcps2 has the
+// chip (jtcps1_dma.v, after jotego's measurements of a board): a word every 4 clocks, of the row scroll's table (one
+// a line), a scroll layer's next row of tiles (100, 98 and 30 words) when the line with its vertical scroll reaches
+// one, and every enabled palette page (512 words) at the line after the game sets the palette's base. Lines are
+// counted as the chip's DMA counts them, two ahead of the picture's; none in vertical blanking but the palette's.
+uint32_t Machine::LineDma() {
+    const int v = (m_line + 2) % kLines;
+    const bool rows = v < 240 || v > 257;
+    const uint16_t control = cpsA[0x22 / 2];
+    const int next = v + 1;
+    uint32_t words = 0;
+    if ((control & 1) && rows) {
+        words += 1;
+    }
+    if ((control & 2) && rows && ((next + cpsA[0x0E / 2]) & 7) == 0) {
+        words += 100;
+    }
+    if ((control & 4) && rows && ((next + cpsA[0x12 / 2]) & 15) == 0) {
+        words += 98;
+    }
+    if ((control & 8) && ((rows && ((next + cpsA[0x16 / 2]) & 15) == 0) || v == 0)) {
+        words += 30;
+    }
+    if (m_palettePending) {
+        m_palettePending = false;
+        unsigned pages = 0;
+        for (uint16_t enabled = cpsB[0x30 / 2] & 0x3F; enabled; enabled &= enabled - 1) {
+            pages++;
+        }
+        words += pages * 512;
+    }
+    return words ? words * 4 + 2 : 0; // (and its start)
 }
 
 // 68000 cycles into the line
@@ -476,6 +525,7 @@ void Machine::WriteRegister(uint32_t address, uint16_t value, uint16_t mask) {
         combine(cpsA[index]);
         if (index == 0x0A / 2) {
             video.CopyPalette(); // (writing the palette's address makes the chip take the palette)
+            m_palettePending = boardTiming; // (... by DMA, at the next line: LineDma)
         }
         return;
     }
@@ -636,6 +686,11 @@ void Machine::Serialize(Archive &ar) {
         soundtrack.Serialize(ar);
     } else if (!ar.Saving()) {
         soundtrack.Reset();
+    }
+    if (ar.version == 0 || ar.version >= 7) { // (the board's timing: a palette the DMA is yet to copy)
+        ar.Pod(m_palettePending);
+    } else if (!ar.Saving()) {
+        m_palettePending = false;
     }
 }
 

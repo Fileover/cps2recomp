@@ -54,6 +54,15 @@ each piece is by playing (the arcade ladder with each character, attract mode, a
 themselves with `--music-test 5400` (with `--test-switch 300:99999999`, so that the game asks for nothing).
 `games/<id>/src/music.cpp` is each game's.
 
+## Arcade timing
+
+The port's `arcade_timing` feature runs the 68000 with the board's waits and the video chip's DMA
+([TIMING.md](TIMING.md)). With it on, the game's own code runs in place of the rewrites, whose time is only their
+originals' without the waits; a game whose sources add something inside a rewrite (a cheat that changes the damage,
+widescreen's camera, a mode of its own) says when the rewrites are needed with `TheGame().rewritesNeeded`, and they
+run then, with time close to the board's but not exact. A new feature that works inside a rewrite belongs in that
+list.
+
 ## Commands
 
 `TheGame().commands` are things the game's sources do when asked: a row of the menu (on the first
