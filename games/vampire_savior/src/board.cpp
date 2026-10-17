@@ -35,12 +35,12 @@ namespace {
     };
     // (the value of a choice is its number less one: the first choice is "As the board is set")
     constexpr Setting kSettings[] = {
-        {"board_difficulty", kVars + 0xA0}, {"board_attack", kVars + 0xA1},  {"board_timer", kVars + 0xA2},
-        {"board_speed", kVars + 0xA3},      {"board_gauges", kVars + 0xA4},  {"board_event", kVars + 0xA5},
-        {"board_automatic", kVars + 0xBB},  {"board_continue", kVars + 0x98}, {"board_demo_sound", kVars + 0x99},
-        {"board_censorship", kVars + 0x8C},
+        {"board_difficulty", vsav::At(kVars + 0xA0)}, {"board_attack", vsav::At(kVars + 0xA1)},  {"board_timer", vsav::At(kVars + 0xA2)},
+        {"board_speed", vsav::At(kVars + 0xA3)},      {"board_gauges", vsav::At(kVars + 0xA4)},  {"board_event", vsav::At(kVars + 0xA5)},
+        {"board_automatic", vsav::At(kVars + 0xBB)},  {"board_continue", vsav::At(kVars + 0x98)}, {"board_demo_sound", vsav::At(kVars + 0x99)},
+        {"board_censorship", vsav::At(kVars + 0x8C)},
     };
-    constexpr uint32_t kContinue = kVars + 0x98, kEvent = kVars + 0xA5;
+    constexpr uint32_t kContinue = vsav::At(kVars + 0x98), kEvent = vsav::At(kVars + 0xA5);
 
     // The board's own values of what was chosen, to put back for its test menu
     uint8_t g_board[std::size(kSettings)];
@@ -122,9 +122,9 @@ void RegisterBoard() {
     game.features.push_back({"board_demo_sound", kPage, "Demo sound", "Whether the attract mode plays sound.", 0, {kAsSet, "Off", "On"}});
     game.features.push_back({"board_censorship", kPage, "Self-censorship", "The board's own restraint setting (自主規制).", 0,
                              {kAsSet, "Off", "On"}});
-    AddHook(HookAt(0x00116E), "SettingsRead", SettingsRead);
-    AddHook(HookAt(0x008F56), "GameBegins", GameBegins);
-    AddHook(HookAt(0x00A4BA), "GameBeginsTwo", GameBegins);
+    AddHook(HookAt(vsav::At(0x00116E)), "SettingsRead", SettingsRead);
+    AddHook(HookAt(vsav::At(0x008F56)), "GameBegins", GameBegins);
+    AddHook(HookAt(vsav::At(0x00A4BA)), "GameBeginsTwo", GameBegins);
 }
 
 } // namespace cps2recomp

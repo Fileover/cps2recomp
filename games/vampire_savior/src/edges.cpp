@@ -139,8 +139,8 @@ namespace {
 
 void RegisterEdges() {
     // (the last number is the time a call is charged: the game's own, as the check measured it)
-    AddRewrite(0x028192, "KeepIn", KeepIn, kFreeFlags, 338);
-    AddRewrite(0x02824C, "KeepBothIn", KeepBothIn, kFreeFlags, 104);
+    AddRewrite(At(0x028192), "KeepIn", KeepIn, kFreeFlags, 338);
+    AddRewrite(At(0x02824C), "KeepBothIn", KeepBothIn, kFreeFlags, 104);
 }
 
 } // namespace cps2recomp

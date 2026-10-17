@@ -36,7 +36,7 @@ namespace {
                                                  "Bishamon", "Aulbath", "Sasquatch", nullptr, "Q-Bee", "Lei-Lei", "Lilith", "Jedah"};
     constexpr int kNobody = 11;
 
-    constexpr uint32_t kResult = 0xFF810C;  // the round's result (vsav.h, kRoundResult)
+    constexpr uint32_t kResult = At(0xFF810C);  // the round's result (vsav.h, kRoundResult)
     constexpr int kStartMost = 9000;        // frames after which getting to a round is given up
     constexpr int kAfter = 230;             // frames a decided round is left to play out before the next match
     constexpr int kFade = 24;               //   the last of which, and the next match's first, go to and from black

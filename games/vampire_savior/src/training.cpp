@@ -370,7 +370,7 @@ bool Booting() {
 
 void RegisterTraining() {
     Game &game = TheGame();
-    AddHook(0x00AE7C, "ChooseStage", ChooseStage);
+    AddHook(At(0x00AE7C), "ChooseStage", ChooseStage);
     game.commands.push_back({"training_restart", "Training mode", "Start over",
                              "In a training session: the round as it began, with the players where \"Start over at\" says. Backspace "
                              "or a gamepad's left shoulder does this while playing; the stick held as it is pressed chooses the place "

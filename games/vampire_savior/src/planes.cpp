@@ -13,9 +13,9 @@ namespace cps2recomp {
 
 using namespace vsav;
 
-const Layer kLayer8 = {0x20, 0x01EEFA, 0x01EE22, 0x01EE58, 0x01EF16, 0x01EFA0, 0x22, 0x24, 0x1FF};
-const Layer kLayer16 = {0x10, 0x01F31E, 0x01F280, 0x01F2B6, 0x01F33A, 0x01F3C4, 0x26, 0x28, 0x3FF};
-const Layer kLayer32 = {0x20, 0x01F71C, 0x01F64E, 0x01F682, 0x01F73A, 0x01F7C2, 0x2A, 0x2C, 0x7FF};
+const Layer kLayer8 = {0x20, At(0x01EEFA), At(0x01EE22), At(0x01EE58), At(0x01EF16), At(0x01EFA0), AtA5(0x22), AtA5(0x24), 0x1FF};
+const Layer kLayer16 = {0x10, At(0x01F31E), At(0x01F280), At(0x01F2B6), At(0x01F33A), At(0x01F3C4), AtA5(0x26), AtA5(0x28), 0x3FF};
+const Layer kLayer32 = {0x20, At(0x01F71C), At(0x01F64E), At(0x01F682), At(0x01F73A), At(0x01F7C2), AtA5(0x2A), AtA5(0x2C), 0x7FF};
 
 int64_t WideLag(int64_t lag) {
     const int side = WideMargin();
@@ -163,33 +163,33 @@ namespace {
 
 void RegisterPlanes() {
     // (the last number is the time a call is charged: the game's own, as the check measured it)
-    AddRewrite(0x01DE40, "Back8AcrossHalf", Across<kLayer8, kHalf>, kFreeFlags, 186);
-    AddRewrite(0x01DE56, "Back8AcrossThreeQuarters", Across<kLayer8, kThreeQuarters>, kFreeFlags, 160);
-    AddRewrite(0x01DE6E, "Back8AcrossSevenEighths", Across<kLayer8, kSevenEighths>, kFreeFlags, 198);
-    AddRewrite(0x01DE86, "Back8AcrossFifteenSixteenths", Across<kLayer8, kFifteenSixteenths>, kFreeFlags, 182);
-    AddRewrite(0x01DE9E, "Back8AcrossWhole", Across<kLayer8, kWhole>, kFreeFlags, 178);
-    AddRewrite(0x01DEB0, "Back8AcrossRowBefore", Across<kLayer8, kRow, -8>, kFreeFlags, 216);
-    AddRewrite(0x01DECE, "Back8AcrossRowAfter", Across<kLayer8, kRow, 8>, kFreeFlags, 206);
-    AddRewrite(0x01DEEA, "Back8PlaceAcross", Place<kLayer8, true>, kFreeFlags, 113);
-    AddRewrite(0x01DF3A, "Back8UpStays", Up<kLayer8, kStays>, kFreeFlags, 142);
-    AddRewrite(0x01DF40, "Back8UpHalf", Up<kLayer8, kHalf>, kFreeFlags, 138);
-    AddRewrite(0x01DF50, "Back8UpThreeQuarters", Up<kLayer8, kThreeQuarters>, kFreeFlags, 184);
-    AddRewrite(0x01DF64, "Back8UpWhole", Up<kLayer8, kWhole>, kFreeFlags, 150);
-    AddRewrite(0x01DF70, "Back8PlaceUp", Place<kLayer8, false>, kFreeFlags, 113);
-    AddRewrite(0x01DFC0, "Back8Placed", Placed<kLayer8>, kFreeFlags, 124);
-    AddRewrite(0x01E4F0, "CameraPlaced", Placed<kLayer16>, kFreeFlags, 124);
-    AddRewrite(0x01E75E, "Far32AcrossFiveEighths", Across<kLayer32, kFiveEighths>, kFreeFlags, 172);
-    AddRewrite(0x01E77A, "Far32AcrossThreeQuarters", Across<kLayer32, kThreeQuarters>, kFreeFlags, 160);
-    AddRewrite(0x01E792, "Far32AcrossSevenEighths", Across<kLayer32, kSevenEighths>, kFreeFlags, 162);
-    AddRewrite(0x01E7AA, "Far32AcrossWhole", Across<kLayer32, kWhole>, kFreeFlags, 142);
-    AddRewrite(0x01E7BC, "Far32AcrossRow16", Across<kLayer32, kRow, -0x10>, kFreeFlags, 180);
-    AddRewrite(0x01E7DA, "Far32AcrossRow44", Across<kLayer32, kRow, -0x2C>, kFreeFlags, 170);
-    AddRewrite(0x01E7F6, "Far32PlaceAcross", Place<kLayer32, true>, kFreeFlags, 85);
-    AddRewrite(0x01E846, "Far32UpHalf", Up<kLayer32, kHalf>, kFreeFlags, 138);
-    AddRewrite(0x01E856, "Far32UpThreeQuarters", Up<kLayer32, kThreeQuarters>, kFreeFlags, 148);
-    AddRewrite(0x01E86A, "Far32UpWhole", Up<kLayer32, kWhole>, kFreeFlags, 120);
-    AddRewrite(0x01E876, "Far32PlaceUp", Place<kLayer32, false>, kFreeFlags, 85);
-    AddRewrite(0x01E8C6, "Far32Placed", Placed<kLayer32>, kFreeFlags, 124);
+    AddRewrite(At(0x01DE40), "Back8AcrossHalf", Across<kLayer8, kHalf>, kFreeFlags, 186);
+    AddRewrite(At(0x01DE56), "Back8AcrossThreeQuarters", Across<kLayer8, kThreeQuarters>, kFreeFlags, 160);
+    AddRewrite(At(0x01DE6E), "Back8AcrossSevenEighths", Across<kLayer8, kSevenEighths>, kFreeFlags, 198);
+    AddRewrite(At(0x01DE86), "Back8AcrossFifteenSixteenths", Across<kLayer8, kFifteenSixteenths>, kFreeFlags, 182);
+    AddRewrite(At(0x01DE9E), "Back8AcrossWhole", Across<kLayer8, kWhole>, kFreeFlags, 178);
+    AddRewrite(At(0x01DEB0), "Back8AcrossRowBefore", Across<kLayer8, kRow, -8>, kFreeFlags, 216);
+    AddRewrite(At(0x01DECE), "Back8AcrossRowAfter", Across<kLayer8, kRow, 8>, kFreeFlags, 206);
+    AddRewrite(At(0x01DEEA), "Back8PlaceAcross", Place<kLayer8, true>, kFreeFlags, 113);
+    AddRewrite(At(0x01DF3A), "Back8UpStays", Up<kLayer8, kStays>, kFreeFlags, 142);
+    AddRewrite(At(0x01DF40), "Back8UpHalf", Up<kLayer8, kHalf>, kFreeFlags, 138);
+    AddRewrite(At(0x01DF50), "Back8UpThreeQuarters", Up<kLayer8, kThreeQuarters>, kFreeFlags, 184);
+    AddRewrite(At(0x01DF64), "Back8UpWhole", Up<kLayer8, kWhole>, kFreeFlags, 150);
+    AddRewrite(At(0x01DF70), "Back8PlaceUp", Place<kLayer8, false>, kFreeFlags, 113);
+    AddRewrite(At(0x01DFC0), "Back8Placed", Placed<kLayer8>, kFreeFlags, 124);
+    AddRewrite(At(0x01E4F0), "CameraPlaced", Placed<kLayer16>, kFreeFlags, 124);
+    AddRewrite(At(0x01E75E), "Far32AcrossFiveEighths", Across<kLayer32, kFiveEighths>, kFreeFlags, 172);
+    AddRewrite(At(0x01E77A), "Far32AcrossThreeQuarters", Across<kLayer32, kThreeQuarters>, kFreeFlags, 160);
+    AddRewrite(At(0x01E792), "Far32AcrossSevenEighths", Across<kLayer32, kSevenEighths>, kFreeFlags, 162);
+    AddRewrite(At(0x01E7AA), "Far32AcrossWhole", Across<kLayer32, kWhole>, kFreeFlags, 142);
+    AddRewrite(At(0x01E7BC), "Far32AcrossRow16", Across<kLayer32, kRow, -0x10>, kFreeFlags, 180);
+    AddRewrite(At(0x01E7DA), "Far32AcrossRow44", Across<kLayer32, kRow, -0x2C>, kFreeFlags, 170);
+    AddRewrite(At(0x01E7F6), "Far32PlaceAcross", Place<kLayer32, true>, kFreeFlags, 85);
+    AddRewrite(At(0x01E846), "Far32UpHalf", Up<kLayer32, kHalf>, kFreeFlags, 138);
+    AddRewrite(At(0x01E856), "Far32UpThreeQuarters", Up<kLayer32, kThreeQuarters>, kFreeFlags, 148);
+    AddRewrite(At(0x01E86A), "Far32UpWhole", Up<kLayer32, kWhole>, kFreeFlags, 120);
+    AddRewrite(At(0x01E876), "Far32PlaceUp", Place<kLayer32, false>, kFreeFlags, 85);
+    AddRewrite(At(0x01E8C6), "Far32Placed", Placed<kLayer32>, kFreeFlags, 124);
 }
 
 } // namespace cps2recomp

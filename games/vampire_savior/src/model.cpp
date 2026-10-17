@@ -49,7 +49,7 @@ namespace {
     // nothing is chosen), then larger, and round to the smaller ones
     constexpr int kSizes[] = {4, 6, 8, 12, 16, 24, 32, 48, 64, 100, 1, 2, 3};
     // The "Animation" choice: standing as in a fight, or one of the three tables
-    constexpr uint32_t kAnimationTables[3] = {0x0BCEFA, 0x0BCF7A, 0x0BCE7A};
+    constexpr uint32_t kAnimationTables[3] = {At(0x0BCEFA), At(0x0BCF7A), At(0x0BCE7A)};
     constexpr const char *kTableNames[3] = {"A", "B", "C"};
     constexpr int kMostAnimations = 256;
     constexpr int kFramesASecond = 60;
@@ -100,7 +100,7 @@ namespace {
         return (static_cast<uint32_t>(machine.Read16(address)) << 16) | machine.Read16(address + 2);
     }
     bool InRom(uint32_t address) {
-        return address >= 0x100000 && address < 0x400000 && !(address & 1);
+        return address >= At(0x100000) && address < 0x400000 && !(address & 1);
     }
     // Is this an animation's frame? (Its picture is somewhere in the ROM, and it is shown for a while.)
     bool IsFrame(Machine &machine, uint32_t frame) {

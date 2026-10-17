@@ -40,9 +40,9 @@ namespace {
             SetRam8(Var(c, kControls[player]), static_cast<uint8_t>((port >> 4) | kicks[player]));
         }
         // (the kicks' port as it was read, this frame and the last; and something cleared)
-        SetRam8(Var(c, 0x7425), Ram8(Var(c, 0x7424)));
-        SetRam8(Var(c, 0x7424), Mem8(c, 0x804010));
-        SetRam32(Var(c, 0x7420), 0);
+        SetRam8(Var(c, AtA5(0x7425)), Ram8(Var(c, AtA5(0x7424))));
+        SetRam8(Var(c, AtA5(0x7424)), Mem8(c, 0x804010));
+        SetRam32(Var(c, AtA5(0x7420)), 0);
     }
 } // namespace
 

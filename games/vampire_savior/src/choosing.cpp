@@ -31,9 +31,9 @@ namespace {
     constexpr uint8_t kRandomBox = 0x0B;
     constexpr int kShadowStarts = 5;
     // From A5: the codes are not read when this is set (nothing in this set of the game sets it)
-    constexpr int32_t kNoCodes = 0xBF;
+    constexpr int32_t kNoCodes = AtA5(0xBF);
     // From A5: both players are in (kPlayersIn, and who was playing then) and bit n here: player n has chosen
-    constexpr int32_t kPlayersInNow = 0x8D, kPlayersThenVar = 0xAC, kHaveChosen = 0x131;
+    constexpr int32_t kPlayersInNow = AtA5(0x8D), kPlayersThenVar = AtA5(0xAC), kHaveChosen = AtA5(0x131);
 
     constexpr uint8_t kGallon = 0x02, kBishamon = 0x08, kOboro = kOboroBishamon; // (kDarkGallon: vsav.h)
     // Buttons, in the word the player holds
@@ -156,8 +156,8 @@ int HiddenForm(int n, int character) {
 }
 
 void RegisterChoosing() {
-    AddRewrite(0x020B38, "ChooseColours", ChooseColours, kFreeFlags, 365);
-    AddRewrite(0x020C98, "CountShadowCode", CountShadowCode, kFreeFlags);
+    AddRewrite(At(0x020B38), "ChooseColours", ChooseColours, kFreeFlags, 365);
+    AddRewrite(At(0x020C98), "CountShadowCode", CountShadowCode, kFreeFlags);
     TheGame().features.push_back({"hidden_characters", "Game", "Hidden characters",
                                   "Choosing Gallon gives Dark Gallon and choosing Bishamon gives Oboro Bishamon (the "
                                   "last boss, not chosen by any code on the board); a punch chooses their first colours, "

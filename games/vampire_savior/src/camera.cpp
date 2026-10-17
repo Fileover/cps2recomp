@@ -33,7 +33,7 @@ namespace {
     // 01E8F4. The players' outer edges across the stage: the left one in D0, the right one in D1. A player
     // the camera is not to follow is left out, and the edges are the other's.
     void PlayersAcross(M68K &c) {
-        const uint32_t one = Var(c, 0x400), two = Var(c, 0x800);
+        const uint32_t one = Var(c, AtA5(0x400)), two = Var(c, AtA5(0x800));
         c.a[1] = c.a[5] + 0x400;
         c.a[2] = c.a[5] + 0x800;
         auto left = [](uint32_t player) { return static_cast<uint16_t>(Ram16(player + kX) - Ram16(player + kHalfWidth)); };
@@ -52,7 +52,7 @@ namespace {
 
     // 01E962. The players' heights: the lower in D0, the higher in D1 (a player not followed is left out)
     void PlayersUp(M68K &c) {
-        const uint32_t one = Var(c, 0x400), two = Var(c, 0x800);
+        const uint32_t one = Var(c, AtA5(0x400)), two = Var(c, AtA5(0x800));
         c.a[1] = c.a[5] + 0x400;
         c.a[2] = c.a[5] + 0x800;
         if ((Ram8(one + kNotFollowed) & 0x80) || (Ram8(two + kNotFollowed) & 0x80)) {

@@ -30,11 +30,11 @@ namespace {
     constexpr uint32_t kRowsOwn = 0x20;                    // word: kOwnRow
     constexpr uint32_t kRowsWave = 0x30, kRowsWaveWait = 0x31;   // bytes: where the wave is, and frames to its next step
     // While a super move's own backdrop is up, 112 rows of the table wave instead, by a table of sines
-    constexpr int32_t kBackdrop = 0x133; // from A5, a byte
-    constexpr uint32_t kWaveFrom = 0x470, kSines = 0x0B7740;
+    constexpr int32_t kBackdrop = AtA5(0x133); // from A5, a byte
+    constexpr uint32_t kWaveFrom = 0x470, kSines = At(0x0B7740);
     constexpr int kWaveRows = 112;
     // The board's registers to be (from A5): the row scroll table's place, and the first row's number
-    constexpr int32_t kRowsRegister = 0x1E, kFirstRowRegister = 0x2E;
+    constexpr int32_t kRowsRegister = AtA5(0x1E), kFirstRowRegister = AtA5(0x2E);
 
     // A stage's table: the camera's travel over `divisor` is a row's step (0: over 128, and rounded down
     // where the others are rounded towards nothing). Below the stage's own row `floor` rows each a step
@@ -176,7 +176,7 @@ namespace {
 
 void RegisterRows() {
     // (the time charged is near the game's own, which is long: it is added to as the table is made)
-    AddRewrite(0x01FDFE, "RowsFrame", RowsFrame, kFreeFlags | kChecksVideo, 400);
+    AddRewrite(At(0x01FDFE), "RowsFrame", RowsFrame, kFreeFlags | kChecksVideo, 400);
 }
 
 } // namespace cps2recomp

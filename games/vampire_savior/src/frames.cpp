@@ -71,7 +71,7 @@ namespace {
 
 void RegisterFrames() {
     g_frames.print = getenv("VSAV_FRAMES") != nullptr;
-    AddHook(0x02244C, "PlayerStep", PlayerStep);
+    AddHook(At(0x02244C), "PlayerStep", PlayerStep);
 }
 
 void FramesContact(int victim, bool guarded) {
