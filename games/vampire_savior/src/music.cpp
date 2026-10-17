@@ -14,7 +14,7 @@ void RegisterMusic() {
     // held), a lost game and attract mode (CPS2RECOMP_SOUNDTRACK_LOG), and --music-test for the ones the board plays
     // once (`true`: quiet before 90 s)
     TheGame().songs = {
-        // Each stage's own (modes.h, kStageTune)
+        // Each stage's own (family.h, kStageTunes)
         {0x09, "feast_of_the_damned", "Feast of the Damned"},
         {0x0A, "concrete_cave", "Concrete Cave"},
         {0x0B, "tower_of_arrogance", "Tower of Arrogance"},

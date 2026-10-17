@@ -40,6 +40,9 @@ inline constexpr const char *kStageNames[] = {
 // The frame's lists of objects to draw that the objects of kind 12 have, one for each depth (src/picture.cpp)
 inline constexpr int kTwelveLists = 7;
 
+// Each stage's own tune (src/modes.cpp: the stage viewer's music)
+inline constexpr uint16_t kStageTunes[] = {0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F, 0x10, 0x11, 0x12, 0x13, 0x14};
+
 // Where the hit test goes on to when an attack has hit (src/collision.cpp): HitLands (018230)
 inline constexpr uint32_t kHitTestHit = 0x018230;
 
@@ -56,6 +59,13 @@ inline constexpr uint8_t kOverheadToo = 0;
 inline constexpr uint32_t kGuardsAnything = 0;
 inline constexpr uint16_t kGuardNear = 0x80;
 inline constexpr uint32_t kAtEdgeToo = 0;
+
+// Tiles of the objects the port tells apart (src/machines.cpp, src/widescreen.cpp), from one to one less than the
+// other: the shadows (colour set 22), the panel's faces beside the bars (drawn in the players' own colours), the red
+// curtain between a match's screens (set 3)
+inline constexpr uint32_t kShadowTiles[2] = {0xF8E0, 0xF920};
+inline constexpr uint32_t kPanelTiles[2] = {0x13800, 0x14400};
+inline constexpr uint32_t kCurtainTiles[2] = {0x2C600, 0x2FE00};
 
 // The ROM file whose colours PalMod changes, where it is in the program, and which set it is
 inline constexpr const char *kColoursFile = "vm3j.10b", *kColoursFileWhose = "the Japanese set's, 970519";

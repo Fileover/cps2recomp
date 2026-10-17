@@ -464,6 +464,9 @@ inline constexpr Place kPlaceList[] = {
     {0x3A3180, 0x39A890}, // a table between two that moved alike (the same bytes)
     {0x3A31A0, 0x39A8B0}, // a table between two that moved alike (the same bytes)
     {0x3A31C0, 0x39A8D0}, // the same bytes, once only
+    {0xFF0D66, 0xFF0D66}, // a variable the code names so (6/6)
+    {0xFF0D6C, 0xFF0D6C}, // a variable the code names so (6/6)
+    {0xFF0D70, 0xFF0D70}, // a variable the code names so (6/6)
     {0xFF0E0E, 0xFF0E0E}, // a variable the code names so (3/3)
     {0xFF1E0E, 0xFF1E0E}, // a variable the code names so (4/4)
     {0xFF1E2A, 0xFF1E2A}, // a variable the code names so (1/1)
@@ -513,6 +516,7 @@ inline constexpr Place kPlaceList[] = {
     {0xFF8064, 0xFF8064}, // a variable the code names so (7/7)
     {0xFF8076, 0xFF8076}, // a variable the code names so (7/7)
     {0xFF8085, 0xFF8085}, // a variable the code names so (4/4)
+    {0xFF8087, 0xFF8087}, // a variable the code names so (6/6)
     {0xFF808A, 0xFF808A}, // a variable the code names so (34/34)
     {0xFF808C, 0xFF808C}, // a variable the code names so (10/10)
     {0xFF808D, 0xFF808D}, // a variable the code names so (15/15)
@@ -601,12 +605,17 @@ inline constexpr uint8_t kDarkGallon = 0x12, kOboroBishamon = 0x18;
 inline constexpr const char *kStageNames[] = {
     "Feast of the Damned", "Concrete Cave", "Tower of Arrogance", "Red Thirst", "Deserted Chateau", "Abaraya",
     "Vanity Paradise", "War Agony", "Forever Torment", "Green Scream", "Iron Horse, Iron Terror", "Fetus of God",
-    "Stage 13",
+    "Feast of the Damned, empty",
 };
 
 // The frame's lists of objects to draw that the objects of kind 12 have, one for each depth (src/picture.cpp): one more
 // than Vampire Savior's (the table at 013D0C), so that the stage's pieces' lists come one later
 inline constexpr int kTwelveLists = 8;
+
+// Each stage's own tune (src/modes.cpp: the stage viewer's music). This game plays a character's theme, not a
+// stage's (09 and the character's number): a stage's is the theme of the character it belongs to (whose row of the
+// table of stages by character, 00ACC2, has it most), Iron Horse's and Fetus of God's none (nobody's)
+inline constexpr uint16_t kStageTunes[] = {0x0A, 0x0B, 0x1A, 0x0F, 0x0E, 0x11, 0x16, 0x19, 0x0D, 0x12, 0, 0, 0x1C};
 
 // Where the hit test goes on to when an attack has hit (src/collision.cpp): not HitLands itself as in Vampire Savior
 // (018230), but a test before it of the victim's guarding pose (whose code goes on into HitLands)
@@ -627,6 +636,14 @@ inline constexpr uint8_t kOverheadToo = 0x50;
 inline constexpr uint32_t kGuardsAnything = 0x143;
 inline constexpr uint16_t kGuardNear = 0x100;
 inline constexpr uint32_t kAtEdgeToo = 0x148;
+
+// Tiles of the objects the port tells apart (src/machines.cpp, src/widescreen.cpp), from one to one less than the
+// other: the shadows (colour set 22), the panel's faces beside the bars (drawn in the players' own colours), the red
+// curtain between a match's screens (set 3). The first two are Vampire Savior's moved in this game's graphics (the
+// same pictures, found there); the curtain's, those of its objects at the versus screen.
+inline constexpr uint32_t kShadowTiles[2] = {0x30F88, 0x30FC8};
+inline constexpr uint32_t kPanelTiles[2] = {0x14200, 0x14E00};
+inline constexpr uint32_t kCurtainTiles[2] = {0x04400, 0x05100};
 
 // The ROM file whose colours PalMod changes, and which set it is
 inline constexpr const char *kColoursFile = "vh2j.10", *kColoursFileWhose = "Vampire Hunter 2's, 970929";

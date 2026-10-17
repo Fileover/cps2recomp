@@ -45,7 +45,10 @@ bool RoundFought();
 bool ToRound(Machine &machine, int32_t &frames, bool choose = false);
 // A sound asked for as the game asks: a tune's number, or kTuneOff before another tune
 void PlaySound(uint16_t code);
-constexpr uint16_t kStageTune = 0x09; // a stage's own tune: this and its number less one
+// A stage's own tune (1 the first stage; family.h: 0, none of its own)
+inline uint16_t StageTune(int stage) {
+    return stage >= 1 && stage <= vsav::kStages ? vsav::family::kStageTunes[stage - 1] : 0;
+}
 constexpr uint16_t kTuneOff = 0xFF05;
 
 // Objects by what they are (for Video::hideObject). The players, what they throw and sparks use colour sets

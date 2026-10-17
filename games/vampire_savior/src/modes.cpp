@@ -356,9 +356,12 @@ namespace {
             if (music != g.music) {
                 g.music = music;
                 const int stage = music == 0 ? g.stage : music;
-                PlaySound(kTuneOff);
-                PlaySound(stage <= kStages ? static_cast<uint16_t>(kStageTune + stage - 1) :
-                         kOtherTunes[std::min(stage - kStages - 1, static_cast<int>(std::size(kOtherTunes)) - 1)]);
+                const uint16_t tune = stage <= kStages ? StageTune(stage) :
+                                      kOtherTunes[std::min(stage - kStages - 1, static_cast<int>(std::size(kOtherTunes)) - 1)];
+                if (tune) {
+                    PlaySound(kTuneOff);
+                    PlaySound(tune);
+                }
             }
         }
         SetHud({});

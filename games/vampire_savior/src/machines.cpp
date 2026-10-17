@@ -98,14 +98,14 @@ void PlaySound(uint16_t code) {
 }
 
 bool IsShadow(uint32_t tile, uint16_t attributes) {
-    return (attributes & 0x1F) == 22 && tile >= 0xF8E0 && tile < 0xF920;
+    return (attributes & 0x1F) == 22 && tile >= family::kShadowTiles[0] && tile < family::kShadowTiles[1];
 }
 bool NotTheStage(uint32_t tile, uint16_t attributes) {
     return (attributes & 0x1F) < 22 || IsShadow(tile, attributes);
 }
 bool ThePanel(uint32_t tile, uint16_t attributes) {
     // (the players' faces beside the bars are in the players' own colours: told by the panel's tiles)
-    return (attributes & 0x1F) < 5 || (tile >= 0x13800 && tile < 0x14400);
+    return (attributes & 0x1F) < 5 || (tile >= family::kPanelTiles[0] && tile < family::kPanelTiles[1]);
 }
 bool NotTheFighters(uint32_t tile, uint16_t attributes) {
     return ThePanel(tile, attributes) || ((attributes & 0x1F) >= 22 && !IsShadow(tile, attributes));

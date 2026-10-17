@@ -54,10 +54,10 @@ void RegisterCheats() {
     SettingsMemory memory;
     memory.readWords = HookAt(At(0x00214C));
     memory.writeWords = HookAt(At(0x002214));
-    memory.buffer = -0x729A;
-    memory.count = -0x7294;
-    memory.start = -0x7290;
-    memory.busy = 0x87;
+    memory.buffer = AtA5(-0x729A);
+    memory.count = AtA5(-0x7294);
+    memory.start = AtA5(-0x7290);
+    memory.busy = AtA5(0x87);
     AddSettingsMemory(memory);
     Game &game = TheGame();
     game.features.push_back({"free_play", "Game", "Free play", "Start works without a coin.", kFeatureEnhanced});
