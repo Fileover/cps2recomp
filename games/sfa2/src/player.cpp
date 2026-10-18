@@ -9,6 +9,7 @@
 // reaction it gives, the freeze, pushed back, knocked down and getting up, recovering), or held in a throw. What is
 // left to the game's own code: the characters' own moves (their attack and special move routines, by table) and
 // the few states no movie reaches (see PROGRESS.md).
+#include "modes.h"
 #include "sfa2.h"
 
 namespace cps2recomp {
@@ -2070,11 +2071,75 @@ namespace {
 } // namespace
 
 namespace {
+    // --- the ring out's own movements (battle.cpp says who and when) ---
+
+    constexpr uint32_t kSpeedUp = 0x44, kSpeedAcrossGain = 0x48, kSpeedUpGain = 0x4C; // longs (kWalkSpeed across): kFly's
+    constexpr uint8_t kReelLaunched = 0x13;     // the reeling animation of a knock-down: thrown back, then flat in the air
+    constexpr int32_t kPull = -0x6800;          // what is taken off the speed up each step (as the game's hops)
+    constexpr int32_t kFlungAcross = 0xC000;    // knocked out: away over the end, three quarters of a pixel a step
+    constexpr int32_t kFlungUp = 0x60000;       //   and up, six pixels a step at first
+    constexpr uint32_t kFrameExtra = 0x3D;      // a byte of the frame's, kept as it is shown (kSetAnimation)
+    constexpr uint32_t kColoursBack = 0x027204; // the player's own colours put back (a hit's flash over)
+    constexpr uint32_t kDownCry = 0x0226C8;     // the character's own as a knock-down begins (DownStarts: its cry)
+    constexpr int kGoneBelow = 400;             // how far under the floor one falling stops (long out of the picture)
+
+    // Knocked over the end of the stage: the knock-down's animation, flung up and away (no longer kept in) to fall through the floor and out of the picture
+    void FlungOut(M68K &c, uint32_t player, int side) {
+        SetRam32(player + kState, 0x02020202); // (reeling, as knocked down: ReelDown's step of falling)
+        SetRam8(player + kReelKind, 4);
+        SetRam8(player + kInAir, 0xFF);
+        SetRam8(player + kAttackOut, 0);
+        SetRam8(player + kHitStop, 0);
+        SetRam32(player + kWalkSpeed, static_cast<uint32_t>(side * kFlungAcross));
+        SetRam32(player + kSpeedAcrossGain, 0);
+        SetRam32(player + kSpeedUp, static_cast<uint32_t>(kFlungUp));
+        SetRam32(player + kSpeedUpGain, static_cast<uint32_t>(kPull));
+        Call(c, kColoursBack);
+        Call(c, kDownCry);
+        c.d[0] = kReelLaunched;
+        Call(c, kReelAnimation);
+    }
+
+    // Coming down onto the next stage: in the air in the next match as it was in its jump over the old stage (where,
+    // its frame, its speeds and way, from its record there), so that the game's own jump goes on and lands it
+    // (Jumping)
+    void DropsIn(M68K &c, uint32_t player, const RingOut &flight) {
+        const auto was = [&](uint32_t at) { // (a long of the record on the old stage)
+            const uint8_t *b = flight.record + at;
+            return static_cast<uint32_t>(b[0]) << 24 | static_cast<uint32_t>(b[1]) << 16 | static_cast<uint32_t>(b[2]) << 8 | b[3];
+        };
+        SetRam32(player + kState, 0x02000602); // (in control, jumping, in the air)
+        SetRam8(player + kInAir, 1);
+        SetRam8(player + kJumpingWay, flight.record[kJumpingWay]);
+        SetRam8(player + kLow, 0);
+        SetRam16(player + kX, static_cast<uint16_t>(flight.x));
+        SetRam16(player + kY, static_cast<uint16_t>(flight.y));
+        SetRam16(player + kYFraction, 0);
+        for (const uint32_t at : {kWalkSpeed, kSpeedUp, kSpeedAcrossGain, kSpeedUpGain, kFrame, kFrameTime}) { // (kFrameTime: and kFrameWord)
+            SetRam32(player + at, was(at));
+        }
+        SetRam8(player + kFrameExtra, Mem8(c, was(kFrame) + 0x16));
+    }
+
     // 02149A. A player in a fight (kState 2): the computer's own, or a person's special moves' inputs read and its
     // quick rise; a hold throw's damage over time; then the routine for its kControl (kPlayerDispatch, through the
-    // game's own dispatch so that what hooks it, the frame data, sees every step)
+    // game's own dispatch so that what hooks it, the frame data, sees every step). In a ring out, out of the stage:
+    // only through the air, falling.
     void PlayerFighting(M68K &c) {
         const uint32_t player = c.a[6];
+        const RingOut ringOut = RingOutMove(player);
+        if (ringOut.move == RingOut::kFlungOut) {
+            FlungOut(c, player, ringOut.side);
+        }
+        if (ringOut.move == RingOut::kFlungOut || ringOut.move == RingOut::kFalling) {
+            if (static_cast<int16_t>(Ram16(player + kY)) > static_cast<int16_t>(Ram16(player + kFloor)) - kGoneBelow) {
+                Call(c, kFly);
+            }
+            return Call(c, kAnimate);
+        }
+        if (ringOut.move == RingOut::kDropsIn) {
+            DropsIn(c, player, ringOut);
+        }
         if (Ram8(player + kComputer)) {
             if (Asks(c, 0x029CEA)) {
                 Call(c, 0x029E38);

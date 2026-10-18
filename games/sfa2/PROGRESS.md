@@ -98,15 +98,35 @@ no window only (pictures, traces); nobody has used them in a window or listened.
   own picture with every object but player 2's is drawn where the character's pixels are, so what is in front of
   the fighters stays in front (of the 18 stages with the character in the middle, only Guy's pipe). The hidden
   player 2 casts no shadow here (Vampire Savior's needed moving off).
-- **Survival, endless battle, ring out** (`src/battle.cpp`: Vampire Savior's, ported onto this game's names):
+- **Survival, endless battle, ring out** (the toolkit's `fight/battle.h` since 2026-10-18, `src/battle.cpp` this
+  game's description; first Vampire Savior's, ported onto this game's names):
   survival is one computer opponent after another on the health left (a sixth back for each beaten); the endless
   battle is two fighters the game plays with no bars and no clock, the one knocked down replaced, a fighter taken
   over by touching its controls and given back after ten idle seconds, on one stage, on stages that fade into
   one another (shuffle), or on a floor that scrolls through them (the fighters drawn alone, marked, over a stage
   another machine shows with its camera put where the fighters' is: `CameraAt`, lines in the camera rewrites);
   the ring out has no health, a stage's ends open (a line in KeepIn) and the winner jumps down to the next stage.
+  Ring out's movements (2026-10-18) are made inside PlayerFighting (`RingOutMove` asks battle.cpp): one knocked
+  past where KeepIn would have held it (its side past the picture's edge, not its own master) is out; at its next
+  step it is put in the knock-down's state (`02020202`, kReelKind 4) with reel animation 13 (thrown back, then
+  flat), the character's knock-down cry (0226C8), its colours back (027204), and its own speeds (kFly: across
+  three quarters of a pixel a step away, up 6, less 0x6800 each step); from then on only kFly and kAnimate, so it
+  falls through the floor (stopped 400 below it). The winner jumps off the old stage; at the top of its jump
+  (`HandOver`) it is put in the next match's machine (`02000602`, jumping) where it is in the picture (48 inside
+  the edges at least), a picture's height (224) above, with its own frame (+1C, +32, +3D), speeds (+40 to +4C)
+  and way (+3C), so Jumping lands it. That machine's camera is held up by 224 (`CameraWanted::beyondEnds`: past
+  the stage's top end, for the fighters alone) and comes down a quarter of the way a frame to as far as the
+  winner has fallen; the picture is the old stage's going up, the next one's below it at the camera's height, and
+  the next match's fighters over both (from the drop's third frame: a machine's picture is a frame or two behind
+  its camera, so the height used is the one of the frame before). The player's colours (kColourChoice, +A8) are
+  kept from the first match and put in by ChooseCharacters (007914) with the wanted characters; the round works
+  out the set from them. Reel animations
+  seen in the model viewer (Ryu, table C): 10-11 reeling standing, 12 reeling in the air, 13 launched, 14 landed,
+  15 bounced, 16 lying, 17 crouched hit, 18 recovering in the air, 19 getting up, 1A stunned, 1B knocked out.
+  Byte +67 is not only the camera's: bit 7 marks a player in a throw (PlayersStep), so it is not to be set.
   Checked with no window: survival to three wins, shuffle and scroll stages, ring outs both ways (the computer
-  knocked over twice, then the player). Nobody has played them.
+  knocked over twice, then the player); the new knock-out and drop in pictures (the player knocked out of a
+  throw at the left end, and three drops in a row with the computer made out). Nobody has played them.
 
 ## Custom colours and the colour editor (2026-10-14)
 

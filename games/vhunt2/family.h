@@ -143,6 +143,8 @@ inline constexpr Place kPlaceList[] = {
     {0x02244C, 0x020E30}, // an instruction, 4 on alike
     {0x027694, 0x026898}, // an instruction, 24 on alike
     {0x0276A6, 0x0268AA}, // an instruction, 24 on alike
+    {0x027EC0, 0x027142}, // the reelings' animation set (battle.cpp), found by its instructions: the second of three tables, then 0x382(a6) by hand
+    {0x027F70, 0x0271F2}, // the animation on a step (battle.cpp), found by its instructions: subq.b #1,0x20(a6) and the frame's flags by hand
     {0x028192, 0x027414}, // an instruction, 24 on alike
     {0x02824C, 0x0274D6}, // an instruction, 24 on alike
     {0x07D240, 0x08B586}, // an instruction, 11 on alike
@@ -537,6 +539,7 @@ inline constexpr Place kPlaceList[] = {
     {0xFF80BD, 0xFF80BD}, // a variable the code names so (33/33)
     {0xFF80BF, 0xFF80BF}, // a variable the code names so (10/12)
     {0xFF80D0, 0xFF80D0}, // a variable the code names so (28/28)
+    {0xFF80D4, 0xFF80D4}, // the random number (battle.cpp): 0xD4(a5) in this game's routine of it too (013584) by hand
     {0xFF8100, 0xFF8100}, // a variable the code names so (41/41)
     {0xFF8107, 0xFF8107}, // a variable the code names so (26/26)
     {0xFF8109, 0xFF8109}, // a variable the code names so (12/12)

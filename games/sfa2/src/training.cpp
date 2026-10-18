@@ -207,12 +207,16 @@ namespace {
     }
 
     // 007914: the game is about to choose the stage, from the characters chosen. The characters a mode wants go in
-    // their place first (two alike are told apart by the game's own colours); then, if asked for, a character with
-    // a hidden form is that form (in the modes too: the endless battle's fighters).
+    // their place first (two alike are told apart by the game's own colours), and their colours (kColourChoice: the
+    // round works out the set from it); then, if asked for, a character with a hidden form is that form (in the
+    // modes too: the endless battle's fighters).
     bool ChooseCharacters(M68K &) {
         for (int n = 0; n < 2; n++) {
             if (Wanted().characters[n] >= 0) {
                 SetRam8(Player(n) + kCharacter, static_cast<uint8_t>(Wanted().characters[n]));
+            }
+            if (Wanted().colours[n] >= 0) {
+                SetRam8(Player(n) + kColourChoice, static_cast<uint8_t>(Wanted().colours[n]));
             }
             HiddenForm(n); // (the modes' fighters, which are not chosen on the character screen)
         }

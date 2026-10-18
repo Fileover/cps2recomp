@@ -107,7 +107,7 @@ another is started or the menu's Reset.
 | Model viewer | One character by itself, on a stage or on plain white or black, from a quarter of its size to 25 times. It stands and moves with your controls, or goes through any of its animations (named A0, B12, C3... as the game's own lists number them; left and right step through them), at full speed or in slow motion. At its own size, what the stage has in front of the fighters stays in front (or, with "Stage in front" off, behind it) |
 | Survival | One opponent after another on the health you have left. How many can you beat? |
 | Endless battle | Two fighters the game plays, for as long as you like, with no bars and no clock, on one stage, on stages that fade one into another, or on a floor that scrolls through them all. Touch the controls to take a fighter over |
-| Ring out | No health. Knock your opponent over the end of the stage and jump down to the next one |
+| Ring out | No health. Knock your opponent over the end of the stage (it is thrown back, as by a knock-down, and falls through the floor), then jump down after it and land on the next stage |
 | Colour editor | Change a character's colours while you watch: [custom colours](#custom-colours) |
 
 ![The model viewer: Lilith's animations A60 to A90, one after another, on white](../../docs/screenshots/vampire_savior/model-viewer.gif)
