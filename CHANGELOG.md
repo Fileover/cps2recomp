@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- **macOS: SDL 3.4.16 or later** for a build from source (CMake asks for it; docs/BUILDING.md). SDL 3.4.14 (Homebrew's
+  until recently) leaves every game's window black while the game runs and sounds: its Metal GPU device takes a
+  frame's fence still being worked on for one signalled, so the swapchain's pictures after the first few are all
+  skipped (SDL 3.4.16: "Fixed the SDL_QueryGPUFence() return value on Apple platforms"). Release builds compile 3.4.16
+  themselves and were not affected. Linux and Windows are unchanged.
+
 - **Updates in the launcher**: it checks this repository's releases when it opens and offers a newer version at the
   top of the Games page; **Update** downloads only the files that changed (a new game: its program and the
   launcher), checks each against the release's SHA-256, puts them all in place or none, and starts the new launcher
