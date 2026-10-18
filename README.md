@@ -194,7 +194,7 @@ by every game, so a fix or a feature there reaches all of them; each game's page
 Capcom made from another's program (Vampire Savior 2 and Vampire Hunter 2, from Vampire Savior's) build that game's
 sources, with a list of where each place they name is in the other game, so they have all of its features. Vampire
 Savior Definitive runs Vampire Savior 2's own code for the characters it takes from it, beside Vampire Savior's, with
-that game's pictures and sound.
+that game's pictures and sound ([how and why](games/vsav_definitive/DEFINITIVE.md)).
 
 ## Building from source
 

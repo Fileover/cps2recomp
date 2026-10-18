@@ -65,6 +65,7 @@ it names (Vampire Savior 2's routines, variables and tables) is moved to where t
 Savior's tables by character get the three's entries ([graft.cfg](graft.cfg), made into code by `tools/graft.py`
 from both programs: never kept in the repository). [src/rules.cpp](src/rules.cpp) has the few places where Vampire
 Savior 2's engine treats them otherwise, and `divert` lines send them into its own code there.
+[DEFINITIVE.md](DEFINITIVE.md) has the whole of it: what this game is for, the rules it keeps, and each part.
 
 ## Building from source
 
