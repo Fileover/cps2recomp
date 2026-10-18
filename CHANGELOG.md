@@ -8,7 +8,10 @@
   the board would have stopped it, while still in sight. The winner jumps off, and at the top of its jump goes on
   in the next match as it was (place, picture, speeds): the camera follows it down past the old stage to the next
   one's floor, the winner in front of both, and it lands as from any jump. (Vampire Savior's way down faded
-  through black; it is the same as Street Fighter Alpha 2's now.)
+  through black; it is the same as Street Fighter Alpha 2's now.) The winner no longer stands about waiting for the
+  next match: each match and stage after the first is begun from a machine kept at the character choice (about 500
+  frames to its round, not 2,000 from switching on), and made ready twice as fast while the one out falls. In Street
+  Fighter Alpha 2 the player's colours stay the ones chosen from match to match (they went back to the first set).
 - **The fighting modes in the toolkit** (`fight/battle.h`): survival, the endless battle and the ring out, one
   copy for every fighting game, which describes its memory and makes the ring out's two movements at its players'
   step (`games/sfa2/src/player.cpp`, PlayerFighting; `games/vampire_savior/src/battle.cpp`, RingOutStep from the

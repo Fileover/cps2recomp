@@ -40,6 +40,9 @@ The ring out needs two things of the game's player code, at each player's step o
   (`CameraWanted::beyondEnds`) and comes down as the winner falls, the old stage's picture going up and the next
   one's coming in below it, the fighters over both, until the game's own jump lands it.
 
+Every match and stage machine after the first is begun from a machine kept at the character choice with both players
+in (the first spare that came there), so the next one is ready in about 500 frames, not 2,000 from switching on.
+
 Street Fighter Alpha 2 makes them in its PlayerFighting rewrite; the Vampire Savior games in their player step hook
 (02244C).
 

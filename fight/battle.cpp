@@ -37,6 +37,8 @@ namespace {
     // The way down: the winner jumps off the old stage, and at the top of its jump goes on in the next match (its
     // machine's camera held a picture's height above that stage, the old stage's picture above it), the camera
     // following it down to the next stage's floor, onto which it lands
+    constexpr int kDropReady = 2, kDropReadyFalling = 4; // frames a frame the next match's machines run on their way to
+                                                         // its round, while the fight goes on and while the one out falls
     constexpr int kDropJump = 8;             // the frame of the way down at which the winner jumps off the old stage
     constexpr int kDropInside = 48;          // the winner is kept at least this far inside the picture's edges
     constexpr int kDropFollow = 4;           // the camera goes a quarter of the way to where it follows the winner a frame
@@ -134,6 +136,23 @@ namespace {
     bool g_dropIn = false;               //   the next match's machine is running, and the winner is to come down
     Spare g_next;
     Spare g_back, g_backNext;            // the machines of the stage behind and of the one after
+    // A machine at the character choice with both players in (the first a spare came to): where every later match
+    // and stage is begun, not from switching on (that took about 2,000 frames to a round, this a few hundred)
+    std::vector<uint8_t> g_atChoice;
+    // A spare begun again: from the character choice, once one has been there
+    void Begin(Spare &spare) {
+        spare.Clear();
+        spare.state = g_atChoice;
+    }
+    // A spare's controls on its way to its round (Description::toRound); the first time one is at the character
+    // choice, it is kept (before its frame) to begin the others from
+    bool ToRound(Machine &machine, int32_t &frames) {
+        if (g_atChoice.empty() && d.choosing()) {
+            Archive ar(g_atChoice, true);
+            machine.Serialize(ar);
+        }
+        return d.toRound(machine, frames, false);
+    }
     // Sound another machine has made and that has not been heard yet (two machines' frames do not make quite
     // the same number of samples)
     struct Stream {
@@ -174,6 +193,7 @@ namespace {
         g_back.Clear();
         g_backNext.Clear();
         g_dropBack.Clear();
+        g_atChoice.clear();
         g_open = false;
         Wanted() = MatchWanted();
         CameraAt() = CameraWanted();
@@ -320,7 +340,8 @@ namespace {
                 }
                 if (g.kind == Kind::RingOut) {
                     g.characters[1] = AnyCharacter(g.characters[1]); // (from here: who the next match is against)
-                    g_next.Clear();
+                    Begin(g_next);
+                    Begin(g_dropBack); // (the stage behind has been to the character choice by now)
                 }
             } else if (g.frames > kStartMost && !choosing) {
                 End();
@@ -385,7 +406,7 @@ namespace {
         RunSpare(machine, spare, [&](Machine &m) {
             Wanted().stage = stage;
             if (!spare.ready) {
-                spare.ready = d.toRound(m, spare.frames, false);
+                spare.ready = ToRound(m, spare.frames);
             }
             if (spare.ready) {
                 m.players[0] = m.players[1] = 0;
@@ -437,7 +458,7 @@ namespace {
         // soon as this one is the one shown (scroll)
         if (fighting && !g.backNext && (g.way == kStageScroll || (g.way == kStageShuffle && g.backFor >= ShuffleAfter()))) {
             g.backNext = AnyStage(g.back);
-            g_backNext.Clear();
+            Begin(g_backNext);
             g_backNextSound.Start();
         }
         RunStage(machine, g_back, g.back, cameraX, cameraY, &back);
@@ -546,7 +567,7 @@ namespace {
         for (int n = 0; n < kOnTheWay && !g_next.ready && g_next.frames <= kStartMost; n++) {
             RunSpare(machine, g_next, [](Machine &spare) {
                 Want();
-                g_next.ready = d.toRound(spare, g_next.frames, false);
+                g_next.ready = ToRound(spare, g_next.frames);
             });
         }
     }
@@ -578,20 +599,21 @@ namespace {
     // The next match, and its stage, made ready while this one is fought (who it is against is known: the
     // player's character against someone new)
     void MakeDrop(Machine &machine) {
-        for (int n = 0; n < 2 && !g_next.ready && g_next.frames <= kStartMost; n++) {
+        const int frames = g.phase == Phase::Falling ? kDropReadyFalling : kDropReady;
+        for (int n = 0; n < frames && !g_next.ready && g_next.frames <= kStartMost; n++) {
             RunSpare(machine, g_next, [](Machine &spare) {
                 Want();
-                g_next.ready = d.toRound(spare, g_next.frames, false);
+                g_next.ready = ToRound(spare, g_next.frames);
             }, nullptr, [](Machine &) {
                 // (where its camera is with the fighters standing: the way down's bottom)
                 g.dropCameraX = CameraX();
                 g.dropCameraY = CameraY();
             });
         }
-        for (int n = 0; n < 2 && !g_dropBack.ready && g_dropBack.frames <= kStartMost; n++) {
+        for (int n = 0; n < frames && !g_dropBack.ready && g_dropBack.frames <= kStartMost; n++) {
             RunSpare(machine, g_dropBack, [](Machine &spare) {
                 Wanted().stage = g.dropStage;
-                g_dropBack.ready = d.toRound(spare, g_dropBack.frames, false);
+                g_dropBack.ready = ToRound(spare, g_dropBack.frames);
             });
         }
     }
@@ -684,8 +706,9 @@ namespace {
     // At the bottom: the next match's machines are the ones seen from here, and the match after it is begun
     void Landed(Machine &machine) {
         Promote(machine, g_next);
+        Begin(g_next);
         g_back = std::move(g_dropBack);
-        g_dropBack.Clear();
+        Begin(g_dropBack);
         g_backSound = g_dropBackSound;
         g.back = g.dropStage;
         g.dropStage = AnyStage(g.back);
@@ -741,7 +764,7 @@ namespace {
                 g.winner = result == 2 ? 1 : 0; // (both down at once: the first player's)
                 g.phase = Phase::Decided;
                 g.since = 0;
-                g_next.Clear();
+                Begin(g_next);
                 if (g.kind == Kind::Survival) {
                     if (result != 1) {
                         g.phase = Phase::Over;

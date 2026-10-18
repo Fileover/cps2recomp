@@ -42,6 +42,7 @@ void RegisterBattle() {
     d.x = kX;
     d.y = kY;
     d.character = kCharacter;
+    d.colours = kColourChoice;
     d.computer = kComputer;
     d.control = kControl;
     d.controlOwn = kControlOwn;

@@ -118,7 +118,9 @@ no window only (pictures, traces); nobody has used them in a window or listened.
   the stage's top end, for the fighters alone) and comes down a quarter of the way a frame to as far as the
   winner has fallen; the picture is the old stage's going up, the next one's below it at the camera's height, and
   the next match's fighters over both (from the drop's third frame: a machine's picture is a frame or two behind
-  its camera, so the height used is the one of the frame before). Reel animations
+  its camera, so the height used is the one of the frame before). The player's colours (kColourChoice, +A8) are
+  kept from the first match and put in by ChooseCharacters (007914) with the wanted characters; the round works
+  out the set from them. Reel animations
   seen in the model viewer (Ryu, table C): 10-11 reeling standing, 12 reeling in the air, 13 launched, 14 landed,
   15 bounced, 16 lying, 17 crouched hit, 18 recovering in the air, 19 getting up, 1A stunned, 1B knocked out.
   Byte +67 is not only the camera's: bit 7 marks a player in a throw (PlayersStep), so it is not to be set.
