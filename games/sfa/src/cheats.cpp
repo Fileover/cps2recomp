@@ -4,6 +4,8 @@
 // them). Made-up play needs them to go up the ladder to its end ('make explore', game.cfg's explore features).
 #include "sfa.h"
 
+#include "state.h"
+
 namespace cps2recomp {
 
 namespace {
@@ -32,10 +34,20 @@ namespace {
 
     // The hit's routine also takes one point off by itself (00FA20-00FA26, the way in from 00F8E2 and 00F906)
     // without D3: for no damage, the player's health is noted where that starts and put back where the two ways
-    // meet again (00FA2A)
-    int16_t kept = 0;
-    bool keeping = false;
+    // meet again (00FA2A), into that player's record only. (Kept with the game's state: a frame can end between the
+    // two, and a state saved or run-ahead's frame taken back there must not leave one player's health to be put
+    // into the other's.)
+    struct Kept {
+        uint32_t record = 0; // whose health is kept (0: none)
+        int16_t health = 0;
+    };
+    Kept g_kept;
 } // namespace
+
+void CheatsState(Archive &ar) {
+    ar.Mark(0x43484541); // CHEA
+    ar.Pod(g_kept);
+}
 
 void RegisterCheats() {
     // 00FA06: sub.w d3,0x40(a1), a hit's damage off the victim's health (A1)
@@ -43,16 +55,19 @@ void RegisterCheats() {
     // 021148: sub.w d3,0x40(a4), a throw's
     AddHook(0x021148, "ThrowDamage", [](M68K &c) { return DamageTo(c, c.a[4]); });
     AddHook(0x00FA20, "HitPoint", [](M68K &c) {
-        const int player = PlayerOf(c.a[1]);
-        keeping = player >= 0 && FeatureOn(player == 0 ? "no_damage" : "no_damage_2");
-        kept = static_cast<int16_t>(Ram16((c.a[1] & 0xFFFFFF) + kHealth));
+        const uint32_t record = c.a[1] & 0xFFFFFF;
+        const int player = PlayerOf(record);
+        g_kept = {};
+        if (player >= 0 && FeatureOn(player == 0 ? "no_damage" : "no_damage_2")) {
+            g_kept = {record, static_cast<int16_t>(Ram16(record + kHealth))};
+        }
         return false;
     });
     AddHook(0x00FA2A, "HitPointDone", [](M68K &c) {
-        if (keeping) {
-            SetRam16((c.a[1] & 0xFFFFFF) + kHealth, static_cast<uint16_t>(kept));
-            keeping = false;
+        if (g_kept.record != 0 && g_kept.record == (c.a[1] & 0xFFFFFF)) {
+            SetRam16(g_kept.record + kHealth, static_cast<uint16_t>(g_kept.health));
         }
+        g_kept = {};
         return false;
     });
     // 004B3A: subq.b #1 off the round's clock, a second gone (below nothing, time is up). With the cheat the second
