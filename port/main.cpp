@@ -173,7 +173,17 @@ int WindowSize() {
 }
 
 bool Port::Init(std::string &error) {
-    const RomList list = ParseRomList(GAME_PROGRAM, GAME_GRAPHICS, GAME_SOUND_PROGRAM, GAME_SAMPLES, GAME_KEY, GAME_ROM_SET, GAME_ROM_PARENT);
+#ifndef GAME_BOARD
+#define GAME_BOARD ""
+#endif
+#ifndef GAME_CPS_B
+#define GAME_CPS_B ""
+#endif
+#ifndef GAME_KEY
+#define GAME_KEY ""
+#endif
+    const RomList list = ParseRomList(GAME_PROGRAM, GAME_GRAPHICS, GAME_SOUND_PROGRAM, GAME_SAMPLES, GAME_KEY, GAME_ROM_SET, GAME_ROM_PARENT,
+                                      GAME_BOARD, GAME_CPS_B);
     if (!LoadRomSet(opt.romPath, list, roms, error)) {
         return false;
     }
@@ -1259,6 +1269,13 @@ int main(int argc, char **argv) {
         if (FILE *sound = fopen((p.opt.dumpProgram + ".z80").c_str(), "wb")) {
             fwrite(p.roms.soundProgram.data(), 1, std::min<size_t>(p.roms.soundProgram.size(), 0x8000), sound);
             fclose(sound);
+        }
+        // (... and, where the Z80 deciphers its opcodes another way, the opcodes)
+        if (!p.roms.soundOpcodes.empty()) {
+            if (FILE *ops = fopen((p.opt.dumpProgram + ".z80ops").c_str(), "wb")) {
+                fwrite(p.roms.soundOpcodes.data(), 1, p.roms.soundOpcodes.size(), ops);
+                fclose(ops);
+            }
         }
         // (and the program as data: what the game's tables are read from)
         if (FILE *data = fopen((p.opt.dumpProgram + ".data").c_str(), "wb")) {
