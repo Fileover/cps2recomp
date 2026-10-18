@@ -18,6 +18,7 @@ rm -rf "$BUILD/stage" && mkdir -p "$STAGE"
 copy_programs "$BUILD" "$STAGE" ""
 strip "$STAGE/$EXE-launcher" $(for game in $GAMES; do echo "$STAGE/$game"; done)
 add_notices "$STAGE" "$BUILD/launcher"
+update_files linux-x86_64 "$STAGE"
 rm -f "$OUT/$ARCHIVE-linux-x86_64.tar.gz"
 tar -czf "$OUT/$ARCHIVE-linux-x86_64.tar.gz" -C "$BUILD/stage" "$ARCHIVE"
 check_archive "$OUT/$ARCHIVE-linux-x86_64.tar.gz"

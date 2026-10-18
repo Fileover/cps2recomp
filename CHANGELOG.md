@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+- **Updates in the launcher**: it checks this repository's releases when it opens and offers a newer version at the
+  top of the Games page; **Update** downloads only the files that changed (a new game: its program and the
+  launcher), checks each against the release's SHA-256, puts them all in place or none, and starts the new launcher
+  (recomp-common 1ea2766, `launcher/src/update.h`). The release scripts write what it reads: each system's
+  `update-<system>.txt` and every file gzipped under its SHA-256 (`tools/release/lib.sh`, `update_files`;
+  docs/RELEASING.md). The first release with them is the first a launcher can update to: a copy older than this
+  feature is updated by hand once.
+
 - **Vampire Savior Definitive** (beta; `games/vsav_definitive`; ROM sets `vsavj` and `vsav2`): Vampire Savior with
   Donovan, Phobos and Pyron taken from Vampire Savior 2 (its code, pictures and sounds), all eighteen characters
   by Vampire Savior's rules. At the character choice the three have places of their own, a row under the grid

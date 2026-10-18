@@ -35,6 +35,7 @@ add_notices "$STAGE" "$BUILD/launcher"
 cp "$(ls /usr/share/doc/libz-mingw-w64*/copyright | head -1)" "$STAGE/licenses/zlib.txt"
 cp /usr/share/doc/mingw-w64-common/copyright "$STAGE/licenses/MinGW-w64-runtime.txt"
 cp /usr/share/doc/gcc-mingw-w64-base/copyright "$STAGE/licenses/GCC-runtime.txt"
+update_files windows-x64 "$STAGE"
 rm -f "$OUT/$ARCHIVE-windows-x64.zip"
 (cd "$BUILD/stage" && zip -qr "$OUT/$ARCHIVE-windows-x64.zip" "$ARCHIVE")
 check_archive "$OUT/$ARCHIVE-windows-x64.zip"
