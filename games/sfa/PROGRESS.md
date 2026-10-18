@@ -121,10 +121,11 @@ Variables are reached from A5 = FF8000, as in Alpha 2; many of Alpha 2's are her
 - In a window (the contributor, macOS, 2026-10-18): the picture, the sound and music, the launcher, every feature
   above, a remapped control, save states, the test menu.
 
-**On macOS, SDL 3.4.16 or later is needed.** With Homebrew's 3.4.14 every game's window stays black while the
-sound plays: its Metal GPU device takes a frame's fence still being worked on for one done, so after the first
-frames every swapchain picture is skipped (SDL 3.4.16: "Fixed the SDL_QueryGPUFence() return value on Apple
-platforms"). A release build compiles SDL 3.4.16 itself.
+**On macOS, SDL 3.4.14 leaves the window black** (found here; asking the build for 3.4.16 or later is a toolkit
+change of its own). With Homebrew's 3.4.14 every game's window stays black while the sound plays: its Metal GPU
+device takes a frame's fence still being worked on for one done, so after the first frames every swapchain picture
+is skipped (SDL 3.4.16: "Fixed the SDL_QueryGPUFence() return value on Apple platforms"). A release build compiles
+SDL 3.4.16 itself.
 
 ## The movies
 

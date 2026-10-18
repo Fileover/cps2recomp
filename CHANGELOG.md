@@ -8,7 +8,7 @@
   (no damage for each player, one-hit knockouts, infinite time), save states, run-ahead, arcade timing and a custom
   soundtrack (its songs named by number for now). Its sources are its own: Alpha 2 is not made from its program (the
   routines Alpha 2's sources hook are mostly not in this game), so no training mode, alternative modes, widescreen or
-  custom colours yet. On macOS, SDL 3.4.16 or later is needed to build (docs/BUILDING.md).
+  custom colours yet.
 
 - **Arcade timing** (the `arcade_timing` feature, Game page, off unless chosen): the 68000 runs as on the board,
   its acknowledge a clock late for every access outside 500000-7FFFFF and its bus taken by the CPS-A's DMA (the row

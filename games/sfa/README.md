@@ -96,7 +96,7 @@ menu. Only the menu's "Quit game" row (or closing the window) ends the game.
 
 ## Building from source
 
-With your own ROM set in `rom/sfa/` (ignored by Git), CMake, Ninja, SDL 3 (3.4.16 or later on macOS) and Python 3,
+With your own ROM set in `rom/sfa/` (ignored by Git), CMake, Ninja, SDL 3 and Python 3,
 from the repository's top:
 
 ```sh
