@@ -133,6 +133,28 @@ Scripted, as Alpha 2's: `ladder.txt` (with `free_play,no_damage,one_hit`: Start,
 punch over and over) takes Ryu to Sagat, his ending, the score ranking and the title by frame 26,400; `versus.txt`
 (with `free_play`) is Ryu against Ken, then the winner on against the computer.
 
+## Tech debt
+
+From the review of the pull request that brought this game in (tmcleroy/cps2recomp#34), left for a change of its own
+because it touches other games' sources:
+
+- **`board.cpp` and `title.cpp` are near copies of Alpha 2's** (and `board.cpp` of Vampire Savior's): `PutChoices`,
+  the two hooks, `BoardBeforeFrame`, the flags; `TitleFrame` with its steps. Only the table of settings, the hook
+  addresses, the mode/step/credit addresses and the labels differ. Toolkit helpers taking those (a settings table and
+  two hook addresses; the mode, step and credit addresses and the title's steps) would replace the copies, so a fix is
+  made once.
+- **Alpha 2's copies have the two bugs fixed here**: its Board flags are not in the game's state (run-ahead can lose a
+  choice put back after the test menu; a loaded state can let the test menu save the choices), and its skip to the
+  title does not start again at a reset within it. The helpers would fix them there too; Vampire Savior's `board.cpp`
+  is to be looked at for the first.
+- **`SetLow16`** is a third copy (`sfa2.h`, `vsav.h`), and `PlayerOf` a copy of Alpha 2's: `SetLow16` belongs in
+  `runtime/lift.h`.
+- **The settings memory's shortcut** (`runtime/board.h`) could learn the line routine's other output bit (here bit
+  0x10 of 804040, from A5+63), so that this game can use it too.
+
+The helpers can be checked here with Alpha 1's and Alpha 2's sets (each game's hashes the same before and after,
+the Board page's and the title's tests above); Vampire Savior's and the games built from its sources need their sets.
+
 ## Next
 
 - A training mode, the alternative modes, widescreen and custom colours, as Alpha 2's port has them: written for
