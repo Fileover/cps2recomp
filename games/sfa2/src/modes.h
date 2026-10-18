@@ -74,5 +74,13 @@ bool BattleMode(); // battle.cpp
 void EndBattle();
 bool BattleNoClock();
 bool BattleNoKnockOut();
+// The ring out's own movements of a player, made at its step of a fight (player.cpp): flung out over the end of
+// the stage (at the first step: `side` -1 the left end, 1 the right), falling from there, or (at one step)
+// put at `x` across and `height` above the next stage's floor to come down onto it
+struct RingOut {
+    enum Move { kNone, kFlungOut, kFalling, kDropsIn } move = kNone;
+    int side = 0, x = 0, height = 0;
+};
+RingOut RingOutMove(uint32_t player);
 
 } // namespace cps2recomp

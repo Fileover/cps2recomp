@@ -47,17 +47,16 @@ namespace {
     // (modes.h), which can then change under them: by fading into another, or by scrolling on into the next
     enum { kStageOne, kStageShuffle, kStageScroll, kStageBehind }; // (the last: behind the fighters, and never changing by itself)
     // The ring out
-    constexpr int kOutBy = 4;                // a fighter is out when its middle is within this of the picture's edge
-    constexpr int kFallFor = 44;             // frames a fighter that is out is seen falling for
+    constexpr int kFallFor = 56;             // frames a fighter that is out is seen flung out and falling for
     constexpr int kDropFor = 80;             // frames the way down to the next stage takes
     constexpr int kDropJump = 8;             //   the frame of it at which the winner jumps off the old stage
     constexpr int kDropSlide = 16;           //   ... at which the old stage starts to go up and out
-    constexpr int kDropIn = 38;              //   ... at which the winner jumps above the new stage, to come down onto it
-    constexpr int kDropFrom = 240;           //   and how far above the new stage's floor that is
-    constexpr int kStageLeft = 280, kStageRight = 1000, kCameraLeft = 256, kCameraRight = 640;
-    constexpr int kMiddle = (kStageLeft + kStageRight) / 2;
+    constexpr int kDropIn = 38;              //   ... at which the winner is put above the new stage, to come down onto it
+    constexpr int kDropFrom = 240;           //   and how far above the new stage's floor that is (where across: where it
+    constexpr int kDropInside = 48;          //   was seen on the old stage, at least this far inside the picture)
+    constexpr int kCameraLeft = 256, kCameraRight = 640;
     constexpr uint32_t kCameraX = 0xFF8290, kCameraY = 0xFF8294;
-    constexpr uint32_t kSpeedY = 0x44, kHalfWidth = 0x12A, kPlayersIn = 0xFF80A8;
+    constexpr uint32_t kHalfWidth = 0x12A, kPlayersIn = 0xFF80A8;
     constexpr int kPlayerRecords = 4;
     // The players' own objects are in their colour sets (+0D: player 1's from 16, player 2's from 11, five each)
     uint32_t PlayerSets(int n) {
@@ -126,11 +125,15 @@ namespace {
         int32_t out = -1;                // who is out and falling (0, 1)
         int32_t outSide = 0;             //   over which end (-1 the left, 1 the right)
         int32_t dropStage = 0;           // the stage the next match is on
+        bool flung = false;              // the one out has been flung out (player.cpp)
         bool dropped = false;            // the winner has been put above the next stage
         int32_t dropCameraX = 0, dropCameraY = 0; // where the next match's camera is
+        int32_t dropShownX = 0;          // where across the picture the winner was last seen on the old stage
     } g;
     Spare g_dropBack;                    // the ring out: the machine of the next match's stage
     bool g_open = false;                 // the ring out: the port's machine is running a fight with open ends
+    bool g_portFrame = false;            //   the port's machine is running (not a spare)
+    bool g_dropIn = false;               //   the next match's machine is running, and the winner is to come down
     Spare g_next;
     Spare g_back, g_backNext;            // the machines of the stage behind and of the one after
     // Sound another machine has made and that has not been heard yet (two machines' frames do not make quite
@@ -384,9 +387,9 @@ namespace {
     }
 
     // The fighters laid over a stage's picture: the pixels the fighters' machine drew an object at. `show` of
-    // 256 is how much of them is seen. The pixels of the player `falls` (-1: nobody) are drawn `down` lower:
-    // that player is falling off the stage.
-    void Over(std::vector<uint32_t> &stage, const std::vector<uint32_t> &fighters, int show, int falls = -1, int down = 0) {
+    // 256 is how much of them is seen. The player `falls` (-1: nobody), falling off the stage, is drawn behind
+    // the other.
+    void Over(std::vector<uint32_t> &stage, const std::vector<uint32_t> &fighters, int show, int falls = -1) {
         const uint32_t sets = falls >= 0 ? PlayerSets(falls) : 0;
         const uint32_t keep = static_cast<uint32_t>(256 - show), put = static_cast<uint32_t>(show);
         if (stage.size() != fighters.size()) {
@@ -404,22 +407,13 @@ namespace {
                     if (falling != (pass == 0)) {
                         continue;
                     }
-                    const int to = y + (falling ? down : 0);
-                    if (to >= Video::kHeight) {
-                        continue;
-                    }
-                    uint32_t &b = stage[static_cast<size_t>(to) * width + static_cast<size_t>(x)];
+                    uint32_t &b = stage[static_cast<size_t>(y) * width + static_cast<size_t>(x)];
                     b = show >= 256 ? f & 0xFFFFFF :
                         ((((b & 0xFF00FF) * keep + (f & 0xFF00FF) * put) >> 8) & 0xFF00FF) | ((((b & 0x00FF00) * keep + (f & 0x00FF00) * put) >> 8) & 0x00FF00);
                 }
             }
         }
     }
-    // How far down a fighter that has been out for `frames` has fallen
-    int Fallen(int frames) {
-        return std::min(frames * frames / 5, 400);
-    }
-
     // After the fighters' frame: the stage machines' frames, and the picture and sound put together. `show`
     // of 256 is how much of the fighters is seen (they fade when one match follows another).
     void Layer(Machine &machine, int show) {
@@ -505,7 +499,7 @@ namespace {
             }
         }
         const bool falling = g.out >= 0 && (g.phase == Phase::Falling || g.phase == Phase::Dropping || g.phase == Phase::Over);
-        Over(back.picture, fighters.picture, show, falling ? g.out : -1, falling ? Fallen(g.phase == Phase::Falling ? g.since : kFallFor * 4) : 0);
+        Over(back.picture, fighters.picture, show, falling ? g.out : -1);
         fighters.picture = back.picture;
         // The sound: the fighters', and the stages' music, one fading into the other
         g_backSound.Mix(fighters.sound, 256 - nextGain);
@@ -549,14 +543,18 @@ namespace {
 
     // --- the ring out ---
 
-    // Is a fighter out? Its middle has come to the picture's edge at an end of the stage.
+    // Is a fighter out? Knocked about (not its own master), it has gone past where it would have been kept in at
+    // an end of the stage (RingOutLetsOut): its side past the picture's edge.
     void LookForOut() {
         const int camera = static_cast<int16_t>(Ram16(kCameraX));
         for (int n = 0; n < 2 && g.out < 0; n++) {
-            const int x = static_cast<int16_t>(Ram16(Player(n) + kX));
+            if (Ram8(Player(n) + kControl) == kControlOwn) {
+                continue;
+            }
+            const int x = static_cast<int16_t>(Ram16(Player(n) + kX)), half = Ram16(Player(n) + kHalfWidth);
             const int margin = WideMargin();
-            const int side = camera <= kCameraLeft + margin && x < camera - margin + kOutBy ? -1 :
-                             camera >= kCameraRight - margin && x > camera + Video::kWidth + margin - kOutBy ? 1 : 0;
+            const int side = camera <= kCameraLeft + margin && x - half < camera - margin ? -1 :
+                             camera >= kCameraRight - margin && x + half > camera + Video::kWidth + margin ? 1 : 0;
             if (side) {
                 g.out = n;
                 g.outSide = side;
@@ -590,6 +588,9 @@ namespace {
     void Drop(Machine &machine) {
         static Made old, fighters, stage;
         Take(machine, g_soundBefore, old);
+        if (!g.dropped) {
+            g.dropShownX = static_cast<int16_t>(Ram16(Player(0) + kX)) - static_cast<int16_t>(Ram16(kCameraX));
+        }
         if (g.since == 1) {
             g_dropSound.Start();
             g_dropBackSound.Start();
@@ -598,7 +599,8 @@ namespace {
             m.video.hideObject = NotTheFighters;
             m.video.layerMask = 1;
             m.video.markObjects = true;
-            m.players[0] = !g.dropped && g.since >= kDropIn ? kUp : 0; // (a jump: the winner is coming down)
+            m.players[0] = 0;
+            g_dropIn = !g.dropped && g.since >= kDropIn; // (the winner is put above the stage: RingOutMove)
             for (int n = 0; n < 2; n++) {
                 SetRam8(Player(n) + kComputer, 0);
             }
@@ -606,12 +608,7 @@ namespace {
                 PlaySound(kTuneOff);
             }
         }, &fighters, [](Machine &) {
-            if (!g.dropped && Ram16(Player(0) + kY) > kGround) {
-                g.dropped = true;
-                SetRam16(Player(0) + kX, static_cast<uint16_t>(kMiddle));
-                SetRam16(Player(0) + kY, static_cast<uint16_t>(Ram16(Player(0) + kY) + kDropFrom));
-                SetRam32(Player(0) + kSpeedY, 0);
-            }
+            g_dropIn = false;
             g.dropCameraX = static_cast<int16_t>(Ram16(kCameraX));
             g.dropCameraY = static_cast<int16_t>(Ram16(kCameraY));
         });
@@ -647,12 +644,14 @@ namespace {
         g.dropStage = AnyStage(g.back);
         g.characters[1] = AnyCharacter(Ram8(Player(1) + kCharacter));
         g.out = -1;
+        g.flung = false;
         g.dropped = false;
         g.phase = Phase::Fighting;
         g.since = 0;
     }
 
     void Frame(Machine &machine) {
+        g_portFrame = false; // (from here the machines run are spares, until the port's next frame)
         g_open = false;
         if (g.phase != Phase::Starting && Ram16(kMode) != 2) {
             End(); // (the board was reset)
@@ -804,6 +803,7 @@ bool BattleNoKnockOut() {
 }
 
 void BattleBeforeFrame(Machine &machine) {
+    g_portFrame = true;
     if (g.kind != Kind::None) {
         BeforeFrame(machine);
     }
@@ -840,6 +840,25 @@ void BattleState(Archive &ar) {
         g_backSound.Start();
         g_backNextSound.Start();
     }
+}
+
+RingOut RingOutMove(uint32_t player) {
+    RingOut ringOut;
+    if (g.kind != Kind::RingOut) {
+        return ringOut;
+    }
+    if (g_dropIn && player == Player(0)) {
+        g.dropped = true;
+        ringOut.move = RingOut::kDropsIn;
+        ringOut.x = g.dropCameraX + std::clamp<int>(g.dropShownX, kDropInside, PictureWidth() - kDropInside);
+        ringOut.height = kDropFrom;
+    } else if (g_portFrame && g.out >= 0 && player == Player(g.out) &&
+               (g.phase == Phase::Falling || g.phase == Phase::Dropping || g.phase == Phase::Over)) {
+        ringOut.move = g.flung ? RingOut::kFalling : RingOut::kFlungOut;
+        ringOut.side = g.outSide;
+        g.flung = true;
+    }
+    return ringOut;
 }
 
 // In a ring out fight a player that is not its own master (reeling from a hit, guarding one, thrown) is not

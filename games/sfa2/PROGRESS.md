@@ -105,8 +105,20 @@ no window only (pictures, traces); nobody has used them in a window or listened.
   one another (shuffle), or on a floor that scrolls through them (the fighters drawn alone, marked, over a stage
   another machine shows with its camera put where the fighters' is: `CameraAt`, lines in the camera rewrites);
   the ring out has no health, a stage's ends open (a line in KeepIn) and the winner jumps down to the next stage.
+  Ring out's movements (2026-10-18) are made inside PlayerFighting (`RingOutMove` asks battle.cpp): one knocked
+  past where KeepIn would have held it (its side past the picture's edge, not its own master) is out; at its next
+  step it is put in the knock-down's state (`02020202`, kReelKind 4) with reel animation 13 (thrown back, then
+  flat), the character's knock-down cry (0226C8), its colours back (027204), and its own speeds (kFly: across
+  three quarters of a pixel a step away, up 6, less 0x6800 each step); from then on only kFly and kAnimate, so it
+  falls through the floor (stopped 400 below it). The winner comes down in the next match's machine: put in the
+  air (`02000602`, jumping, straight up) 240 above the floor at the place across where it was seen in the old
+  picture (48 inside the edges at least), speeds 0, with jump animation 12; Jumping lands it. Reel animations
+  seen in the model viewer (Ryu, table C): 10-11 reeling standing, 12 reeling in the air, 13 launched, 14 landed,
+  15 bounced, 16 lying, 17 crouched hit, 18 recovering in the air, 19 getting up, 1A stunned, 1B knocked out.
+  Byte +67 is not only the camera's: bit 7 marks a player in a throw (PlayersStep), so it is not to be set.
   Checked with no window: survival to three wins, shuffle and scroll stages, ring outs both ways (the computer
-  knocked over twice, then the player). Nobody has played them.
+  knocked over twice, then the player); the new knock-out and drop in pictures (the player knocked out of a
+  throw at the left end, and three drops in a row with the computer made out). Nobody has played them.
 
 ## Custom colours and the colour editor (2026-10-14)
 

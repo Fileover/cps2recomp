@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- **Street Fighter Alpha 2's ring out**: a fighter knocked over the end of the stage is thrown back with the game's
+  own knock-down animation and cry, and falls through the floor and out of the picture (before, its picture slid
+  down); it is out as soon as it is past where the board would have stopped it, while still in sight. The winner
+  comes down onto the next stage where it was in the picture, in the game's own jump, and lands as from one
+  (`games/sfa2/src/battle.cpp`, `RingOutMove`; `player.cpp`, `FlungOut` and `DropsIn` in PlayerFighting).
+
 - **Updates in the launcher**: it checks this repository's releases when it opens and offers a newer version at the
   top of the Games page; **Update** downloads only the files that changed (a new game: its program and the
   launcher), checks each against the release's SHA-256, puts them all in place or none, and starts the new launcher
