@@ -15,9 +15,13 @@ namespace {
         return record == Player(0) ? 0 : record == Player(1) ? 1 : -1;
     }
 
-    // D3 is the damage about to come off the health of the player whose record is `victim`
+    // D3 is the damage about to come off the health of the player whose record is `victim` (anything else's is
+    // left alone: none was seen over the movies and 130,000 frames of made-up play, but nothing rules one out)
     bool DamageTo(M68K &c, uint32_t victim) {
         const int player = PlayerOf(victim);
+        if (player < 0) {
+            return false;
+        }
         if (FeatureOn(player == 0 ? "no_damage" : "no_damage_2")) {
             SetLow16(c.d[3], 0);
         } else if (player == 1 && FeatureOn("one_hit")) {
