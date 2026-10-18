@@ -27,9 +27,11 @@ struct MatchWanted {
 MatchWanted &Wanted();
 
 // Where the machine that is running is to have its camera (the picture's left edge and bottom, in the stage),
-// whatever the players do: -1 leaves that to the game (widescreen.cpp's camera routines ask)
+// whatever the players do: -1 leaves that to the game (widescreen.cpp's camera routines ask). Kept within the
+// stage's ends, unless `beyondEnds` (the ring out's way down: the camera above a stage, for the fighters alone).
 struct CameraWanted {
     int x = -1, y = -1;
+    bool beyondEnds = false;
 };
 CameraWanted &CameraAt();
 
@@ -75,11 +77,16 @@ void EndBattle();
 bool BattleNoClock();
 bool BattleNoKnockOut();
 // The ring out's own movements of a player, made at its step of a fight (player.cpp): flung out over the end of
-// the stage (at the first step: `side` -1 the left end, 1 the right), falling from there, or (at one step)
-// put at `x` across and `height` above the next stage's floor to come down onto it
+// the stage (at the first step: `side` -1 the left end, 1 the right), falling from there, or (at one step) put in
+// the next match in the air as it was in its jump over the old stage: at `x`, `y`, showing `frame` (the record's
+// long, and the long of its time after it), with its speeds (across, up, and what is added to each a step)
 struct RingOut {
     enum Move { kNone, kFlungOut, kFalling, kDropsIn } move = kNone;
-    int side = 0, x = 0, height = 0;
+    int side = 0;
+    int x = 0, y = 0;
+    uint32_t frame = 0, frameTime = 0;
+    uint32_t speeds[4] = {};
+    uint8_t way = 0;
 };
 RingOut RingOutMove(uint32_t player);
 

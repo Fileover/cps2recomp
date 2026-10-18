@@ -2078,6 +2078,7 @@ namespace {
     constexpr int32_t kPull = -0x6800;          // what is taken off the speed up each step (as the game's hops)
     constexpr int32_t kFlungAcross = 0xC000;    // knocked out: away over the end, three quarters of a pixel a step
     constexpr int32_t kFlungUp = 0x60000;       //   and up, six pixels a step at first
+    constexpr uint32_t kFrameExtra = 0x3D;      // a byte of the frame's, kept as it is shown (kSetAnimation)
     constexpr uint32_t kColoursBack = 0x027204; // the player's own colours put back (a hit's flash over)
     constexpr uint32_t kDownCry = 0x0226C8;     // the character's own as a knock-down begins (DownStarts: its cry)
     constexpr int kGoneBelow = 400;             // how far under the floor one falling stops (long out of the picture)
@@ -2099,22 +2100,23 @@ namespace {
         Call(c, kReelAnimation);
     }
 
-    // Coming down onto the next stage at `x`, from `height` above its floor: in the air as at the top of a jump
-    // straight up, so that the game's own jump lands it (Jumping)
-    void DropsIn(M68K &c, uint32_t player, int x, int height) {
+    // Coming down onto the next stage: in the air in the next match as it was in its jump over the old stage (where,
+    // its picture, its speeds), so that the game's own jump goes on and lands it (Jumping)
+    void DropsIn(M68K &c, uint32_t player, const RingOut &flight) {
         SetRam32(player + kState, 0x02000602); // (in control, jumping, in the air)
         SetRam8(player + kInAir, 1);
-        SetRam8(player + kJumpingWay, 0);
+        SetRam8(player + kJumpingWay, flight.way);
         SetRam8(player + kLow, 0);
-        SetRam16(player + kX, static_cast<uint16_t>(x));
-        SetRam16(player + kY, static_cast<uint16_t>(Ram16(player + kFloor) + height));
+        SetRam16(player + kX, static_cast<uint16_t>(flight.x));
+        SetRam16(player + kY, static_cast<uint16_t>(flight.y));
         SetRam16(player + kYFraction, 0);
-        SetRam32(player + kWalkSpeed, 0);
-        SetRam32(player + kSpeedAcrossGain, 0);
-        SetRam32(player + kSpeedUp, 0);
-        SetRam32(player + kSpeedUpGain, static_cast<uint32_t>(kPull));
-        c.d[0] = kJumpAnimations[0];
-        Call(c, kSetAnimation);
+        SetRam32(player + kWalkSpeed, flight.speeds[0]);
+        SetRam32(player + kSpeedUp, flight.speeds[1]);
+        SetRam32(player + kSpeedAcrossGain, flight.speeds[2]);
+        SetRam32(player + kSpeedUpGain, flight.speeds[3]);
+        SetRam32(player + kFrame, flight.frame); // (as kSetAnimation puts a frame)
+        SetRam32(player + kFrameTime, flight.frameTime); // (and kFrameWord)
+        SetRam8(player + kFrameExtra, Mem8(c, flight.frame + 0x16));
     }
 
     // 02149A. A player in a fight (kState 2): the computer's own, or a person's special moves' inputs read and its
@@ -2134,7 +2136,7 @@ namespace {
             return Call(c, kAnimate);
         }
         if (ringOut.move == RingOut::kDropsIn) {
-            DropsIn(c, player, ringOut.x, ringOut.height);
+            DropsIn(c, player, ringOut);
         }
         if (Ram8(player + kComputer)) {
             if (Asks(c, 0x029CEA)) {

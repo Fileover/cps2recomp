@@ -110,9 +110,14 @@ no window only (pictures, traces); nobody has used them in a window or listened.
   step it is put in the knock-down's state (`02020202`, kReelKind 4) with reel animation 13 (thrown back, then
   flat), the character's knock-down cry (0226C8), its colours back (027204), and its own speeds (kFly: across
   three quarters of a pixel a step away, up 6, less 0x6800 each step); from then on only kFly and kAnimate, so it
-  falls through the floor (stopped 400 below it). The winner comes down in the next match's machine: put in the
-  air (`02000602`, jumping, straight up) 240 above the floor at the place across where it was seen in the old
-  picture (48 inside the edges at least), speeds 0, with jump animation 12; Jumping lands it. Reel animations
+  falls through the floor (stopped 400 below it). The winner jumps off the old stage; at the top of its jump
+  (`HandOver`) it is put in the next match's machine (`02000602`, jumping) where it is in the picture (48 inside
+  the edges at least), a picture's height (224) above, with its own frame (+1C, +32, +3D), speeds (+40 to +4C)
+  and way (+3C), so Jumping lands it. That machine's camera is held up by 224 (`CameraWanted::beyondEnds`: past
+  the stage's top end, for the fighters alone) and comes down a quarter of the way a frame to as far as the
+  winner has fallen; the picture is the old stage's going up, the next one's below it at the camera's height, and
+  the next match's fighters over both (from the drop's third frame: a machine's picture is a frame or two behind
+  its camera, so the height used is the one of the frame before). Reel animations
   seen in the model viewer (Ryu, table C): 10-11 reeling standing, 12 reeling in the air, 13 launched, 14 landed,
   15 bounced, 16 lying, 17 crouched hit, 18 recovering in the air, 19 getting up, 1A stunned, 1B knocked out.
   Byte +67 is not only the camera's: bit 7 marks a player in a throw (PlayersStep), so it is not to be set.
