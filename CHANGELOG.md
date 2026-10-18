@@ -1,6 +1,10 @@
 # Changelog
 
-## Unreleased
+## 0.4.0-beta.2
+
+- **Vampire Savior Definitive** no longer sometimes draws a screen of wrong tiles: the scroll screens looked up
+  whether a tile was the extra set's at the graphics' offset instead of the map's place, reading past the end of
+  that list (`video/video.cpp`, DrawScroll; the CPS-1 games' tile offset had taken the map base's name).
 
 - **Ring out, in Street Fighter Alpha 2 and the Vampire Savior games**: a fighter knocked over the end of the stage
   is thrown back with the game's own knock-down animation (and in Street Fighter Alpha 2 its cry), and falls
