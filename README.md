@@ -33,12 +33,14 @@ and trademarks of their owners, used here only to say what the programs work wit
 | [**Super Puzzle Fighter II Turbo**](games/puzzle_fighter/README.md) (1996) | `spf2t` (Europe 960529) | A training mode (attack readout, landing guide, input display, a dummy that sends counter gems to cancel, crash gems as you choose), CPU battle, the hidden characters at a kick, custom colours for the characters and the gems |
 | [**Vampire Savior: The Lord of Vampire**](games/vampire_savior/README.md) (1997) | `vsavj` (Japan 970519) | A full training mode (hit boxes, frame data and a frame meter, input display, a dummy that records, replays and guards), widescreen, survival, ring out, endless battle, the stage and model viewers, the hidden characters, custom colours |
 | [**Vampire Savior 2: The Lord of Vampire**](games/vsav2/README.md) (1997) | `vsav2` (Japan 970913) | Donovan, Phobos and Pyron back, and Donovan's stage; everything Vampire Savior's port has (its sources, checked against this game's code) |
+| [**Vampire Savior Definitive**](games/vsav_definitive/README.md) (beta) | `vsavj` and `vsav2` | Vampire Savior with Donovan, Phobos and Pyron taken from Vampire Savior 2, all eighteen by Vampire Savior's rules, the three with places of their own at the character choice; everything Vampire Savior's port has |
 | [**Vampire Hunter 2: Darkstalkers Revenge**](games/vhunt2/README.md) (1997) | `vhunt2` (Japan 970929) | Night Warriors' cast on Vampire Savior's engine, each fighter's own theme; everything Vampire Savior's port has, and Dark Gallon among the hidden characters |
 
 | | | |
 | --- | --- | --- |
 | [![Street Fighter Alpha 2: training mode](docs/screenshots/sfa2/training.png)](games/sfa2/README.md) | [![Super Puzzle Fighter II Turbo: training mode](docs/screenshots/puzzle_fighter/training.png)](games/puzzle_fighter/README.md) | [![Vampire Savior: training mode](docs/screenshots/vampire_savior/training.png)](games/vampire_savior/README.md) |
 | [![Vampire Savior 2: Phobos, Pyron and Donovan](docs/screenshots/vsav2/returning.png)](games/vsav2/README.md) | [![Vampire Hunter 2: Gallon, Aulbath and Sasquatch](docs/screenshots/vhunt2/night-warriors.png)](games/vhunt2/README.md) | [![Vampire Savior 2: training mode on Donovan's stage](docs/screenshots/vsav2/training.png)](games/vsav2/README.md) |
+| [![Vampire Savior Definitive: Phobos against Morrigan](docs/screenshots/vsav_definitive/phobos.png)](games/vsav_definitive/README.md) | [![Vampire Savior Definitive: the character choice, the three's places under the grid](docs/screenshots/vsav_definitive/choosing.png)](games/vsav_definitive/README.md) | [![Vampire Savior Definitive: the versus screen](docs/screenshots/vsav_definitive/versus.png)](games/vsav_definitive/README.md) |
 
 Each game's page has all it does, with pictures.
 
@@ -176,7 +178,7 @@ top), to open the in-game menu; its "Quit game" row ends the game.
 - The ROM set of each game you want to play, with its key file: `sfa2u` (*Street Fighter Alpha 2*, USA 960430),
   `spf2t` (*Super Puzzle Fighter II Turbo*, Europe 960529), `vsavj` (*Vampire Savior: The Lord of Vampire*,
   Japan 970519), `vsav2` (*Vampire Savior 2: The Lord of Vampire*, Japan 970913), `vhunt2` (*Vampire Hunter 2:
-  Darkstalkers Revenge*, Japan 970929). As a zip (with its parent set's zip beside it if your collection keeps the shared files there)
+  Darkstalkers Revenge*, Japan 970929). Vampire Savior Definitive needs both `vsavj` and `vsav2`. As a zip (with its parent set's zip beside it if your collection keeps the shared files there)
   or a folder of the set's files. The launcher checks every file by checksum and tells you which is missing or
   different. Sets of other regions and revisions are refused: each port is made from that one version's
   program, and its features use addresses found in it.
@@ -191,7 +193,9 @@ own code. What the program expects of the board (its video, the QSound chip, the
 the settings memory) is code written for this project, not an emulator. The [toolkit](docs/TOOLKIT.md) is shared
 by every game, so a fix or a feature there reaches all of them; each game's page says how its port works. Games
 Capcom made from another's program (Vampire Savior 2 and Vampire Hunter 2, from Vampire Savior's) build that game's
-sources, with a list of where each place they name is in the other game, so they have all of its features.
+sources, with a list of where each place they name is in the other game, so they have all of its features. Vampire
+Savior Definitive runs Vampire Savior 2's own code for the characters it takes from it, beside Vampire Savior's, with
+that game's pictures and sound ([how and why](games/vsav_definitive/DEFINITIVE.md)).
 
 ## Building from source
 

@@ -84,6 +84,7 @@ void Machine::Reset() {
     std::fill(videoRam.begin(), videoRam.end(), 0);
     std::fill(objectRam.begin(), objectRam.end(), 0);
     std::fill(extraRam.begin(), extraRam.end(), 0);
+    std::fill(scrollFromExtra.begin(), scrollFromExtra.end(), 0);
     memset(soundRam, 0, sizeof(soundRam));
     memset(soundRam2, 0, sizeof(soundRam2));
     soundtrack.Reset();
@@ -116,6 +117,9 @@ void Machine::Reset() {
     video.Reset();
     qsound.Reset();
     soundCpu.Reset();
+    if (extraSound) {
+        extraSound->Reset();
+    }
     cpu.Reset(true);
 }
 
@@ -173,7 +177,7 @@ void Machine::RunLine() {
     if (m_line == kBlankingLine) {
         m_blankInterrupt = true;
         UpdateInterruptLevel();
-        video.LatchObjects(&objectRam[m_objectBank ? 0x2000 : 0]);
+        video.LatchObjects(&objectRam[m_objectBank ? 0x2000 : 0], m_extra ? objectsFromExtra[m_objectBank ? 1 : 0] : nullptr);
     }
 
     // (the board's timing: the video chip's DMA holds the 68000's bus at the start of the line)
@@ -244,6 +248,14 @@ void Machine::RunSound(int cycles) {
             }
             int16_t sample[2];
             qsound.Step(sample);
+            if (extraSound) {
+                extraSound->RunTo(m_sampleAt);
+                int16_t extra[2];
+                extraSound->Step(extra);
+                for (int n = 0; n < 2; n++) {
+                    sample[n] = static_cast<int16_t>(std::clamp(sample[n] + extra[n], -32768, 32767));
+                }
+            }
             audio.push_back(sample[0]);
             audio.push_back(sample[1]);
             m_sampleCount++;
@@ -323,6 +335,9 @@ uint16_t Machine::Fetch16(uint32_t address) {
     if (address < m_roms.opcodes.size()) {
         return Word(&m_roms.opcodes[address]);
     }
+    if (InExtra(address)) {
+        return Word(&m_extra->opcodes[address - m_extraBase]);
+    }
     return Read16(address); // (code in RAM is not enciphered)
 }
 
@@ -375,6 +390,10 @@ uint16_t Machine::Read16(uint32_t address) {
     if (address >= 0x900000 && address < 0x930000) {
         return Word(&videoRam[address - 0x900000]);
     }
+    if (InExtra(address)) {
+        ReadExtra();
+        return Word(&m_extra->program[address - m_extraBase]);
+    }
     return ReadRegister(address);
 }
 
@@ -388,6 +407,10 @@ uint8_t Machine::Read8(uint32_t address) {
     if (address >= 0x900000 && address < 0x930000) {
         return videoRam[address - 0x900000];
     }
+    if (InExtra(address)) {
+        ReadExtra();
+        return m_extra->program[address - m_extraBase];
+    }
     const uint16_t word = ReadRegister(address & ~1u);
     return static_cast<uint8_t>((address & 1) ? word : word >> 8);
 }
@@ -399,6 +422,7 @@ void Machine::Write16(uint32_t address, uint16_t value) {
     }
     if (address >= 0x900000 && address < 0x930000) {
         SetWord(&videoRam[address - 0x900000], value);
+        VideoWritten(address);
         return;
     }
     WriteRegister(address, value, 0xFFFF);
@@ -411,6 +435,7 @@ void Machine::Write8(uint32_t address, uint8_t value) {
     }
     if (address >= 0x900000 && address < 0x930000) {
         videoRam[address - 0x900000] = value;
+        VideoWritten(address);
         return;
     }
     if (address & 1) {
@@ -501,6 +526,9 @@ void Machine::WriteRegister(uint32_t address, uint16_t value, uint16_t mask) {
         if (mask & 0x00FF) {
             const uint32_t at = (address - 0x618000) / 2;
             soundRam[at] = static_cast<uint8_t>(value);
+            if (extraSound && at >= 0x010) { // (the game's settings and its greeting: the other side's too; not requests)
+                extraSound->Shared(at, static_cast<uint8_t>(value));
+            }
             if (at == 0x00F && soundRam[0x00F] != 0xFF) { // (a request is there: soundtrack.h)
                 soundtrack.Request(soundRam, frame);
             }
@@ -513,10 +541,12 @@ void Machine::WriteRegister(uint32_t address, uint16_t value, uint16_t mask) {
     }
     if (address >= 0x700000 && address < 0x702000) {
         combineBytes(&objectRam[m_objectBank * 0x2000 + (address & 0x1FFE)]);
+        ObjectWritten(m_objectBank, address);
         return;
     }
     if (address >= 0x708000 && address < 0x710000) {
         combineBytes(&objectRam[(m_objectBank ^ 1) * 0x2000 + (address & 0x1FFE)]);
+        ObjectWritten(m_objectBank ^ 1, address);
         return;
     }
     const uint32_t chip = address & ~0x4000u; // (the video chips answer at 8001xx as well as 8041xx)
@@ -559,6 +589,9 @@ void Machine::WriteRegister(uint32_t address, uint16_t value, uint16_t mask) {
                 }
             }
             m_soundRunning = run;
+            if (extraSound) {
+                extraSound->SetRunning(run);
+            }
         }
         return;
     case 0x8040A0: return; // (written once at start-up)
@@ -658,6 +691,10 @@ void Machine::Serialize(Archive &ar) {
     ar.Vec(ram);
     ar.Vec(videoRam);
     ar.Vec(objectRam);
+    if (m_extra) {
+        ar.Pod(objectsFromExtra);
+        ar.Vec(scrollFromExtra);
+    }
     ar.Vec(extraRam);
     ar.Pod(soundRam);
     ar.Pod(soundRam2);
@@ -682,6 +719,9 @@ void Machine::Serialize(Archive &ar) {
     ar.Vec(m_chipQueue);
     ar.Pod(m_chipNext);
     ar.Pod(m_chipLast);
+    if (extraSound) {
+        extraSound->Serialize(ar);
+    }
     if (ar.version == 0 || ar.version >= 6) { // (a save state from before soundtracks has none)
         soundtrack.Serialize(ar);
     } else if (!ar.Saving()) {
