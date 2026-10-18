@@ -74,6 +74,9 @@ Each game's page has all it does, with pictures.
   the board's music, song by song, with the board's sound effects and voices. [How →](#a-custom-soundtrack)
 - **Your ROM sets are only ever read.** Settings, save states and each board's settings memory go in your own
   user folder.
+- **Updates in the launcher**: new games and fixes come to the copy you have. When a new version is out the
+  launcher says so at the top of its Games page, and **Update** downloads only the files that changed, checks
+  each, puts them in place and starts the new launcher. [More →](#updates)
 
 ![The Features page: what the games share, set for all of them at once](docs/screenshots/launcher-features.png)
 
@@ -100,6 +103,20 @@ macOS: the app is not notarized, so the first time, right-click it and choose Op
 Linux: unpack the archive anywhere and run `cps2recomp-launcher`.
 Windows: run `cps2recomp-launcher.exe`. Opening a game's own program (`sfa2.exe`, say) starts the launcher too,
 at that game's page (or straight into the game once its ROM set has been chosen).
+
+### Updates
+
+When the launcher opens it asks GitHub for this project's releases (the Games page's Updates card has a switch to
+stop that, and **Check now**). When there is a newer version it shows at the top of the Games page: **What's new**
+opens its notes, and **Update** downloads only the files that changed since your version (a new game is that
+game's program and the launcher, a few megabytes), checks every one against the release's list, and only then
+puts them all in place; if anything goes wrong nothing is changed. The launcher then starts again as the new
+version. Your settings, save states and ROM sets are not touched. Quit the games first: Update waits until none is
+running. A beta is offered only to a beta.
+
+The launcher needs to be able to write to its own folder: on macOS, move `CPS-2 Recomp.app` to Applications (or
+anywhere of your own) before opening it the first time, not run it from the downloaded zip's folder. A copy built
+from source is told of a new version but not changed.
 
 ### From a terminal
 
