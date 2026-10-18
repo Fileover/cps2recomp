@@ -4,24 +4,27 @@
 [![Release](https://img.shields.io/github/v/release/tmcleroy/cps2recomp?include_prereleases)](https://github.com/tmcleroy/cps2recomp/releases)
 [![License: GPL-3.0](https://img.shields.io/badge/license-GPL--3.0-blue)](LICENSE)
 
-**Unofficial native PC ports of Capcom's CPS-2 arcade games, for macOS, Linux (Steam Deck included) and
-Windows, in one download with one launcher.** Each game's program is translated ahead of time into C++ and
-runs on a machine written for this project, not an emulator, and each has a training mode, which no release
-of these games has ever had.
+**Unofficial native PC ports of Capcom's CPS-2 arcade games (and CPS-1 ones), for macOS, Linux (Steam Deck
+included) and Windows, in one download with one launcher.** Each game's program is translated ahead of time into C++
+and runs on a machine written for this project, not an emulator. Each fighting game has a training mode, which no
+release of these games has ever had; the beat-'em-ups take three players at once, with free play and a stage to start
+at.
 
 **[Get started: download it and play →](#playing)**
 
-> **Beta.** Every game plays from start to ending and its code is checked instruction by instruction, but they
-> have been played on few machines and controllers yet. Expect rough edges, and please
+> **Beta.** Every game's code is checked instruction by instruction, and the fighting games play from start to
+> ending (the beat-'em-ups, new, through their first stages in made-up play), but they have been played on few
+> machines and controllers yet. Expect rough edges, and please
 > [report what you find](#feedback-and-contributing).
 
-**No game files are included.** You need your own copy of each game: its arcade ROM set with its key file,
-from a board you own. **Only the version named below works for each game.** This project cannot help you get
+**No game files are included.** You need your own copy of each game: its arcade ROM set (a CPS-2 game's with its key
+file), from a board you own. **Only the version named below works for each game.** This project cannot help you get
 one.
 
 This project is not affiliated with, endorsed by, or sponsored by Capcom. *Street Fighter*, *Super Puzzle
-Fighter*, *Vampire Savior*, *Vampire Hunter* and *Darkstalkers* are trademarks of Capcom Co., Ltd.; "CPS-2" and "QSound" are names
-and trademarks of their owners, used here only to say what the programs work with.
+Fighter*, *Vampire Savior*, *Vampire Hunter* and *Darkstalkers* are trademarks of Capcom Co., Ltd.; *Alien vs. Predator*
+and *Cadillacs and Dinosaurs* are trademarks of their owners; "CPS-1", "CPS-2" and "QSound" are names and trademarks of
+their owners, used here only to say what the programs work with.
 
 ![The launcher: every game whose ROM set you have, ready to play](docs/screenshots/launcher-games.png)
 
@@ -34,11 +37,14 @@ and trademarks of their owners, used here only to say what the programs work wit
 | [**Vampire Savior: The Lord of Vampire**](games/vampire_savior/README.md) (1997) | `vsavj` (Japan 970519) | A full training mode (hit boxes, frame data and a frame meter, input display, a dummy that records, replays and guards), widescreen, survival, ring out, endless battle, the stage and model viewers, the hidden characters, custom colours |
 | [**Vampire Savior 2: The Lord of Vampire**](games/vsav2/README.md) (1997) | `vsav2` (Japan 970913) | Donovan, Phobos and Pyron back, and Donovan's stage; everything Vampire Savior's port has (its sources, checked against this game's code) |
 | [**Vampire Hunter 2: Darkstalkers Revenge**](games/vhunt2/README.md) (1997) | `vhunt2` (Japan 970929) | Night Warriors' cast on Vampire Savior's engine, each fighter's own theme; everything Vampire Savior's port has, and Dark Gallon among the hidden characters |
+| [**Alien vs. Predator**](games/avsp/README.md) (1994) | `avspu` (USA 940520) | Three players at once (the board's own setting, on in Enhanced), free play, a round to start at, rapid fire, the board's settings, infinite health, lives and time |
+| [**Cadillacs and Dinosaurs**](games/dino/README.md) (1993, CPS-1) | `dino` (World 930201) | The first CPS-1 game here, on a CPS-1 board written for it; three players at once, free play, a stage to start at, rapid fire, the board's settings, infinite health, lives and time |
 
 | | | |
 | --- | --- | --- |
 | [![Street Fighter Alpha 2: training mode](docs/screenshots/sfa2/training.png)](games/sfa2/README.md) | [![Super Puzzle Fighter II Turbo: training mode](docs/screenshots/puzzle_fighter/training.png)](games/puzzle_fighter/README.md) | [![Vampire Savior: training mode](docs/screenshots/vampire_savior/training.png)](games/vampire_savior/README.md) |
 | [![Vampire Savior 2: Phobos, Pyron and Donovan](docs/screenshots/vsav2/returning.png)](games/vsav2/README.md) | [![Vampire Hunter 2: Gallon, Aulbath and Sasquatch](docs/screenshots/vhunt2/night-warriors.png)](games/vhunt2/README.md) | [![Vampire Savior 2: training mode on Donovan's stage](docs/screenshots/vsav2/training.png)](games/vsav2/README.md) |
+| [![Alien vs. Predator: three players](docs/screenshots/avsp/three-players.png)](games/avsp/README.md) | [![Cadillacs and Dinosaurs: three players](docs/screenshots/dino/three-players.png)](games/dino/README.md) | [![Cadillacs and Dinosaurs: the mansion](docs/screenshots/dino/mansion.png)](games/dino/README.md) |
 
 Each game's page has all it does, with pictures.
 
@@ -50,7 +56,9 @@ Each game's page has all it does, with pictures.
   game's modes, save states, speed, pause and frame advance, cheats, and every feature.
 - **Pure or Enhanced.** Pure plays exactly as the board does. Enhanced (the default) adds free play and your
   own colours. Every other feature is a switch of its own, off unless you choose it.
-- **Arcade timing**: the processor run as on the arcade board, its waits for memory and the video chip's use of its
+- **Rapid fire**: a button held down pressed again and again, fifteen times a second, for the first button or for
+  all of them; the first press seen at once.
+- **Arcade timing** (CPS-2 games): the processor run as on the arcade board, its waits for memory and the video chip's use of its
   bus counted, so the game slows down where and as much as the board does (big supers, busy screens). Off unless
   chosen; checked frame by frame against a cycle-exact model of the board ([docs/TIMING.md](docs/TIMING.md)).
 - **Run-ahead**: what you press seen a frame or two sooner than on the board, with the game running exactly as
@@ -60,7 +68,7 @@ Each game's page has all it does, with pictures.
 - **The board's operator settings** (difficulty, damage, timer speed, game speed, rounds and the rest), each as
   the board is set unless you choose, and the game's own test menu.
 - **Straight to the title**: at a start or a reset, everything before the title runs unseen.
-- **A custom soundtrack**: your own music files (an arranged soundtrack from a console version, say) in place of
+- **A custom soundtrack** (the fighting games and Puzzle Fighter so far): your own music files (an arranged soundtrack from a console version, say) in place of
   the board's music, song by song, with the board's sound effects and voices. [How →](#a-custom-soundtrack)
 - **Your ROM sets are only ever read.** Settings, save states and each board's settings memory go in your own
   user folder.
@@ -73,7 +81,7 @@ Each game's page has all it does, with pictures.
    and unpack it.
 2. Open the launcher (`CPS-2 Recomp.app`, `cps2recomp-launcher`). On its Games page, **Choose folder…** and pick
    the folder you keep your ROM sets in: it finds each game's by the set's name (`sfa2u.zip`, `spf2t.zip`,
-   `vsavj.zip`, `vsav2.zip`, `vhunt2.zip`, or a folder of the set's files). Or drop a set, or the folder, on the window, or choose each
+   `vsavj.zip`, `vsav2.zip`, `vhunt2.zip`, `avspu.zip`, `dino.zip`, or a folder of the set's files). Or drop a set, or the folder, on the window, or choose each
    game's set on its own. They stay where they are.
 3. Press **Play** beside a game. Several games can run at once, each in its own window.
 
@@ -103,7 +111,7 @@ sfa2 --soundtrack ~/music/sfa2-arranged          # a custom soundtrack's folder 
 sfa2 --help                                     # what a game's program takes
 ```
 
-The games' ids are `sfa2`, `puzzle_fighter` and `vampire_savior`. `--features` may be given more than once, and
+The games' ids are `sfa2`, `puzzle_fighter`, `vampire_savior`, `vsav2`, `vhunt2`, `avsp` and `dino`. `--features` may be given more than once, and
 a later one wins.
 
 ### A custom soundtrack
@@ -173,15 +181,17 @@ top), to open the in-game menu; its "Quit game" row ends the game.
 
 ## What you need
 
-- The ROM set of each game you want to play, with its key file: `sfa2u` (*Street Fighter Alpha 2*, USA 960430),
+- The ROM set of each game you want to play (a CPS-2 game's with its key file): `sfa2u` (*Street Fighter Alpha 2*, USA 960430),
   `spf2t` (*Super Puzzle Fighter II Turbo*, Europe 960529), `vsavj` (*Vampire Savior: The Lord of Vampire*,
   Japan 970519), `vsav2` (*Vampire Savior 2: The Lord of Vampire*, Japan 970913), `vhunt2` (*Vampire Hunter 2:
-  Darkstalkers Revenge*, Japan 970929). As a zip (with its parent set's zip beside it if your collection keeps the shared files there)
+  Darkstalkers Revenge*, Japan 970929), `avspu` (*Alien vs. Predator*, USA 940520), `dino` (*Cadillacs and Dinosaurs*,
+  World 930201). As a zip (with its parent set's zip beside it if your collection keeps the shared files there)
   or a folder of the set's files. The launcher checks every file by checksum and tells you which is missing or
   different. Sets of other regions and revisions are refused: each port is made from that one version's
   program, and its features use addresses found in it.
 - One of: macOS 13 or later (Apple silicon or Intel); Linux x86_64 or SteamOS; Windows 10 or 11, 64-bit.
-- A gamepad or stick (six buttons for the fighting games) is recommended.
+- A gamepad or stick (six buttons for the fighting games) is recommended; for three players in the beat-'em-ups, three
+  gamepads (or keys chosen for each player).
 
 ## How it works
 
@@ -227,7 +237,9 @@ nothing from any game, ever, and never a key) and each game's roadmap for what i
 
 - The program cipher (`machine/cps2crypt.*`) is MAME's (BSD-3-Clause; its header says so), worked out by
   Andreas Naive and Nicola Salmoria. The QSound model follows MAME's high-level one (superctr, Valley Bell), and
-  the hardware facts follow MAME's CPS-2 driver.
+  the hardware facts follow MAME's CPS-2 and CPS-1 drivers. The Kabuki cipher of the CPS-1's sound CPU
+  (`machine/kabuki.*`) is written from the facts MAME's `kabuki.cpp` publishes (Nicola Salmoria); its keys are not
+  here: the port works each out from the player's own ROM.
 - The launcher's look, and the files that make it, come from the launcher of
   [wiiparty-recomp](https://github.com/arelkair/wiiparty-recomp) by arelkair (GPL-3.0-or-later). They are in
   `recomp-common/launcher/`, with the notices in recomp-common's `THIRD_PARTY_NOTICES.md`.

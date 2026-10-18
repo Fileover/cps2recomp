@@ -2,6 +2,26 @@
 
 ## Unreleased
 
+- **Two beat-'em-ups for three players: Alien vs. Predator and Cadillacs and Dinosaurs** (`games/avsp`, ROM set
+  `avspu`, USA 940520, a CPS-2 game; `games/dino`, ROM set `dino`, World 930201, a CPS-1 game with QSound). Each has
+  three players at once, free play, a round or stage to start at, the board's settings on the Board page (Alien vs.
+  Predator's Players setting lets the third join: on in Enhanced), infinite health, lives and time, straight to the
+  title, and everything the port gives every game. Both translated whole and checked (`make check`).
+- **A CPS-1 board with QSound** ("CPS-1.5") in the toolkit: `board = cps1` and `cps_b` in a game.cfg; its memory map,
+  inputs for three or four players, 12 MHz, the objects in video RAM placed among the scroll screens by the layer
+  control (with the layer below them keeping its high pens in front), the settings memory as 128 bytes, no program
+  cipher, and the sound CPU's Kabuki cipher deciphered with a key worked out from the player's own ROM in about a
+  second (`machine/kabuki.*`; no key is in the repository). The Z80 reads opcodes through `Z80Bus::ReadOpcode`.
+- **Up to four players**: game.cfg's `players`, the CPS-2's third and fourth players' wiring, movies with a column
+  for each player who presses something, run-ahead and the spare machines keeping every player. recomp-common's
+  bindings take up to four players; the Controllers page has a button for each.
+- **A game's own names for its buttons** (game.cfg's `buttons`, "Attack | Jump | Shoot"): its launcher shows them and
+  only them, laid out on a gamepad as a beat-'em-up's are; in the collection every game shares one table, a fighting
+  game's six with the other games' names beside them.
+- **Rapid fire** (`rapid_fire`, Game page, every game): a held button pressed for two frames and let go for two, for
+  the first button or all of them; the first press is not held back.
+- `--dump-ram` may be given more than once. The launcher's words fit a game with no key file or training mode.
+
 - **Arcade timing** (the `arcade_timing` feature, Game page, off unless chosen): the 68000 runs as on the board,
   its acknowledge a clock late for every access outside 500000-7FFFFF and its bus taken by the CPS-A's DMA (the row
   scroll, the scroll layers' tile rows, the palette), so a game slows down where and as much as on the board

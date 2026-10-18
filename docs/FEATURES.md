@@ -35,6 +35,19 @@ the Game page, and on the Display page how the picture is fitted to the window (
 `display_shape`: `port/present.h`) and the size it opens at (`window_size`). The first choice of each
 is how the port always drew it, so they are the same in every preset.
 
+## Players and buttons
+
+A game says in its `game.cfg` how many play at once (`players = 3`; two unless it says, four at most) and, if it is not
+a fighting game, what it calls its buttons (`buttons = Attack | Jump | Shoot`). The machine reads every player the board
+has; the window reads a gamepad and keys for each of the game's players; the launcher's Controllers page has a button
+for each player and, in a game's own launcher, only the game's buttons, under its names, laid out on a gamepad as a
+beat-'em-up's are (`port/bindings.h`). In the collection every game shares one table: a fighting game's six buttons,
+each with the other games' names for it, for as many players as the game with the most.
+
+**Rapid fire** is the port's own (`rapid_fire`, Game page, every game): a held button is the game's pressed for two
+frames and let go for two, for the first button or for all of them, from the frame it goes down. Movies keep what the
+player held.
+
 ## A custom soundtrack
 
 Every game whose sources say where its sound program keeps its songs gets the port's `custom_soundtrack` feature:
