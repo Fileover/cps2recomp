@@ -79,8 +79,11 @@ Variables are reached from A5 = FF8000, as in Alpha 2; many of Alpha 2's are her
   | Event | 1A5 | 0 off, 1 one match, which clears continue (off) |
   | Automatic | 1BB | 0 off, 1 free select (off) |
 
-  The test menu edits these variables themselves. Damage level and game speed have other choices than Alpha 2's
-  (Low/Medium/Normal/High; five speeds), so the collection's launcher keeps them as this game's.
+  The test menu edits these variables themselves. The collection's launcher shares a feature between games by name
+  and choices: Difficulty, Timer speed, Event and Automatic are shared with Alpha 2's, which mean the same. Game
+  speed has choices of its own (four; Alpha 2 has five). Damage level has Super Puzzle Fighter II Turbo's choices
+  (Low, Normal, High, Maximum), where it means the counter gems an attack sends, so it is marked as this game's own
+  (`OwnFeatures`, game.cpp).
 - **The settings memory**: read and written at **00B942** and **00BA0A**, variables A5-5D7E (buffer), -5D78
   (count), -5D74 (start), +1CC (busy). Instruction for instruction Alpha 2's 00B444 and 00B50C (28 and 49 of them).
   The toolkit's shortcut (`runtime/board.h`) is **not used**: the routine they call to drive the chip's lines
