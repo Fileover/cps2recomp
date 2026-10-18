@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.4.0-beta.2
 
 - **Ring out, in Street Fighter Alpha 2 and the Vampire Savior games**: a fighter knocked over the end of the stage
   is thrown back with the game's own knock-down animation (and in Street Fighter Alpha 2 its cry), and falls
