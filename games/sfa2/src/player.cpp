@@ -2101,22 +2101,24 @@ namespace {
     }
 
     // Coming down onto the next stage: in the air in the next match as it was in its jump over the old stage (where,
-    // its picture, its speeds), so that the game's own jump goes on and lands it (Jumping)
+    // its frame, its speeds and way, from its record there), so that the game's own jump goes on and lands it
+    // (Jumping)
     void DropsIn(M68K &c, uint32_t player, const RingOut &flight) {
+        const auto was = [&](uint32_t at) { // (a long of the record on the old stage)
+            const uint8_t *b = flight.record + at;
+            return static_cast<uint32_t>(b[0]) << 24 | static_cast<uint32_t>(b[1]) << 16 | static_cast<uint32_t>(b[2]) << 8 | b[3];
+        };
         SetRam32(player + kState, 0x02000602); // (in control, jumping, in the air)
         SetRam8(player + kInAir, 1);
-        SetRam8(player + kJumpingWay, flight.way);
+        SetRam8(player + kJumpingWay, flight.record[kJumpingWay]);
         SetRam8(player + kLow, 0);
         SetRam16(player + kX, static_cast<uint16_t>(flight.x));
         SetRam16(player + kY, static_cast<uint16_t>(flight.y));
         SetRam16(player + kYFraction, 0);
-        SetRam32(player + kWalkSpeed, flight.speeds[0]);
-        SetRam32(player + kSpeedUp, flight.speeds[1]);
-        SetRam32(player + kSpeedAcrossGain, flight.speeds[2]);
-        SetRam32(player + kSpeedUpGain, flight.speeds[3]);
-        SetRam32(player + kFrame, flight.frame); // (as kSetAnimation puts a frame)
-        SetRam32(player + kFrameTime, flight.frameTime); // (and kFrameWord)
-        SetRam8(player + kFrameExtra, Mem8(c, flight.frame + 0x16));
+        for (const uint32_t at : {kWalkSpeed, kSpeedUp, kSpeedAcrossGain, kSpeedUpGain, kFrame, kFrameTime}) { // (kFrameTime: and kFrameWord)
+            SetRam32(player + at, was(at));
+        }
+        SetRam8(player + kFrameExtra, Mem8(c, was(kFrame) + 0x16));
     }
 
     // 02149A. A player in a fight (kState 2): the computer's own, or a person's special moves' inputs read and its

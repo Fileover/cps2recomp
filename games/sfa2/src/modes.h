@@ -7,6 +7,7 @@
 // port's machine, run and put away again within a frame.
 #pragma once
 
+#include "battle.h"
 #include "machine.h"
 #include "sfa2.h"
 #include "spare.h"
@@ -17,22 +18,10 @@
 
 namespace cps2recomp {
 
-// What the machine that is running is to fight when the game next makes a match (the hooks where the game
-// chooses the stage: training.cpp): the stage (1-18; 0: the game's choice) and the two characters (-1: the ones
-// chosen at the character choice). Whoever runs a machine sets this first.
-struct MatchWanted {
-    int stage = 0;
-    int characters[2] = {-1, -1};
-};
+// What the machine that is running is to fight, and where its camera is to be (fight/battle.h: MatchWanted,
+// CameraWanted): the game's hooks where it chooses the stage (training.cpp) and its camera routines
+// (widescreen.cpp) ask
 MatchWanted &Wanted();
-
-// Where the machine that is running is to have its camera (the picture's left edge and bottom, in the stage),
-// whatever the players do: -1 leaves that to the game (widescreen.cpp's camera routines ask). Kept within the
-// stage's ends, unless `beyondEnds` (the ring out's way down: the camera above a stage, for the fighters alone).
-struct CameraWanted {
-    int x = -1, y = -1;
-    bool beyondEnds = false;
-};
 CameraWanted &CameraAt();
 
 // A round of a match is being fought
@@ -72,22 +61,7 @@ void WideForPort(Machine &machine);
 bool AttractMode(); // modes.cpp
 bool StageViewer();
 void EndModes();
-bool BattleMode(); // battle.cpp
-void EndBattle();
-bool BattleNoClock();
-bool BattleNoKnockOut();
-// The ring out's own movements of a player, made at its step of a fight (player.cpp): flung out over the end of
-// the stage (at the first step: `side` -1 the left end, 1 the right), falling from there, or (at one step) put in
-// the next match in the air as it was in its jump over the old stage: at `x`, `y`, showing `frame` (the record's
-// long, and the long of its time after it), with its speeds (across, up, and what is added to each a step)
-struct RingOut {
-    enum Move { kNone, kFlungOut, kFalling, kDropsIn } move = kNone;
-    int side = 0;
-    int x = 0, y = 0;
-    uint32_t frame = 0, frameTime = 0;
-    uint32_t speeds[4] = {};
-    uint8_t way = 0;
-};
-RingOut RingOutMove(uint32_t player);
+// (battle.cpp: the toolkit's fighting modes, fight/battle.h)
+void RegisterBattle();
 
 } // namespace cps2recomp
