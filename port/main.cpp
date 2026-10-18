@@ -137,6 +137,11 @@ void RegisterPortFeatures() {
                                   "with cheats on, the port's own code for some routines runs, and the timing there is close "
                                   "but not exact.",
                                   0});
+    // (rapid_fire: Port::RapidFire)
+    TheGame().features.push_back({"rapid_fire", "Game", "Rapid fire",
+                                  "A button held down is pressed again and again (fifteen times a second), for the first button or "
+                                  "for all of them. The first press is seen at once, as without it.",
+                                  0, {"Off", "First button", "Every button"}});
     // (display_*: how the picture is fitted to the window, present.h; the first of each is how it always was)
     TheGame().features.push_back({"display_scaling", "Display", "Scaling",
                                   "Sharp: as large as fits, each pixel a crisp block. Whole pixels: every pixel the same whole "
@@ -792,6 +797,25 @@ void Port::RunAhead() {
     memcpy(machine->players, held, sizeof(held));
 }
 
+// The port's rapid fire: a button the player holds is the game's pressed for two frames and let go for two, from
+// the frame it goes down (so the first press is not held back). Movies keep what the player held.
+void Port::RapidFire() {
+    const int choice = FeatureValue("rapid_fire");
+    const uint16_t buttons = choice == 1 ? kPunch1 : choice == 2 ? (kPunch1 | kPunch2 | kPunch3 | kKick1 | kKick2 | kKick3) : 0;
+    for (int player = 0; player < Machine::kMaxPlayers; player++) {
+        for (int bit = 0; bit < 16; bit++) {
+            const uint16_t mask = static_cast<uint16_t>(1u << bit);
+            if (!(buttons & mask) || !(machine->players[player] & mask)) {
+                rapidHeld[player][bit] = 0;
+                continue;
+            }
+            if ((rapidHeld[player][bit]++ / 2) % 2) {
+                machine->players[player] &= static_cast<uint16_t>(~mask);
+            }
+        }
+    }
+}
+
 void Port::RunFrame() {
     ClearSpareRan();
     SoundtrackFollow();
@@ -849,6 +873,7 @@ void Port::RunFrame() {
         menu.Close();
     }
     memcpy(machine->players, pad, sizeof(pad));
+    RapidFire();
     if (coinFrames > 0) {
         coinFrames--;
         machine->players[0] |= kCoin;

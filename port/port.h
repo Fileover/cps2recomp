@@ -96,6 +96,9 @@ struct Port {
     // speed, 'k' does the game's command with the key `n` (runtime/game.h, kKeyRestart...)
     void Key(char key, unsigned n = 0);
     void RunCommand(size_t index);
+    // (rapid fire: how long each player has held each button)
+    uint32_t rapidHeld[cps2recomp::Machine::kMaxPlayers][16] = {};
+    void RapidFire();
     int coinFrames = 0;   // frames left of the menu's coin
     int start2Frames = 0; // ... and of its press of player 2's Start
     int testFrames = 0;   // ... and of its press of the test switch

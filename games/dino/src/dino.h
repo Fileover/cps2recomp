@@ -17,6 +17,17 @@ constexpr uint32_t kVars = 0xFF8000; // A5
 // found from dumps after coins). A new board has a chute for each player, each with credits of its own.
 constexpr uint32_t kChute = kVars + 0x47A, kChuteSize = 0x10, kChuteCredits = 3;
 
+// The board's settings as the game reads them: three bytes laid out as the DIP switches of the CPS-1 boards before
+// it (FFF77A-FFF77C), which 0AC86E packs from the settings the test menu shows (FFF75A on: kept at FFF76D-FFF76F) as
+// the board starts, and 0A86D8 copies again when the test menu is left. The fields (from 0AC86E; their values as
+// the test menu's System Configuration page has them, stepped through):
+//   B, bits 0-2: game difficulty, 0-7 (level 0 extra easy ... 3 normal ... 7 hardest; a new board: 3)
+//   B, bits 3-4: game difficulty 2, 0-3 (easy, normal, hard, very hard; 1)
+//   B, bits 5-6: extend, 0-3 (none; 300,000 then 700,000; 500,000 then 1,000,000; only 1,000,000; 2)
+//   C, bits 0-1: number of players (lives), 0-3 for 1-4 (1)
+//   C, bit 5: demo sound (off); C, bit 6: continue (on)
+constexpr uint32_t kSwitches = kVars + 0x777A, kBoardSwitches = kVars + 0x776D;
+
 // A value that goes 10, 30, 40, 50 as the board starts (traced): 50 when the title is drawn (about frame 312). It
 // counts on through the rest of the show, so only the board's start is told by it.
 constexpr uint32_t kShow = kVars + 0x35;
