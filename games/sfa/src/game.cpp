@@ -10,6 +10,7 @@ void CoinsFrame(Machine &machine);
 void RegisterCheats(); // cheats.cpp
 void RegisterTitle(); // title.cpp
 void RegisterBoard(); // board.cpp
+void RegisterMusic(); // music.cpp
 void BoardBeforeFrame(Machine &machine);
 void TitleFrame(Machine &machine);
 
@@ -18,6 +19,7 @@ void RegisterGame() {
     RegisterCheats();
     RegisterTitle();
     RegisterBoard();
+    RegisterMusic();
     TheGame().beforeFrame = [](Machine &machine) {
         BoardBeforeFrame(machine);
     };
