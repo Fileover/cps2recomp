@@ -422,19 +422,22 @@ void Machine::Write8(uint32_t address, uint8_t value) {
 
 // The inputs are wired so that a line reads 0 while pressed
 uint16_t Machine::Input(int port) const {
-    const uint16_t p1 = players[0], p2 = players[1];
+    const uint16_t p1 = players[0], p2 = players[1], p3 = players[2], p4 = players[3];
     uint16_t pressed = 0;
     switch (port) {
     case 0: // sticks and punches
         pressed = static_cast<uint16_t>((p1 & 0x7F) | ((p2 & 0x7F) << 8));
         break;
-    case 1: // kicks (player 2's hard kick is on the next port)
-        pressed = static_cast<uint16_t>(((p1 >> 7) & 7) | (((p2 >> 7) & 3) << 4));
+    case 1:
+        // A six-button game's kicks (player 2's hard kick is on the next port); a game of three or four players has
+        // players 3 and 4 here (stick and three buttons each), the same lines
+        pressed = static_cast<uint16_t>(((p1 >> 7) & 7) | (((p2 >> 7) & 3) << 4) | (p3 & 0x7F) | ((p4 & 0x7F) << 8));
         break;
     default:
         pressed = static_cast<uint16_t>((testSwitch ? 0x0002 : 0) | (serviceButton ? 0x0004 : 0) | ((p1 & kStart) ? 0x0100 : 0) |
-                                        ((p2 & kStart) ? 0x0200 : 0) | ((p1 & kCoin) ? 0x1000 : 0) |
-                                        ((p2 & kCoin) ? 0x2000 : 0) | ((p2 & kKick3) ? 0x4000 : 0));
+                                        ((p2 & kStart) ? 0x0200 : 0) | ((p3 & kStart) ? 0x0400 : 0) | ((p4 & kStart) ? 0x0800 : 0) |
+                                        ((p1 & kCoin) ? 0x1000 : 0) | ((p2 & kCoin) ? 0x2000 : 0) | ((p3 & kCoin) ? 0x4000 : 0) |
+                                        ((p4 & kCoin) ? 0x8000 : 0) | ((p2 & kKick3) ? 0x4000 : 0));
         return static_cast<uint16_t>((~pressed & 0xFFFE) | (eeprom.DataOut() ? 1 : 0));
     }
     return static_cast<uint16_t>(~pressed);

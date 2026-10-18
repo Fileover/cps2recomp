@@ -23,8 +23,16 @@ namespace port {
 namespace {
 
     // What each player's keys and gamepad buttons do: the player's choices (bindings.h; the launcher's
-    // Controllers page), or the usual layout
-    Bindings g_bindings = DefaultBindings();
+    // Controllers page), or the usual layout. A game started from the collection's launcher has the table every
+    // game there shares; one with a launcher of its own, its own table.
+    const BoundTable &Table() {
+        static const BoundTable &table = MakeBoundTable(GamePlayers(), GameButtons(), InCollection());
+        return table;
+    }
+    Bindings g_bindings = recomp::DefaultBindings(Table().table);
+    int Players() {
+        return Table().table.players;
+    }
 
     static_assert(kBoundActions[0].bit == kUp && kBoundActions[1].bit == kDown && kBoundActions[2].bit == kLeft &&
                   kBoundActions[3].bit == kRight && kBoundActions[4].bit == kPunch1 && kBoundActions[9].bit == kKick3 &&
@@ -33,8 +41,8 @@ namespace {
     constexpr int kDead = 16000; // how far a stick or a trigger must go to count
 
     bool KeyBound(SDL_Scancode key) {
-        for (int player = 0; player < kBoundPlayers; player++) {
-            for (int action = 0; action < kBoundActionCount; action++) {
+        for (int player = 0; player < Players(); player++) {
+            for (int action = 0; action < Table().table.count; action++) {
                 if (g_bindings.key[player][action] == key) {
                     return true;
                 }
@@ -43,15 +51,15 @@ namespace {
         return false;
     }
     bool ButtonBound(SDL_GamepadButton button) {
-        return PadInputBound(g_bindings, {button, -1});
+        return PadInputBound(g_bindings, Table(), {button, -1});
     }
 
     uint16_t ReadKeyboard(const bool *keys, int player) {
         uint16_t pad = 0;
-        for (int action = 0; action < kBoundActionCount; action++) {
+        for (int action = 0; action < Table().table.count; action++) {
             const SDL_Scancode key = g_bindings.key[player][action];
             if (key != SDL_SCANCODE_UNKNOWN && keys[key]) {
-                pad |= kBoundActions[action].bit;
+                pad |= Table().bits[action];
             }
         }
         // (Return starts player 1's game too, unless it has been given something to do)
@@ -63,11 +71,11 @@ namespace {
 
     uint16_t ReadGamepad(SDL_Gamepad *gp, int player) {
         uint16_t pad = 0;
-        for (int action = 0; action < kBoundActionCount; action++) {
+        for (int action = 0; action < Table().table.count; action++) {
             const PadInput input = g_bindings.pad[player][action];
             if ((input.button >= 0 && SDL_GetGamepadButton(gp, static_cast<SDL_GamepadButton>(input.button))) ||
                 (input.axis >= 0 && SDL_GetGamepadAxis(gp, static_cast<SDL_GamepadAxis>(input.axis)) > kDead)) {
-                pad |= kBoundActions[action].bit;
+                pad |= Table().bits[action];
             }
         }
         const int x = SDL_GetGamepadAxis(gp, SDL_GAMEPAD_AXIS_LEFTX);
@@ -84,7 +92,7 @@ namespace {
 int RunWindowed(Port &port) {
     SDL_SetHint(SDL_HINT_AUDIO_DEVICE_SAMPLE_FRAMES, "256");
     if (!port.opt.settingsPath.empty()) {
-        g_bindings = LoadBindings(port.opt.settingsPath);
+        g_bindings = LoadBindings(port.opt.settingsPath, Table());
     }
     if (!SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_GAMEPAD)) {
         fprintf(stderr, "SDL_Init: %s\n", SDL_GetError());
@@ -249,19 +257,19 @@ int RunWindowed(Port &port) {
         }
 
         if (port.opt.moviePlay.empty() && !port.opt.autoPlay) {
-            // The keyboard is both players' (each has the keys chosen for it); the first gamepad is player
-            // 1's, a second player 2's
-            uint16_t pads[2] = {0, 0};
+            // The keyboard is every player's (each has the keys chosen for it); the first gamepad is player
+            // 1's, a second player 2's, and so on
+            uint16_t pads[Machine::kMaxPlayers] = {};
             const bool *keys = SDL_GetKeyboardState(nullptr);
             if (!(SDL_GetModState() & SDL_KMOD_ALT)) {
-                for (int player = 0; player < 2; player++) {
+                for (int player = 0; player < Players(); player++) {
                     pads[player] |= ReadKeyboard(keys, player);
                 }
                 port.service = keys[SDL_SCANCODE_9] && !KeyBound(SDL_SCANCODE_9);
             }
             bool trigger = false, both = false;
-            const bool stepOnTrigger = !PadInputBound(g_bindings, {-1, SDL_GAMEPAD_AXIS_LEFT_TRIGGER});
-            for (size_t i = 0; i < gamepads.size() && i < 2; i++) {
+            const bool stepOnTrigger = !PadInputBound(g_bindings, Table(), {-1, SDL_GAMEPAD_AXIS_LEFT_TRIGGER});
+            for (size_t i = 0; i < gamepads.size() && static_cast<int>(i) < Players(); i++) {
                 pads[i] |= ReadGamepad(gamepads[i], static_cast<int>(i));
                 trigger = trigger || (stepOnTrigger && SDL_GetGamepadAxis(gamepads[i], SDL_GAMEPAD_AXIS_LEFT_TRIGGER) > kDead);
                 both = both || (SDL_GetGamepadButton(gamepads[i], SDL_GAMEPAD_BUTTON_START) &&
@@ -273,8 +281,12 @@ int RunWindowed(Port &port) {
             if (!port.menu.IsOpen() && (triggerHeld == 1 || (triggerHeld > 24 && triggerHeld % 4 == 0))) {
                 port.Key('o');
             }
-            uint16_t pressed = (pads[0] | pads[1]) & ~previousPad;
-            previousPad = pads[0] | pads[1];
+            uint16_t all = 0;
+            for (const uint16_t one : pads) {
+                all |= one;
+            }
+            uint16_t pressed = all & ~previousPad;
+            previousPad = all;
             // Start and Select held together open and close the menu, whatever they are bound to (the second
             // of them to go down is not also a press in the menu; neither reaches the game until let go)
             if (both && !bothHeld) {
@@ -318,8 +330,9 @@ int RunWindowed(Port &port) {
                 }
             }
             heldAtClose &= previousPad;
-            port.pad[0] = pads[0] & ~heldAtClose;
-            port.pad[1] = pads[1] & ~heldAtClose;
+            for (int player = 0; player < Machine::kMaxPlayers; player++) {
+                port.pad[player] = pads[player] & ~heldAtClose;
+            }
         }
 
         // The window takes the picture's shape again when that changes (widescreen, or the Display page's

@@ -9,6 +9,7 @@
 #include "present.h"
 #include "soundtrack.h"
 
+#include <array>
 #include <cstdint>
 #include <cstdio>
 #include <map>
@@ -34,7 +35,8 @@ struct Options {
     std::string features;      // --features A,B,-C
     std::string menuTest;      // --menu FRAME:KEYS[:shot.png]
     std::string keys;          // --keys TICK:KEY,TICK:KEY...
-    std::string dumpRam, poke; // --dump-ram FRAME:file, --poke ADDR=BYTE,...
+    std::vector<std::string> dumpRam; // --dump-ram FRAME:file (as many as given)
+    std::string poke;                 // --poke ADDR=BYTE,...
     uint32_t watchLow = 1, watchHigh = 0; // --watch LOW[-HIGH]
     std::string trace;         // --trace LOW-HIGH:file
     bool checkRewrites = false, noRewrites = false;
@@ -62,8 +64,10 @@ struct Options {
 };
 
 // Recorded input: what the players hold, at the frames where it changes
+// (each line: the frame, then each player's; two players unless a movie has more)
 struct Movie {
-    std::map<uint64_t, std::pair<uint16_t, uint16_t>> changes;
+    using Pads = std::array<uint16_t, cps2recomp::Machine::kMaxPlayers>;
+    std::map<uint64_t, Pads> changes;
     bool Load(const std::string &path);
     bool Save(const std::string &path) const;
 };
@@ -73,13 +77,13 @@ struct Port {
     cps2recomp::RomSet roms;
     std::unique_ptr<cps2recomp::Machine> machine;
     uint64_t frame = 0;       // frames run
-    uint16_t pad[2] = {};     // what the players hold (cps2recomp::Button bits), set by the window
+    uint16_t pad[cps2recomp::Machine::kMaxPlayers] = {}; // what the players hold (cps2recomp::Button bits), set by the window
     bool service = false, test = false;
     Movie playMovie, recMovie;
-    uint16_t lastRecorded[2] = {0xFFFF, 0xFFFF};
+    uint16_t lastRecorded[cps2recomp::Machine::kMaxPlayers] = {0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF};
     FILE *hashFile = nullptr;
     uint64_t autoState = 0;
-    uint16_t autoPad[2] = {};
+    uint16_t autoPad[cps2recomp::Machine::kMaxPlayers] = {};
     Menu menu;
     // Stopping and slowing the game: a tick is one picture of the screen; the game runs a frame in every
     // tick, or in one of so many (menu.SlowBy()), or while stopped only when asked to step
@@ -132,6 +136,8 @@ struct Port {
 };
 
 int RunWindowed(Port &port);
+// The game was started by the collection's launcher (cps2recomp-launcher is beside it, and no launcher of its own)
+bool InCollection();
 
 // The Display page's choices (the port's display_* and window_size features): how the picture is fitted to
 // the window, and how many times the board's lines the window opens
