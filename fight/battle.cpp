@@ -139,14 +139,19 @@ namespace {
     // A machine at the character choice with both players in (the first a spare came to): where every later match
     // and stage is begun, not from switching on (that took about 2,000 frames to a round, this a few hundred)
     std::vector<uint8_t> g_atChoice;
+    uint32_t Random();
     // A spare begun again: from the character choice, once one has been there
     void Begin(Spare &spare) {
         spare.Clear();
         spare.state = g_atChoice;
     }
     // A spare's controls on its way to its round (Description::toRound); the first time one is at the character
-    // choice, it is kept (before its frame) to begin the others from
+    // choice, it is kept (before its frame) to begin the others from, and one begun from there is given a random
+    // number of its own
     bool ToRound(Machine &machine, int32_t &frames) {
+        if (frames == 0 && !g_atChoice.empty() && d.random) {
+            SetRam16(d.random, static_cast<uint16_t>(Random()));
+        }
         if (g_atChoice.empty() && d.choosing()) {
             Archive ar(g_atChoice, true);
             machine.Serialize(ar);

@@ -82,6 +82,9 @@ struct Description {
     uint32_t plays = 0;
     // A byte: which of its sets of colours the player chose (kept from match to match), or 0: none
     uint32_t colours = 0;
+    // A word: the game's random number (a match begun from the character choice is given its own, or every one
+    // would play out the same way from there), or 0: none
+    uint32_t random = 0;
     // Health (words): what the player has, and the most it can have back (the bar's other end), and in all;
     // what survival gives back for an opponent beaten. With `ceilingShown` the second is what the bar shows,
     // put at what is left.

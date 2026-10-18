@@ -11,7 +11,9 @@
   through black; it is the same as Street Fighter Alpha 2's now.) The winner no longer stands about waiting for the
   next match: each match and stage after the first is begun from a machine kept at the character choice (about 500
   frames to its round, not 2,000 from switching on), and made ready twice as fast while the one out falls. In Street
-  Fighter Alpha 2 the player's colours stay the ones chosen from match to match (they went back to the first set).
+  Fighter Alpha 2 the player's colours stay the ones chosen from match to match (they went back to the first set). Each
+  match begun from the character choice is given a random number of its own, so the computer's choices do not repeat
+  from one match to the next.
 - **The fighting modes in the toolkit** (`fight/battle.h`): survival, the endless battle and the ring out, one
   copy for every fighting game, which describes its memory and makes the ring out's two movements at its players'
   step (`games/sfa2/src/player.cpp`, PlayerFighting; `games/vampire_savior/src/battle.cpp`, RingOutStep from the
