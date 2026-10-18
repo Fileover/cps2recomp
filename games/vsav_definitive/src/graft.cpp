@@ -244,6 +244,13 @@ namespace {
 
 } // namespace
 
+#ifndef VSAV_GRAFT
+// (built without the data made from the two programs: nothing is taken in, no table is read for them)
+bool definitive::OffsetTable(M68K &) {
+    return false;
+}
+#endif
+
 bool definitive::IsTaken(uint8_t character) {
     return std::find(std::begin(kTaken), std::end(kTaken), character) != std::end(kTaken);
 }
