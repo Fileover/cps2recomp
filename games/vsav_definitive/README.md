@@ -25,13 +25,12 @@ trademarks of Capcom Co., Ltd.
 
 ## Choosing them
 
-At the character choice, **Start on Gallon, Aulbath or Sasquatch** changes your cast to Vampire Savior 2's: Gallon's
-place is then Donovan, Aulbath's Pyron and Sasquatch's Phobos, with their picture, figure and name beside the
-grid, and the grid's faces in those places become theirs (with both players choosing from different casts, the
-grid shows each cast in turn). Start on one of them again changes back. Dark Gallon is still Start held with two
-punches or two kicks on Gallon's place.
+At the character choice, **Donovan, Pyron and Phobos have places of their own: a row under the grid**, below
+the random choice. Move down from the bottom of the grid to reach them, as to any other place, with their
+picture, figure and name beside the grid. Dark Gallon is still Start held with two punches or two kicks on
+Gallon's place.
 
-![The character choice with Vampire Savior 2's cast: Phobos chosen, and Donovan's, Pyron's and Phobos's faces in the grid](../../docs/screenshots/vsav_definitive/choosing.png)
+![The character choice: Donovan's, Pyron's and Phobos's places under the grid, Donovan's chosen](../../docs/screenshots/vsav_definitive/choosing.png)
 
 The in-game menu's **Definitive** page can also make either player one of the three at the next character
 choice, whatever is chosen there, and the training mode, the model viewer and the modes have them as they have

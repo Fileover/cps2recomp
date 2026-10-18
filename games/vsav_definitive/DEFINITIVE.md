@@ -31,7 +31,7 @@ Two rules follow from that, and every part of this game keeps them:
 | `graft.cfg` and `tools/graft.py` | Vampire Savior's tables by character get the three's entries, taken from Vampire Savior 2's same tables |
 | `src/graft.cpp` | Patches in what `graft.py` made; the hooks behind the kinds of entry a table can't just hold |
 | `src/rules.cpp` | The places where Vampire Savior 2's engine does something for the three that this one doesn't |
-| `src/choosing.cpp` | The character choice: Start switches a place to its second character, and the grid's faces follow |
+| `src/choosing.cpp` | The character choice: the three's places, a row under the grid, and their faces |
 | `machine/sound_board.h` | A second sound side, with Vampire Savior 2's sound program and samples |
 | `family.h` | The family's shared sources (`games/vampire_savior/src`): where the places they name are in this game |
 
@@ -93,20 +93,27 @@ samples. The two sides are mixed, so both games' sounds play together.
 
 ### The character choice
 
-The grid is Vampire Savior's: a place for each of its characters and one for a random choice. Three have a second character: Gallon's is Donovan, Aulbath's
-Pyron and Sasquatch's Phobos. Start on one of them switches the player's cast, all three at once. The cast is a
-byte per player at the top of work memory, so a save state keeps it.
+The grid is Vampire Savior's: a place for each of its characters and one for a random choice. The three have
+places of their own, a row under it. A place's number is its character's (the game's choice code makes the place
+chosen the character), so theirs are numbered as the three are (13, 11 and 10), and whatever is read by character
+(the big portrait, the figure and the name beside the grid) follows by itself, from the tables above.
 
-The game's own choice code does the rest: the cursor moves by place, and the hook sets the character chosen from
-the place and the cast. The big portrait, the figure and the name beside the grid follow by themselves (they are
-read by character number, from the tables above).
+What reads the place is in `src/choosing.cpp`:
 
-The grid's faces are one picture of them all. Where the shown cast is Vampire Savior 2's, the hook in the
-pictures' drawing replaces the three places' faces with that game's, drawn from its graphics, in palettes the
-screen leaves free. With both players choosing from different casts, the grid shows each cast in turn, about a
-second each. Vampire Savior 2 arranges its grid differently, so the faces were placed by eye.
+- **The cursor's moves.** The game moves the cursor by a table of each place's next place in eight directions.
+  The hook answers for theirs (left and right along the row, up into the grid) and for down from the three places
+  above them; every other move is the game's own.
+- **The cursor's ring.** The ring's position and picture come from tables by place. At theirs, it is the random
+  choice's ring (a place of the same size), moved to theirs. Player 2's ring, and the one for both players on a
+  place, work the same way.
+- **Their faces.** The grid's faces are one picture of them all. At the end of its drawing, the hook puts three
+  more objects, Vampire Savior 2's faces, drawn from its graphics, in palettes the screen leaves free (put after
+  everything else that frame, since a figure beside the grid may change the palettes next to its own). Vampire
+  Savior 2 arranges its grid differently, so their places were set by eye.
 
-![The character choice with Vampire Savior 2's cast: Donovan's, Pyron's and Phobos's faces in Gallon's, Aulbath's and Sasquatch's places](../../docs/screenshots/vsav_definitive/choosing.png)
+The random choice is still Vampire Savior's fifteen.
+
+![The character choice: Donovan's, Pyron's and Phobos's places under the grid](../../docs/screenshots/vsav_definitive/choosing.png)
 
 ### The launcher
 

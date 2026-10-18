@@ -23,7 +23,7 @@ bool TakenPlayer(uint32_t record);
 bool OffsetTable(M68K &c);
 // (rules.cpp) the hooks of the rules; before graft.cpp's, which leaves alone the places these have
 void RegisterRules();
-// (choosing.cpp) the character choice's second characters
+// (choosing.cpp) the character choice: the three's places, under the grid
 void RegisterChoosing();
 
 } // namespace cps2recomp::definitive
