@@ -130,21 +130,21 @@ void Video::DrawScroll(int which, int rasterLine, uint16_t *pens, uint8_t *prior
         }
         // Where the tile is in the graphics ROMs: a CPS-2's scroll screens' tiles are in the second 8 MB; a CPS-1's
         // are where the objects' are (its board's PAL maps tile numbers to ROMs; the games here have them in order)
-        const uint32_t base = m_src.board.cps1 ? 0 : 0x800000;
+        const uint32_t tiles = m_src.board.cps1 ? 0 : 0x800000;
         uint32_t at;
         int rowBytes;
         switch (which) {
         case 0:
-            at = base + code * 64 + ((column & 1) ? 4 : 0); // (odd columns use the right half of a 16-pixel strip)
+            at = tiles + code * 64 + ((column & 1) ? 4 : 0); // (odd columns use the right half of a 16-pixel strip)
             rowBytes = 8;
             break;
         case 1:
-            at = base + code * 128;
+            at = tiles + code * 128;
             rowBytes = 8;
             break;
         default:
             code &= 0x3FFF;
-            at = base + code * 512;
+            at = tiles + code * 512;
             rowBytes = 16;
             break;
         }
