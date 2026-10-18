@@ -17,4 +17,23 @@ namespace sfa {
 // 3; the board's settings memory starts at one coin a credit). Alpha 2 keeps its own at FF8076.
 constexpr uint32_t kCredits = 0xFF8170;
 
+// --- the players ---
+
+// Each player's record, 0x400 long, the first at FF8400 (as in Alpha 2)
+constexpr uint32_t kPlayer1 = 0xFF8400, kPlayerSize = 0x400;
+inline uint32_t Player(int n) {
+    return kPlayer1 + static_cast<uint32_t>(n) * kPlayerSize;
+}
+// A player's health, a word (Alpha 2's is at +50); kHealthShown follows it a little later: the bar on the
+// screen. Found by RAM dumps through a fight: both 90 at the round's start and going down with each hit; the
+// hit's routine takes the damage off at 00FA06 (sub.w d3,0x40(a1)), a throw's at 021148.
+constexpr uint32_t kHealth = 0x40, kHealthShown = 0x42;
+constexpr uint16_t kHealthFull = 0x90;
+
+// --- for hooks ---
+
+inline void SetLow16(uint32_t &reg, uint32_t value) {
+    reg = (reg & 0xFFFF0000) | (value & 0xFFFF);
+}
+
 } // namespace sfa

@@ -7,9 +7,11 @@ namespace cps2recomp {
 
 void RegisterCoins(); // coins.cpp
 void CoinsFrame(Machine &machine);
+void RegisterCheats(); // cheats.cpp
 
 void RegisterGame() {
     RegisterCoins();
+    RegisterCheats();
     TheGame().frame = [](Machine &machine) {
         CoinsFrame(machine);
     };
