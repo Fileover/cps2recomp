@@ -38,11 +38,15 @@ namespace {
 void TitleFrame(Machine &machine) {
     const uint16_t mode = Ram16(kMode);
     // (only the board's first frame: the step is 0 again between screens of a game, and a game must never be
-    // run unseen)
-    if (machine.frame <= 1 && mode == 0 && !g_skipping) {
+    // run unseen. A reset while it skips starts it again: what the last start had seen is not this one's)
+    if (machine.frame <= 1 && mode == 0) {
         g_skipping = FeatureOn("skip_intro");
         g_booted = false;
         g_frames = 0;
+    }
+    // (the feature switched off while it skips: the picture comes back at once)
+    if (g_skipping && !FeatureOn("skip_intro")) {
+        g_skipping = false;
     }
     if (g_skipping) {
         g_booted = g_booted || mode == kBooted;
