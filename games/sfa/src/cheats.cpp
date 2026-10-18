@@ -18,7 +18,7 @@ namespace {
     // D3 is the damage about to come off the health of the player whose record is `victim`
     bool DamageTo(M68K &c, uint32_t victim) {
         const int player = PlayerOf(victim);
-        if (player == 0 && FeatureOn("no_damage")) {
+        if (FeatureOn(player == 0 ? "no_damage" : "no_damage_2")) {
             SetLow16(c.d[3], 0);
         } else if (player == 1 && FeatureOn("one_hit")) {
             SetLow16(c.d[3], kHealthFull + 1);
@@ -27,7 +27,7 @@ namespace {
     }
 
     // The hit's routine also takes one point off by itself (00FA20-00FA26, the way in from 00F8E2 and 00F906)
-    // without D3: for no damage, player 1's health is noted where that starts and put back where the two ways
+    // without D3: for no damage, the player's health is noted where that starts and put back where the two ways
     // meet again (00FA2A)
     int16_t kept = 0;
     bool keeping = false;
@@ -39,7 +39,8 @@ void RegisterCheats() {
     // 021148: sub.w d3,0x40(a4), a throw's
     AddHook(0x021148, "ThrowDamage", [](M68K &c) { return DamageTo(c, c.a[4]); });
     AddHook(0x00FA20, "HitPoint", [](M68K &c) {
-        keeping = PlayerOf(c.a[1]) == 0 && FeatureOn("no_damage");
+        const int player = PlayerOf(c.a[1]);
+        keeping = player >= 0 && FeatureOn(player == 0 ? "no_damage" : "no_damage_2");
         kept = static_cast<int16_t>(Ram16((c.a[1] & 0xFFFFFF) + kHealth));
         return false;
     });
@@ -50,9 +51,19 @@ void RegisterCheats() {
         }
         return false;
     });
+    // 004B3A: subq.b #1 off the round's clock, a second gone (below nothing, time is up). With the cheat the second
+    // is given back first, so the clock stands still.
+    AddHook(0x004B3A, "ClockSecond", [](M68K &) {
+        if (FeatureOn("infinite_time")) {
+            SetRam8(kRoundClock, static_cast<uint8_t>(Ram8(kRoundClock) + 1));
+        }
+        return false;
+    });
     Game &game = TheGame();
     game.features.push_back({"no_damage", "Cheats", "No damage", "Player 1's health does not go down."});
+    game.features.push_back({"no_damage_2", "Cheats", "No damage, player 2", "Player 2's health does not go down (the opponent's, in a one-player game)."});
     game.features.push_back({"one_hit", "Cheats", "One-hit knockouts", "Player 2 (the opponent, in a one-player game) goes down with the first hit."});
+    game.features.push_back({"infinite_time", "Cheats", "Infinite time", "The round's clock stands still."});
 }
 
 } // namespace cps2recomp

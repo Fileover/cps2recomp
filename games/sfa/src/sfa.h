@@ -13,6 +13,21 @@
 
 namespace sfa {
 
+using cps2recomp::M68K;
+
+// --- where the game is ---
+
+// Words from A5, each a step (in twos) of the one before, as in Alpha 2: the first is 2 once a game is being
+// played (and the board's start and its show step through it before: title.cpp); the next 2 while the players
+// choose their characters and 4 during the match; then 4 while a round is on, and under that 2 while it is being
+// fought (0 its introduction). Traced with --watch.
+constexpr uint32_t kMode = 0xFF8000, kGameStep = 0xFF8004, kMatchStep = 0xFF8008, kRoundStep = 0xFF800C;
+
+// The round's clock: seconds left, a byte (99 at a round's start, 004378; a second off at 004B3A, and below
+// nothing time is up). Found by RAM dumps against the clock shown (91, 87, 83, 79) and --watch: FF365D is the
+// picture's copy of it, in BCD. Alpha 2's is at FF8109.
+constexpr uint32_t kRoundClock = 0xFFAE09;
+
 // Credits paid for and not yet used, a byte (found by RAM dumps after one, two and three coins put in: 0, 1, 2,
 // 3; the board's settings memory starts at one coin a credit). Alpha 2 keeps its own at FF8076.
 constexpr uint32_t kCredits = 0xFF8170;
