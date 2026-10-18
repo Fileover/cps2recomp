@@ -21,6 +21,8 @@ and `vsav2` (Japan 970913), each with its key file, from boards you own. This pr
 This project is not affiliated with, endorsed by, or sponsored by Capcom. *Vampire Savior* and *Darkstalkers* are
 trademarks of Capcom Co., Ltd.
 
+![Phobos against Morrigan in Vampire Savior's Feast of the Damned, wide](../../docs/screenshots/vsav_definitive/phobos.png)
+
 ## Choosing them
 
 At the character choice, **Start on Gallon, Aulbath or Sasquatch** changes your cast to Vampire Savior 2's: Gallon's
@@ -28,6 +30,8 @@ place is then Donovan, Aulbath's Pyron and Sasquatch's Phobos, with their pictur
 grid, and the grid's faces in those places become theirs (with both players choosing from different casts, the
 grid shows each cast in turn). Start on one of them again changes back. Dark Gallon is still Start held with two
 punches or two kicks on Gallon's place.
+
+![The character choice with Vampire Savior 2's cast: Phobos chosen, and Donovan's, Pyron's and Phobos's faces in the grid](../../docs/screenshots/vsav_definitive/choosing.png)
 
 The in-game menu's **Definitive** page can also make either player one of the three at the next character
 choice, whatever is chosen there, and the training mode, the model viewer and the modes have them as they have
@@ -42,6 +46,13 @@ everyone.
 - Their voices and their own sounds, played by Vampire Savior 2's own sound program and samples beside Vampire
   Savior's, heard together.
 - The arcade with any of them to its end, which is Vampire Savior 2's: its staff roll.
+
+![The versus screen: Phobos against Morrigan, Pyron against Zabel, Donovan against Jedah](../../docs/screenshots/vsav_definitive/versus.png)
+
+| | |
+| --- | --- |
+| ![Pyron against Zabel](../../docs/screenshots/vsav_definitive/pyron.png) | ![Donovan and Anita against Jedah](../../docs/screenshots/vsav_definitive/donovan.png) |
+| ![The arcade's talk before a match, Phobos in his own colours](../../docs/screenshots/vsav_definitive/talk.png) | |
 
 Not yet: Donovan's stage and Vampire Savior 2's music (Vampire Savior's twelve stages are all here).
 

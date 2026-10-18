@@ -106,6 +106,8 @@ pictures' drawing replaces the three places' faces with that game's, drawn from 
 screen leaves free. With both players choosing from different casts, the grid shows each cast in turn, about a
 second each. Vampire Savior 2 arranges its grid differently, so the faces were placed by eye.
 
+![The character choice with Vampire Savior 2's cast: Donovan's, Pyron's and Phobos's faces in Gallon's, Aulbath's and Sasquatch's places](../../docs/screenshots/vsav_definitive/choosing.png)
+
 ### The launcher
 
 The launcher passes `--rom2` with the set chosen on Vampire Savior 2's page (`Launch::file_of` in recomp-common),

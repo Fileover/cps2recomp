@@ -40,6 +40,7 @@ and trademarks of their owners, used here only to say what the programs work wit
 | --- | --- | --- |
 | [![Street Fighter Alpha 2: training mode](docs/screenshots/sfa2/training.png)](games/sfa2/README.md) | [![Super Puzzle Fighter II Turbo: training mode](docs/screenshots/puzzle_fighter/training.png)](games/puzzle_fighter/README.md) | [![Vampire Savior: training mode](docs/screenshots/vampire_savior/training.png)](games/vampire_savior/README.md) |
 | [![Vampire Savior 2: Phobos, Pyron and Donovan](docs/screenshots/vsav2/returning.png)](games/vsav2/README.md) | [![Vampire Hunter 2: Gallon, Aulbath and Sasquatch](docs/screenshots/vhunt2/night-warriors.png)](games/vhunt2/README.md) | [![Vampire Savior 2: training mode on Donovan's stage](docs/screenshots/vsav2/training.png)](games/vsav2/README.md) |
+| [![Vampire Savior Definitive: Phobos against Morrigan](docs/screenshots/vsav_definitive/phobos.png)](games/vsav_definitive/README.md) | [![Vampire Savior Definitive: the character choice with Vampire Savior 2's cast](docs/screenshots/vsav_definitive/choosing.png)](games/vsav_definitive/README.md) | [![Vampire Savior Definitive: the versus screen](docs/screenshots/vsav_definitive/versus.png)](games/vsav_definitive/README.md) |
 
 Each game's page has all it does, with pictures.
 
