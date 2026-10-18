@@ -64,7 +64,7 @@ build_programs() {
     done
     cmake -S "$ROOT/launcher" -B "$build/launcher" -G Ninja -DCMAKE_BUILD_TYPE=Release -DCOLLECTION=ON -DGAMES="$list" \
         -DGAME_NAME="$NAME" -DGAME_EXE="$EXE" -DAPP_ID="$APP_ID" -DHOME_ENV=CPS2RECOMP_HOME \
-        -DDISCLAIMER="Not affiliated with Capcom." "$@" >/dev/null
+        -DDISCLAIMER="Not affiliated with Capcom." -DCOLLECTION_VERSION="$VERSION" "$@" >/dev/null
     cmake --build "$build/launcher"
 }
 # Every game's program and the launcher, from $1 (build_programs') into $2 (the end of a program's name: $3)
@@ -94,4 +94,22 @@ add_notices() {
       for f in dr_flac dr_mp3 dr_wav; do echo; echo "$f (third_party/$f.h):"; sed -n '/^ALTERNATIVE 1 - Public Domain/,$p' "$ROOT/third_party/$f.h"; done
     } > "$1/licenses/sound-decoders.txt"
     printf 'Source for this version (GPL-3.0): https://github.com/tmcleroy/cps2recomp/tree/v%s\n' "$VERSION" > "$1/SOURCE.txt"
+}
+# What the launcher updates itself from (recomp-common/launcher/src/update.h): $OUT/update-$1.txt, the manifest of
+# every file in $2 (the app, or the folder the archive unpacks to) with its SHA-256 and sizes, and each file gzipped
+# as $OUT/update-files/<sha256>.gz. Uploaded to the release with the archives (docs/RELEASING.md).
+update_files() {
+    platform=$1 top=$2
+    manifest="$OUT/update-$platform.txt"
+    mkdir -p "$OUT/update-files"
+    printf 'recomp-update 1\nversion %s\n' "$VERSION" > "$manifest"
+    (cd "$top" && find . -type f | sed 's|^\./||' | LC_ALL=C sort) | while IFS= read -r path; do
+        sum=$(sha256 "$top/$path" | cut -d' ' -f1)
+        [ -f "$OUT/update-files/$sum.gz" ] || gzip -9nc "$top/$path" > "$OUT/update-files/$sum.gz"
+        mode=-
+        [ -x "$top/$path" ] && mode=x
+        printf 'file %s %s %s %s %s\n' "$sum" "$(wc -c < "$top/$path" | tr -d ' ')" "$(wc -c < "$OUT/update-files/$sum.gz" | tr -d ' ')" \
+            "$mode" "$path" >> "$manifest"
+    done
+    echo "wrote $manifest ($(grep -c '^file ' "$manifest") files)"
 }

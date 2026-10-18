@@ -47,6 +47,8 @@ QSound chip, the sound CPU and its registers) is code written for this project, 
   with the training mode and the other modes, save states, speed, the cheats and every feature.
 - The picture your way (Display page): sharp, whole pixels or smooth; 4:3, square pixels or the
   whole screen; and the window's size.
+- **Rapid fire** (Game page): a button held down is pressed again and again, fifteen times a second, for the first
+  button or for all of them; the first press is seen at once.
 - **Pure** plays exactly as the board does. **Enhanced** (the default) adds free play and your own
   [character colours](#custom-colours). Every other feature is a switch of its own.
 - The board's operator settings (difficulty, attack power, timer speed, game speed and the rest) on
@@ -101,7 +103,7 @@ another is started or the menu's Reset.
 | --- | --- |
 | Training mode | A fight with no clock that nobody loses, and the aids above |
 | Attract mode | The game's own show on a loop, as a cabinet left alone plays it, with no coin to keep out: everything, the introduction only, or its eight demonstration fights one after another |
-| Stage viewer | Any of the twelve stages with nobody on it and no panel, its own pieces moving and its music playing (or another stage's). Scroll it with the stick, or let it drift from end to end. "Infinite" is all twelve in turn, each scrolling into the next as its tune fades into the next one's |
+| Stage viewer | Any of the twelve stages with nobody on it and no panel, its own pieces moving and its music playing (or another stage's). Scroll it with the stick, or let it drift from end to end. "Infinite" is all twelve in turn, each scrolling into the next as its tune fades into the next one's ([how it works](docs/INFINITE_STAGE.md): two games at once on one machine) |
 | Model viewer | One character by itself, on a stage or on plain white or black, from a quarter of its size to 25 times. It stands and moves with your controls, or goes through any of its animations (named A0, B12, C3... as the game's own lists number them; left and right step through them), at full speed or in slow motion. At its own size, what the stage has in front of the fighters stays in front (or, with "Stage in front" off, behind it) |
 | Survival | One opponent after another on the health you have left. How many can you beat? |
 | Endless battle | Two fighters the game plays, for as long as you like, with no bars and no clock, on one stage, on stages that fade one into another, or on a floor that scrolls through them all. Touch the controls to take a fighter over |

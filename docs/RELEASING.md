@@ -14,6 +14,15 @@ Three archives and their checksums, as a GitHub release of a tag:
 | `CPS2Recomp-linux-x86_64.tar.gz` | Linux x86_64, Steam Deck, Steam Machine |
 | `CPS2Recomp-windows-x64.zip` | Windows 10 and 11, 64-bit |
 | `SHA256SUMS.txt` | |
+| `update-macos.txt`, `update-linux-x86_64.txt`, `update-windows-x64.txt` | The launcher's updates: each system's manifest |
+| `<sha256>.gz`, one for each different file | The launcher's updates: every file of the three, gzipped, named by its SHA-256 |
+
+**The launcher updates itself from these** (`recomp-common/launcher/src/update.h`): when it opens it reads the
+repository's releases, takes the newest with a manifest for its system (a beta only while it is a beta itself),
+and downloads only the files whose SHA-256 differs from the manifest's. So a player keeps their copy and gets a
+new game, or a fixed one, as a download of only what changed. `tools/release/all.sh` writes the manifests and
+`build/release/update-files/`. A release without them is not offered to the launchers, and a release whose
+`version` line is not its tag is refused by them.
 
 Each holds the launcher (`cps2recomp-launcher`), every game's program (`sfa2`, `vampire_savior`,
 `puzzle_fighter`) and the licences. No ROM, graphics, sound or key is in them: the player supplies their own ROM
@@ -44,8 +53,10 @@ code is not part of that source: it is made from the player's own ROM sets by th
    both halves, Linux in a container, Windows under Wine): the same picture hashes as the Mac's build. A person
    plays each archive on its system (picture, sound, a gamepad, the launcher's pages, a save state, training
    mode).
-6. `gh release upload vX.Y.Z build/release/CPS2Recomp-* build/release/SHA256SUMS.txt`, then publish the draft.
-   A published release's files are never replaced: a fix is a new version.
+6. `gh release upload vX.Y.Z build/release/CPS2Recomp-* build/release/SHA256SUMS.txt build/release/update-*.txt
+   build/release/update-files/*.gz`, then publish the draft. A published release's files are never replaced: a fix
+   is a new version. Publishing is what offers it to every launcher that checks, so the archives are played
+   (step 5) first.
 
 ## A new game
 

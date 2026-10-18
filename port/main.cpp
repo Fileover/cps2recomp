@@ -45,9 +45,9 @@ bool Movie::Load(const std::string &path) {
     char line[256];
     while (fgets(line, sizeof(line), f)) {
         unsigned long long frame;
-        unsigned p1, p2;
-        if (line[0] != '#' && sscanf(line, "%llu %x %x", &frame, &p1, &p2) == 3) {
-            changes[frame] = {static_cast<uint16_t>(p1), static_cast<uint16_t>(p2)};
+        unsigned p[4] = {};
+        if (line[0] != '#' && sscanf(line, "%llu %x %x %x %x", &frame, &p[0], &p[1], &p[2], &p[3]) >= 3) {
+            changes[frame] = {static_cast<uint16_t>(p[0]), static_cast<uint16_t>(p[1]), static_cast<uint16_t>(p[2]), static_cast<uint16_t>(p[3])};
         }
     }
     fclose(f);
@@ -59,9 +59,20 @@ bool Movie::Save(const std::string &path) const {
     if (!f) {
         return false;
     }
-    fprintf(f, "# cps2recomp input movie: frame player1 player2 (pressed bits, hex)\n");
+    // (as many players as any line has a press for, and two at least: a two-player movie is as it always was)
+    int players = 2;
     for (const auto &[frame, pads] : changes) {
-        fprintf(f, "%llu %04x %04x\n", static_cast<unsigned long long>(frame), pads.first, pads.second);
+        for (int n = 2; n < static_cast<int>(pads.size()); n++) {
+            players = pads[n] ? std::max(players, n + 1) : players;
+        }
+    }
+    fprintf(f, "# cps2recomp input movie: frame player1 player2%s%s (pressed bits, hex)\n", players > 2 ? " player3" : "", players > 3 ? " player4" : "");
+    for (const auto &[frame, pads] : changes) {
+        fprintf(f, "%llu", static_cast<unsigned long long>(frame));
+        for (int n = 0; n < players; n++) {
+            fprintf(f, " %04x", pads[n]);
+        }
+        fprintf(f, "\n");
     }
     fclose(f);
     return true;
@@ -126,6 +137,11 @@ void RegisterPortFeatures() {
                                   "with cheats on, the port's own code for some routines runs, and the timing there is close "
                                   "but not exact.",
                                   0});
+    // (rapid_fire: Port::RapidFire)
+    TheGame().features.push_back({"rapid_fire", "Game", "Rapid fire",
+                                  "A button held down is pressed again and again (fifteen times a second), for the first button or "
+                                  "for all of them. The first press is seen at once, as without it.",
+                                  0, {"Off", "First button", "Every button"}});
     // (display_*: how the picture is fitted to the window, present.h; the first of each is how it always was)
     TheGame().features.push_back({"display_scaling", "Display", "Scaling",
                                   "Sharp: as large as fits, each pixel a crisp block. Whole pixels: every pixel the same whole "
@@ -162,16 +178,59 @@ int WindowSize() {
 }
 
 bool Port::Init(std::string &error) {
-    const RomList list = ParseRomList(GAME_PROGRAM, GAME_GRAPHICS, GAME_SOUND_PROGRAM, GAME_SAMPLES, GAME_KEY, GAME_ROM_SET, GAME_ROM_PARENT);
+#ifndef GAME_BOARD
+#define GAME_BOARD ""
+#endif
+#ifndef GAME_CPS_B
+#define GAME_CPS_B ""
+#endif
+#ifndef GAME_KEY
+#define GAME_KEY ""
+#endif
+    const RomList list = ParseRomList(GAME_PROGRAM, GAME_GRAPHICS, GAME_SOUND_PROGRAM, GAME_SAMPLES, GAME_KEY, GAME_ROM_SET, GAME_ROM_PARENT,
+                                      GAME_BOARD, GAME_CPS_B);
     if (!LoadRomSet(opt.romPath, list, roms, error)) {
         return false;
     }
+#ifdef GAME_EXTRA_SET
+    // Another set the game reads (another game made from the same program, say): from --rom2, or beside --rom
+    {
+        const RomList extra = ParseRomList(GAME_EXTRA_PROGRAM, GAME_EXTRA_GRAPHICS, GAME_EXTRA_SOUND_PROGRAM, GAME_EXTRA_SAMPLES,
+                                           GAME_EXTRA_KEY, GAME_EXTRA_SET, GAME_EXTRA_SET);
+        std::string path = opt.extraRomPath;
+        if (path.empty()) {
+            std::string folder = opt.romPath;
+            while (!folder.empty() && folder.back() == '/') {
+                folder.pop_back();
+            }
+            const size_t slash = folder.find_last_of('/');
+            folder = slash == std::string::npos ? "." : folder.substr(0, slash);
+            path = folder + "/" + GAME_EXTRA_SET;
+        }
+        std::string extraError;
+        if (!LoadRomSet(path, extra, extraRoms, extraError) && !LoadRomSet(path + ".zip", extra, extraRoms, extraError)) {
+            error = std::string("the ROM set ") + GAME_EXTRA_SET + " is needed too: " + extraError;
+            return false;
+        }
+    }
+#endif
     machine = std::make_unique<Machine>(roms);
     machine->cpuSpeed = opt.cpuSpeed > 0 ? opt.cpuSpeed : 1;
     SetRam(machine->ram.data());
     SetProgram(roms.program.data(), static_cast<uint32_t>(roms.program.size()));
+    SetProgramOpcodes(roms.opcodes.data());
+#ifdef GAME_EXTRA_SET
+    {
+        const uint32_t base = static_cast<uint32_t>(strtoul(GAME_EXTRA_BASE, nullptr, 16));
+        machine->SetExtraProgram(&extraRoms, base);
+        SetExtraProgram(extraRoms.program.data(), extraRoms.opcodes.data(), static_cast<uint32_t>(extraRoms.program.size()), base);
+        SetExtraSound(machine->extraSound.get());
+    }
+#endif
     SetEeprom(&machine->eeprom);
     RegisterGame();
+    machine->cpu.pointerFrom = PointerLoads(machine->cpu.extraLow, machine->cpu.extraHigh);
+    machine->cpu.keepHistory = getenv("CPS2RECOMP_PC_HISTORY") != nullptr;
     RegisterPortFeatures();
     LoadFeatures(opt.settingsPath, opt.features);
     // The 68000 and the Z80 are run the same way; each falls back to its interpreter if the build has no
@@ -746,11 +805,11 @@ void Port::RunAhead() {
         }
     }
     const size_t sound = machine->audio.size();
-    const uint16_t held[2] = {machine->players[0], machine->players[1]};
+    uint16_t held[Machine::kMaxPlayers];
+    memcpy(held, machine->players, sizeof(held));
     SetRunningAhead(true);
     for (int n = 0; n < ahead; n++) {
-        machine->players[0] = held[0];
-        machine->players[1] = held[1];
+        memcpy(machine->players, held, sizeof(held));
         if (TheGame().beforeFrame) {
             TheGame().beforeFrame(*machine);
         }
@@ -768,8 +827,26 @@ void Port::RunAhead() {
     }
     SetRunningAhead(false);
     machine->audio.resize(sound);
-    machine->players[0] = held[0];
-    machine->players[1] = held[1];
+    memcpy(machine->players, held, sizeof(held));
+}
+
+// The port's rapid fire: a button the player holds is the game's pressed for two frames and let go for two, from
+// the frame it goes down (so the first press is not held back). Movies keep what the player held.
+void Port::RapidFire() {
+    const int choice = FeatureValue("rapid_fire");
+    const uint16_t buttons = choice == 1 ? kPunch1 : choice == 2 ? (kPunch1 | kPunch2 | kPunch3 | kKick1 | kKick2 | kKick3) : 0;
+    for (int player = 0; player < Machine::kMaxPlayers; player++) {
+        for (int bit = 0; bit < 16; bit++) {
+            const uint16_t mask = static_cast<uint16_t>(1u << bit);
+            if (!(buttons & mask) || !(machine->players[player] & mask)) {
+                rapidHeld[player][bit] = 0;
+                continue;
+            }
+            if ((rapidHeld[player][bit]++ / 2) % 2) {
+                machine->players[player] &= static_cast<uint16_t>(~mask);
+            }
+        }
+    }
 }
 
 void Port::RunFrame() {
@@ -779,8 +856,7 @@ void Port::RunFrame() {
     if (!opt.moviePlay.empty()) {
         auto it = playMovie.changes.find(frame);
         if (it != playMovie.changes.end()) {
-            pad[0] = it->second.first;
-            pad[1] = it->second.second;
+            std::copy(it->second.begin(), it->second.end(), pad);
         }
     } else if (opt.autoPlay) {
         // Made-up play, to reach as much of the game as it can: coins and start buttons now and then, sticks
@@ -803,14 +879,12 @@ void Port::RunFrame() {
                     autoPad[p] = held;
                 }
             }
-            pad[0] = autoPad[0];
-            pad[1] = autoPad[1];
+            std::copy(std::begin(autoPad), std::end(autoPad), pad);
         }
     }
-    if (!opt.movieRecord.empty() && (pad[0] != lastRecorded[0] || pad[1] != lastRecorded[1])) {
-        recMovie.changes[frame] = {pad[0], pad[1]};
-        lastRecorded[0] = pad[0];
-        lastRecorded[1] = pad[1];
+    if (!opt.movieRecord.empty() && memcmp(pad, lastRecorded, sizeof(pad)) != 0) {
+        std::copy(std::begin(pad), std::end(pad), recMovie.changes[frame].begin());
+        memcpy(lastRecorded, pad, sizeof(pad));
     }
     // (tests: --menu FRAME:KEYS[:shot.png]: the menu opened at that frame and those buttons pressed in it:
     // u d l r, a for a button)
@@ -831,8 +905,8 @@ void Port::RunFrame() {
         }
         menu.Close();
     }
-    machine->players[0] = pad[0];
-    machine->players[1] = pad[1];
+    memcpy(machine->players, pad, sizeof(pad));
+    RapidFire();
     if (coinFrames > 0) {
         coinFrames--;
         machine->players[0] |= kCoin;
@@ -846,7 +920,8 @@ void Port::RunFrame() {
     if (testFrames > 0) {
         testFrames--;
     }
-    const uint16_t pressed[2] = {machine->players[0], machine->players[1]}; // (for run-ahead's frames)
+    uint16_t pressed[Machine::kMaxPlayers]; // (for run-ahead's frames)
+    memcpy(pressed, machine->players, sizeof(pressed));
 
     std::string path, error;
     if (AtFrame(opt.stateLoad, frame, path) && !LoadState(path, error)) {
@@ -894,7 +969,10 @@ void Port::RunFrame() {
             fflush(file);
         }
     }
-    if (AtFrame(opt.dumpRam, frame, path)) {
+    for (const std::string &dump : opt.dumpRam) {
+        if (!AtFrame(dump, frame, path)) {
+            continue;
+        }
         WriteFile(path, machine->ram.data(), machine->ram.size());
         // (and beside it the video memory, and the video chips' and object registers as 16-bit words)
         WriteFile(path + ".video", machine->videoRam.data(), machine->videoRam.size());
@@ -910,8 +988,7 @@ void Port::RunFrame() {
     if (hashFile) {
         fprintf(hashFile, "%llu %08x\n", static_cast<unsigned long long>(frame), StateHash());
     }
-    machine->players[0] = pressed[0];
-    machine->players[1] = pressed[1];
+    memcpy(machine->players, pressed, sizeof(pressed));
     RunAhead();
     if (opt.shotEvery && frame % opt.shotEvery == 0) {
         char shot[512];
@@ -966,6 +1043,22 @@ void Port::Finish() {
     }
 }
 
+#ifdef _WIN32
+static const char *const kExeSuffix = ".exe";
+#else
+static const char *const kExeSuffix = "";
+#endif
+
+bool InCollection() {
+    static const bool collection = [] {
+        const char *base = SDL_GetBasePath();
+        std::error_code missing;
+        return base && !std::filesystem::exists(std::string(base) + GAME_ID "-launcher" + kExeSuffix, missing) &&
+               std::filesystem::exists(std::string(base) + "cps2recomp-launcher" + kExeSuffix, missing);
+    }();
+    return collection;
+}
+
 } // namespace port
 
 namespace {
@@ -974,6 +1067,8 @@ void Usage() {
     fprintf(stderr,
             "%s\n"
             "  --rom PATH             the ROM set (%s): a folder with its files, or its zip\n"
+            "  --rom2 PATH            (a game that reads another set too) that set: a folder or zip (else\n"
+            "                         beside --rom, by the set's name)\n"
             "  --eeprom FILE          where the board's settings memory is kept\n"
             "  --cpu MODE             native (translated code), blocks (the interpreter run the same way),\n"
             "                         interp (the interpreter, an instruction at a time), check\n"
@@ -1008,7 +1103,7 @@ void Usage() {
             "  --soundtrack DIR       the custom soundtrack's folder (its songs.txt names the files)\n"
             "  --soundtrack-dump FILE (with --headless) write what the custom soundtrack plays to a WAV file\n"
             "  --poke A=B,...         write byte B at RAM address A after every frame (hex)\n"
-            "  --dump-ram F:FILE      write work RAM after frame F (and FILE.video, .objects, .regs)\n"
+            "  --dump-ram F:FILE      write work RAM after frame F (and FILE.video, .objects, .regs); more than once\n"
             "  --check-rewrites       run every rewritten routine and its original, and report differences\n"
             "  --no-rewrites          run the game's own routines where the sources have rewrites\n"
             "  --trace LOW-HIGH:FILE  those bytes of work RAM after every frame, appended to FILE\n"
@@ -1028,6 +1123,8 @@ bool ParseArgs(int argc, char **argv, port::Options &o) {
         auto next = [&]() -> const char * { return i + 1 < argc ? argv[++i] : ""; };
         if (a == "--rom") {
             o.romPath = next();
+        } else if (a == "--rom2") {
+            o.extraRomPath = next();
         } else if (a == "--eeprom") {
             o.eepromPath = next();
         } else if (a == "--cpu") {
@@ -1134,7 +1231,7 @@ bool ParseArgs(int argc, char **argv, port::Options &o) {
         } else if (a == "--trace") {
             o.trace = next();
         } else if (a == "--dump-ram") {
-            o.dumpRam = next();
+            o.dumpRam.push_back(next());
         } else if (a == "--poke") {
             o.poke = next();
         } else if (a == "--keys") {
@@ -1162,11 +1259,7 @@ bool StartLauncher() {
     if (!base) {
         return false;
     }
-#ifdef _WIN32
-    const char *kExe = ".exe";
-#else
-    const char *kExe = "";
-#endif
+    const char *kExe = port::kExeSuffix;
     std::string launcher = std::string(base) + GAME_ID "-launcher" + kExe;
     std::error_code missing;
     bool collection = false;
@@ -1239,10 +1332,28 @@ int main(int argc, char **argv) {
             fwrite(p.roms.soundProgram.data(), 1, std::min<size_t>(p.roms.soundProgram.size(), 0x8000), sound);
             fclose(sound);
         }
+        // (... and, where the Z80 deciphers its opcodes another way, the opcodes)
+        if (!p.roms.soundOpcodes.empty()) {
+            if (FILE *ops = fopen((p.opt.dumpProgram + ".z80ops").c_str(), "wb")) {
+                fwrite(p.roms.soundOpcodes.data(), 1, p.roms.soundOpcodes.size(), ops);
+                fclose(ops);
+            }
+        }
         // (and the program as data: what the game's tables are read from)
         if (FILE *data = fopen((p.opt.dumpProgram + ".data").c_str(), "wb")) {
             fwrite(p.roms.program.data(), 1, p.roms.program.size(), data);
             fclose(data);
+        }
+        // (and the extra set's, if the game reads one: FILE.extra, FILE.extra.data)
+        if (!p.extraRoms.opcodes.empty()) {
+            if (FILE *extra = fopen((p.opt.dumpProgram + ".extra").c_str(), "wb")) {
+                fwrite(p.extraRoms.opcodes.data(), 1, p.extraRoms.opcodes.size(), extra);
+                fclose(extra);
+            }
+            if (FILE *extra = fopen((p.opt.dumpProgram + ".extra.data").c_str(), "wb")) {
+                fwrite(p.extraRoms.program.data(), 1, p.extraRoms.program.size(), extra);
+                fclose(extra);
+            }
         }
         return 0;
     }

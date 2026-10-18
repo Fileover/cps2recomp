@@ -43,7 +43,9 @@ Machine::Machine(const RomSet &roms)
     , objectRam(0x4000)
     , extraRam(0x4000)
     , m_roms(roms)
-    , m_picture(static_cast<size_t>(Video::kMaxWidth) * Video::kHeight) {
+    , m_picture(static_cast<size_t>(Video::kMaxWidth) * Video::kHeight)
+    , m_cps1(roms.board.cps1)
+    , m_cyclesPerLine(roms.board.cps1 ? kCps1CpuCyclesPerLine : kCpuCyclesPerLine) {
     Video::Sources sources;
     sources.graphics = roms.graphics.data();
     sources.graphicsSize = roms.graphics.size();
@@ -51,7 +53,9 @@ Machine::Machine(const RomSet &roms)
     sources.cpsA = cpsA;
     sources.cpsB = cpsB;
     sources.objectRegs = objectRegs;
+    sources.board = roms.board;
     video = Video(sources);
+    eeprom.eightBit = m_cps1;
     if (const char *layers = getenv("CPS2RECOMP_LAYERS")) {
         video.layerMask = static_cast<unsigned>(strtoul(layers, nullptr, 0)); // (bit 0 objects, 1-3 scroll screens)
     }
@@ -84,6 +88,7 @@ void Machine::Reset() {
     std::fill(videoRam.begin(), videoRam.end(), 0);
     std::fill(objectRam.begin(), objectRam.end(), 0);
     std::fill(extraRam.begin(), extraRam.end(), 0);
+    std::fill(scrollFromExtra.begin(), scrollFromExtra.end(), 0);
     memset(soundRam, 0, sizeof(soundRam));
     memset(soundRam2, 0, sizeof(soundRam2));
     soundtrack.Reset();
@@ -116,7 +121,18 @@ void Machine::Reset() {
     video.Reset();
     qsound.Reset();
     soundCpu.Reset();
+    if (extraSound) {
+        extraSound->Reset();
+    }
     cpu.Reset(true);
+    if (m_cps1) {
+        // (a CPS-1's Z80 is never held: it runs from the start)
+        m_soundRunning = true;
+        if (soundDriver && soundSide != SoundSide::Z80) {
+            soundDriver->shadow = soundSide == SoundSide::Check;
+            soundDriver->Reset();
+        }
+    }
 }
 
 // --- time ---
@@ -160,7 +176,7 @@ void Machine::RunLine() {
     // The video chip's two line counters count down each line (and start again at the top of the frame);
     // one reaching zero asks for a raster interrupt, which comes as far into the line as the third says
     bool raster = false;
-    for (int n = 0; n < 2; n++) {
+    for (int n = 0; n < 2 && !m_cps1; n++) {
         if (m_line == 0) {
             m_rasterCounter[n] = m_rasterReload[n];
         } else {
@@ -173,7 +189,11 @@ void Machine::RunLine() {
     if (m_line == kBlankingLine) {
         m_blankInterrupt = true;
         UpdateInterruptLevel();
-        video.LatchObjects(&objectRam[m_objectBank ? 0x2000 : 0]);
+        if (m_cps1) {
+            video.LatchObjectsCps1();
+        } else {
+            video.LatchObjects(&objectRam[m_objectBank ? 0x2000 : 0], m_extra ? objectsFromExtra[m_objectBank ? 1 : 0] : nullptr);
+        }
     }
 
     // (the board's timing: the video chip's DMA holds the 68000's bus at the start of the line)
@@ -185,7 +205,7 @@ void Machine::RunLine() {
 
     // (the CPU stops a little after the time it is given, and the next line is that much shorter for it)
     const uint64_t start = m_lineStart;
-    m_lineStart += (kCpuCyclesPerLine * cpuSpeed);
+    m_lineStart += static_cast<uint64_t>(m_cyclesPerLine * cpuSpeed);
     if (raster) {
         cpu.Run(start + static_cast<uint64_t>(m_rasterCounter[2]) * 4, cpuMode);
         m_rasterInterrupt = true;
@@ -244,6 +264,14 @@ void Machine::RunSound(int cycles) {
             }
             int16_t sample[2];
             qsound.Step(sample);
+            if (extraSound) {
+                extraSound->RunTo(m_sampleAt);
+                int16_t extra[2];
+                extraSound->Step(extra);
+                for (int n = 0; n < 2; n++) {
+                    sample[n] = static_cast<int16_t>(std::clamp(sample[n] + extra[n], -32768, 32767));
+                }
+            }
             audio.push_back(sample[0]);
             audio.push_back(sample[1]);
             m_sampleCount++;
@@ -323,6 +351,9 @@ uint16_t Machine::Fetch16(uint32_t address) {
     if (address < m_roms.opcodes.size()) {
         return Word(&m_roms.opcodes[address]);
     }
+    if (InExtra(address)) {
+        return Word(&m_extra->opcodes[address - m_extraBase]);
+    }
     return Read16(address); // (code in RAM is not enciphered)
 }
 
@@ -362,18 +393,22 @@ uint32_t Machine::LineDma() {
 
 // 68000 cycles into the line
 int Machine::LineCycles() const {
-    return static_cast<int>(static_cast<int64_t>(cpu.cycles) - static_cast<int64_t>(m_lineStart - (kCpuCyclesPerLine * cpuSpeed)));
+    return static_cast<int>(static_cast<int64_t>(cpu.cycles) - static_cast<int64_t>(m_lineStart - static_cast<uint64_t>(m_cyclesPerLine * cpuSpeed)));
 }
 
 uint16_t Machine::Read16(uint32_t address) {
     if (address >= 0xFF0000) {
         return Word(&ram[address & 0xFFFE]);
     }
-    if (address < 0x400000) {
+    if (address < m_roms.program.size()) {
         return Word(&m_roms.program[address]);
     }
     if (address >= 0x900000 && address < 0x930000) {
         return Word(&videoRam[address - 0x900000]);
+    }
+    if (InExtra(address)) {
+        ReadExtra();
+        return Word(&m_extra->program[address - m_extraBase]);
     }
     return ReadRegister(address);
 }
@@ -382,11 +417,15 @@ uint8_t Machine::Read8(uint32_t address) {
     if (address >= 0xFF0000) {
         return ram[address & 0xFFFF];
     }
-    if (address < 0x400000) {
+    if (address < m_roms.program.size()) {
         return m_roms.program[address];
     }
     if (address >= 0x900000 && address < 0x930000) {
         return videoRam[address - 0x900000];
+    }
+    if (InExtra(address)) {
+        ReadExtra();
+        return m_extra->program[address - m_extraBase];
     }
     const uint16_t word = ReadRegister(address & ~1u);
     return static_cast<uint8_t>((address & 1) ? word : word >> 8);
@@ -399,6 +438,7 @@ void Machine::Write16(uint32_t address, uint16_t value) {
     }
     if (address >= 0x900000 && address < 0x930000) {
         SetWord(&videoRam[address - 0x900000], value);
+        VideoWritten(address);
         return;
     }
     WriteRegister(address, value, 0xFFFF);
@@ -411,6 +451,7 @@ void Machine::Write8(uint32_t address, uint8_t value) {
     }
     if (address >= 0x900000 && address < 0x930000) {
         videoRam[address - 0x900000] = value;
+        VideoWritten(address);
         return;
     }
     if (address & 1) {
@@ -422,25 +463,31 @@ void Machine::Write8(uint32_t address, uint8_t value) {
 
 // The inputs are wired so that a line reads 0 while pressed
 uint16_t Machine::Input(int port) const {
-    const uint16_t p1 = players[0], p2 = players[1];
+    const uint16_t p1 = players[0], p2 = players[1], p3 = players[2], p4 = players[3];
     uint16_t pressed = 0;
     switch (port) {
     case 0: // sticks and punches
         pressed = static_cast<uint16_t>((p1 & 0x7F) | ((p2 & 0x7F) << 8));
         break;
-    case 1: // kicks (player 2's hard kick is on the next port)
-        pressed = static_cast<uint16_t>(((p1 >> 7) & 7) | (((p2 >> 7) & 3) << 4));
+    case 1:
+        // A six-button game's kicks (player 2's hard kick is on the next port); a game of three or four players has
+        // players 3 and 4 here (stick and three buttons each), the same lines
+        pressed = static_cast<uint16_t>(((p1 >> 7) & 7) | (((p2 >> 7) & 3) << 4) | (p3 & 0x7F) | ((p4 & 0x7F) << 8));
         break;
     default:
         pressed = static_cast<uint16_t>((testSwitch ? 0x0002 : 0) | (serviceButton ? 0x0004 : 0) | ((p1 & kStart) ? 0x0100 : 0) |
-                                        ((p2 & kStart) ? 0x0200 : 0) | ((p1 & kCoin) ? 0x1000 : 0) |
-                                        ((p2 & kCoin) ? 0x2000 : 0) | ((p2 & kKick3) ? 0x4000 : 0));
+                                        ((p2 & kStart) ? 0x0200 : 0) | ((p3 & kStart) ? 0x0400 : 0) | ((p4 & kStart) ? 0x0800 : 0) |
+                                        ((p1 & kCoin) ? 0x1000 : 0) | ((p2 & kCoin) ? 0x2000 : 0) | ((p3 & kCoin) ? 0x4000 : 0) |
+                                        ((p4 & kCoin) ? 0x8000 : 0) | ((p2 & kKick3) ? 0x4000 : 0));
         return static_cast<uint16_t>((~pressed & 0xFFFE) | (eeprom.DataOut() ? 1 : 0));
     }
     return static_cast<uint16_t>(~pressed);
 }
 
 uint16_t Machine::ReadRegister(uint32_t address) {
+    if (m_cps1) {
+        return ReadCps1(address);
+    }
     if (address >= 0x400000 && address < 0x40000C) {
         return objectRegs[(address - 0x400000) / 2];
     }
@@ -481,6 +528,10 @@ uint16_t Machine::ReadRegister(uint32_t address) {
 }
 
 void Machine::WriteRegister(uint32_t address, uint16_t value, uint16_t mask) {
+    if (m_cps1) {
+        WriteCps1(address, value, mask);
+        return;
+    }
     auto combine = [&](uint16_t &reg) {
         reg = static_cast<uint16_t>((reg & ~mask) | (value & mask));
         return reg;
@@ -501,6 +552,9 @@ void Machine::WriteRegister(uint32_t address, uint16_t value, uint16_t mask) {
         if (mask & 0x00FF) {
             const uint32_t at = (address - 0x618000) / 2;
             soundRam[at] = static_cast<uint8_t>(value);
+            if (extraSound && at >= 0x010) { // (the game's settings and its greeting: the other side's too; not requests)
+                extraSound->Shared(at, static_cast<uint8_t>(value));
+            }
             if (at == 0x00F && soundRam[0x00F] != 0xFF) { // (a request is there: soundtrack.h)
                 soundtrack.Request(soundRam, frame);
             }
@@ -513,10 +567,12 @@ void Machine::WriteRegister(uint32_t address, uint16_t value, uint16_t mask) {
     }
     if (address >= 0x700000 && address < 0x702000) {
         combineBytes(&objectRam[m_objectBank * 0x2000 + (address & 0x1FFE)]);
+        ObjectWritten(m_objectBank, address);
         return;
     }
     if (address >= 0x708000 && address < 0x710000) {
         combineBytes(&objectRam[(m_objectBank ^ 1) * 0x2000 + (address & 0x1FFE)]);
+        ObjectWritten(m_objectBank ^ 1, address);
         return;
     }
     const uint32_t chip = address & ~0x4000u; // (the video chips answer at 8001xx as well as 8041xx)
@@ -559,6 +615,9 @@ void Machine::WriteRegister(uint32_t address, uint16_t value, uint16_t mask) {
                 }
             }
             m_soundRunning = run;
+            if (extraSound) {
+                extraSound->SetRunning(run);
+            }
         }
         return;
     case 0x8040A0: return; // (written once at start-up)
@@ -569,6 +628,95 @@ void Machine::WriteRegister(uint32_t address, uint16_t value, uint16_t mask) {
         return;
     case 0x664000: return;
     default: break;
+    }
+    Unmapped("write", address, cpu.pc);
+}
+
+// --- a CPS-1 with QSound (MAME's cps1.cpp has the map, jtcps1_main.v the inputs' wiring) ---
+
+// 800000: players 1 (low byte) and 2 (high): the stick and three buttons each. 800018: the system's switches in the
+// high byte (coins 1 and 2, the service button, Start 1 and 2, the test switch). F1C000, F1C002: players 3 and 4,
+// with their coin and Start (in both bytes). F1C006: the settings memory's data out. All 0 while pressed.
+uint16_t Machine::ReadCps1(uint32_t address) {
+    const uint16_t p1 = players[0], p2 = players[1];
+    auto stick = [](uint16_t p) { return static_cast<uint16_t>(p & 0x7F); };
+    if (address >= 0x800000 && address < 0x800008) {
+        return static_cast<uint16_t>(~(stick(p1) | (stick(p2) << 8)));
+    }
+    if (address == 0x800018) {
+        const unsigned pressed = ((p1 & kCoin) ? 0x01 : 0) | ((p2 & kCoin) ? 0x02 : 0) | (serviceButton ? 0x04 : 0) | ((p1 & kStart) ? 0x10 : 0) |
+                                 ((p2 & kStart) ? 0x20 : 0) | (testSwitch ? 0x40 : 0);
+        return static_cast<uint16_t>(((~pressed & 0xFF) << 8) | 0xFF);
+    }
+    if (address >= 0x80001A && address < 0x800020) {
+        return 0xFFFF; // (no DIP switches: the settings are in the settings memory)
+    }
+    if (address == 0xF1C000 || address == 0xF1C002) {
+        const uint16_t p = players[address == 0xF1C000 ? 2 : 3];
+        const unsigned pressed = (p & 0x3F) | ((p & kCoin) ? 0x40 : 0) | ((p & kStart) ? 0x80 : 0);
+        const uint16_t byte = static_cast<uint16_t>(~pressed & 0xFF);
+        return static_cast<uint16_t>((byte << 8) | byte);
+    }
+    if (address == 0xF1C006) {
+        return static_cast<uint16_t>(0xFFFE | (eeprom.DataOut() ? 1 : 0));
+    }
+    if (address >= 0xF18000 && address < 0xF1A000) {
+        return static_cast<uint16_t>(0xFF00 | soundRam[(address - 0xF18000) / 2]);
+    }
+    if (address >= 0xF1E000 && address < 0xF20000) {
+        return static_cast<uint16_t>(0xFF00 | soundRam2[(address - 0xF1E000) / 2]);
+    }
+    if (address >= 0xF00000 && address < 0xF10000) {
+        const size_t at = (address - 0xF00000) / 2;
+        return static_cast<uint16_t>(0xFF00 | (at < m_roms.soundProgram.size() ? m_roms.soundProgram[at] : 0xFF));
+    }
+    if (address >= 0x800140 && address < 0x800180) {
+        return 0xFFFF; // (this CPS-B has no multiplier or ID to read)
+    }
+    Unmapped("read", address, cpu.pc);
+    return 0xFFFF;
+}
+
+void Machine::WriteCps1(uint32_t address, uint16_t value, uint16_t mask) {
+    auto combine = [&](uint16_t &reg) {
+        reg = static_cast<uint16_t>((reg & ~mask) | (value & mask));
+    };
+    if (address >= 0x800100 && address < 0x800140) {
+        const unsigned index = (address & 0x3E) / 2;
+        combine(cpsA[index]);
+        if (index == 0x0A / 2) {
+            video.CopyPalette(); // (writing the palette's address makes the chip take the palette)
+        }
+        return;
+    }
+    if (address >= 0x800140 && address < 0x800180) {
+        combine(cpsB[(address & 0x3E) / 2]);
+        return;
+    }
+    if (address >= 0xF18000 && address < 0xF1A000) {
+        if (mask & 0x00FF) {
+            const uint32_t at = (address - 0xF18000) / 2;
+            soundRam[at] = static_cast<uint8_t>(value);
+            if (at == 0x00F && soundRam[0x00F] != 0xFF) { // (a request is there: soundtrack.h)
+                soundtrack.Request(soundRam, frame);
+            }
+        }
+        return;
+    }
+    if (address >= 0xF1E000 && address < 0xF20000) {
+        if (mask & 0x00FF) {
+            soundRam2[(address - 0xF1E000) / 2] = static_cast<uint8_t>(value);
+        }
+        return;
+    }
+    if (address == 0xF1C006) {
+        if (mask & 0x00FF) {
+            eeprom.SetLines(value & 0x80, value & 0x40, value & 0x01); // (select, clock, data in)
+        }
+        return;
+    }
+    if ((address >= 0x800030 && address < 0x800038) || address == 0xF1C004 || (address >= 0x800180 && address < 0x800190)) {
+        return; // (coin counters and lock-outs; the CPS-1's sound latches, which a QSound board does not use)
     }
     Unmapped("write", address, cpu.pc);
 }
@@ -658,6 +806,10 @@ void Machine::Serialize(Archive &ar) {
     ar.Vec(ram);
     ar.Vec(videoRam);
     ar.Vec(objectRam);
+    if (m_extra) {
+        ar.Pod(objectsFromExtra);
+        ar.Vec(scrollFromExtra);
+    }
     ar.Vec(extraRam);
     ar.Pod(soundRam);
     ar.Pod(soundRam2);
@@ -682,6 +834,9 @@ void Machine::Serialize(Archive &ar) {
     ar.Vec(m_chipQueue);
     ar.Pod(m_chipNext);
     ar.Pod(m_chipLast);
+    if (extraSound) {
+        extraSound->Serialize(ar);
+    }
     if (ar.version == 0 || ar.version >= 6) { // (a save state from before soundtracks has none)
         soundtrack.Serialize(ar);
     } else if (!ar.Saving()) {

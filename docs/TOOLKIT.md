@@ -1,7 +1,7 @@
 # The toolkit
 
 cps2recomp is the toolkit the games in this repository are made with: it makes native PC ports of Capcom CPS-2
-arcade games by static recompilation. A game's 68000 program is translated to C++ ahead of time and compiled
+arcade games (and CPS-1 games with QSound: [below](#a-cps-1-game)) by static recompilation. A game's 68000 program is translated to C++ ahead of time and compiled
 into the port. There it runs on a small machine written for this toolkit: the video, the QSound chip, the sound
 CPU (with its driver translated too, or rewritten as ordinary code), the board's registers and its settings
 memory. No emulator is part of a port, and no game data is in this repository.
@@ -109,6 +109,34 @@ the include path) says what is its own.
   places a `family.h` names.
 - The shared rewrites are checked against the other game's own code like any rewrite
   (`games/vampire_savior/check_family.sh`).
+
+## A CPS-1 game
+
+The CPS-2 grew out of the CPS-1, and the toolkit runs CPS-1 games with QSound (the "CPS-1.5": Cadillacs and Dinosaurs
+and its kind) too. A game says so in its `game.cfg`:
+
+```
+board = cps1
+cps_b = 0A 0C 0E 00 02 04 16 16 16
+```
+
+`cps_b` is where the game's CPS-B chip has its registers (byte offsets, as MAME's table of the chips gives them for the
+game): layer control, the four priority masks, palette control, and the layer control's bits that switch scroll
+screens 1-3 on. With it, the machine (`machine/machine.*`) has the CPS-1's memory map and inputs (players 1 and 2 at
+800000, the switches at 800018, players 3 and 4 at F1C000), a 12 MHz 68000, no raster interrupts, the settings memory
+as 128 bytes, and the sound CPU's two memories where the 68000 sees them (F18000, F1E000); the video
+(`video/video.*`) takes the object list from video RAM and draws the objects as one of the four layers, where the
+layer control puts them, with the scroll screen just below them keeping its high pens (each tile's group picks one
+of the four priority masks) in front of them; the ROM set has no program cipher, no graphics shuffle and its samples
+as bytes. The board timing (`arcade_timing`) is the CPS-2's and stays off.
+
+The sound CPU of these boards deciphers its program as it reads it (Kabuki: opcodes one way, other reads another,
+both by address), and no ROM set carries the key. `machine/kabuki.*` works it out from the program itself when the
+set is loaded: Capcom's QSound programs all start the same way, and every Kabuki key's swap keys are orders of 0-7,
+so a search that splits the cipher's two halves leaves a few thousand candidates, of which one deciphers into code
+that can be followed from its start without a fault. The Z80 reads opcodes through `Z80Bus::ReadOpcode`, and
+`tools/recompz80.py` takes the opcode image (`--opcodes`). A CPS-1 board's graphics PAL maps tile numbers to ROMs; the
+games here have them in order, and a game whose PAL does not will need its map in `cps_b`'s company.
 
 ## Working on the toolkit
 

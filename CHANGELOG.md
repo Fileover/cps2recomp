@@ -10,6 +10,45 @@
   routines Alpha 2's sources hook are mostly not in this game), so no training mode, alternative modes, widescreen or
   custom colours yet.
 
+- **Updates in the launcher**: it checks this repository's releases when it opens and offers a newer version at the
+  top of the Games page; **Update** downloads only the files that changed (a new game: its program and the
+  launcher), checks each against the release's SHA-256, puts them all in place or none, and starts the new launcher
+  (recomp-common 1ea2766, `launcher/src/update.h`). The release scripts write what it reads: each system's
+  `update-<system>.txt` and every file gzipped under its SHA-256 (`tools/release/lib.sh`, `update_files`;
+  docs/RELEASING.md). The first release with them is the first a launcher can update to: a copy older than this
+  feature is updated by hand once.
+
+- **Vampire Savior Definitive** (beta; `games/vsav_definitive`; ROM sets `vsavj` and `vsav2`): Vampire Savior with
+  Donovan, Phobos and Pyron taken from Vampire Savior 2 (its code, pictures and sounds), all eighteen characters
+  by Vampire Savior's rules. At the character choice the three have places of their own, a row under the grid
+  with their faces (and the Definitive page of the in-game menu);
+  the training mode, the modes and the model viewer have them; the arcade goes to its end with them. The launcher
+  gives it the `vsav2` set chosen on Vampire Savior 2's page (recomp-common 568e39f, `Launch::file_of`; `--rom2`).
+  How: an extra ROM set mapped from A00000 (`game.cfg`'s `extra_set`), objects and scroll tiles drawn from its
+  graphics, a second sound side with its sound program and samples (`machine/sound_board.h`), and `tools/graft.py`
+  with the game's `graft.cfg` (tables by character, `extend`, `mask`, `divert`, `ram`, `patch`). Not yet: Donovan's
+  stage and Vampire Savior 2's music.
+- Hooks are numbered in 16 bits (from the 256th on they went to the wrong hooks).
+- **Two beat-'em-ups for three players: Alien vs. Predator and Cadillacs and Dinosaurs** (`games/avsp`, ROM set
+  `avspu`, USA 940520, a CPS-2 game; `games/dino`, ROM set `dino`, World 930201, a CPS-1 game with QSound). Each has
+  three players at once, free play, a round or stage to start at, the board's settings on the Board page (Alien vs.
+  Predator's Players setting lets the third join: on in Enhanced), infinite health, lives and time, straight to the
+  title, and everything the port gives every game. Both translated whole and checked (`make check`).
+- **A CPS-1 board with QSound** ("CPS-1.5") in the toolkit: `board = cps1` and `cps_b` in a game.cfg; its memory map,
+  inputs for three or four players, 12 MHz, the objects in video RAM placed among the scroll screens by the layer
+  control (with the layer below them keeping its high pens in front), the settings memory as 128 bytes, no program
+  cipher, and the sound CPU's Kabuki cipher deciphered with a key worked out from the player's own ROM in about a
+  second (`machine/kabuki.*`; no key is in the repository). The Z80 reads opcodes through `Z80Bus::ReadOpcode`.
+- **Up to four players**: game.cfg's `players`, the CPS-2's third and fourth players' wiring, movies with a column
+  for each player who presses something, run-ahead and the spare machines keeping every player. recomp-common's
+  bindings take up to four players; the Controllers page has a button for each.
+- **A game's own names for its buttons** (game.cfg's `buttons`, "Attack | Jump | Shoot"): its launcher shows them and
+  only them, laid out on a gamepad as a beat-'em-up's are; in the collection every game shares one table, a fighting
+  game's six with the other games' names beside them.
+- **Rapid fire** (`rapid_fire`, Game page, every game): a held button pressed for two frames and let go for two, for
+  the first button or all of them; the first press is not held back.
+- `--dump-ram` may be given more than once. The launcher's words fit a game with no key file or training mode.
+
 - **Arcade timing** (the `arcade_timing` feature, Game page, off unless chosen): the 68000 runs as on the board,
   its acknowledge a clock late for every access outside 500000-7FFFFF and its bus taken by the CPS-A's DMA (the row
   scroll, the scroll layers' tile rows, the palette), so a game slows down where and as much as on the board

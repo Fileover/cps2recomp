@@ -47,7 +47,8 @@ void RunSpare(Machine &machine, Spare &spare, const std::function<void(Machine &
               const std::function<void(Machine &)> &after) {
     g_spareRan = true;
     // What a save state does not hold is kept by hand: the picture, the controls, the video's switches
-    const uint16_t held[2] = {machine.players[0], machine.players[1]};
+    uint16_t held[Machine::kMaxPlayers];
+    memcpy(held, machine.players, sizeof(held));
     const auto hide = machine.video.hideObject;
     const unsigned layers = machine.video.layerMask;
     const bool mark = machine.video.markObjects;
@@ -73,7 +74,7 @@ void RunSpare(Machine &machine, Spare &spare, const std::function<void(Machine &
         Archive ar(spare.state, false);
         machine.Serialize(ar);
     }
-    machine.players[0] = machine.players[1] = 0;
+    memset(machine.players, 0, sizeof(machine.players));
     machine.video.hideObject = nullptr;
     machine.video.layerMask = 0xF;
     machine.video.markObjects = false;
@@ -99,8 +100,7 @@ void RunSpare(Machine &machine, Spare &spare, const std::function<void(Machine &
         machine.Serialize(ar);
     }
     memcpy(machine.Picture(), picture.data(), pixels * sizeof(uint32_t));
-    machine.players[0] = held[0];
-    machine.players[1] = held[1];
+    memcpy(machine.players, held, sizeof(held));
     machine.video.hideObject = hide;
     machine.video.layerMask = layers;
     machine.video.markObjects = mark;

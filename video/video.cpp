@@ -5,6 +5,7 @@
 
 #include "../runtime/state.h"
 
+#include <algorithm>
 #include <cstring>
 
 namespace cps2recomp {
@@ -13,8 +14,7 @@ namespace {
     // CPS-A registers (word index)
     enum { kScroll1Base = 1, kScroll2Base = 2, kScroll3Base = 3, kOtherBase = 4, kPaletteBase = 5 };
     enum { kScroll1X = 6, kRowScrollOffset = 16, kVideoControl = 17 };
-    // CPS-B registers (word index), as the CPS-2's chip has them
-    enum { kLayerControl = 0x26 / 2, kPaletteControl = 0x30 / 2 };
+    // (CPS-B registers: where the board has them, Board)
     // Object registers at 0x400000 (word index)
     enum { kObjPriority = 2, kObjXOffset = 4, kObjYOffset = 5 };
 
@@ -44,7 +44,7 @@ void Video::Reset() {
 // the control register says which pages are there. A colour is 4 bits each of brightness, red, green, blue.
 void Video::CopyPalette() {
     const uint32_t base = (static_cast<uint32_t>(m_src.cpsA[kPaletteBase]) * 256) & ~0x3FFu & 0x3FFFF;
-    const uint16_t control = m_src.cpsB[kPaletteControl];
+    const uint16_t control = m_src.cpsB[m_src.board.paletteControl / 2];
     uint32_t at = base;
     for (int page = 0; page < 6; page++) {
         if (control & (1u << page)) {
@@ -63,10 +63,13 @@ void Video::CopyPalette() {
     }
 }
 
-void Video::LatchObjects(const uint8_t *objectRam) {
+void Video::LatchObjects(const uint8_t *objectRam, const uint8_t *fromExtra) {
     m_priorityControl = m_src.objectRegs[kObjPriority];
     for (int n = 0; n < 0x1000; n++) {
         m_objects[n] = Word(&objectRam[n * 2]);
+    }
+    if (fromExtra) {
+        memcpy(m_objectsFromExtra, fromExtra, sizeof(m_objectsFromExtra));
     }
     // The list ends at the first entry marked so
     m_lastObject = 0x1000 - 4;
@@ -83,7 +86,7 @@ void Video::LatchObjects(const uint8_t *objectRam) {
 
 // One scroll screen's pixels on a raster line. which: 0 (8-pixel tiles), 1 (16), 2 (32).
 template <bool kWide>
-void Video::DrawScroll(int which, int rasterLine, uint16_t *pens, uint8_t *priority, uint8_t mark) {
+void Video::DrawScroll(int which, int rasterLine, uint16_t *pens, uint8_t *priority, uint8_t mark, uint8_t *high) {
     const uint16_t *a = m_src.cpsA;
     const uint32_t base = (static_cast<uint32_t>(a[kScroll1Base + which]) * 256) & ~0x3FFFu & 0x3FFFF;
     const uint8_t *map = &m_src.videoRam[base];
@@ -125,34 +128,39 @@ void Video::DrawScroll(int which, int rasterLine, uint16_t *pens, uint8_t *prior
                 attr = itsAttr;
             }
         }
-        // Where the tile is in the graphics ROMs: the scroll screens' tiles are in the second 8 MB
+        // Where the tile is in the graphics ROMs: a CPS-2's scroll screens' tiles are in the second 8 MB; a CPS-1's
+        // are where the objects' are (its board's PAL maps tile numbers to ROMs; the games here have them in order)
+        const uint32_t base = m_src.board.cps1 ? 0 : 0x800000;
         uint32_t at;
         int rowBytes;
         switch (which) {
         case 0:
-            at = 0x800000 + code * 64 + ((column & 1) ? 4 : 0); // (odd columns use the right half of a 16-pixel strip)
+            at = base + code * 64 + ((column & 1) ? 4 : 0); // (odd columns use the right half of a 16-pixel strip)
             rowBytes = 8;
             break;
         case 1:
-            at = 0x800000 + code * 128;
+            at = base + code * 128;
             rowBytes = 8;
             break;
         default:
             code &= 0x3FFF;
-            at = 0x800000 + code * 512;
+            at = base + code * 512;
             rowBytes = 16;
             break;
         }
         const int line = static_cast<int>(y & (size - 1));
         const bool flipX = attr & 0x20, flipY = attr & 0x40;
         at += static_cast<uint32_t>(flipY ? size - 1 - line : line) * rowBytes;
-        if (at + rowBytes > m_src.graphicsSize) {
+        // (a tile of the extra set's: in its graphics)
+        const bool extra = m_extraGraphics && m_scrollFromExtra && m_scrollFromExtra[(base + index * 4) / 4];
+        const uint8_t *graphics = extra ? m_extraGraphics : m_src.graphics;
+        if (at + rowBytes > (extra ? m_extraGraphicsSize : m_src.graphicsSize)) {
             continue;
         }
         const uint16_t colour = static_cast<uint16_t>(((attr & 0x1F) + colourBase) * 16);
         uint8_t pixels[32];
         for (int part = 0; part < size / 8; part++) {
-            Unpack(&m_src.graphics[at + part * 4], &pixels[part * 8]);
+            Unpack(&graphics[at + part * 4], &pixels[part * 8]);
         }
         for (int k = 0; k < size; k++) {
             const int x = out + k;
@@ -163,6 +171,10 @@ void Video::DrawScroll(int which, int rasterLine, uint16_t *pens, uint8_t *prior
             if (pen != 15) {
                 pens[x] = static_cast<uint16_t>(colour + pen);
                 priority[x] |= mark;
+                if (high) {
+                    // (a CPS-1's: the tile's group picks a priority mask, whose pens are in front of the objects)
+                    high[x] = (m_src.cpsB[m_src.board.priority[(attr >> 7) & 3] / 2] >> pen) & 1;
+                }
             }
         }
     }
@@ -194,6 +206,10 @@ void Video::DrawObjects(int rasterLine, uint16_t *pens, uint8_t *priority, const
         const bool flipX = attr & 0x20, flipY = attr & 0x40;
         const uint16_t colour = static_cast<uint16_t>((attr & 0x1F) * 16);
         const uint32_t mask = masks[level] | 0x80000000u;
+        // (an object of the extra set's: its tiles are in its graphics)
+        const bool extra = m_extraGraphics && m_objectsFromExtra[i / 4];
+        const uint8_t *graphics = extra ? m_extraGraphics : m_src.graphics;
+        const size_t graphicsSize = extra ? m_extraGraphicsSize : m_src.graphicsSize;
         // (where the first column drawn is in the object's own count across, which wraps at 1024)
         const int first = kWide ? kFirstColumn - wide.side - (wide.object ? wide.object(code, attr, i / 4) : 0) - 16 : 0;
         for (int ty = 0; ty < down; ty++) {
@@ -217,12 +233,12 @@ void Video::DrawObjects(int rasterLine, uint16_t *pens, uint8_t *priority, const
                     tile = (!flipX && !flipY) ? (code & ~0xFu) + ((code + cx) & 0xF) + 0x10 * cy : code + cx + 0x10 * cy;
                 }
                 const uint32_t at = (tile * 128 + static_cast<uint32_t>(flipY ? 15 - line : line) * 8);
-                if (at + 8 > m_src.graphicsSize) {
+                if (at + 8 > graphicsSize) {
                     continue;
                 }
                 uint8_t pixels[16];
-                Unpack(&m_src.graphics[at], pixels);
-                Unpack(&m_src.graphics[at + 4], pixels + 8);
+                Unpack(&graphics[at], pixels);
+                Unpack(&graphics[at + 4], pixels + 8);
                 for (int k = 0; k < 16; k++) {
                     const int px = sx + k;
                     if (px < 0 || px >= width) {
@@ -241,7 +257,131 @@ void Video::DrawObjects(int rasterLine, uint16_t *pens, uint8_t *priority, const
     }
 }
 
+void Video::LatchObjectsCps1() {
+    m_priorityControl = 0;
+    const uint32_t base = (static_cast<uint32_t>(m_src.cpsA[0]) * 256) & ~0x7FFu & 0x3FFFF;
+    std::fill(std::begin(m_objects), std::end(m_objects), 0);
+    for (int n = 0; n < 0x400 && base + n * 2 + 1 < 0x30000; n++) {
+        m_objects[n] = Word(&m_src.videoRam[base + n * 2]);
+    }
+    // The list ends at the first entry whose attributes' high byte is FF
+    m_lastObject = 0x400 - 4;
+    for (int n = 0; n < 0x400; n += 4) {
+        if ((m_objects[n + 3] & 0xFF00) == 0xFF00) {
+            m_lastObject = n - 4;
+            break;
+        }
+    }
+    if (objectsTaken) {
+        objectsTaken(m_objects, m_lastObject);
+    }
+}
+
+// A CPS-1's objects on a raster line: entries of x, y, tile and attributes (colour, flips, a block of up to 16 x 16
+// tiles whose numbers go on within their row of sixteen), the first entry in front. Each is drawn in front of the
+// layers below it but where `high` is set (the high pens of the scroll screen just below the objects).
+void Video::DrawObjectsCps1(int rasterLine, uint16_t *pens, const uint8_t *high) {
+    const int width = Width();
+    uint8_t claimed[kMaxWidth] = {};
+    for (int i = 0; i <= m_lastObject; i += 4) {
+        const int x = m_objects[i], y = m_objects[i + 1];
+        const uint32_t code = m_objects[i + 2];
+        const uint16_t attr = m_objects[i + 3];
+        if (hideObject && hideObject(code, attr)) {
+            continue;
+        }
+        const bool blocks = (attr & 0xFF00) != 0;
+        const int across = blocks ? ((attr >> 8) & 0x0F) + 1 : 1, down = blocks ? ((attr >> 12) & 0x0F) + 1 : 1;
+        const bool flipX = attr & 0x20, flipY = attr & 0x40;
+        const uint16_t colour = static_cast<uint16_t>((attr & 0x1F) * 16);
+        const int shift = wide.side - kFirstColumn - (wide.object ? wide.object(code, attr, i / 4) : 0);
+        for (int ty = 0; ty < down; ty++) {
+            const int sy = (y + ty * 16) & 0x1FF;
+            if (rasterLine < sy || rasterLine >= sy + 16) {
+                continue;
+            }
+            const int line = rasterLine - sy;
+            for (int tx = 0; tx < across; tx++) {
+                const int sx = ((x + tx * 16) & 0x1FF) + shift;
+                if (sx <= -16 || sx >= width) {
+                    continue;
+                }
+                const int cx = flipX ? across - 1 - tx : tx, cy = flipY ? down - 1 - ty : ty;
+                const uint32_t tile = (code & ~0xFu) + ((code + cx) & 0xF) + 0x10 * cy;
+                const uint32_t at = tile * 128 + static_cast<uint32_t>(flipY ? 15 - line : line) * 8;
+                if (at + 8 > m_src.graphicsSize) {
+                    continue;
+                }
+                uint8_t pixels[16];
+                Unpack(&m_src.graphics[at], pixels);
+                Unpack(&m_src.graphics[at + 4], pixels + 8);
+                for (int k = 0; k < 16; k++) {
+                    const int px = sx + k;
+                    if (px < 0 || px >= width || claimed[px]) {
+                        continue;
+                    }
+                    const uint8_t pen = pixels[flipX ? 15 - k : k];
+                    if (pen != 15) {
+                        claimed[px] = 1;
+                        if (!high[px]) {
+                            pens[px] = static_cast<uint16_t>(colour + pen);
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+// A CPS-1's line: the layer control orders the four layers back to front (0: the objects; 1-3: the scroll screens,
+// each on as its enable bit and the video control say); the layer just below the objects keeps its high pens in front
+// of them (MAME's cps1_render_high_layer)
+void Video::RenderLineCps1(int line, uint32_t *out) {
+    const int rasterLine = line + kFirstLine;
+    const int width = Width();
+    uint16_t pens[kMaxWidth];
+    uint8_t priority[kMaxWidth], high[kMaxWidth];
+    for (int x = 0; x < width; x++) {
+        pens[x] = 0xBFF;
+    }
+    memset(priority, 0, sizeof(priority));
+    memset(high, 0, sizeof(high));
+    const Board &board = m_src.board;
+    const uint16_t control = m_src.cpsB[board.layerControl / 2];
+    const uint16_t videoControl = m_src.cpsA[kVideoControl];
+    const unsigned order[4] = {(control >> 6) & 3u, (control >> 8) & 3u, (control >> 10) & 3u, (control >> 12) & 3u};
+    for (int n = 0; n < 4; n++) {
+        const unsigned layer = order[n];
+        if (layer == 0) {
+            if (layerMask & 1) {
+                DrawObjectsCps1(rasterLine, pens, high);
+            }
+            continue;
+        }
+        const bool on = (layerMask & (1u << layer)) && (control & board.enable[layer - 1]) &&
+                        (layer == 1 || (videoControl & (layer == 2 ? 0x04 : 0x08)));
+        if (on) {
+            const bool belowObjects = n < 3 && order[n + 1] == 0;
+            if (belowObjects) {
+                memset(high, 0, sizeof(high));
+            }
+            if (wide.side || wide.scroll[0] || wide.scroll[1] || wide.scroll[2] || wide.rows || wide.tile) {
+                DrawScroll<true>(static_cast<int>(layer) - 1, rasterLine, pens, priority, static_cast<uint8_t>(1u << n), belowObjects ? high : nullptr);
+            } else {
+                DrawScroll<false>(static_cast<int>(layer) - 1, rasterLine, pens, priority, static_cast<uint8_t>(1u << n), belowObjects ? high : nullptr);
+            }
+        }
+    }
+    for (int x = 0; x < width; x++) {
+        out[x] = m_palette[pens[x]];
+    }
+}
+
 void Video::RenderLine(int line, uint32_t *out) {
+    if (m_src.board.cps1) {
+        RenderLineCps1(line, out);
+        return;
+    }
     if (wide.side || wide.scroll[0] || wide.scroll[1] || wide.scroll[2] || wide.rows || wide.object || wide.tile) {
         RenderLineAs<true>(line, out);
     } else {
@@ -292,7 +432,7 @@ void Video::RenderLineAs(int line, uint32_t *out) {
 
     // The layer control register orders four layers back to front (0: the CPS-1's objects, which the
     // CPS-2 does not have; 1-3: the scroll screens) and switches the scroll screens on
-    const uint16_t control = m_src.cpsB[kLayerControl];
+    const uint16_t control = m_src.cpsB[m_src.board.layerControl / 2];
     const uint16_t videoControl = m_src.cpsA[kVideoControl];
     unsigned l0 = (control >> 6) & 3, l1 = (control >> 8) & 3, l2 = (control >> 10) & 3, l3 = (control >> 12) & 3;
     unsigned p0 = (m_priorityControl >> (4 * l0)) & 0xF, p1 = (m_priorityControl >> (4 * l1)) & 0xF;
@@ -384,6 +524,9 @@ void Video::Serialize(Archive &ar) {
     ar.Pod(m_objects);
     ar.Pod(m_priorityControl);
     ar.Pod(m_lastObject);
+    if (m_extraGraphics) {
+        ar.Pod(m_objectsFromExtra);
+    }
 }
 
 } // namespace cps2recomp
