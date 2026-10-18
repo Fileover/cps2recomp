@@ -38,6 +38,8 @@ block is checked against an interpreter of the same program ([how it was made](P
   the launcher.
 - An in-game menu (Esc or `F1`; on a gamepad, the left stick's click or Start and Select together) with save
   states, speed, the cheats and every feature.
+- **Rapid fire** (Game page): a button held down is pressed again and again, fifteen times a second, for the first
+  button or for all of them; the first press is seen at once.
 - **Pure** plays exactly as the board does. **Enhanced** (the default) adds free play. Every other feature is a
   switch of its own.
 - **Straight to the title** (Game page): at a start or a reset, everything before the title (the board's start,
