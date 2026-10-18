@@ -582,8 +582,29 @@ Tester feedback (2026-10-14, branch `tester-feedback`):
   the viewer's machine, eight a frame, counting objects in sets kPaletteSlot+0..3 of the list the game
   made. About 300 animations, done a few seconds after the editor shows the character. Morrigan: line 1
   A56, line 2 C2 (4 objects), line 3 A53. Not for the kFirstLineOnly characters.
-- Ring out drop: rise 48 lines and fade to black over 32 frames, then the next stage from 48 below and
-  from black over 32; sound crossfaded over the whole 64.
+- Ring out drop (until 2026-10-18): rise 48 lines and fade to black over 32 frames, then the next stage from 48
+  below and from black over 32; sound crossfaded over the whole 64. Now the toolkit's (below).
+
+## The fighting modes in the toolkit; the ring out's movements (2026-10-18)
+
+`src/battle.cpp` is now this game's `battle::Description` for the toolkit's `fight/battle.h` (the same modes, moved
+there with Street Fighter Alpha 2's), and `RingOutStep`, which `frames.cpp`'s hook at the player step (02244C)
+asks first (true: the step is made, the game's routine not run):
+
+- Flung out: kState 02020202 (reeling, knocked down, in the air: what the game has then), airborne FF, the speeds
+  (three quarters of a pixel a step away, 6 up, less 0x6800 a step), and the reelings' animation 42 (027EC0, the
+  second of the three tables, list B: thrown back). Coming down from the top: 65 (falling), as the game does; then
+  only 015466 (fly) and 027F70 (the animation on), stopped 400 under the floor. Seen in endless battles traced:
+  a knock-down in the air is B42 frames 0-3 up, B65 down, B20 landed (also B35 for some hits); the same numbers
+  in Vampire Savior 2 and Vampire Hunter 2. No cry: what follows B42 at 023E4E (061054) makes the hit's sparks.
+- Dropping in: the winner's record on the old stage, 04-FF but its place (10-17) and kOpponent, put in the next
+  match's record (kState 02000602 is the jump in the air here too), then its place.
+- `camera.cpp`'s CameraTo: with `beyondEnds` the camera goes where it is wanted at once (the way down's camera
+  moves up to 9 a frame).
+- Vampire Savior 2 and Vampire Hunter 2: 027EC0 and 027F70 were not in their `family.h` lists; found by their
+  instructions and written "by hand" (027114/0271C4, 027142/0271F2). 015466 was there.
+- Known: a "FIGHT" sign shows on the old stage a second or so after a ring out, before the winner jumps; it did
+  before this change too (seen with the fling switched off). Not looked into.
 
 ## Board settings (2026-10-15)
 

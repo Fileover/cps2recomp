@@ -7,6 +7,7 @@
 // are loaded into the port's machine, run and put away again within a frame.
 #pragma once
 
+#include "battle.h"
 #include "machine.h"
 #include "spare.h"
 #include "vsav.h"
@@ -17,24 +18,14 @@
 
 namespace cps2recomp {
 
-// What the machine that is running is to fight when the game next makes a match, for the game's own choice
-// of stage (training.cpp's hook): the stage (1-12; 0: the game's choice), the two characters and their
-// colours (-1: the ones chosen at the character choice). Whoever runs a machine sets this first.
-struct MatchWanted {
-    int stage = 0;
-    int characters[2] = {-1, -1};
-    int colours[2] = {-1, -1}; // which of a character's sets of colours (-1: as chosen)
-};
+// What the machine that is running is to fight (fight/battle.h, MatchWanted), for the game's own choice of stage
+// (training.cpp's hook)
 MatchWanted &Wanted();
 // The character a mode's fighter on side n (0, 1) is given for `character`: its hidden form when the "Hidden
 // characters" feature asks for that side (choosing.cpp), or itself
 int HiddenForm(int n, int character);
 
-// Where the machine that is running is to have its camera (the picture's left edge and bottom, in the
-// stage), whatever the players do: -1 leaves that to the game.
-struct CameraWanted {
-    int x = -1, y = -1;
-};
+// Where the machine that is running is to have its camera (fight/battle.h, CameraWanted): camera.cpp's routines ask
 CameraWanted &CameraAt();
 
 // A round of a match is being fought
@@ -71,11 +62,11 @@ void NoShadow(Machine &machine, int player);
 bool AttractMode();  // modes.cpp
 bool StageViewer();
 void EndModes();
-bool BattleMode();   // battle.cpp
-void EndBattle();
 // The colour sets of a player's own objects (the first player's 10-15, the second's 16-21), as a mask of bits
 constexpr uint32_t kPlayerSets[2] = {0x0000FC00, 0x003F0000};
-bool BattleNoClock();     // the round's clock stands still
-bool BattleNoKnockOut();  // nobody's health goes below nothing
+// The fighting modes (battle.cpp: the toolkit's, fight/battle.h), and the ring out's own movements at a player's
+// step (A6): true when it has made the step itself
+void RegisterBattle();
+bool RingOutStep(M68K &c);
 
 } // namespace cps2recomp

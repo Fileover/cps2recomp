@@ -7,6 +7,7 @@
 // the advantage after a hit or a guarded one, and a meter of the last sixty steps; and, asked, every move's
 // numbers written to frame_data.csv beside settings.ini (fight::MoveLog).
 #include "frames.h"
+#include "modes.h"
 
 #include "state.h"
 #include "widescreen.h"
@@ -47,6 +48,10 @@ namespace {
     // player. (Seen as the player's own routine starts on this step: its record is then as the last step left it,
     // which is what the picture showed and the hit tests tested.)
     bool PlayerStep(M68K &c) {
+        if (RingOutStep(c)) { // (the ring out's own movements: battle.cpp)
+            Return(c);
+            return true;
+        }
         const uint32_t player = c.a[6] & 0xFFFFFF;
         const int n = player == Player(0) ? 0 : player == Player(1) ? 1 : -1;
         if (n < 0 || Ram8(player + kState) != 2) {

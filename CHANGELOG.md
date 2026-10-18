@@ -2,13 +2,17 @@
 
 ## Unreleased
 
-- **Street Fighter Alpha 2's ring out**: a fighter knocked over the end of the stage is thrown back with the game's
-  own knock-down animation and cry, and falls through the floor and out of the picture (before, its picture slid
-  down); it is out as soon as it is past where the board would have stopped it, while still in sight. The winner
-  jumps off, and at the top of its jump goes on in the next match as it was (place, picture, speeds): the camera
-  follows it down past the old stage to the next one's floor, the winner in front of both, and it lands as from
-  any jump (`games/sfa2/src/battle.cpp`, `RingOutMove`, `HandOver`, `Drop`; `player.cpp`, `FlungOut` and `DropsIn`
-  in PlayerFighting; the camera may be held beyond a stage's ends, `CameraWanted::beyondEnds`).
+- **Ring out, in Street Fighter Alpha 2 and the Vampire Savior games**: a fighter knocked over the end of the stage
+  is thrown back with the game's own knock-down animation (and in Street Fighter Alpha 2 its cry), and falls
+  through the floor and out of the picture (before, its picture slid down); it is out as soon as it is past where
+  the board would have stopped it, while still in sight. The winner jumps off, and at the top of its jump goes on
+  in the next match as it was (place, picture, speeds): the camera follows it down past the old stage to the next
+  one's floor, the winner in front of both, and it lands as from any jump. (Vampire Savior's way down faded
+  through black; it is the same as Street Fighter Alpha 2's now.)
+- **The fighting modes in the toolkit** (`fight/battle.h`): survival, the endless battle and the ring out, one
+  copy for every fighting game, which describes its memory and makes the ring out's two movements at its players'
+  step (`games/sfa2/src/player.cpp`, PlayerFighting; `games/vampire_savior/src/battle.cpp`, RingOutStep from the
+  player step hook). The camera may be held beyond a stage's ends (`CameraWanted::beyondEnds`).
 
 - **Updates in the launcher**: it checks this repository's releases when it opens and offers a newer version at the
   top of the Games page; **Update** downloads only the files that changed (a new game: its program and the

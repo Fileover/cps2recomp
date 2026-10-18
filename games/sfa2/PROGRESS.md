@@ -98,7 +98,8 @@ no window only (pictures, traces); nobody has used them in a window or listened.
   own picture with every object but player 2's is drawn where the character's pixels are, so what is in front of
   the fighters stays in front (of the 18 stages with the character in the middle, only Guy's pipe). The hidden
   player 2 casts no shadow here (Vampire Savior's needed moving off).
-- **Survival, endless battle, ring out** (`src/battle.cpp`: Vampire Savior's, ported onto this game's names):
+- **Survival, endless battle, ring out** (the toolkit's `fight/battle.h` since 2026-10-18, `src/battle.cpp` this
+  game's description; first Vampire Savior's, ported onto this game's names):
   survival is one computer opponent after another on the health left (a sixth back for each beaten); the endless
   battle is two fighters the game plays with no bars and no clock, the one knocked down replaced, a fighter taken
   over by touching its controls and given back after ten idle seconds, on one stage, on stages that fade into

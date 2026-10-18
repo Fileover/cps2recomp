@@ -20,6 +20,29 @@ player's `settings.ini` reads the same across the ports.
 scrolls into the next, the next fight made ready while the last one ends): `RunSpare`, `Promote`, `Take`, `Give`,
 and `SetSpareKeeping` for what a game keeps of its own around a spare's frame.
 
+## The fighting modes
+
+`fight/battle.h`: survival, the endless battle and the ring out, for a game's "Alternative modes" page. A game fills
+in a `battle::Description` (its result byte, camera, players' and thrown things' records, health, characters and
+stages, and hooks for its own: getting a machine to a round, a sound, what is wanted of the next match, which
+objects are the stage's, the panel's and the fighters') and calls `battle::Register`; the menu's pages, commands and
+features are the same in every game.
+
+The ring out needs two things of the game's player code, at each player's step of a fight (`RingOutMove`):
+
+- **Flung out** (`kFlungOut`, then `kFalling`): the one knocked past where the game would keep it in
+  (`RingOutLetsOut`, asked where the game keeps the players in) is put in the game's knock-down in the air, with
+  the game's own animation of being thrown back, speeds up and away, and from then on only flies and animates
+  (the game's routine for it not run), so it falls through the floor and out of the picture.
+- **Dropping in** (`kDropsIn`): the winner jumps off the old stage; at the top of its jump its record there is handed
+  to the next match's machine, where the game puts it in the air as it was (its frame, speeds, steps), at the same
+  place in the picture, a picture's height above the floor. That machine's camera is held up by as much
+  (`CameraWanted::beyondEnds`) and comes down as the winner falls, the old stage's picture going up and the next
+  one's coming in below it, the fighters over both, until the game's own jump lands it.
+
+Street Fighter Alpha 2 makes them in its PlayerFighting rewrite; the Vampire Savior games in their player step hook
+(02244C).
+
 ## Custom colours and the colour editor
 
 `fight/colours.h` gives a game the players' own colours for its characters and an editor to make them, as

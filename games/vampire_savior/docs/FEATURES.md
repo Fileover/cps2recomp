@@ -51,9 +51,10 @@ board does not have. Each mode has a page there with a Start row and its choices
   down is replaced. Pressing anything on a player's controls takes that fighter over, and ten
   seconds without a press gives it back.
 - **Ring out**: choose a character. Nobody loses health: the ends of a stage are open, and a
-  fighter knocked over one (while reeling from a hit, guarding one or thrown) falls. Put your
-  opponent out and you jump down to the next stage and the next opponent; over when you fall, with
-  the count of ring outs.
+  fighter knocked over one (while reeling from a hit, guarding one or thrown) is thrown back, as by a
+  knock-down, and falls through the floor. Put your opponent out and you jump off after it: the
+  camera follows you down to the next stage and the next opponent; over when you fall, with the count
+  of ring outs.
 
 | Feature | Name in `settings.ini` | What it does |
 | --- | --- | --- |

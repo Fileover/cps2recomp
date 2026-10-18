@@ -145,6 +145,8 @@ inline constexpr Place kPlaceList[] = {
     {0x02244C, 0x020E02}, // an instruction, 4 on alike
     {0x027694, 0x02686A}, // an instruction, 24 on alike
     {0x0276A6, 0x02687C}, // an instruction, 24 on alike
+    {0x027EC0, 0x027114}, // the reelings' animation set (battle.cpp), found by its instructions: the second of three tables, then 0x382(a6) by hand
+    {0x027F70, 0x0271C4}, // the animation on a step (battle.cpp), found by its instructions: subq.b #1,0x20(a6) and the frame's flags by hand
     {0x028192, 0x0273E6}, // an instruction, 24 on alike
     {0x02824C, 0x0274A8}, // an instruction, 24 on alike
     {0x07D240, 0x08B97A}, // an instruction, 11 on alike

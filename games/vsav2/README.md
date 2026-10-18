@@ -96,7 +96,7 @@ gauge, infinite time).
 | Model viewer | One character by itself, on a stage or on plain white or black, from a quarter of its size to 25 times, standing and moving with your controls or going through any of its animations, at full speed or in slow motion |
 | Survival | One opponent after another on the health you have left. How many can you beat? |
 | Endless battle | Two fighters the game plays, for as long as you like, with no bars and no clock, on one stage, on stages that fade one into another, or on a floor that scrolls through them all. Touch the controls to take a fighter over |
-| Ring out | No health. Knock your opponent over the end of the stage and jump down to the next one |
+| Ring out | No health. Knock your opponent over the end of the stage (it is thrown back, as by a knock-down, and falls through the floor), then jump down after it and land on the next stage |
 | Colour editor | Change a character's colours while you watch: custom colours, below |
 
 ## Widescreen
