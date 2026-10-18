@@ -44,6 +44,8 @@ emulator ([how it works](docs/PORT.md)).
   the launcher.
 - An in-game menu (Esc or `F1`; on a gamepad, the left stick's click or Start and Select together) with the
   training mode and the other modes, save states, speed, the cheats and every feature.
+- **Rapid fire** (Game page): a button held down is pressed again and again, fifteen times a second, for the first
+  button or for all of them; the first press is seen at once.
 - **Pure** plays exactly as the board does. **Enhanced** (the default) adds free play and your own
   [character colours](#custom-colours). Every other feature is a switch of its own.
 - The board's operator settings (difficulty, damage level, timer speed, game speed, rounds and the
