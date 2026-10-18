@@ -21,6 +21,7 @@
 #include "sfa.h"
 
 #include "machine.h"
+#include "state.h"
 
 #include <iterator>
 
@@ -42,7 +43,9 @@ namespace {
     };
     constexpr uint32_t kContinue = kVars + 0x198, kEvent = kVars + 0x1A5;
 
-    // The board's own values of what was chosen, to put back for its test menu
+    // The board's own values of what was chosen, to put back for its test menu. (All four are kept with the game's
+    // state, BoardState: they say what the variables in RAM hold, so a state loaded or run-ahead's frame taken back
+    // must bring them back with the RAM.)
     uint8_t g_board[std::size(kSettings)];
     uint8_t g_continue = 0;
     bool g_chosen = false; // the choices are in the variables
@@ -96,6 +99,14 @@ void BoardBeforeFrame(Machine &machine) {
         g_chosen = false;
         g_again = true;
     }
+}
+
+void BoardState(Archive &ar) {
+    ar.Mark(0x424F4152); // BOAR
+    ar.Bytes(g_board, sizeof g_board);
+    ar.Pod(g_continue);
+    ar.Pod(g_chosen);
+    ar.Pod(g_again);
 }
 
 void RegisterBoard() {

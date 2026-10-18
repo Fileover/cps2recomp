@@ -11,6 +11,7 @@ void RegisterCheats(); // cheats.cpp
 void CheatsState(Archive &ar);
 void RegisterTitle(); // title.cpp
 void RegisterBoard(); // board.cpp
+void BoardState(Archive &ar);
 void RegisterMusic(); // music.cpp
 void BoardBeforeFrame(Machine &machine);
 void TitleFrame(Machine &machine);
@@ -31,6 +32,7 @@ void RegisterGame() {
     // (what the sources keep between frames, with save states and run-ahead's frames taken back)
     TheGame().state = [](Archive &ar) {
         CheatsState(ar);
+        BoardState(ar);
     };
     // Its own, never set for the other games by the collection's launcher: Damage level has Super Puzzle Fighter II
     // Turbo's choices (Low, Normal, High, Maximum), where it means the counter gems an attack sends
