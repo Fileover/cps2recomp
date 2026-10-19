@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.4.0-beta.3
+
 - **Another game: Street Fighter Alpha** (`games/sfa`; ROM set `sfa`, *Street Fighter Alpha: Warriors' Dreams*,
   Europe 950727). Its 68000 program and its sound program (driver 1.05A) translated whole, checked block by block
   over the ladder and versus movies; with free play, straight to the title, the board's settings (Board page), cheats
