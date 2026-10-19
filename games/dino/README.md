@@ -6,7 +6,8 @@
 
 An unofficial native PC port of the arcade game *Cadillacs and Dinosaurs* (Capcom, 1993, CPS-1 board with QSound)
 for macOS, Linux (Steam Deck included) and Windows, made by static recompilation: a beat-'em-up for up to three
-players, with free play, a stage to start at, the board's own settings and cheats. It is the first game here from the
+players, with free play, a stage to start at, a score attack, viewers for its stages and characters, the board's own
+settings and cheats. It is the first game here from the
 CPS-2's older brother, the CPS-1.
 
 > **Beta.** The game plays through its first stages in made-up play and its code is checked instruction by instruction, but
@@ -45,6 +46,18 @@ about a second. No key is in this repository.
 - **Pure** plays exactly as the board does. **Enhanced** (the default) adds free play. Every other feature is a
   switch of its own.
 - **Start at stage**: a new game starts at the beginning of any of the eight stages.
+- **Alternative modes**, at the head of the in-game menu:
+  - **Attract mode**: the game's own show on a loop, with its sound on: all of it, or only the story (the opening
+    and the dinosaurs' attack), only the demonstrations, or only the characters' files.
+  - **Score attack**: one player and one credit from the first episode, no continue and no cheats, for the best
+    score, which is kept.
+  - **Stage viewer**: each part of each episode with nobody on it, only the scenery and its music, scrolled with the
+    stick or by itself (slow, medium, fast), up and down where the episode climbs or falls, or every part in turn.
+  - **Character viewer**: Jack, Mustapha, Hannah or Mess by themselves, on a stage or on white or black, from a
+    quarter of their size to 25 times, moved with your controls or going through any of their animations, in slow
+    motion if you like.
+- **Custom soundtrack**: your own music files in place of the board's music ([how](../../README.md#a-custom-soundtrack));
+  the game names its pieces in `songs.txt` (each kind of place's music, the bosses', the episodes' maps, continue).
 - **Rapid fire**: a button held down is pressed again and again, for the first button (Attack) or for both.
 - **Cheats**: infinite health, infinite lives and infinite time (the stage's clock stands still), for every player.
 - The board's operator settings on the Board page (difficulty, difficulty 2, extend, lives, continue, demo sound),
@@ -55,6 +68,8 @@ about a second. No key is in this repository.
 - Your ROM set is only ever read. Settings, save states and the board's settings memory go in your own user folder.
 
 ![Inside the mansion, stage 1](../../docs/screenshots/dino/mansion.png)
+
+![The stage viewer: episode 2, The Swamp Forest, with nobody on it](../../docs/screenshots/dino/stage-viewer.png)
 
 ## What you need
 

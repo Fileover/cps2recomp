@@ -6,7 +6,7 @@
 
 An unofficial native PC port of the arcade game *Alien vs. Predator* (Capcom, 1994, CPS-2 board) for macOS, Linux
 (Steam Deck included) and Windows, made by static recompilation: a beat-'em-up for up to three players, with free
-play, a round to start at, the board's own settings and cheats.
+play, a round to start at, a score attack, viewers for its stages and characters, the board's own settings and cheats.
 
 > **Beta.** The game plays through its first rounds in made-up play and its code is checked instruction by instruction, but
 > nobody has played it by hand yet. Expect rough edges, and please [report what you find](#feedback-and-contributing).
@@ -38,6 +38,18 @@ program; what the program expects of the board is code written for this project,
 - **Pure** plays exactly as the board does. **Enhanced** (the default) adds free play and the third player. Every
   other feature is a switch of its own.
 - **Start at round**: a new game starts at the beginning of any of the seven rounds.
+- **Alternative modes**, at the head of the in-game menu:
+  - **Attract mode**: the game's own show on a loop, with its sound on: all of it, or only the story, only the
+    demonstration fights, or only the characters' files and how to play them.
+  - **Score attack**: one player and one credit from round 1, no continue and no cheats, for the best score, which
+    is kept.
+  - **Stage viewer**: each of the rounds' scenes with nobody on it, only the scenery and its music, scrolled with
+    the stick or by itself (slow, medium, fast), or every scene in turn.
+  - **Character viewer**: the Predator Warrior, Dutch Schaefer, the Predator Hunter or Linn Kurosawa by themselves,
+    on a scene or on white or black, from a quarter of their size to 25 times, moved with your controls or going
+    through any of their animations, in slow motion if you like.
+- **Custom soundtrack**: your own music files in place of the board's music ([how](../../README.md#a-custom-soundtrack));
+  the game names its pieces in `songs.txt` (each round's music, the bosses', player select, the results, continue).
 - **Rapid fire**: a button held down is pressed again and again, for the first button (Attack) or for all of them.
 - **Cheats**: infinite health, infinite lives and infinite time (the round's clock stands still), for every player.
 - The board's operator settings on the Board page (players, difficulty 1-8, extend, lives at the start and after a
@@ -49,6 +61,8 @@ program; what the program expects of the board is code written for this project,
 - Your ROM set is only ever read. Settings, save states and the board's settings memory go in your own user folder.
 
 ![Round 2, War in the Underpass](../../docs/screenshots/avsp/underpass.png)
+
+![The character viewer: the Predator Hunter at twice its size, in the hive of round 4](../../docs/screenshots/avsp/character-viewer.png)
 
 ## What you need
 

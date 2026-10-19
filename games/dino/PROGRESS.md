@@ -28,11 +28,34 @@
   0x32) runs out.
 - **Players**: three records of 0x180 from FFB274 (3274(a5), 33F4(a5), 3574(a5)): +00 in play (1), +6D health (0x64
   full), +A3 lives after this one.
-- **The show**: A5+35 goes 10, 30, 40, 50 as the board starts, 50 as the title is drawn (about frame 312).
+- **The show**: A5+35 goes 10, 30, 40, 50 as the board starts, 50 as the title is drawn (about frame 312). The show
+  is a task that goes through four lists of parts (by the byte at FF0FD0, the table at 097C88), each part a routine
+  it calls: the title (09A3CE, and 098330 its second screen), the characters' files (09A7E6), a demonstration
+  (099E88, from 097D6C and 097D78, which count them: the count picks the stage; the step is 0C in them too), the
+  story (0988C0), the best scores (0983D8), the opening (09BF50). A game over is the step 10, 14, 18, held until the
+  show's next demonstration.
+- **Score**: a player's record +100 (long, BCD; a copy at +110).
+- **Sound**: the sound program's table of songs is at 8006 after a word of their number (0x106); music.cpp names the
+  pieces found by playing. The game asks for music as the CPS-2 games do (the shared memory's first sixteen bytes).
+- **The camera** (viewer.cpp): a record at FF873C, its place across at +08 and up and down at +0C. Each episode is
+  a list of segments (16 bytes, from the table at 021B2A by episode): where each begins (+0, or +2 up and down when
+  +F is set), the camera's way of moving in it (+B; 04 holds it until the wave is beaten and +6D is set, 06 the
+  episode's end, 01 on to the next part), and its part (+A, kept at +4A = FF8786). A part a game can be continued
+  from has a place to start at (021580: ten bytes a part by episode; a part with none goes on from the one before).
+  The camera's set-up (0206EA) starts at segment 0 unless its way is 0E or 0F, loads it (02099A) and takes the part's
+  start; its routine works out its place (the ways' routines, from the table at 02092E) and from 02126E draws the new
+  columns and rows.
+- **Objects**: two pools of 24 records of 0xC0 (FF8874, run by 0233E2; FFB6F4, after the players', by 023620). A
+  record's frame is at +28: 12 bytes, two words of its picture, a long whose last byte is its time (its top bit: the
+  next word says how far on the frame after it is), two words more (00143E for the players: +2C the long, +48 and
+  +60 the words, +4C the picture from the table at 11D220). The object list (CPS-1: in video RAM, at the CPS-A's
+  first register's place) is written by 0143xx-0145xx with `movem`; an object's colours may be its record's +23.
+- **Characters**: a player's +03 (0 Jack, 1 Mustapha, 2 Hannah, 3 Mess), which can be put in as a game begins; their
+  objects are in colours 0, 2, 1 and 3. Six lists of animations each, from the tables at 00163E, 00164E ... 00168E.
 
 ## Not done yet
 
-- A custom soundtrack (this driver's song table and command layout differ from the CPS-2's).
+- Five pieces of music not placed (fanfares played once), and the ending not reached.
 - Weapon cheats (the guns' ammunition): not found yet.
 - Nobody has played it by hand; the sound has not been listened to (it plays: the chip is written and the output is
   loud in play, quiet in the attract with demo sound off).

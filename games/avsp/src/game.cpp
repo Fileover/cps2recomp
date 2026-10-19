@@ -12,6 +12,14 @@ namespace cps2recomp {
 void RegisterTitle(); // title.cpp
 void TitleFrame(Machine &machine);
 void RegisterMusic(); // music.cpp
+void RegisterModes(); // modes.cpp
+int ViewerScene(); // viewer.cpp
+int ViewerCharacter();
+void ViewerFrame(Machine &machine);
+bool ChoicesLeftOut();
+void ModesBeforeFrame(Machine &machine);
+void ModesFrame(Machine &machine);
+void ModesState(Archive &ar);
 
 namespace {
     using namespace avsp;
@@ -89,7 +97,14 @@ namespace {
     // --- Where a game starts: 0082DC has put the players who joined in, and set the scene after round 1's story
     // (008352: its rts)
     bool GameBegins(M68K &) {
-        const int round = FeatureValue("start_round");
+        if (ViewerScene() >= 0) {
+            SetRam16(kScene, static_cast<uint16_t>(ViewerScene() * 2));
+            if (ViewerCharacter() >= 0) {
+                SetRam8(Player(0) + kCharacter, static_cast<uint8_t>(ViewerCharacter()));
+            }
+            return false;
+        }
+        const int round = ChoicesLeftOut() ? 0 : FeatureValue("start_round");
         if (round > 0 && round < kRounds) {
             SetRam16(kScene, static_cast<uint16_t>(kRoundFirstScene[round] * 2));
         }
@@ -106,6 +121,12 @@ namespace {
             SetRam8(kThreePlayers, g_boardThree[0]);
             SetRam8(kThreeChutes, g_boardThree[1]);
             g_chosen = false;
+        }
+        ModesFrame(machine);
+        ViewerFrame(machine);
+        if (ChoicesLeftOut()) {
+            TitleFrame(machine);
+            return; // (free play and the cheats are not the board's own game)
         }
         if (FeatureOn("free_play") && Ram8(kCredits) < 3) {
             SetRam8(kCredits, 3); // (three: every player can join)
@@ -135,6 +156,7 @@ void RegisterGame() {
     RegisterMusic();
     RegisterBoard();
     RegisterTitle();
+    RegisterModes();
     game.features.push_back({"free_play", "Game", "Free play", "Start works without a coin.", kFeatureEnhanced});
     game.features.push_back({"start_round", "Game", "Start at round",
                              "A new game starts at the beginning of the round chosen (the board starts at round 1).", 0,
@@ -143,7 +165,9 @@ void RegisterGame() {
     game.features.push_back({"infinite_lives", "Cheats", "Infinite lives", "A player who goes down always has another life."});
     game.features.push_back({"infinite_time", "Cheats", "Infinite time", "The round's clock stands still."});
     AddHook(0x008352, "GameBegins", GameBegins);
+    game.beforeFrame = ModesBeforeFrame;
     game.frame = Frame;
+    game.state = ModesState;
     OwnFeatures({"start_round"});
 }
 
