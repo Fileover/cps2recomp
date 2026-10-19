@@ -416,6 +416,7 @@ namespace {
             if (spare.ready) {
                 m.players[0] = m.players[1] = 0;
                 m.video.hideObject = d.notTheStage;
+                m.video.layerMask = 0xF & ~d.panelLayers;
                 CameraAt().x = cameraX;
                 CameraAt().y = cameraY;
             }
@@ -664,8 +665,9 @@ namespace {
         g.raisedShown = g.raised;
         RunSpare(machine, g_next, [](Machine &m) {
             m.video.hideObject = d.notTheFighters;
-            m.video.layerMask = 1;
+            m.video.layerMask = 1 | d.panelLayers;
             m.video.markObjects = true;
+            m.video.markLayers = d.panelLayers;
             m.players[0] = 0;
             for (int n = 0; n < 2; n++) {
                 SetRam8(Player(n) + d.computer, 0);
@@ -905,8 +907,9 @@ void BattleFrame(Machine &machine) {
         const bool fighting = (g.kind == Kind::Endless || g.kind == Kind::RingOut) && g.phase != Phase::Starting;
         const bool layered = fighting && Layered();
         machine.video.hideObject = layered ? d.notTheFighters : fighting ? d.thePanel : nullptr;
-        machine.video.layerMask = layered ? 1 : 0xF;
+        machine.video.layerMask = layered ? 1 | d.panelLayers : 0xF;
         machine.video.markObjects = layered;
+        machine.video.markLayers = layered ? d.panelLayers : 0;
     }
 }
 

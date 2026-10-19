@@ -2,6 +2,7 @@
 //
 // Street Fighter Alpha: cheats (optional features: the launcher's Features page and the in-game menu switch
 // them). Made-up play needs them to go up the ladder to its end ('make explore', game.cfg's explore features).
+#include "session.h"
 #include "sfa.h"
 
 #include "state.h"
@@ -18,16 +19,26 @@ namespace {
     }
 
     // D3 is the damage about to come off the health of the player whose record is `victim` (anything else's is
-    // left alone: none was seen over the movies and 130,000 frames of made-up play, but nothing rules one out)
-    bool DamageTo(M68K &c, uint32_t victim) {
+    // left alone: none was seen over the movies and 130,000 frames of made-up play, but nothing rules one out).
+    // The training session is told of it (a guarded hit's is a chip, never part of a combo). Health below nothing
+    // after it is a knockout, so one-hit knockouts take off more than a full bar; with no knockouts (a training
+    // session, the modes that want it) a hit takes no more than the health there is.
+    bool DamageTo(M68K &c, uint32_t victim, bool throwHit = false) {
         const int player = PlayerOf(victim);
         if (player < 0) {
             return false;
+        }
+        if (c.d[3] & 0xFFFF) {
+            session::Hit(player, c.d[3] & 0xFFFF, 0, !throwHit && Ram8(Player(player) + kGuardedHit) == 0xFF);
         }
         if (FeatureOn(player == 0 ? "no_damage" : "no_damage_2")) {
             SetLow16(c.d[3], 0);
         } else if (player == 1 && FeatureOn("one_hit")) {
             SetLow16(c.d[3], kHealthFull + 1);
+        }
+        const int16_t health = static_cast<int16_t>(Ram16(Player(player) + kHealth));
+        if (session::NoKnockOut() && static_cast<int16_t>(c.d[3] & 0xFFFF) > health) {
+            SetLow16(c.d[3], static_cast<uint32_t>(health > 0 ? health : 0));
         }
         return false;
     }
@@ -53,13 +64,18 @@ void RegisterCheats() {
     // 00FA06: sub.w d3,0x40(a1), a hit's damage off the victim's health (A1)
     AddHook(0x00FA06, "HitDamage", [](M68K &c) { return DamageTo(c, c.a[1]); });
     // 021148: sub.w d3,0x40(a4), a throw's
-    AddHook(0x021148, "ThrowDamage", [](M68K &c) { return DamageTo(c, c.a[4]); });
+    AddHook(0x021148, "ThrowDamage", [](M68K &c) { return DamageTo(c, c.a[4], true); });
     AddHook(0x00FA20, "HitPoint", [](M68K &c) {
         const uint32_t record = c.a[1] & 0xFFFFFF;
         const int player = PlayerOf(record);
         g_kept = {};
-        if (player >= 0 && FeatureOn(player == 0 ? "no_damage" : "no_damage_2")) {
-            g_kept = {record, static_cast<int16_t>(Ram16(record + kHealth))};
+        if (player < 0 || Ram8(kRoundResult)) {
+            return false; // (the point is taken only while nobody is down: 00FA20)
+        }
+        session::Hit(player, 1, 0, Ram8(record + kGuardedHit) == 0xFF);
+        const int16_t health = static_cast<int16_t>(Ram16(record + kHealth));
+        if (FeatureOn(player == 0 ? "no_damage" : "no_damage_2") || (session::NoKnockOut() && health < 1)) {
+            g_kept = {record, health};
         }
         return false;
     });
@@ -73,7 +89,7 @@ void RegisterCheats() {
     // 004B3A: subq.b #1 off the round's clock, a second gone (below nothing, time is up). With the cheat the second
     // is given back first, so the clock stands still.
     AddHook(0x004B3A, "ClockSecond", [](M68K &) {
-        if (FeatureOn("infinite_time")) {
+        if (FeatureOn("infinite_time") || session::NoClock()) {
             SetRam8(kRoundClock, static_cast<uint8_t>(Ram8(kRoundClock) + 1));
         }
         return false;

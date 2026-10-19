@@ -2,14 +2,15 @@
 //
 // Street Fighter Alpha: free play (an optional feature: the launcher's Features page and the in-game menu switch
 // it).
+#include "alternative.h"
 #include "sfa.h"
 
 namespace cps2recomp {
 
 // The game is kept in credits, as a coin put in would: it goes to the title and waits for Start, and Start lets a
-// player in. Two, so that a second player can always join.
+// player in. Two, so that a second player can always join. (Not in attract mode, whose show runs with no coin in.)
 void CoinsFrame(Machine &) {
-    if (FeatureOn("free_play") && Ram8(sfa::kCredits) < 2) {
+    if (FeatureOn("free_play") && !modes::AttractMode() && Ram8(sfa::kCredits) < 2) {
         SetRam8(sfa::kCredits, 2);
     }
 }
