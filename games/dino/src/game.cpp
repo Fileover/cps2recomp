@@ -8,6 +8,7 @@
 namespace cps2recomp {
 
 void RegisterBoard(); // board.cpp
+void RegisterMusic(); // music.cpp
 void BoardFrame(Machine &machine);
 
 namespace {
@@ -71,6 +72,7 @@ namespace {
 
 void RegisterGame() {
     Game &game = TheGame();
+    RegisterMusic();
     RegisterBoard();
     game.features.push_back({"free_play", "Game", "Free play", "Start works without a coin.", kFeatureEnhanced});
     game.features.push_back({"skip_intro", "Game", "Straight to the title",
