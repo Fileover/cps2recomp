@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+- **Another game: Super Gem Fighter Mini Mix** (`games/pocket_fighter`; ROM set `sgemf`, *Super Gem Fighter: Mini
+  Mix*, USA 970904, the parent set and the one competitive play uses; *Pocket Fighter* in Japan). The game as the
+  board plays it, translated whole (its 68000 program, and its sound program, Capcom's driver 1.30) and checked,
+  with the features every game has: free play (the game's own, one of the board's coin settings), straight to the
+  title, the board's settings (the Board page: difficulty, damage level, timer speed, game speed, max round, event,
+  join-in, continue, demo sound), cheats (no damage for each player, one-hit knockouts, infinite time), save states,
+  run-ahead, arcade timing and a custom soundtrack (its songs named by number until found). A training mode and the
+  rest are next ([its progress](games/pocket_fighter/PROGRESS.md)).
 - **Alien vs. Predator and Cadillacs and Dinosaurs: alternative modes**, at the head of the in-game menu as the
   fighting games have them:
   - **Attract mode**: the game's own show on a loop, with its sound on and no coin in: all of it, or only the story,

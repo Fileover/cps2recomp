@@ -6,7 +6,7 @@
 
 **Unofficial native PC ports of Capcom's CPS-2 arcade games (and CPS-1 ones), for macOS, Linux (Steam Deck
 included) and Windows, in one download with one launcher.** Each game's program is translated ahead of time into C++
-and runs on a machine written for this project, not an emulator. Each fighting game but Street Fighter Alpha (so far)
+and runs on a machine written for this project, not an emulator. Each fighting game but Street Fighter Alpha and Super Gem Fighter (so far)
 has a training mode, which no release of these games has ever had; the beat-'em-ups take three players at once, with
 free play, a stage to start at, a score attack and viewers for their stages and characters.
 
@@ -22,7 +22,7 @@ file), from a board you own. **Only the version named below works for each game.
 one.
 
 This project is not affiliated with, endorsed by, or sponsored by Capcom. *Street Fighter*, *Super Puzzle
-Fighter*, *Vampire Savior*, *Vampire Hunter* and *Darkstalkers* are trademarks of Capcom Co., Ltd.; *Alien vs. Predator*
+Fighter*, *Super Gem Fighter*, *Pocket Fighter*, *Vampire Savior*, *Vampire Hunter* and *Darkstalkers* are trademarks of Capcom Co., Ltd.; *Alien vs. Predator*
 and *Cadillacs and Dinosaurs* are trademarks of their owners; "CPS-1", "CPS-2" and "QSound" are names and trademarks of
 their owners, used here only to say what the programs work with.
 
@@ -34,6 +34,7 @@ their owners, used here only to say what the programs work with.
 | --- | --- | --- |
 | [**Street Fighter Alpha**](games/sfa/README.md) (1995) | `sfa` (Europe 950727) | The game as the board plays it, with the features every game has (free play, straight to the title, the board's settings, cheats, a custom soundtrack); a training mode is next |
 | [**Street Fighter Alpha 2**](games/sfa2/README.md) (1996) | `sfa2u` (USA 960430) | A full training mode (hit and throw boxes, frame data and a frame meter, combo, stun and Custom Combo readouts, input display, a dummy that records, replays, guards and answers), widescreen, survival, ring out, endless battle, the stage and model viewers, the hidden characters, custom colours |
+| [**Super Gem Fighter Mini Mix**](games/pocket_fighter/README.md) (1997, *Pocket Fighter*) | `sgemf` (USA 970904) | The game as the board plays it, with the features every game has (its own free play, straight to the title, the board's settings, cheats, a custom soundtrack); a training mode is next |
 | [**Super Puzzle Fighter II Turbo**](games/puzzle_fighter/README.md) (1996) | `spf2t` (Europe 960529) | A training mode (attack readout, landing guide, input display, a dummy that sends counter gems to cancel, crash gems as you choose), CPU battle, the hidden characters at a kick, custom colours for the characters and the gems |
 | [**Vampire Savior: The Lord of Vampire**](games/vampire_savior/README.md) (1997) | `vsavj` (Japan 970519) | A full training mode (hit boxes, frame data and a frame meter, input display, a dummy that records, replays and guards), widescreen, survival, ring out, endless battle, the stage and model viewers, the hidden characters, custom colours |
 | [**Vampire Savior 2: The Lord of Vampire**](games/vsav2/README.md) (1997) | `vsav2` (Japan 970913) | Donovan, Phobos and Pyron back, and Donovan's stage; everything Vampire Savior's port has (its sources, checked against this game's code) |
@@ -67,7 +68,7 @@ Each game's page has all it does, with pictures.
 - **Run-ahead**: what you press seen a frame or two sooner than on the board, with the game running exactly as
   without it.
 - **The picture your way**: sharp, whole pixels or smooth; 4:3, square pixels or the whole screen; full screen
-  or a window of the size you choose; widescreen in the fighting games (all but Street Fighter Alpha, so far).
+  or a window of the size you choose; widescreen in the fighting games (all but Street Fighter Alpha and Super Gem Fighter, so far).
 - **The board's operator settings** (difficulty, damage, timer speed, game speed, rounds and the rest), each as
   the board is set unless you choose, and the game's own test menu.
 - **Straight to the title**: at a start or a reset, everything before the title runs unseen.
@@ -87,7 +88,7 @@ Each game's page has all it does, with pictures.
    and unpack it. Each release's page has the steps for macOS, Windows, Linux and the Steam devices.
 2. Open the launcher (`CPS-2 Recomp.app`, `cps2recomp-launcher`). On its Games page, **Choose folder…** and pick
    the folder you keep your ROM sets in: it finds each game's by the set's name (`sfa.zip`, `sfa2u.zip`,
-   `spf2t.zip`, `vsavj.zip`, `vsav2.zip`, `vhunt2.zip`, `avspu.zip`, `dino.zip`, or a folder of the set's files). Or drop a set, or the folder, on the window, or choose each
+   `sgemf.zip`, `spf2t.zip`, `vsavj.zip`, `vsav2.zip`, `vhunt2.zip`, `avspu.zip`, `dino.zip`, or a folder of the set's files). Or drop a set, or the folder, on the window, or choose each
    game's set on its own. They stay where they are.
 3. Press **Play** beside a game. Several games can run at once, each in its own window.
 
@@ -131,7 +132,7 @@ sfa2 --soundtrack ~/music/sfa2-arranged          # a custom soundtrack's folder 
 sfa2 --help                                     # what a game's program takes
 ```
 
-The games' ids are `sfa`, `sfa2`, `puzzle_fighter`, `vampire_savior`, `vsav2`, `vhunt2`, `vsav_definitive`, `avsp` and `dino`. `--features` may be given more than once, and
+The games' ids are `sfa`, `sfa2`, `pocket_fighter`, `puzzle_fighter`, `vampire_savior`, `vsav2`, `vhunt2`, `vsav_definitive`, `avsp` and `dino`. `--features` may be given more than once, and
 a later one wins.
 
 ### A custom soundtrack
@@ -203,7 +204,7 @@ top), to open the in-game menu; its "Quit game" row ends the game.
 
 - The ROM set of each game you want to play (a CPS-2 game's with its key file): `sfa`
   (*Street Fighter Alpha: Warriors' Dreams*, Europe 950727), `sfa2u` (*Street Fighter Alpha 2*, USA 960430),
-  `spf2t` (*Super Puzzle Fighter II Turbo*, Europe 960529), `vsavj` (*Vampire Savior: The Lord of Vampire*,
+  `sgemf` (*Super Gem Fighter: Mini Mix*, USA 970904),   `spf2t` (*Super Puzzle Fighter II Turbo*, Europe 960529), `vsavj` (*Vampire Savior: The Lord of Vampire*,
   Japan 970519), `vsav2` (*Vampire Savior 2: The Lord of Vampire*, Japan 970913), `vhunt2` (*Vampire Hunter 2:
   Darkstalkers Revenge*, Japan 970929), `avspu` (*Alien vs. Predator*, USA 940520), `dino` (*Cadillacs and Dinosaurs*,
   World 930201). Vampire Savior Definitive needs both `vsavj` and `vsav2`. As a zip (with its parent set's zip beside it if your collection keeps the shared files there)
