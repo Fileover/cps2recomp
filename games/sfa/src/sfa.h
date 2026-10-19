@@ -138,6 +138,10 @@ constexpr uint32_t kStick = 0x109;
 constexpr uint32_t kHeadBoxes = 0x110, kBodyBoxes = 0x114, kLegBoxes = 0x118, kAttackBoxes = 0x11C, kPushBoxes = 0x120; // longs
 constexpr uint32_t kFrameHead = 0x08, kFrameBody = 0x09, kFrameLegs = 0x0A, kFrameAttack = 0x0B, kFramePush = 0x0C;    // bytes
 constexpr uint32_t kBoxSize = 4, kAttackBoxSize = 0x10;
+// The records of what the players throw: a pool of eight of 0x80 bytes from FF9000 (01B848 steps them; 0226B2, the
+// guard test, goes through them), +00 1 for one in use; their attacks' table is named by the long at +50
+constexpr uint32_t kThrown = 0xFF9000, kThrownSize = 0x80, kThrownTables = 0x50;
+constexpr int kThrownRecords = 8;
 constexpr uint32_t kHalfWidth = 0x12A; // word: half the player's width (what the picture's edges keep in: 01EEFE)
 constexpr uint32_t kKnocksDown = 0x134; // byte: set by a hit that knocks the player down (a sweep's)
 // The stun: what has built up, and the frames until it goes down again (a hit adds to both)

@@ -29,10 +29,8 @@ namespace {
     // taken from its record on the old stage when it comes down onto the next, but for its place and its opponent
     constexpr uint32_t kMovingFrom = 0x04, kMovingTo = 0x100;
 
-    // The records of what the players throw: a pool of eight of 0x80 bytes from FF9000 (01B848 steps them; 0226B2, the
-    // guard test, goes through them); a byte kActive 1 for one in use. Ryu's fireball was the first.
-    constexpr uint32_t kThrown = 0xFF9000, kThrownSize = 0x80, kActive = 0x00;
-    constexpr int kThrownRecords = 8;
+    // (the pool of what the players throw: sfa.h; Ryu's fireball was the first)
+    constexpr uint32_t kActive = 0x00;
     // The game's random number, a word (016460 steps it)
     constexpr uint32_t kRandom = 0xFF81AE;
 

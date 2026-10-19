@@ -101,7 +101,7 @@ namespace {
 
     // A box of a player's (four bytes: its middle's offsets across and up, half its width and height), placed in the
     // stage as 0104B8 places it
-    void AddBox(M68K &c, std::vector<fight::StageBox> &boxes, fight::BoxKind kind, uint32_t player, uint32_t box) {
+    void AddBox(M68K &c, std::vector<fight::StageBox> &boxes, fight::BoxKind kind, uint32_t player, uint32_t box, bool thrown = false) {
         const int8_t across = static_cast<int8_t>(c.Read(box, 0)), up = static_cast<int8_t>(c.Read(box + 1, 0));
         const int halfWidth = static_cast<int>(c.Read(box + 2, 0)), halfHeight = static_cast<int>(c.Read(box + 3, 0));
         if (halfWidth == 0 || halfHeight == 0) {
@@ -109,7 +109,7 @@ namespace {
         }
         const int x = static_cast<int16_t>(Ram16(player + kX)) + (Ram8(player + kFacesRight) ? -across : across);
         const int y = static_cast<int16_t>(Ram16(player + kY)) + up;
-        boxes.push_back({kind, x, y, halfWidth, halfHeight});
+        boxes.push_back({kind, x, y, halfWidth, halfHeight, thrown});
     }
 
     std::vector<fight::StageBox> Boxes(Machine &machine) {
@@ -134,6 +134,20 @@ namespace {
             }
             if (const uint8_t attack = static_cast<uint8_t>(c.Read(frame + kFrameAttack, 0))) {
                 AddBox(c, boxes, fight::BoxKind::Attack, player, Ram32(player + kAttackBoxes) + attack * kAttackBoxSize);
+            }
+        }
+        // What the players throw (the pool from FF9000, records of a player's layout but shorter): the frame names the
+        // attack (+0B), in a table the record's long +50 points at, from the word at its +2 on (the thrown things' hit
+        // test, 01018A)
+        for (int n = 0; n < kThrownRecords; n++) {
+            const uint32_t thrown = kThrown + static_cast<uint32_t>(n) * kThrownSize;
+            const uint32_t frame = Ram32(thrown + kFrame), table = Ram32(thrown + kThrownTables);
+            if (Ram8(thrown) != 1 || frame >= 0x200000 || table >= 0x200000) {
+                continue;
+            }
+            if (const uint8_t attack = static_cast<uint8_t>(c.Read(frame + kFrameAttack, 0))) {
+                const uint32_t attacks = table + static_cast<uint16_t>(c.Read(table + 2, 1));
+                AddBox(c, boxes, fight::BoxKind::Attack, thrown, attacks + attack * kAttackBoxSize, true);
             }
         }
         return boxes;

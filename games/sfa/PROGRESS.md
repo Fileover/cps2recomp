@@ -92,7 +92,8 @@ fact below was found or checked here, in this game (names in `sfa.h`).
   01F41A): 13 thrown into the air.
 - **The round's result**: FFAE0C, bit 0 player 2 knocked out, bit 1 player 1 (00F4A6).
 - **Thrown things**: a pool of 8 records of 0x80 from FF9000, +00 1 in use (01B848 steps them; Ryu's fireball the
-  first). The random number: a word at FF81AE (016460).
+  first). Their hit test (01018A) takes the attack from the frame's +0B in a table the record's long +50 names, from
+  its word +2 on: training draws those boxes too (orange; Ryu's fireball's seen on it). The random number: a word at FF81AE (016460).
 - **Objects**: sets 00-07 player 1's, 08-0F player 2's (the fighter and what it throws), 10-17 the sparks and dust,
   18-19 the stage's pieces, 1A-1E the panel's gauges and words, the shadows in 1F (tiles 1B7A0-1B7AF; found from the
   object lists of fights on every stage). The bars, names and clock at the top are the **first scroll screen**, not
