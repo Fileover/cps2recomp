@@ -10,6 +10,10 @@
 //                  (or a coin) ends it.
 //   Score attack   one player, one credit, no continue and no cheats, from the first round: the board's own game,
 //                  for the best score, which is kept (score_attack.txt beside settings.ini). It ends with the game.
+//   Stage viewer   a stage (a part of a round) with nobody on it: no players, no enemies, no panel, only the stage
+//                  and its music. The stick scrolls it, or it scrolls by itself from one end to the other and back;
+//                  "Infinite" is every stage in turn. It is a game begun unseen and taken to that stage, whose camera
+//                  is then the viewer's: the game's sources say how to get there, and how far the camera goes.
 //
 // A game's sources describe where the game keeps what these need (Description), register it, and ask while the
 // game runs whether a mode is on: in attract mode they leave out the parts not wanted and put the board's demo
@@ -45,6 +49,26 @@ struct Description {
     bool (*inGame)() = nullptr;
     // Player 1's score, as the game shows it
     uint32_t (*score)() = nullptr;
+    // --- stage viewer ---
+    // The "Stage" choices (before "Infinite"), and the words of the row
+    std::vector<const char *> stages;
+    // The controls of a machine on its way from switching on to stage `stage` (from 0); true once it is there and
+    // the camera is the viewer's (it is run unseen meanwhile)
+    bool (*toStage)(Machine &machine, int stage, int32_t &frames) = nullptr;
+    // The way the camera goes through the stage, in the game's own units: the places it passes, in order, across and
+    // up and down (y -1: as the game has it, which moves it up and down itself); one place, or none: the camera is the
+    // game's own, which moves it by itself. The game draws a stage's new columns and rows as its camera crosses them,
+    // so the viewer starts where the game's camera is (stageCamera) and moves it a few pixels a frame at most.
+    struct Place {
+        int x, y;
+    };
+    void (*stagePath)(int stage, std::vector<Place> &path) = nullptr;
+    void (*stageCamera)(int &x, int &y) = nullptr;
+    // Each frame of viewing, before the game runs it: where the camera is to be (-1: as the game has it). The game's
+    // sources keep the players out of harm and the enemies away.
+    void (*view)(Machine &machine, int stage, int x, int y) = nullptr;
+    // The scroll screens shown while viewing (Video::layerMask: the panel's left out; objects are never shown)
+    unsigned viewLayers = 0xF;
 };
 
 // The game's description, and the menu's pages, commands and features of the modes
@@ -53,6 +77,8 @@ void Register(const Description &description);
 bool AttractMode();
 int AttractShow(); // the "Shows" choice: 0 everything, then the description's shows from 1
 bool ScoreAttack();
+bool StageViewer();
+int ViewedStage(); // (the stage the viewer is showing or getting to, from 0)
 // A mode is getting the board to where it begins (the game's sources leave the board alone meanwhile: no running
 // unseen of their own)
 bool Starting();

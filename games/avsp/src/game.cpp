@@ -13,6 +13,8 @@ void RegisterTitle(); // title.cpp
 void TitleFrame(Machine &machine);
 void RegisterMusic(); // music.cpp
 void RegisterModes(); // modes.cpp
+int ViewerScene(); // viewer.cpp
+void ViewerFrame(Machine &machine);
 bool ChoicesLeftOut();
 void ModesBeforeFrame(Machine &machine);
 void ModesFrame(Machine &machine);
@@ -94,6 +96,10 @@ namespace {
     // --- Where a game starts: 0082DC has put the players who joined in, and set the scene after round 1's story
     // (008352: its rts)
     bool GameBegins(M68K &) {
+        if (ViewerScene() >= 0) {
+            SetRam16(kScene, static_cast<uint16_t>(ViewerScene() * 2));
+            return false;
+        }
         const int round = ChoicesLeftOut() ? 0 : FeatureValue("start_round");
         if (round > 0 && round < kRounds) {
             SetRam16(kScene, static_cast<uint16_t>(kRoundFirstScene[round] * 2));
@@ -113,6 +119,7 @@ namespace {
             g_chosen = false;
         }
         ModesFrame(machine);
+        ViewerFrame(machine);
         if (ChoicesLeftOut()) {
             TitleFrame(machine);
             return; // (free play and the cheats are not the board's own game)

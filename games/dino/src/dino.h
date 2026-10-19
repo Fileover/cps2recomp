@@ -52,6 +52,7 @@ inline uint32_t Player(int n) {
     return kPlayer + kPlayerSize * static_cast<uint32_t>(n);
 }
 constexpr uint32_t kInPlay = 0x00;  // byte: 1 while the player is in the game
+constexpr uint32_t kX = 0x0C;       // word: the place across, in the stage (as the camera's: 0211D8 follows it)
 constexpr uint32_t kHealth = 0x6D;  // byte: health (found standing still while hit: 64 down to 0, 64 again with a life)
 constexpr uint8_t kHealthFull = 0x64;
 constexpr uint32_t kLives = 0xA3;   // byte: lives left after this one (01BFD6 takes one)

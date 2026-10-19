@@ -9,6 +9,8 @@ namespace cps2recomp {
 
 void RegisterBoard(); // board.cpp
 void RegisterMusic(); // music.cpp
+int ViewerEpisode(); // viewer.cpp
+void ViewerFrame(Machine &machine);
 void RegisterModes(); // modes.cpp
 bool ChoicesLeftOut();
 void ModesBeforeFrame(Machine &machine);
@@ -21,6 +23,10 @@ namespace {
 
     // 00A9F2: a game begins, its variables just cleared (the stage among them)
     bool GameBegins(M68K &) {
+        if (ViewerEpisode() >= 0) {
+            SetRam8(kStage, static_cast<uint8_t>(ViewerEpisode()));
+            return false;
+        }
         const int stage = ChoicesLeftOut() ? 0 : FeatureValue("start_stage");
         if (stage > 0 && stage < kStages) {
             SetRam8(kStage, static_cast<uint8_t>(stage));
@@ -53,6 +59,7 @@ namespace {
     void Frame(Machine &machine) {
         BoardFrame(machine);
         ModesFrame(machine);
+        ViewerFrame(machine);
         if (ChoicesLeftOut()) {
             TitleFrame(machine);
             return; // (free play and the cheats are not the board's own game)

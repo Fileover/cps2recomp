@@ -73,6 +73,7 @@ inline uint32_t Player(int n) {
     return kPlayer + kPlayerSize * static_cast<uint32_t>(n);
 }
 constexpr uint32_t kInPlay = 0x00;    // byte: 1 while the player is in the game
+constexpr uint32_t kX = 0x10;         // word: the place across, in the stage (as the camera's: 0B0C22 follows it)
 constexpr uint32_t kHealth = 0x41;    // byte: health, down to 0; FF once down (found standing still while hit)
 constexpr uint32_t kHealthMax = 0x45; // byte: what it starts at (0x65)
 constexpr uint32_t kLives = 0xF1;     // byte: lives left after this one ("x1"; found as it went 0, 1, 2)

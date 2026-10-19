@@ -41,7 +41,7 @@ namespace {
 // Whether the player's own choices (free play, the cheats, where a game starts, the board's settings for the show's
 // sound and continuing) are left out now
 bool ChoicesLeftOut() {
-    return beat::AttractMode() || beat::ScoreAttack();
+    return beat::AttractMode() || beat::ScoreAttack() || beat::StageViewer();
 }
 
 void ModesBeforeFrame(Machine &machine) {
@@ -56,8 +56,11 @@ void ModesState(Archive &ar) {
     beat::State(ar);
 }
 
+void DescribeViewer(beat::Description &d); // viewer.cpp
+
 void RegisterModes() {
     beat::Description d;
+    DescribeViewer(d);
     d.shows = {"The story only", "The demonstrations only", "The characters only"};
     d.showsWords = "What attract mode plays: everything the board does, or only the story (the opening and the dinosaurs' "
                    "attack), only the demonstrations, or only the characters' files, over and over.";
