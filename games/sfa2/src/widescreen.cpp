@@ -152,7 +152,8 @@ namespace {
         const uint16_t place = Ram16(camera + kCameraY);
         uint16_t to = place;
         if (CameraAt().y >= 0) {
-            to = static_cast<uint16_t>(std::clamp<int>(CameraAt().y, Ram16(camera + kCameraEndBottom), Ram16(camera + kCameraEndTop)));
+            to = static_cast<uint16_t>(CameraAt().beyondEnds ? CameraAt().y :
+                                       std::clamp<int>(CameraAt().y, Ram16(camera + kCameraEndBottom), Ram16(camera + kCameraEndTop)));
             SetRam16(camera + kCameraY, to);
             SetLow16(c.d[2], 0);
         } else {
