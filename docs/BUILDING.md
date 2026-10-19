@@ -9,13 +9,15 @@ the build tells you which one is missing or different.
 
 | Game | `GAME=` | ROM set |
 | --- | --- | --- |
+| [Street Fighter Alpha](../games/sfa/README.md) | `sfa` | `sfa` (Europe 950727) |
 | [Street Fighter Alpha 2](../games/sfa2/README.md) | `sfa2` | `sfa2u` (USA 960430) |
 | [Vampire Savior](../games/vampire_savior/README.md) | `vampire_savior` | `vsavj` (Japan 970519) |
 | [Super Puzzle Fighter II Turbo](../games/puzzle_fighter/README.md) | `puzzle_fighter` | `spf2t` (Europe 960529) |
 
 ## macOS
 
-Apple clang (Command Line Tools), then `brew install cmake ninja sdl3 python`.
+Apple clang (Command Line Tools), then `brew install cmake ninja sdl3 python`. SDL 3.4.16 or later (`brew upgrade sdl3`):
+with 3.4.14 the game's window stays black while it runs and sounds, so CMake asks for 3.4.16.
 
 ```sh
 make GAME=sfa2              # build/sfa2/sfa2 (twice the first time: the port itself writes the

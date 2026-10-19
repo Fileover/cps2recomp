@@ -25,6 +25,29 @@
 - **Alien vs. Predator's "Straight to the title"** ran only the board's first second and a half unseen when free play
   was on: the show's step is at FF8000, not FF8002 (`games/avsp/src/avsp.h`, kMode).
 
+## 0.4.0-beta.3
+
+- **Another game: Street Fighter Alpha** (`games/sfa`; ROM set `sfa`, *Street Fighter Alpha: Warriors' Dreams*,
+  Europe 950727). Its 68000 program and its sound program (driver 1.05A) translated whole, checked block by block
+  over the ladder and versus movies; with free play, straight to the title, the board's settings (Board page), cheats
+  (no damage for each player, one-hit knockouts, infinite time), save states, run-ahead, arcade timing and a custom
+  soundtrack (its songs named by number for now). Its sources are its own: Alpha 2 is not made from its program (the
+  routines Alpha 2's sources hook are mostly not in this game), so no training mode, alternative modes, widescreen or
+  custom colours yet.
+- **macOS: SDL 3.4.16 or later** for a build from source (CMake asks for it; docs/BUILDING.md). SDL 3.4.14 (Homebrew's
+  until recently) leaves every game's window black while the game runs and sounds: its Metal GPU device takes a
+  frame's fence still being worked on for one signalled, so the swapchain's pictures after the first few are all
+  skipped (SDL 3.4.16: "Fixed the SDL_QueryGPUFence() return value on Apple platforms"). Release builds compile 3.4.16
+  themselves and were not affected. Linux and Windows are unchanged.
+- **A release has only its three downloads**, their checksums and three small update lists (it had a file for
+  every file of every download too, 46 more). The launcher's **Update** now downloads the system's download
+  itself, checks it, and puts in place what changed (recomp-common 91b4e51; `update-<system>.txt` names the
+  archive, `tools/release/lib.sh`). **A launcher of 0.4.0-beta.2 can't update itself to this version** (it reads
+  only the old lists and says the list of files could not be read): download it by hand once, and later versions
+  come through Update again.
+- **Each release's page says how to install it** on macOS, Windows, Linux and the Steam Deck and Steam Machine,
+  above its changes (`tools/release/notes.sh`, used by the release workflow).
+
 ## 0.4.0-beta.2
 
 - **Vampire Savior Definitive** no longer sometimes draws a screen of wrong tiles: the scroll screens looked up

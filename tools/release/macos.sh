@@ -28,8 +28,8 @@ for binary in "$APP/Contents/MacOS/"*; do
         exit 1
     fi
 done
-update_files macos "$APP"
 rm -f "$OUT/$ARCHIVE-macOS.zip"
 (cd "$OUT" && ditto -c -k --norsrc --noextattr --keepParent "$NAME.app" "$ARCHIVE-macOS.zip")
 check_archive "$OUT/$ARCHIVE-macOS.zip"
+update_files macos "$APP" "$OUT/$ARCHIVE-macOS.zip"
 echo "wrote $OUT/$ARCHIVE-macOS.zip"

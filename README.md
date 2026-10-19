@@ -6,9 +6,9 @@
 
 **Unofficial native PC ports of Capcom's CPS-2 arcade games (and CPS-1 ones), for macOS, Linux (Steam Deck
 included) and Windows, in one download with one launcher.** Each game's program is translated ahead of time into C++
-and runs on a machine written for this project, not an emulator. Each fighting game has a training mode, which no
-release of these games has ever had; the beat-'em-ups take three players at once, with free play, a stage to start
-at, a score attack and viewers for their stages and characters.
+and runs on a machine written for this project, not an emulator. Each fighting game but Street Fighter Alpha (so far)
+has a training mode, which no release of these games has ever had; the beat-'em-ups take three players at once, with
+free play, a stage to start at, a score attack and viewers for their stages and characters.
 
 **[Get started: download it and play →](#playing)**
 
@@ -32,6 +32,7 @@ their owners, used here only to say what the programs work with.
 
 | Game | ROM set | What it adds |
 | --- | --- | --- |
+| [**Street Fighter Alpha**](games/sfa/README.md) (1995) | `sfa` (Europe 950727) | The game as the board plays it, with the features every game has (free play, straight to the title, the board's settings, cheats, a custom soundtrack); a training mode is next |
 | [**Street Fighter Alpha 2**](games/sfa2/README.md) (1996) | `sfa2u` (USA 960430) | A full training mode (hit and throw boxes, frame data and a frame meter, combo, stun and Custom Combo readouts, input display, a dummy that records, replays, guards and answers), widescreen, survival, ring out, endless battle, the stage and model viewers, the hidden characters, custom colours |
 | [**Super Puzzle Fighter II Turbo**](games/puzzle_fighter/README.md) (1996) | `spf2t` (Europe 960529) | A training mode (attack readout, landing guide, input display, a dummy that sends counter gems to cancel, crash gems as you choose), CPU battle, the hidden characters at a kick, custom colours for the characters and the gems |
 | [**Vampire Savior: The Lord of Vampire**](games/vampire_savior/README.md) (1997) | `vsavj` (Japan 970519) | A full training mode (hit boxes, frame data and a frame meter, input display, a dummy that records, replays and guards), widescreen, survival, ring out, endless battle, the stage and model viewers, the hidden characters, custom colours |
@@ -66,7 +67,7 @@ Each game's page has all it does, with pictures.
 - **Run-ahead**: what you press seen a frame or two sooner than on the board, with the game running exactly as
   without it.
 - **The picture your way**: sharp, whole pixels or smooth; 4:3, square pixels or the whole screen; full screen
-  or a window of the size you choose; widescreen in the fighting games.
+  or a window of the size you choose; widescreen in the fighting games (all but Street Fighter Alpha, so far).
 - **The board's operator settings** (difficulty, damage, timer speed, game speed, rounds and the rest), each as
   the board is set unless you choose, and the game's own test menu.
 - **Straight to the title**: at a start or a reset, everything before the title runs unseen.
@@ -75,18 +76,18 @@ Each game's page has all it does, with pictures.
 - **Your ROM sets are only ever read.** Settings, save states and each board's settings memory go in your own
   user folder.
 - **Updates in the launcher**: new games and fixes come to the copy you have. When a new version is out the
-  launcher says so at the top of its Games page, and **Update** downloads only the files that changed, checks
-  each, puts them in place and starts the new launcher. [More →](#updates)
+  launcher says so at the top of its Games page, and **Update** downloads the new version, checks it, puts
+  what changed in place and starts the new launcher. [More →](#updates)
 
 ![The Features page: what the games share, set for all of them at once](docs/screenshots/launcher-features.png)
 
 ## Playing
 
 1. Download the build for your system from the [releases page](https://github.com/tmcleroy/cps2recomp/releases)
-   and unpack it.
+   and unpack it. Each release's page has the steps for macOS, Windows, Linux and the Steam devices.
 2. Open the launcher (`CPS-2 Recomp.app`, `cps2recomp-launcher`). On its Games page, **Choose folder…** and pick
-   the folder you keep your ROM sets in: it finds each game's by the set's name (`sfa2u.zip`, `spf2t.zip`,
-   `vsavj.zip`, `vsav2.zip`, `vhunt2.zip`, `avspu.zip`, `dino.zip`, or a folder of the set's files). Or drop a set, or the folder, on the window, or choose each
+   the folder you keep your ROM sets in: it finds each game's by the set's name (`sfa.zip`, `sfa2u.zip`,
+   `spf2t.zip`, `vsavj.zip`, `vsav2.zip`, `vhunt2.zip`, `avspu.zip`, `dino.zip`, or a folder of the set's files). Or drop a set, or the folder, on the window, or choose each
    game's set on its own. They stay where they are.
 3. Press **Play** beside a game. Several games can run at once, each in its own window.
 
@@ -108,8 +109,8 @@ at that game's page (or straight into the game once its ROM set has been chosen)
 
 When the launcher opens it asks GitHub for this project's releases (the Games page's Updates card has a switch to
 stop that, and **Check now**). When there is a newer version it shows at the top of the Games page: **What's new**
-opens its notes, and **Update** downloads only the files that changed since your version (a new game is that
-game's program and the launcher, a few megabytes), checks every one against the release's list, and only then
+opens its notes, and **Update** downloads the new version's download for your system (the same file as on the
+releases page), checks it and every file that changed against the release's list, and only then
 puts them all in place; if anything goes wrong nothing is changed. The launcher then starts again as the new
 version. Your settings, save states and ROM sets are not touched. Quit the games first: Update waits until none is
 running. A beta is offered only to a beta.
@@ -130,7 +131,7 @@ sfa2 --soundtrack ~/music/sfa2-arranged          # a custom soundtrack's folder 
 sfa2 --help                                     # what a game's program takes
 ```
 
-The games' ids are `sfa2`, `puzzle_fighter`, `vampire_savior`, `vsav2`, `vhunt2`, `vsav_definitive`, `avsp` and `dino`. `--features` may be given more than once, and
+The games' ids are `sfa`, `sfa2`, `puzzle_fighter`, `vampire_savior`, `vsav2`, `vhunt2`, `vsav_definitive`, `avsp` and `dino`. `--features` may be given more than once, and
 a later one wins.
 
 ### A custom soundtrack
@@ -200,7 +201,8 @@ top), to open the in-game menu; its "Quit game" row ends the game.
 
 ## What you need
 
-- The ROM set of each game you want to play (a CPS-2 game's with its key file): `sfa2u` (*Street Fighter Alpha 2*, USA 960430),
+- The ROM set of each game you want to play (a CPS-2 game's with its key file): `sfa`
+  (*Street Fighter Alpha: Warriors' Dreams*, Europe 950727), `sfa2u` (*Street Fighter Alpha 2*, USA 960430),
   `spf2t` (*Super Puzzle Fighter II Turbo*, Europe 960529), `vsavj` (*Vampire Savior: The Lord of Vampire*,
   Japan 970519), `vsav2` (*Vampire Savior 2: The Lord of Vampire*, Japan 970913), `vhunt2` (*Vampire Hunter 2:
   Darkstalkers Revenge*, Japan 970929), `avspu` (*Alien vs. Predator*, USA 940520), `dino` (*Cadillacs and Dinosaurs*,
