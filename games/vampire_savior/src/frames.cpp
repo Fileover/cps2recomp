@@ -7,6 +7,7 @@
 // the advantage after a hit or a guarded one, and a meter of the last sixty steps; and, asked, every move's
 // numbers written to frame_data.csv beside settings.ini (fight::MoveLog).
 #include "frames.h"
+#include "session.h"
 #include "modes.h"
 
 #include "state.h"
@@ -19,12 +20,12 @@ namespace cps2recomp {
 namespace {
     using namespace vsav;
 
-    fight::Frames g_frames;
-    fight::MoveLog g_log;
-
     // A move's start for the log: who, what was held (as the input display shows it), in the air, and which move
     // (its first animation frame)
-    fight::MoveLog::Start MoveStart(int n) {
+} // namespace
+
+fight::MoveLog::Start FramesMoveStart(int n) {
+    using namespace vsav;
         const uint32_t player = Player(n);
         const uint8_t who = Ram8(player + kCharacter);
         const uint16_t word = Ram16(0xFF8000 + static_cast<uint32_t>(kControls[n]));
@@ -39,6 +40,7 @@ namespace {
         return start;
     }
 
+namespace {
     bool AttackOut(M68K &c, uint32_t player) {
         const uint32_t frame = Mem32(c, player + kFrame);
         return Mem8(c, frame + kFrameAttack) != 0 && !(Mem8(c, frame + kFrameHarmless) & 0x80);
@@ -66,38 +68,20 @@ namespace {
         view.attacking = Ram8(player + kAttacking) != 0;
         view.jumping = Ram8(player + kAction) == kActionJump;
         view.attackOut = AttackOut(c, player);
-        g_frames.Step(n, view);
-        if (FeatureOn("frame_log")) {
-            g_log.Step(n, g_frames, MoveStart);
-        }
+        session::Step(n, view); // (and the frame data log: training.cpp's description)
         return false;
     }
 } // namespace
 
 void RegisterFrames() {
-    g_frames.print = getenv("VSAV_FRAMES") != nullptr;
     AddHook(At(0x02244C), "PlayerStep", PlayerStep);
 }
 
 void FramesContact(int victim, bool guarded) {
-    g_frames.Contact(victim, guarded);
+    session::Contact(victim, guarded);
 }
-
 Doing FramesDoing(int player) {
-    return g_frames.Now(player);
-}
-
-void FramesReset() {
-    g_frames.Reset();
-}
-
-void FramesState(Archive &ar) {
-    g_frames.Serialize(ar);
-}
-
-void FramesHud(bool numbers, bool meter, std::vector<HudLine> &lines, std::vector<HudBox> &boxes) {
-    // (in the middle of a wide picture too)
-    g_frames.Hud(numbers, meter, lines, boxes, 0.72f, 193, Video::kWidth, WideSide());
+    return session::Now(player);
 }
 
 } // namespace cps2recomp

@@ -20,6 +20,29 @@ player's `settings.ini` reads the same across the ports.
 scrolls into the next, the next fight made ready while the last one ends): `RunSpare`, `Promote`, `Take`, `Give`,
 and `SetSpareKeeping` for what a game keeps of its own around a spare's frame.
 
+## The Alternative modes page and the training session
+
+Two modules hold what every fighting game's "Alternative modes" page and training mode had as copies of one another
+(Vampire Savior's, Street Fighter Alpha 2's): a game fills in a description and registers it, and keeps only its own
+facts and hooks.
+
+- `fight/alternative.h` (`modes::`): the page itself and its training, attract mode and stage viewer pages; attract mode
+  on a loop (the game says where its loop begins and ends and steers its parts with `GoTo`: `attractStep`); the stage
+  viewer and its infinite stage on a spare machine; and what the modes share: getting a machine to a round (`ToRound`),
+  a sound asked for (`PlaySound`), the match and the camera a mode wants (`Wanted`, `CameraAt`), what is kept around a
+  spare's frame (the game adds its own: `keep`, `fresh`, `putBack`).
+- `fight/session.h` (`session::`): the training session. Getting there from switching on, player 1's controls choosing
+  for both, the round kept as its fighting begins for "Start over" (the middle or a corner, sides swapped), the stage,
+  no clock and no knock-outs (`NoClock`, `NoKnockOut`, for the game's own clock and damage hooks), and the aids of
+  `fight.h` put together on the HUD. The game tells it, from its own hooks, each player's step (`Step`, a `StepView`),
+  a hit landing (`Contact`) and a hit's damage (`Hit`); the description says where the game keeps the rest (players,
+  health, the clock, the camera and its copies, the stage's ends, the panel's words, the boxes, the guard test) and
+  what the game adds of its own (its idea of fighting, a refill's conditions, a player's readout, the HUD's places, the
+  dummy's extras, its own features beside the toolkit's).
+
+Vampire Savior (and the games built from its sources), Street Fighter Alpha 2 and Super Gem Fighter Mini Mix use both;
+moving the first two onto them changed none of their pictures, frame hashes, frame data logs or feature lists.
+
 ## The fighting modes
 
 `fight/battle.h`: survival, the endless battle and the ring out, for a game's "Alternative modes" page. A game fills
