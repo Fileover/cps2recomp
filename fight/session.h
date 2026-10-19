@@ -31,9 +31,11 @@ struct Description {
     // --- the game's memory ---
     uint32_t player1 = 0xFF8400, playerSize = 0x400, x = 0x10;
     bool xLong = false; // (a long with 16 bits of fraction, not a word)
-    // Health: words, what the player has and (0: none) the most it can have back; the most in all
+    // Health: words, what the player has and (0: none) the most it can have back; the most in all; and (0: none) what
+    // its bar shows, which a refill sets too
     uint32_t health = 0, healthCeiling = 0;
     uint16_t healthFull = 0;
+    uint32_t healthShown = 0;
     // The round's clock (a byte: seconds left) and its most: a round is being fought while it is in 1..most
     uint32_t clock = 0;
     uint8_t clockFull = 99;
@@ -50,6 +52,10 @@ struct Description {
     int pictureFloor = 239;
 
     // --- the game ---
+    // A round is being fought, for the aids (none: the clock in 1..clockFull and nobody's health over its most)
+    bool (*fighting)() = nullptr;
+    // A player's health may come back now (none: whenever it has not been hit for a moment)
+    bool (*mayRefill)(int player) = nullptr;
     // A player has chosen its character (then player 1's controls choose for player 2)
     bool (*chosen)(int player) = nullptr;
     // What the game read off the panel for a player this frame, as Button bits, and whether the player faces left
@@ -64,8 +70,25 @@ struct Description {
     void (*guardView)(Machine &machine, bool &inRange, bool &standing) = nullptr;
     // Whether the dummy is knocked down (none: taken from how long it reels)
     bool (*knockedDown)() = nullptr;
-    // The game's own readouts, beside the toolkit's (lines and boxes of the HUD)
+    // The game's own readouts, beside the toolkit's (lines and boxes of the HUD); and a player's readout under its bar
+    // in place of the toolkit's combo readout (with the game's own lines about the player), or none
     void (*hud)(Machine &machine, std::vector<HudLine> &lines, std::vector<HudBox> &boxes) = nullptr;
+    void (*playerReadout)(int player, const fight::Combos &combos, std::vector<HudLine> &lines) = nullptr;
+    // Where the HUD's parts are: the input display's first line and its lines' spacing, the frame data's line and the
+    // meter's top (parts of the picture, and its line)
+    float inputY = 0.30f, inputSpacing = 0.062f, framesY = 0.72f;
+    int framesTop = 193;
+    // The dummy: what the game adds to what it is told of the fight (none: nothing), what the game does after the dummy
+    // has worked the controls, and whether it acts only once a round's aids have started afresh
+    void (*dummyView)(Machine &machine, fight::DummyView &view) = nullptr;
+    void (*afterDummy)(Machine &machine, const fight::DummyView &view) = nullptr;
+    bool dummyAfterAfresh = false;
+    // The session's state in a save state with the frame data first (the order a game's earlier save states have)
+    bool framesFirstInState = false;
+    // The game's own training features: after the combo readout's, and after the hit boxes'
+    std::vector<Feature> readoutFeatures, boxFeatures;
+    // The input display's words (none: the toolkit's)
+    const char *inputWords = nullptr;
     // The wide picture: how far right the stage is drawn in it, and the columns it adds on each side (none: 0)
     int (*wideStage)() = nullptr;
     int (*wideSide)() = nullptr;
@@ -96,10 +119,11 @@ int WantedStage();
 bool NoClock();
 bool NoKnockOut();
 
-// From the game's hooks: a player's step of a fight; a hit landing on a player or guarded; a hit's damage taken
+// From the game's hooks: a player's step of a fight; a hit landing on a player or guarded; a hit's damage taken (a chip
+// off a guarded hit is never part of a combo)
 void Step(int player, const fight::StepView &view);
 void Contact(int victim, bool guarded);
-void Hit(int player, unsigned damage, unsigned comesBack = 0);
+void Hit(int player, unsigned damage, unsigned comesBack = 0, bool chip = false);
 // What a player is doing (the frame data's view of it)
 fight::Doing Now(int player);
 

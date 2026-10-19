@@ -62,6 +62,9 @@ namespace {
     }
 
     bool Fighting() {
+        if (d.fighting) {
+            return d.fighting();
+        }
         for (int n = 0; n < 2; n++) {
             const uint32_t health = d.healthCeiling ? d.healthCeiling : d.health;
             if (static_cast<int16_t>(Ram16(Player(n) + health)) > static_cast<int16_t>(d.healthFull)) {
@@ -84,8 +87,12 @@ namespace {
             SetFastForward(false);
         } else if (Ram8(m.credits) < 2 && !FeatureOn("free_play")) {
             one = press ? kCoin : 0;
-        } else {
+        } else if (m.startsTogether) {
             one = two = press ? kStart : 0;
+        } else if (!(Ram8(m.playersIn) & 1)) {
+            one = press ? kStart : 0;
+        } else {
+            two = press ? kStart : 0;
         }
     }
 
@@ -145,7 +152,7 @@ namespace {
 
     void Dummy(Machine &machine) {
         fight::DummyView view;
-        view.fighting = Fighting();
+        view.fighting = Fighting() && (!d.dummyAfterAfresh || g_fighting);
         view.doing = g_frames.Now(1);
         view.onRight = X(1) >= X(0);
         view.sinceHit = g_combos.Since(1);
@@ -161,7 +168,13 @@ namespace {
             view.knowsDown = true;
             view.down = d.knockedDown();
         }
+        if (d.dummyView) {
+            d.dummyView(machine, view);
+        }
         g_dummy.BeforeFrame(machine.players[0], machine.players[1], view);
+        if (d.afterDummy) {
+            d.afterDummy(machine, view);
+        }
     }
 } // namespace
 
@@ -203,10 +216,10 @@ void Step(int player, const fight::StepView &view) {
 void Contact(int victim, bool guarded) {
     g_frames.Contact(victim, guarded);
 }
-void Hit(int player, unsigned damage, unsigned comesBack) {
+void Hit(int player, unsigned damage, unsigned comesBack, bool chip) {
     // A combo goes on while the player has not got free since the last hit
     const fight::Doing doing = g_frames.Now(player);
-    g_combos.Hit(player, damage, comesBack, doing == fight::Doing::HitStun || doing == fight::Doing::Held);
+    g_combos.Hit(player, damage, comesBack, !chip && (doing == fight::Doing::HitStun || doing == fight::Doing::Held));
 }
 fight::Doing Now(int player) {
     return g_frames.Now(player);
@@ -263,25 +276,30 @@ void Frame(Machine &machine) {
     const bool readout = FeatureOn("damage_readout"), refill = FeatureOn("health_refill"), inputs = FeatureOn("input_display");
     for (int n = 0; n < 2; n++) {
         const uint16_t health = Ram16(Player(n) + d.health);
-        if (refill && g_combos.Since(n) > kRefillAfter && health < d.healthFull) {
+        if (refill && g_combos.Since(n) > kRefillAfter && health < d.healthFull && (!d.mayRefill || d.mayRefill(n))) {
             SetRam16(Player(n) + d.health, d.healthFull);
             if (d.healthCeiling) {
                 SetRam16(Player(n) + d.healthCeiling, d.healthFull);
             }
+            if (d.healthShown) {
+                SetRam16(Player(n) + d.healthShown, d.healthFull);
+            }
         }
-        if (readout) {
+        if (d.playerReadout) {
+            d.playerReadout(n, g_combos, lines);
+        } else if (readout) {
             g_combos.Hud(n, lines, 0.17f, true, {}, d.healthCeiling != 0);
         }
         // What the player holds, as the game read it off the panel this frame, newest on top, with how long
         if (d.panelHeld) {
             g_inputs.Push(n, d.panelHeld(n), d.facingLeft && d.facingLeft(n));
             if (inputs) {
-                g_inputs.Hud(n, lines, 0.30f);
+                g_inputs.Hud(n, lines, d.inputY, d.inputSpacing);
             }
         }
     }
     const int side = d.wideSide ? d.wideSide() : 0;
-    g_frames.Hud(FeatureOn("frame_data"), FeatureOn("frame_meter"), lines, boxes, 0.72f, 193, Video::kWidth, side);
+    g_frames.Hud(FeatureOn("frame_data"), FeatureOn("frame_meter"), lines, boxes, d.framesY, d.framesTop, Video::kWidth, side);
     if (d.boxes && FeatureOn("hit_boxes")) {
         // What the game's memory says now is what the next picture shows, so the boxes are drawn a frame after they
         // are worked out (in a wide picture the stage is further right than on the board's)
@@ -308,6 +326,16 @@ void Frame(Machine &machine) {
 
 void State(Archive &ar) {
     ar.Mark(0x5452414E); // TRAN
+    if (d.framesFirstInState) {
+        g_frames.Serialize(ar);
+        g_dummy.Serialize(ar);
+        ar.Vec(g_roundStart);
+        ar.Pod(g_roundFought);
+        ar.Pod(g_fighting);
+        ar.Pod(g_combos);
+        ar.Pod(g_inputs);
+        return;
+    }
     ar.Pod(g_fighting);
     ar.Pod(g_combos);
     ar.Pod(g_inputs);
@@ -341,9 +369,10 @@ void Register(const Description &description) {
                                                "comes back; the round's best." :
                                                "Under the bar of the player hit: what the hit took off; for a combo (hits landing before the "
                                                "player is free again) the hits and the damage; the round's best."});
+    game.features.insert(game.features.end(), d.readoutFeatures.begin(), d.readoutFeatures.end());
     if (d.panelHeld) {
         game.features.push_back({"input_display", page, "Input display",
-                                 d.facingLeft ? "Shows what each player presses and for how many frames: the stick as a keypad number (5 "
+                                 d.inputWords ? d.inputWords : d.facingLeft ? "Shows what each player presses and for how many frames: the stick as a keypad number (5 "
                                                 "is the middle, 6 forward, 2 down), then the buttons." :
                                                 "Shows what each player presses and for how many frames: the stick as a keypad number (5 "
                                                 "is the middle, 6 right, 2 down), then the buttons."});
@@ -352,6 +381,7 @@ void Register(const Description &description) {
         game.features.push_back({"hit_boxes", page, "Hit boxes",
                                  "Draws the boxes the game tests: where a player can be hit (blue), attacks (red; orange for things "
                                  "thrown), and the boxes that keep the players apart (green)."});
+        game.features.insert(game.features.end(), d.boxFeatures.begin(), d.boxFeatures.end());
     }
     game.features.push_back({"frame_data", page, "Frame data",
                              "After a move: the step it can first hit on (startup), how many it can hit for (active) and how many follow "
