@@ -9,6 +9,7 @@
 #include "pocket.h"
 #include "session.h"
 
+#include <cstdio>
 #include <iterator>
 
 namespace cps2recomp {
@@ -21,10 +22,11 @@ namespace {
         return record == Player(0) ? 0 : record == Player(1) ? 1 : -1;
     }
 
-    // The player is free to do anything: in charge of itself, and standing, crouching or walking
+    // The player is free to do anything: in charge of itself, and standing, crouching, walking or in its guarding pose
     bool CanAct(uint32_t player) {
         const uint8_t action = Ram8(player + kAction);
-        return Ram8(player + kControl) == kControlOwn && (action == kActionStand || action == kActionWalk);
+        return Ram8(player + kControl) == kControlOwn &&
+               (action == kActionStand || action == kActionCrouch || action == kActionWalk || action == kActionGuard);
     }
 
     // 00C642: a player's fight step, where it goes on to whatever is in charge of the player; once a step for each
@@ -50,11 +52,12 @@ namespace {
         return false;
     }
 
-    // 0155F2: an attack has hit (A6 the attacker, A1 the one hit)
+    // 0155F2: an attack has reached the other player (A6 the attacker, A1 the one reached), hit or guarded: guarded when
+    // the one reached was in its guarding pose (a guarded hit takes nothing off its health: 015D6E)
     bool HitLands(M68K &c) {
         const int victim = PlayerOf(c.a[1]);
         if (victim >= 0) {
-            session::Contact(victim, false);
+            session::Contact(victim, Ram8((c.a[1] & 0xFFFFFF) + kAction) == kActionGuard);
         }
         return false;
     }
@@ -111,6 +114,20 @@ namespace {
         }
         return boxes;
     }
+    // The game's own readouts and aids: the gauge kept full, and each player's stun against how much stuns it
+    void Hud(Machine &, std::vector<HudLine> &lines, std::vector<HudBox> &) {
+        for (int n = 0; n < 2; n++) {
+            const uint32_t player = Player(n);
+            if (FeatureOn("gauge_refill") && Ram8(player + kGaugeStocks) < kGaugeStocksFull) {
+                SetRam8(player + kGaugeStocks, kGaugeStocksFull);
+            }
+            if (FeatureOn("stun_readout")) {
+                char text[32];
+                snprintf(text, sizeof text, "stun %d/%d", Ram8(player + kStun), Ram8(player + kStunMost));
+                lines.push_back({n == 0 ? 0.02f : 0.98f, 0.12f, n == 0 ? -1 : 1, text});
+            }
+        }
+    }
 } // namespace
 
 void RegisterTraining() {
@@ -137,8 +154,14 @@ void RegisterTraining() {
     d.moveStart = MoveStart;
     d.boxes = Boxes;
     d.stageChoices = modes::StageChoices({"The game's choice"});
+    d.hud = Hud;
+    d.ownAids = {"gauge_refill", "stun_readout"};
     // Knocked down (reeling for longer than this): a button tapped gets up sooner where the game allows it
     d.dummy.downAfter = 34;
+    Game &game = TheGame();
+    game.features.push_back({"gauge_refill", modes::kTraining, "Gauge refills", "Both players' super gauge kept full (nine stocks)."});
+    game.features.push_back({"stun_readout", modes::kTraining, "Stun readout",
+                             "Under each player's bar: the stun built up, against how much stuns the player."});
     session::Register(d);
     AddHook(HookAt(kPlayerControl), "PlayerStep", PlayerStep);
     AddHook(HookAt(kHitLands), "HitLands", HitLands);

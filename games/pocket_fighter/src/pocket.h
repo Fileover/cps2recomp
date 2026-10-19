@@ -89,7 +89,7 @@ inline uint32_t Player(int n) {
 // (017598)
 constexpr uint32_t kState = 0x04, kControl = 0x05, kAction = 0x06, kActionStep = 0x07;
 enum : uint8_t { kControlOwn = 0x00, kControlReeling = 0x02, kChosen = 0x02 };
-enum : uint8_t { kActionStand = 0x00, kActionWalk = 0x04, kActionJump = 0x06, kActionAttack = 0x0A, kActionSpecial = 0x16 };
+enum : uint8_t { kActionStand = 0x00, kActionCrouch = 0x02, kActionWalk = 0x04, kActionJump = 0x06, kActionAttack = 0x0A, kActionGuard = 0x0C, kActionSpecial = 0x16 };
 constexpr uint32_t kFacesRight = 0x0B; // byte: 1 facing right (a box's offset across is kept as if facing left: 016088)
 constexpr uint32_t kColourSet = 0x0D;  // byte: the first of the player's colour sets (player 1 10, player 2 15)
 constexpr uint32_t kX = 0x10;          // word: where it stands across the stage
@@ -102,6 +102,12 @@ constexpr uint32_t kSpeedX = 0x20, kSpeedY = 0x24, kPullX = 0x28, kPullY = 0x2C;
 constexpr uint32_t kHitStop = 0x4C;    // byte: frames the player stands frozen while a hit lands (both players)
 constexpr uint32_t kAttacking = 0x105; // byte: 1 while an attack of the player's is going on
 constexpr uint32_t kCombo = 0x144;     // byte: hits in the combo being taken
+// The super gauge: bytes, its stocks (9 at most: 013176) and the bar towards the next (013160 on); and the stun, a
+// byte of what has built up and the most it can (a player is stunned there) (named in the FBNeo training script for
+// this set; the stocks' most found here)
+constexpr uint32_t kGaugeStocks = 0x194, kGaugeBar = 0x195;
+constexpr uint8_t kGaugeStocksFull = 9;
+constexpr uint32_t kStun = 0x17F, kStunMost = 0x19E;
 // Words the camera's routine reads (01FAF0): half the player's width (the camera keeps X less and more than it in the
 // picture), and a byte: not zero, the camera does not follow the player
 constexpr uint32_t kHalfWidth = 0x130, kNotFollowed = 0xAD;

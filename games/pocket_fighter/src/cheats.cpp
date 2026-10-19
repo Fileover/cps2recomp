@@ -25,7 +25,9 @@ namespace {
         if (player < 0) {
             return false;
         }
-        session::Hit(player, c.d[4] & 0xFFFF);
+        if (c.d[4] & 0xFFFF) {
+            session::Hit(player, c.d[4] & 0xFFFF); // (a guarded hit takes nothing, and is not a hit)
+        }
         if (FeatureOn(player == 0 ? "no_damage" : "no_damage_2")) {
             SetLow16(c.d[4], 0);
         } else if (player == 1 && FeatureOn("one_hit")) {
