@@ -102,6 +102,9 @@ constexpr uint32_t kSpeedX = 0x20, kSpeedY = 0x24, kPullX = 0x28, kPullY = 0x2C;
 constexpr uint32_t kHitStop = 0x4C;    // byte: frames the player stands frozen while a hit lands (both players)
 constexpr uint32_t kAttacking = 0x105; // byte: 1 while an attack of the player's is going on
 constexpr uint32_t kCombo = 0x144;     // byte: hits in the combo being taken
+// Words the camera's routine reads (01FAF0): half the player's width (the camera keeps X less and more than it in the
+// picture), and a byte: not zero, the camera does not follow the player
+constexpr uint32_t kHalfWidth = 0x130, kNotFollowed = 0xAD;
 // Who the player is: a byte (the cursor writes it as it moves, 017586, and the fight reads it, 003806 on). kChoice
 // keeps the last character chosen for the next game (0074EE copies it back).
 constexpr uint32_t kCharacter = 0x381, kChoice = 0x3F0;
@@ -136,9 +139,11 @@ inline bool IsShadow(uint32_t tile, uint16_t attributes) {
 inline bool NotTheStage(uint32_t tile, uint16_t attributes) {
     return (attributes & 0x1F) < 0x18 || IsShadow(tile, attributes);
 }
-inline bool ThePanel(uint32_t, uint16_t attributes) {
+// The panel: its own sets, and the faces beside the bars, which are in the players' sets (tiles 14460 and 14Bxx; the
+// fighters' own tiles were all below 3100 in the object lists looked at)
+inline bool ThePanel(uint32_t tile, uint16_t attributes) {
     const unsigned set = attributes & 0x1F;
-    return set < 0x10 && set != 0x0A;
+    return (set < 0x10 && set != 0x0A) || (set < 0x18 && (tile == 0x14460 || (tile >= 0x14B00 && tile < 0x14C00)));
 }
 inline bool NotTheFighters(uint32_t tile, uint16_t attributes) {
     return ThePanel(tile, attributes) || ((attributes & 0x1F) >= 0x18 && !IsShadow(tile, attributes));
@@ -155,12 +160,6 @@ constexpr uint32_t kComputer = 0x39E;
 constexpr uint32_t kThrown = 0xFF8C00, kThrownSize = 0x100;
 constexpr int kThrownRecords = 14;
 constexpr uint32_t kActive = 0x00;
-
-// The machine the port is running (set before each of its frames: a spare runs in it too), for reading the ROM's
-// tables outside the game's own code (game.cpp)
-cps2recomp::Machine &Board();
-// Half a player's width: its push box's (the game keeps no word of it)
-int HalfWidth(uint32_t player);
 
 // --- routines ---
 constexpr uint32_t kPlayerControl = 0x00C642; // a player's fight step, where it goes on by kControl (00C602; once a step each)

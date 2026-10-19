@@ -579,10 +579,6 @@ namespace {
 
     // --- the ring out ---
 
-    int HalfWidth(uint32_t player) {
-        return d.halfWidthOf ? d.halfWidthOf(player) : Ram16(player + d.halfWidth);
-    }
-
     // Is a fighter out? Knocked about (not its own master), it has gone past where it would have been kept in at
     // an end of the stage (RingOutLetsOut): its side past the picture's edge.
     void LookForOut() {
@@ -591,7 +587,7 @@ namespace {
             if (Ram8(Player(n) + d.control) == d.controlOwn) {
                 continue;
             }
-            const int x = static_cast<int16_t>(Ram16(Player(n) + d.x)), half = HalfWidth(Player(n));
+            const int x = static_cast<int16_t>(Ram16(Player(n) + d.x)), half = Ram16(Player(n) + d.halfWidth);
             const int margin = d.wideMargin();
             const int side = camera <= d.cameraLeft + margin && x - half < camera - margin ? -1 :
                              camera >= d.cameraRight - margin && x + half > camera + Video::kWidth + margin ? 1 : 0;
@@ -959,7 +955,7 @@ bool RingOutLetsOut(uint32_t player) {
     if (!g_open || (player != Player(0) && player != Player(1)) || Ram8(player + d.control) == d.controlOwn) {
         return false;
     }
-    const int x = static_cast<int16_t>(Ram16(player + d.x)), half = HalfWidth(player);
+    const int x = static_cast<int16_t>(Ram16(player + d.x)), half = Ram16(player + d.halfWidth);
     const int camera = CameraX();
     const int margin = d.wideMargin(); // (the picture's edges and the camera's ends)
     const bool left = camera <= d.cameraLeft + margin && x - half <= camera - margin;

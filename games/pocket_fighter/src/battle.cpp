@@ -32,7 +32,7 @@ void RegisterBattle() {
     d.computer = kComputer;
     d.control = kControl;
     d.controlOwn = kControlOwn;
-    d.halfWidthOf = HalfWidth;
+    d.halfWidth = kHalfWidth;
     d.health = kHealth;
     d.healthFull = kHealthFull;
     d.healthBack = 0x18; // (a sixth of it all)

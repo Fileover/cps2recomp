@@ -78,8 +78,6 @@ struct Description {
     // `controlOwn` the player itself), half its width (word)
     uint32_t character = 0, computer = 0, control = 0, halfWidth = 0;
     uint8_t controlOwn = 0;
-    // Half a player's width, for a game that keeps no word of it (its push box's, say); none: the word halfWidth
-    int (*halfWidthOf)(uint32_t player) = nullptr;
     // Bytes set to 2 for both players while a mode runs (the game counts down for one not set), or 0: none
     uint32_t plays = 0;
     // A byte: which of its sets of colours the player chose (kept from match to match), or 0: none
