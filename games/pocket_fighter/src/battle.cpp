@@ -4,7 +4,7 @@
 // Super Gem Fighter Mini Mix: the fighting modes of the menu's "Alternative modes" page (survival, the endless battle,
 // the ring out) are the toolkit's (fight/battle.h); this says where the game keeps what they need.
 #include "battle.h"
-#include "modes.h"
+#include "alternative.h"
 #include "pocket.h"
 
 #include <iterator>

@@ -20,7 +20,7 @@
 // as a line in it: the camera's place across and up (its ends 64 nearer the middle; a mode's wanted place: battle.h),
 // and keeping the players inside the picture (64 further out on each side; the ring out lets one over an end).
 #include "battle.h"
-#include "modes.h"
+#include "alternative.h"
 #include "pocket.h"
 
 #include <algorithm>

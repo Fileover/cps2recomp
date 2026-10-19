@@ -51,8 +51,10 @@ struct Description {
     // The players' records, and where each stands across (a word, or a long with 16 bits of fraction)
     uint32_t player1 = 0xFF8400, playerSize = 0x400, x = 0x10;
     bool xLong = false;
-    // The button that chooses a character
+    // The button that chooses a character, and whether both Starts are pressed at once on the way to a round (else
+    // player 1's until it is in, then player 2's)
     uint16_t choose = kPunch1;
+    bool startsTogether = false;
 
     // --- the stages ---
     // The stages by name (1 the first), each one's tune (0: none), and the other tunes offered after the stages'
@@ -77,12 +79,23 @@ struct Description {
     void (*wideForPort)(Machine &machine) = nullptr;
 
     // --- attract mode ---
-    // The game's loop has begun (the board's start-up is over); below it again, the board was reset or a game begun
-    bool (*attractLooping)() = nullptr;
+    // The game's loop has begun (the board's start-up is over: `frames` since the board was switched on), and it is
+    // over (the board was reset, a coin put in or a game begun)
+    bool (*attractBegun)(int frames) = nullptr;
+    bool (*attractOver)() = nullptr;
     // Each frame of attract mode: the loop's parts left out for `show` (kShowIntro, kShowFights), with GoTo; true to
     // run unseen meanwhile
     bool (*attractStep)(int show) = nullptr;
     const char *attractWords = "The game's own show on a loop, with no coin in: the introduction, the title, fights and rankings.";
+    const char *attractShowWords = "What attract mode plays: everything the board does, the introduction over and over, or one fight "
+                                   "after another.";
+
+    // --- around a spare's frame (runtime/spare.h) ---
+    // What the game's sources keep of their own while a spare's frame runs, fresh for it, and put back (besides what is
+    // wanted, the camera and the wide picture, which this keeps)
+    void (*keep)() = nullptr;
+    void (*fresh)(Machine &machine) = nullptr;
+    void (*putBack)(Machine &machine) = nullptr;
 
     // --- training ---
     // The menu's "Start" on the training page (fight/session.h, StartSession)

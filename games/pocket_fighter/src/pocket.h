@@ -43,10 +43,10 @@ constexpr uint16_t kTuneChoose = 0x0B, kTuneVersus = 0x0F;
 // one in; 0031A2 sends the oldest to the sound CPU), as Vampire Savior's
 constexpr uint32_t kSoundQueue = 0xFFE230, kSoundQueueEnd = 0xFFF230;
 
-// The camera: the picture's left edge in the stage (words; 0 to 100 across: the stages are 640 wide), and the copies
-// of it the game keeps (all found moving together in RAM dumps as the players walked to one end)
+// The camera: the picture's left edge in the stage (words; 0 to 100 across: the stages are 640 wide), and every place
+// the game keeps it across, its own among them (all found moving together in RAM dumps as the players walked to one end)
 constexpr uint32_t kCameraX = 0xFF8290, kCameraY = 0xFF8294;
-inline constexpr uint32_t kCameraCopies[] = {0xFF802A, 0xFF82A0, 0xFF82A8};
+inline constexpr uint32_t kCameraCopies[] = {0xFF8290, 0xFF802A, 0xFF82A0, 0xFF82A8};
 constexpr int kCameraLeft = 0, kCameraRight = 0x100;
 // Where the players stand at a round's start, and the walls (player 2 stops at 270 with the camera at its right end;
 // the left the same distance from 0)

@@ -5,7 +5,7 @@
 // page: one character alone, on a stage or on plain white or black, at any size, standing as it does in a fight (and
 // moved with player 1's controls), or going through any one of its animations.
 //
-// It is a round of a two-player match, reached unseen as the stage viewer's is (fight/modes.h), with the second player
+// It is a round of a two-player match, reached unseen as the stage viewer's is (fight/alternative.h), with the second player
 // put out of the way: not followed by the camera, out of the picture, and never drawn.
 //
 // A character's animations are in three tables in the ROM, by the character's number (the game starts one at 010E04,
@@ -17,7 +17,7 @@
 // goes on believing the player stands.
 #include "colours.h"
 #include "model.h"
-#include "modes.h"
+#include "alternative.h"
 #include "pocket.h"
 #include "session.h"
 #include "state.h"

@@ -37,8 +37,8 @@ struct Description {
     // The round's clock (a byte: seconds left) and its most: a round is being fought while it is in 1..most
     uint32_t clock = 0;
     uint8_t clockFull = 99;
-    // The camera (words: the picture's left edge and bottom in the stage) and every copy of its place across the game
-    // keeps (each set by "Start over")
+    // The camera (words: the picture's left edge and bottom in the stage) and every place the game keeps the camera
+    // across, its own word too (each set by "Start over")
     uint32_t cameraX = 0, cameraY = 0;
     std::vector<uint32_t> cameraCopies;
     // Where the players stand: at a round's start, and the ends they can go to; the camera's ends; how far apart
@@ -74,8 +74,12 @@ struct Description {
     fight::DummyOptions dummy;
     // The aids of the game's own, as training aids (they work only in a session): their names
     std::vector<const char *> ownAids;
-    // The stage choices (first "The game's choice")
+    // The stage choices (first "The game's choice"), and the words for them
     std::vector<const char *> stageChoices;
+    const char *stageWords = "Where a training session's fight is: the game's own choice or a stage named here. Takes effect when the "
+                             "characters are next chosen.";
+    // A variable that prints every move's frame data to stderr too (besides CPS2RECOMP_FRAMES), or none
+    const char *framesPrintVariable = nullptr;
 };
 
 // The game's description, and the menu's training features and commands (on modes.h's training page)
@@ -86,7 +90,7 @@ void StartSession(Machine &machine);
 // A session is on
 bool InSession();
 // The stage the machine that is running is to fight on, for the game's choice of stage (0: the game's choice):
-// what a mode wants (modes.h), else the session's "Stage"
+// what a mode wants (alternative.h), else the session's "Stage"
 int WantedStage();
 // No clock, and nobody knocked out: a session, the stage viewer, or a fighting mode that wants it
 bool NoClock();

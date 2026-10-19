@@ -15,12 +15,10 @@ namespace cps2recomp {
 using Doing = fight::Doing;
 
 void RegisterFrames();
-// A hit has landed on a player, or been guarded
+// A hit has landed on a player, or been guarded; what a player is doing (the training session's frame data:
+// fight/session.h); a move's start, for the frame data log
 void FramesContact(int victim, bool guarded);
 Doing FramesDoing(int player);
-void FramesReset();
-void FramesState(Archive &ar);
-// What to show: the numbers as lines of text, the meter as boxes
-void FramesHud(bool numbers, bool meter, std::vector<HudLine> &lines, std::vector<HudBox> &boxes);
+fight::MoveLog::Start FramesMoveStart(int n);
 
 } // namespace cps2recomp

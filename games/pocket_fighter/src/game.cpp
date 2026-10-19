@@ -6,7 +6,7 @@
 #include "battle.h"
 #include "colours.h"
 #include "pocket.h"
-#include "modes.h"
+#include "alternative.h"
 #include "session.h"
 
 namespace cps2recomp {

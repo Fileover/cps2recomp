@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-only
 // Copyright (C) 2026 Tommy McLeroy. Part of cps2recomp.
 //
-// The "Alternative modes" page, attract mode and the stage viewer (modes.h), made from Vampire Savior's and Street
+// The "Alternative modes" page, attract mode and the stage viewer (alternative.h), made from Vampire Savior's and Street
 // Fighter Alpha 2's, which were the same but for where each game keeps things.
-#include "modes.h"
+#include "alternative.h"
 
 #include "spare.h"
 #include "state.h"
@@ -367,6 +367,8 @@ bool ToRound(Machine &machine, int32_t &frames, bool choose) {
     machine.players[0] = machine.players[1] = 0;
     if (!press) {
         // (nothing)
+    } else if (d.startsTogether) {
+        machine.players[0] = machine.players[1] = in == 3 ? d.choose : kStart;
     } else if (!(in & 1)) {
         machine.players[0] = kStart;
     } else if (!(in & 2)) {
@@ -432,11 +434,11 @@ void BeforeFrame(Machine &machine) {
 void Frame(Machine &machine) {
     // The board was reset (the menu's Reset, or another mode starting), or a game begun: the mode is over
     if (g.mode == Mode::Attract) {
-        const bool loop = d.attractLooping && d.attractLooping();
         if (g.starting) {
-            g.starting = !loop;
+            g.frames++;
+            g.starting = !(d.attractBegun && d.attractBegun(g.frames));
             Fast(g.starting && FeatureValue("attract_show") != kShowAll); // (the board starting up, unseen when only a part is wanted)
-        } else if (!loop) {
+        } else if (d.attractOver && d.attractOver()) {
             EndThis();
         }
     } else if (g.mode == Mode::Viewer && !g.starting && Ram16(d.steps) == 0) {
@@ -478,19 +480,28 @@ void Register(const Description &description) {
     SetSpareKeeping({[](Machine &) {
                          kept = g_wanted;
                          keptCamera = g_camera;
+                         if (d.keep) {
+                             d.keep();
+                         }
                      },
                      [](Machine &m) {
                          g_wanted = MatchWanted();
                          g_camera = CameraWanted();
+                         if (d.fresh) {
+                             d.fresh(m);
+                         }
                          if (d.wideForSpare) {
                              d.wideForSpare(m);
                          }
                      },
                      [](Machine &m) {
-                         g_wanted = kept;
-                         g_camera = keptCamera;
                          if (d.wideForPort) {
                              d.wideForPort(m);
+                         }
+                         g_wanted = kept;
+                         g_camera = keptCamera;
+                         if (d.putBack) {
+                             d.putBack(m);
                          }
                      }});
     cps2recomp::Game &game = TheGame();
@@ -506,10 +517,7 @@ void Register(const Description &description) {
                              TrainingCommand});
     game.commands.push_back({"attract_start", kAttract, "Start",
                              "Starts attract mode: the game's own show, over and over. Start (or a coin) ends it.", StartAttract});
-    game.features.push_back({"attract_show", kAttract, "Shows",
-                             "What attract mode plays: everything the board does, the introduction over and over, or one fight "
-                             "after another.",
-                             0, {"Everything", "The intro only", "The fights only"}});
+    game.features.push_back({"attract_show", kAttract, "Shows", d.attractShowWords, 0, {"Everything", "The intro only", "The fights only"}});
     game.commands.push_back({"viewer_start", kViewer, "Start",
                              "Shows the stage chosen below with nobody on it. Left and right scroll it, or it scrolls by itself. "
                              "Reset ends it.",

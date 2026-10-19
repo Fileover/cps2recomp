@@ -17,8 +17,6 @@ namespace cps2recomp {
 namespace {
     using namespace vsav;
 
-    MatchWanted g_wanted;
-    CameraWanted g_camera;
     int g_noShadow = -1; // the player whose shadow is not drawn (-1: nobody)
 
     // The object list counts across in 1024 columns, and a player's shadow is drawn this far on from where the
@@ -60,41 +58,24 @@ void NoShadow(Machine &machine, int player) {
     machine.video.objectsTaken = player >= 0 ? DropShadow : nullptr;
 }
 
+// (the modes' machine of the toolkit's: fight/modes.h)
 MatchWanted &Wanted() {
-    return g_wanted;
+    return modes::Wanted();
 }
 CameraWanted &CameraAt() {
-    return g_camera;
+    return modes::CameraAt();
 }
-
 bool RoundFought() {
-    return Ram16(kMode) == 2 && Ram16(kGameStep) == kGameMatch && Ram16(kMatchStep) == kMatchRound && Ram16(kRoundStep) == kRoundFought;
+    return modes::RoundFought();
 }
-
 bool ToRound(Machine &machine, int32_t &frames, bool choose) {
-    if (RoundFought()) {
-        return true;
-    }
-    if (Ram8(kCredits) < 2) {
-        SetRam8(kCredits, 2);
-    }
-    const bool press = frames++ % 16 < 6;
-    const bool both = Ram8(kPlayersIn) == 3;
-    const uint16_t one = machine.players[0];
-    machine.players[0] = machine.players[1] = !press ? 0 : both ? kPunch1 : kStart;
-    if (choose && both) {
-        // (player 1's own controls, but for Start and the coin, which would do other things here)
-        machine.players[0] = one & static_cast<uint16_t>(~(kStart | kCoin));
-    }
-    return false;
+    return modes::ToRound(machine, frames, choose);
 }
-
 void PlaySound(uint16_t code) {
-    const uint16_t at = Ram16(kSoundQueueEnd) & 0xFF0;
-    SetRam32(kSoundQueue + at, code);
-    SetRam32(kSoundQueue + at + 4, 0);
-    SetRam32(kSoundQueue + at + 8, 0);
-    SetRam16(kSoundQueueEnd, static_cast<uint16_t>((at + 0x10) & 0xFF0));
+    modes::PlaySound(code);
+}
+int NoShadowNow() {
+    return g_noShadow;
 }
 
 bool IsShadow(uint32_t tile, uint16_t attributes) {
@@ -112,24 +93,8 @@ bool NotTheFighters(uint32_t tile, uint16_t attributes) {
 }
 
 void RegisterMachines() {
-    // Around a spare's frame (runtime/spare.h): what is wanted of the machine that is running kept and fresh for it,
-    // and its picture as wide as the port's (widescreen.h)
-    static MatchWanted wanted;
-    static CameraWanted camera;
-    static int noShadow;
-    SetSpareKeeping({[](Machine &) { wanted = g_wanted; camera = g_camera; noShadow = g_noShadow; },
-                     [](Machine &machine) {
-                         g_wanted = MatchWanted();
-                         g_camera = CameraWanted();
-                         NoShadow(machine, -1);
-                         WideForSpare(machine);
-                     },
-                     [](Machine &machine) {
-                         WideForPort(machine);
-                         g_wanted = wanted;
-                         g_camera = camera;
-                         NoShadow(machine, noShadow);
-                     }});
+    // (around a spare's frame, what is wanted, the camera, the wide picture and the shadow not drawn are kept by the
+    // toolkit's modes: modes.cpp says what of this file's)
 }
 
 } // namespace cps2recomp

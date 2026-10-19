@@ -6,7 +6,7 @@
 #include "session.h"
 
 #include "battle.h"
-#include "modes.h"
+#include "alternative.h"
 #include "state.h"
 
 #include <algorithm>
@@ -69,10 +69,11 @@ namespace {
             }
         }
         const uint8_t clock = Ram8(d.clock);
-        return modes::RoundFought() && clock > 0 && clock <= d.clockFull;
+        return clock > 0 && clock <= d.clockFull;
     }
 
-    // What the controls do on the way there
+    // What the controls do on the way there: coins while there are fewer than two credits (and no free play), then
+    // both Start buttons
     void Boot(Machine &machine) {
         const modes::Description &m = modes::Described();
         uint16_t &one = machine.players[0], &two = machine.players[1];
@@ -81,18 +82,10 @@ namespace {
         if (Ram8(m.playersIn) == 3 || ++g_bootFrames > kBootMost) {
             g_boot = false;
             SetFastForward(false);
-            return;
-        }
-        if (Ram8(m.credits) < 2) {
-            SetRam8(m.credits, 2);
-        }
-        if (!press) {
-            return;
-        }
-        if (!(Ram8(m.playersIn) & 1)) {
-            one = kStart;
+        } else if (Ram8(m.credits) < 2 && !FeatureOn("free_play")) {
+            one = press ? kCoin : 0;
         } else {
-            two = kStart;
+            one = two = press ? kStart : 0;
         }
     }
 
@@ -127,7 +120,7 @@ namespace {
         machine.Serialize(ar);
         const int margin = d.wideMargin ? d.wideMargin() : 0; // (the camera's end in the picture played in)
         int x[2] = {d.startX[0], d.startX[1]};
-        int camera = static_cast<int16_t>(Ram16(d.cameraX));
+        int camera = static_cast<int16_t>(Ram16(d.cameraX)); // (the middle: where it is)
         if (place % 3 == 1) {
             x[0] = d.stageLeft;
             x[1] = d.stageLeft + d.cornerApart;
@@ -143,11 +136,8 @@ namespace {
         for (int n = 0; n < 2; n++) {
             SetX(n, x[n]);
         }
-        if (place % 3 != 0) {
-            SetRam16(d.cameraX, static_cast<uint16_t>(camera));
-            for (const uint32_t copy : d.cameraCopies) {
-                SetRam16(copy, static_cast<uint16_t>(camera));
-            }
+        for (const uint32_t copy : d.cameraCopies) {
+            SetRam16(copy, static_cast<uint16_t>(camera));
         }
         // (and the training aids start afresh; a recording being replayed from its beginning)
         Afresh(true);
@@ -240,13 +230,11 @@ void BeforeFrame(Machine &machine) {
         return;
     }
     g_choosingTwo = false;
-    if (InSession()) {
-        Dummy(machine);
-    }
+    Dummy(machine);
 }
 
 void Frame(Machine &machine) {
-    if (modes::StageViewer() || BattleMode() || modes::AttractMode()) {
+    if (modes::StageViewer() || BattleMode()) {
         // (nothing of training's is shown, or kept)
         g_fighting = false;
         g_roundFought = false;
@@ -264,14 +252,9 @@ void Frame(Machine &machine) {
     if (!fighting || !g_fighting) {
         // (a round starting: start afresh)
         Afresh(fighting);
-        if (InSession()) {
-            SetHud({});
-            SetBoxes({});
-        }
+        SetHud({});
+        SetBoxes({});
         g_nextBoxes.clear();
-        return;
-    }
-    if (!InSession()) {
         return;
     }
     g_combos.Frame();
@@ -336,7 +319,7 @@ void State(Archive &ar) {
 
 void Register(const Description &description) {
     d = description;
-    g_frames.print = getenv("CPS2RECOMP_FRAMES") != nullptr;
+    g_frames.print = getenv("CPS2RECOMP_FRAMES") != nullptr || (d.framesPrintVariable && getenv(d.framesPrintVariable));
     Game &game = TheGame();
     const char *page = modes::kTraining;
     game.commands.push_back({"training_restart", page, "Start over",
@@ -347,21 +330,23 @@ void Register(const Description &description) {
     game.features.push_back({"restart_at", page, "Start over at",
                              "Where \"Start over\" puts the players: the middle or a corner, player 1 on the left or (swapped) on the right.",
                              0, {"Middle", "Left corner", "Right corner", "Middle, swapped", "Left corner, swapped", "Right corner, swapped"}});
-    game.features.push_back({"training_stage", page, "Stage",
-                             "Where a training session's fight is: the game's own choice or a stage named here. Takes effect when the "
-                             "characters are next chosen.",
-                             0, d.stageChoices});
+    game.features.push_back({"training_stage", page, "Stage", d.stageWords, 0, d.stageChoices});
     game.features.push_back({"training_mode", page, "Training session",
                              "The fight has no clock and nobody is knocked out. (\"Start\" above switches this on and takes the game to "
                              "the character choice; Reset ends it.)",
                              kFeatureSession});
     game.features.push_back({"damage_readout", page, "Combo readout",
-                             "Under the bar of the player hit: what the hit took off; for a combo (hits landing before the player is free "
-                             "again) the hits and the damage; the round's best."});
+                             d.healthCeiling ? "Under the bar of the player hit: what the hit took off; for a combo (hits landing before the "
+                                               "player is free again) the hits and the damage; how much of it is lost for good and how much "
+                                               "comes back; the round's best." :
+                                               "Under the bar of the player hit: what the hit took off; for a combo (hits landing before the "
+                                               "player is free again) the hits and the damage; the round's best."});
     if (d.panelHeld) {
         game.features.push_back({"input_display", page, "Input display",
-                                 "Shows what each player presses and for how many frames: the stick as a keypad number (5 is the middle, "
-                                 "6 forward, 2 down), then the buttons."});
+                                 d.facingLeft ? "Shows what each player presses and for how many frames: the stick as a keypad number (5 "
+                                                "is the middle, 6 forward, 2 down), then the buttons." :
+                                                "Shows what each player presses and for how many frames: the stick as a keypad number (5 "
+                                                "is the middle, 6 right, 2 down), then the buttons."});
     }
     if (d.boxes) {
         game.features.push_back({"hit_boxes", page, "Hit boxes",

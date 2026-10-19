@@ -2,9 +2,9 @@
 // Copyright (C) 2026 Tommy McLeroy
 //
 // Super Gem Fighter Mini Mix: the "Alternative modes" page, attract mode and the stage viewer are the toolkit's
-// (fight/modes.h); this says where the game keeps what they need, which parts of its loop are which, and makes the
+// (fight/alternative.h); this says where the game keeps what they need, which parts of its loop are which, and makes the
 // match a mode wants (its characters and stage) where the game makes one.
-#include "modes.h"
+#include "alternative.h"
 #include "pocket.h"
 #include "session.h"
 
@@ -77,7 +77,8 @@ void RegisterModes() {
     d.wideMargin = WideMargin;
     d.wideForSpare = WideForSpare;
     d.wideForPort = WideForPort;
-    d.attractLooping = [] { return Ram16(kMode) >= kLoop; };
+    d.attractBegun = [](int) { return Ram16(kMode) >= kLoop; };
+    d.attractOver = [] { return Ram16(kMode) < kLoop; };
     d.attractStep = AttractStep;
     d.attractWords = "The game's own show on a loop, with no coin in: the introduction, the title, fights and rankings.";
     d.startTraining = session::StartSession;

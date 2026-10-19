@@ -5,7 +5,7 @@
 // what it needs, and tells it from the game's own code what the players do: each player's step of a fight (frame
 // data), a hit landing, and the hit boxes as the game's hit tests read them.
 #include "fight.h"
-#include "modes.h"
+#include "alternative.h"
 #include "pocket.h"
 #include "session.h"
 

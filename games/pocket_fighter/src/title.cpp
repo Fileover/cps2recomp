@@ -12,7 +12,7 @@
 // in, or free play, it goes from that 2 to 2 and 4 instead (frames 470-471): the title that asks for Start. A step
 // past the introduction ends the skipping too. Only the board's start begins it (Machine::frame is 0 again at a
 // reset): the step is 0 for a few frames between the screens of a game too.
-#include "modes.h"
+#include "alternative.h"
 #include "pocket.h"
 
 namespace cps2recomp {
