@@ -19,8 +19,45 @@ using cps2recomp::M68K;
 
 // Words from A5, each a step (in twos) of the one before, as in the Alpha games: the first is 2 once a game is being
 // played (and the board's start and its show step through it before: title.cpp); the next 2 while the players choose
-// their characters and 4 during the match; under that the match's and the round's steps. Traced with --watch.
+// their characters and 4 during the match; then 4 while a round is on, and under that 6 while it is being fought (2
+// and 4 its introduction: the players walking in, "Round 1"). Traced with --watch.
 constexpr uint32_t kMode = 0xFF8000, kGameStep = 0xFF8004, kMatchStep = 0xFF8008, kRoundStep = 0xFF800C;
+enum : uint16_t { kGameChoosing = 2, kGameMatch = 4, kMatchRound = 4, kRoundFought = 6 };
+
+// Who is in: a byte, bit 0 player 1, bit 1 player 2 (RAM dumps before and after each Start: 0, 1, 3)
+constexpr uint32_t kPlayersIn = 0xFF810D;
+
+// The stage a match is fought on: a word, the stage's number doubled (0 to 0E). Each character has a stage (the
+// table at 009A3C, read pc-relative); the game takes one of the two players' at 009A0A.
+constexpr uint32_t kStage = 0xFF8180;
+constexpr int kStages = 8;
+// The stages, by whose they are (each picture seen with kStage held at each number)
+inline constexpr const char *kStageNames[kStages] = {
+    "Felicia's (the shop)",  "Ibuki's (the big screen)", "Hsien-Ko's (the snowy village)", "Chun-Li's and Sakura's (the elephant)",
+    "Morrigan's and Dan's (Chinatown)", "Ryu's (the forge)", "Tessa's and Akuma's (the castle)", "Ken's and Zangief's (the hall)"};
+// Each stage's tune (stage n's is n + 1: found by the custom soundtrack's log over a fight on each), and the
+// character choice's and the versus screen's
+constexpr uint16_t kTuneChoose = 0x0B, kTuneVersus = 0x0F;
+
+// The sound queue: a ring of sixteen-byte requests at A5+6230, the word at A5+7230 the place of the next (003264 puts
+// one in; 0031A2 sends the oldest to the sound CPU), as Vampire Savior's
+constexpr uint32_t kSoundQueue = 0xFFE230, kSoundQueueEnd = 0xFFF230;
+
+// The camera: the picture's left edge in the stage (words; 0 to 100 across: the stages are 640 wide), and the copies
+// of it the game keeps (all found moving together in RAM dumps as the players walked to one end)
+constexpr uint32_t kCameraX = 0xFF8290, kCameraY = 0xFF8294;
+inline constexpr uint32_t kCameraCopies[] = {0xFF802A, 0xFF82A0, 0xFF82A8};
+constexpr int kCameraLeft = 0, kCameraRight = 0x100;
+// Where the players stand at a round's start, and the walls (player 2 stops at 270 with the camera at its right end;
+// the left the same distance from 0)
+constexpr uint16_t kStartX[2] = {0xE8, 0x198};
+constexpr int kStageLeft = 0x10, kStageRight = 0x270;
+
+// The game's loop of notices, introduction, title, fights and rankings (kMode, traced with no coin in; the steps
+// between are fades): 0C its start, 10 the QSound notice, 14 the maker's, 18 the introduction (to the title), 1C the
+// advisory, 20 a fight, 24 the score ranking, 2E the recycling notice, 32 the maker's again, 36 the title, 3A the
+// advisory, 3E another fight, 42 the versus ranking; then 0C again
+enum : uint16_t { kLoop = 0x0C, kIntro = 0x18, kFirstFight = 0x20, kScores = 0x24, kSecondFight = 0x3E, kVersus = 0x42 };
 
 // The round's clock: seconds left, a byte (99 at a round's start; a second off at 0083E6, subq.b #1,0x189(a5)), with
 // its BCD copy for the picture in the byte before (FF8188) and the frames left of the second after (FF818A, counted
@@ -46,6 +83,49 @@ constexpr uint32_t kPlayer1 = 0xFF8400, kPlayerSize = 0x400;
 inline uint32_t Player(int n) {
     return kPlayer1 + static_cast<uint32_t>(n) * kPlayerSize;
 }
+// Four bytes of steps, each a step of the one before (found by RAM dumps of player 1 standing, crouching, walking,
+// jumping and attacking): in a fight the first is 2; the second says who is in charge of the player (0 the player,
+// kAction then saying what it is doing; 2 a hit: reeling); while choosing, the second is 2 once the player has chosen
+// (017598)
+constexpr uint32_t kState = 0x04, kControl = 0x05, kAction = 0x06, kActionStep = 0x07;
+enum : uint8_t { kControlOwn = 0x00, kControlReeling = 0x02, kChosen = 0x02 };
+enum : uint8_t { kActionStand = 0x00, kActionWalk = 0x04, kActionJump = 0x06, kActionAttack = 0x0A, kActionSpecial = 0x16 };
+constexpr uint32_t kFacesRight = 0x0B; // byte: 1 facing right (a box's offset across is kept as if facing left: 016088)
+constexpr uint32_t kColourSet = 0x0D;  // byte: the first of the player's colour sets (player 1 10, player 2 15)
+constexpr uint32_t kX = 0x10;          // word: where it stands across the stage
+constexpr uint32_t kY = 0x14;          // word: height, upwards; kGround on the floor
+constexpr uint16_t kGround = 0x30;
+constexpr uint32_t kFrame = 0x1C;      // long: the animation frame being shown (in the ROM)
+constexpr uint32_t kHitStop = 0x4C;    // byte: frames the player stands frozen while a hit lands (both players)
+constexpr uint32_t kAttacking = 0x105; // byte: 1 while an attack of the player's is going on
+constexpr uint32_t kCombo = 0x144;     // byte: hits in the combo being taken
+// Who the player is: a byte (the cursor writes it as it moves, 017586, and the fight reads it, 003806 on). kChoice
+// keeps the last character chosen for the next game (0074EE copies it back).
+constexpr uint32_t kCharacter = 0x381, kChoice = 0x3F0;
+constexpr int kCharacters = 12;
+// The characters by number, each seen in a fight with kCharacter held at it; Dan and Akuma are the hidden two
+inline constexpr const char *kCharacterNames[kCharacters] = {"Ryu",      "Ken",    "Chun-Li", "Sakura",  "Morrigan", "Hsien-Ko",
+                                                             "Felicia", "Tessa", "Ibuki",   "Zangief", "Dan",      "Akuma"};
+// Boxes (the hit test 0154CA, the boxes' test 016088, the push 016188). A box is four words: its middle from where the
+// player stands (across turned about when facing right; up from kY), its whole width and height. The player's record
+// names two boxes it can be hit in (bytes kHurtA and kHurtB, numbers into the tables of eight-byte boxes at the longs
+// kHurtTableA and kHurtTableB; 0 none) and its push box (kPush into kPushTable). The animation frame names the attack
+// (its byte kFrameAttack, a number into the table of 32-byte attacks at the long kAttackTable: the box, then what the
+// attack does).
+constexpr uint32_t kHurtTableA = 0x80, kHurtTableB = 0x84, kAttackTable = 0x88, kPushTable = 0x8C; // longs
+constexpr uint32_t kHurtA = 0x90, kHurtB = 0x91, kPush = 0x93;                                    // bytes
+constexpr uint32_t kFrameAttack = 0x0A;
+constexpr uint32_t kBoxSize = 8, kAttackSize = 0x20;
+constexpr uint32_t kBoxX = 0, kBoxY = 2, kBoxWidth = 4, kBoxHeight = 6;
+// The control panel as the game read it this frame, from A5: a word a player, buttons above (bits 0-2 the three) and
+// the stick below (bit 0 right, 1 left, 2 down, 3 up). Found holding right, up and the first button for player 1 and
+// down and the third for player 2.
+constexpr uint32_t kControls[2] = {0xFF805C, 0xFF8060};
+
+// --- routines ---
+constexpr uint32_t kPlayerControl = 0x00C642; // a player's fight step, where it goes on by kControl (00C602; once a step each)
+constexpr uint32_t kHitLands = 0x0155F2;      // an attack has hit (A6 the attacker, A1 the victim, A3 the attack)
+constexpr uint32_t kChooseStage = 0x0099E0;   // the stage for a match is chosen (from one of the players' characters)
 // A player's health, a word (0x90 at a round's start, 0082F4; below nothing a knockout, 015CE6); +42 the bar shown.
 // Every hit and throw takes its damage off at 015D6E (sub.w d4,0x40(a1)), the only writer seen with --watch on both
 // players' health through fights and made-up play.

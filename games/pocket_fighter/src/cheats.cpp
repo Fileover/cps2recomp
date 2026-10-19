@@ -4,6 +4,7 @@
 // Super Gem Fighter Mini Mix: cheats (optional features: the launcher's Features page and the in-game menu switch
 // them). Made-up play needs them to go up the ladder to its end ('make explore', game.cfg's explore features).
 #include "pocket.h"
+#include "session.h"
 
 namespace cps2recomp {
 
@@ -17,16 +18,22 @@ namespace {
     }
 
     // 015D6E: sub.w d4,0x40(a1), a hit's or a throw's damage (D4) off the health of the victim (A1). Health below
-    // nothing after it is a knockout (015CE6), so one-hit knockouts take off more than a full bar.
+    // nothing after it is a knockout (015CE6), so one-hit knockouts take off more than a full bar; with no knockouts
+    // (a training session, the modes that want it) a hit takes no more than the health there is.
     bool Damage(M68K &c) {
         const int player = PlayerOf(c.a[1]);
         if (player < 0) {
             return false;
         }
+        session::Hit(player, c.d[4] & 0xFFFF);
         if (FeatureOn(player == 0 ? "no_damage" : "no_damage_2")) {
             SetLow16(c.d[4], 0);
         } else if (player == 1 && FeatureOn("one_hit")) {
             SetLow16(c.d[4], kHealthFull + 1);
+        }
+        const int16_t health = static_cast<int16_t>(Ram16(Player(player) + kHealth));
+        if (session::NoKnockOut() && static_cast<int16_t>(c.d[4] & 0xFFFF) > health) {
+            SetLow16(c.d[4], static_cast<uint32_t>(health > 0 ? health : 0));
         }
         return false;
     }
@@ -37,7 +44,7 @@ void RegisterCheats() {
     // 0083DC: subq.b #1 off the frames left of the round's second; at nothing a second comes off the clock (0083E6)
     // and the frames start again. With the cheat the frame is given back first, so the clock stands still.
     AddHook(0x0083DC, "ClockFrame", [](M68K &) {
-        if (FeatureOn("infinite_time")) {
+        if (FeatureOn("infinite_time") || session::NoClock()) {
             SetRam8(kClockFrames, static_cast<uint8_t>(Ram8(kClockFrames) + 1));
         }
         return false;

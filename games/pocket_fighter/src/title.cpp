@@ -12,6 +12,7 @@
 // in, or free play, it goes from that 2 to 2 and 4 instead (frames 470-471): the title that asks for Start. A step
 // past the introduction ends the skipping too. Only the board's start begins it (Machine::frame is 0 again at a
 // reset): the step is 0 for a few frames between the screens of a game too.
+#include "modes.h"
 #include "pocket.h"
 
 namespace cps2recomp {
@@ -40,7 +41,7 @@ void TitleFrame(Machine &machine) {
     // (only the board's first frame: the step is 0 again between screens of a game, and a game must never be
     // run unseen. A reset while it skips starts it again: what the last start had seen is not this one's)
     if (machine.frame <= 1 && mode == 0) {
-        g_skipping = FeatureOn("skip_intro");
+        g_skipping = FeatureOn("skip_intro") && !modes::AttractMode(); // (attract mode is the show itself)
         g_booted = false;
         g_frames = 0;
     }
