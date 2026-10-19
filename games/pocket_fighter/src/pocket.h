@@ -96,6 +96,9 @@ constexpr uint32_t kX = 0x10;          // word: where it stands across the stage
 constexpr uint32_t kY = 0x14;          // word: height, upwards; kGround on the floor
 constexpr uint16_t kGround = 0x30;
 constexpr uint32_t kFrame = 0x1C;      // long: the animation frame being shown (in the ROM)
+// Longs, 16 bits of fraction: the speeds across and up, and what is taken off them each step (a jump: up 0x68000 as it
+// leaves the floor, pulled by 0x8000 a step; RAM dumps through a jump)
+constexpr uint32_t kSpeedX = 0x20, kSpeedY = 0x24, kPullX = 0x28, kPullY = 0x2C;
 constexpr uint32_t kHitStop = 0x4C;    // byte: frames the player stands frozen while a hit lands (both players)
 constexpr uint32_t kAttacking = 0x105; // byte: 1 while an attack of the player's is going on
 constexpr uint32_t kCombo = 0x144;     // byte: hits in the combo being taken
@@ -121,6 +124,43 @@ constexpr uint32_t kBoxX = 0, kBoxY = 2, kBoxWidth = 4, kBoxHeight = 6;
 // the stick below (bit 0 right, 1 left, 2 down, 3 up). Found holding right, up and the first button for player 1 and
 // down and the third for player 2.
 constexpr uint32_t kControls[2] = {0xFF805C, 0xFF8060};
+
+// Objects by what they are (for Video::hideObject; found by hiding colour sets one at a time and in groups in the
+// stage viewer's picture, and from the object list): sets 00-0F are the panel (the bars, names, gem counters) and the
+// item chest (0A); 10-17 the players (player 1's kColourSet 10, player 2's 15), what they throw (Ryu's fireball 12)
+// and their faces on the panel; 18 on the stage's own pieces, and in 1F the players' shadows (tiles 1D8E0-1D8FF, on
+// the floor's line)
+inline bool IsShadow(uint32_t tile, uint16_t attributes) {
+    return (attributes & 0x1F) == 0x1F && tile >= 0x1D8E0 && tile < 0x1D900;
+}
+inline bool NotTheStage(uint32_t tile, uint16_t attributes) {
+    return (attributes & 0x1F) < 0x18 || IsShadow(tile, attributes);
+}
+inline bool ThePanel(uint32_t, uint16_t attributes) {
+    const unsigned set = attributes & 0x1F;
+    return set < 0x10 && set != 0x0A;
+}
+inline bool NotTheFighters(uint32_t tile, uint16_t attributes) {
+    return ThePanel(tile, attributes) || ((attributes & 0x1F) >= 0x18 && !IsShadow(tile, attributes));
+}
+
+// The round's result: bit 0 set when player 2 is knocked out (its health below nothing), bit 1 player 1 (0083B8,
+// every step of a fight): 1 player 1 has won, 2 player 2, 3 neither
+constexpr uint32_t kRoundResult = 0xFF818C;
+// A byte of a player's: 1 while the game plays it (the fight step goes to the computer's routine, 0149D6, for it:
+// 00C602; found 1 for player 2 in a one-player game, 0 in a two-player one)
+constexpr uint32_t kComputer = 0x39E;
+// The records of what the players throw and the like: a pool of 14 of 0x100 bytes from FF8C00 (01B30E sets it up;
+// 01B52C takes one from it); a byte kActive not zero for one in use. Ryu's fireball was the last.
+constexpr uint32_t kThrown = 0xFF8C00, kThrownSize = 0x100;
+constexpr int kThrownRecords = 14;
+constexpr uint32_t kActive = 0x00;
+
+// The machine the port is running (set before each of its frames: a spare runs in it too), for reading the ROM's
+// tables outside the game's own code (game.cpp)
+cps2recomp::Machine &Board();
+// Half a player's width: its push box's (the game keeps no word of it)
+int HalfWidth(uint32_t player);
 
 // --- routines ---
 constexpr uint32_t kPlayerControl = 0x00C642; // a player's fight step, where it goes on by kControl (00C602; once a step each)

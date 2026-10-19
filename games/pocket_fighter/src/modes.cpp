@@ -15,13 +15,6 @@ namespace cps2recomp {
 namespace {
     using namespace pocket;
 
-    // Objects that are not the stage's own: the players', what they throw, the gems, the sparks and the panel are in
-    // colour sets below 0x18 (FIXME: checked only by eye, the viewer's picture)
-    bool NotTheStage(uint32_t tile, uint16_t attributes) {
-        (void)tile;
-        return (attributes & 0x1F) < 0x18;
-    }
-
     // The parts of the loop left out for what is to be shown
     bool AttractStep(int show) {
         const uint16_t part = Ram16(kMode);
@@ -79,7 +72,7 @@ void RegisterModes() {
     d.otherTunes = {kTuneChoose, kTuneVersus};
     d.cameraLeft = kCameraLeft;
     d.cameraRight = kCameraRight;
-    d.notTheStage = NotTheStage;
+    d.notTheStage = NotTheStage; // (pocket.h)
     d.attractLooping = [] { return Ram16(kMode) >= kLoop; };
     d.attractStep = AttractStep;
     d.attractWords = "The game's own show on a loop, with no coin in: the introduction, the title, fights and rankings.";
