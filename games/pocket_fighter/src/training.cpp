@@ -86,7 +86,7 @@ namespace {
     }
 
     // A box of a player's, from its table (eight bytes a box, or 32 an attack, the box first), placed in the stage
-    void AddBox(M68K &c, std::vector<fight::StageBox> &boxes, fight::BoxKind kind, uint32_t player, uint32_t box) {
+    void AddBox(M68K &c, std::vector<fight::StageBox> &boxes, fight::BoxKind kind, uint32_t player, uint32_t box, bool thrown = false) {
         const int16_t offset = static_cast<int16_t>(c.Read(box + kBoxX, 1));
         const int x = static_cast<int16_t>(Ram16(player + kX)) + (Ram8(player + kFacesRight) ? -offset : offset);
         const int y = static_cast<int16_t>(Ram16(player + kY)) + static_cast<int16_t>(c.Read(box + kBoxY, 1));
@@ -94,7 +94,7 @@ namespace {
         if (width == 0 || height == 0) {
             return;
         }
-        boxes.push_back({kind, x, y, width / 2, height / 2});
+        boxes.push_back({kind, x, y, width / 2, height / 2, thrown});
     }
 
     std::vector<fight::StageBox> Boxes(Machine &machine) {
@@ -116,6 +116,18 @@ namespace {
             }
             if (const uint32_t attack = c.Read(Ram32(player + kFrame) + kFrameAttack, 0)) {
                 AddBox(c, boxes, fight::BoxKind::Attack, player, Ram32(player + kAttackTable) + attack * kAttackSize);
+            }
+        }
+        // What the players throw (the pool from kThrown, records of a player's layout: Ryu's fireball's frame names its
+        // attack, 36, in its thrower's table, which the record keeps too)
+        for (int n = 0; n < kThrownRecords; n++) {
+            const uint32_t thrown = kThrown + static_cast<uint32_t>(n) * kThrownSize;
+            const uint32_t frame = Ram32(thrown + kFrame);
+            if (!Ram8(thrown + kActive) || frame < 0x100000 || frame >= 0x280000) {
+                continue;
+            }
+            if (const uint32_t attack = c.Read(frame + kFrameAttack, 0)) {
+                AddBox(c, boxes, fight::BoxKind::Attack, thrown, Ram32(thrown + kAttackTable) + attack * kAttackSize, true);
             }
         }
         return boxes;

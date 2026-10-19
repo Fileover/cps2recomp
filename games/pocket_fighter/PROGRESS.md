@@ -142,7 +142,9 @@ Variables are reached from A5 = FF8000, as in the Alpha games.
   other is in its guarding pose (a guarded hit takes nothing: 015D6E with D4 0). The fly routines: 011AA6 (across),
   011AB8 (up).
 - **The round's result**: FF818C, bit 0 player 2 knocked out, bit 1 player 1 (0083B8).
-- **Thrown things**: a pool of 14 records of 0x100 from FF8C00 (01B30E; Ryu's fireball the last).
+- **Thrown things**: a pool of 14 records of 0x100 from FF8C00 (01B30E; Ryu's fireball the last), of a player's layout:
+  the frame at +1C names the attack (Ryu's fireball's 36, a box 14 wide and 12 high, 7 ahead) in the thrower's
+  attack table, which the record keeps at +88. Drawn among the hit boxes in the thrown things' colour.
 - **Objects**: sets 00-0F the panel and the item chest (0A); 10-19 the players (five each), what they throw and their
   faces on the panel (tiles 14460 and 14Bxx); 1A on the stage; the shadows in 1F, tiles 1D8E0-1D8FF (found by hiding
   sets one at a time in the stage viewer).
