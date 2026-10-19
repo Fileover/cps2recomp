@@ -68,6 +68,8 @@ namespace {
     constexpr int kMiddle = 0x80; // (from the camera's place, which is the picture's left edge)
 
     int32_t g_x = -1, g_y = -1; // where the viewer has the camera (-1: not viewing)
+    int32_t g_heldX = -1, g_heldY = -1; // where the model viewer holds it (-1: not yet)
+    bool g_pressed = false; // player 1 is pressing a direction (this frame of viewing)
     int32_t g_playing = 0; // frames the game has been played at the wanted part
 
     uint16_t Word(uint32_t address) {
@@ -150,6 +152,16 @@ namespace {
         return true;
     }
 
+    // 0192B8: a standing player starts to walk (+04 02000002). An episode's start walks the players in by itself, a
+    // while after they can be moved: in the model viewer, only player 1's controls walk the character.
+    bool Walks(M68K &c) {
+        if (!beat::ModelShown() || g_pressed || (c.a[6] & 0xFFFF) != (Player(0) & 0xFFFF)) {
+            return false;
+        }
+        c.pc = 0x01927A;
+        return true;
+    }
+
     bool ToStage(Machine &machine, int stage, int32_t &frames) {
         const Stage &want = kViewed[stage];
         if (Ram8(kStep) == 0) {
@@ -168,12 +180,22 @@ namespace {
         return ++g_playing > 120;
     }
 
-    void View(Machine &, int stage, int x, int y) {
+    void View(Machine &machine, int stage, int x, int y) {
+        g_pressed = (machine.players[0] & (kLeft | kRight | kUp | kDown)) != 0;
         g_x = x;
         g_y = y;
         if (beat::ModelViewer() && kViewed[stage].viewerCamera) {
             g_x = kViewed[stage].way[0].x;
             g_y = kViewed[stage].way[0].y;
+        } else if (beat::ModelShown()) {
+            // (the model viewer's camera stays where it was as the viewer was first seen: the game's own would follow
+            // the character, which the viewer keeps in the middle of the picture, and scroll the stage on and on)
+            if (g_heldX < 0) {
+                g_heldX = Ram16(kCameraX);
+                g_heldY = Ram16(kCameraY);
+            }
+            g_x = g_heldX;
+            g_y = g_heldY;
         }
         // (the players out of harm, and in the middle of the picture, where the game's camera looks for them; and the
         // clock still)
@@ -261,6 +283,9 @@ void ViewerFrame(Machine &) {
     if (!beat::Viewing() || beat::Starting()) {
         g_x = g_y = -1;
     }
+    if (!beat::ModelShown()) {
+        g_heldX = g_heldY = -1;
+    }
 }
 
 void DescribeViewer(beat::Description &d) {
@@ -310,6 +335,7 @@ void DescribeViewer(beat::Description &d) {
     d.ready = [] { return Ram32(Player(0) + 0x04) == 0x02000000; };
     AddHook(0x011652, "Hit", Hit);
     AddHook(0x018AAE, "Entrance", Entrance);
+    AddHook(0x0192B8, "Walks", Walks);
     AddHook(0x02075E, "CameraSetUp", CameraSetUp);
     AddHook(0x02091C, "CameraMoves", CameraMoves);
     AddHook(0x02126E, "CameraPlaced", CameraPlaced);

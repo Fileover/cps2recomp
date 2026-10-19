@@ -35,8 +35,14 @@
   - The character is in the middle of the picture, as in the fighting games: it was where the game had put it, at
     the edge or out of the picture on many stages, and at the larger sizes, which are made about where it stands,
     off to one side or out of the picture altogether (that place was 64 pixels out on Alien vs. Predator and read
-    from the wrong word on Cadillacs and Dinosaurs). It stays in the middle until moved with player 1's controls.
-  - It is unseen until the character is there and standing: the stages that bring the players in late, or with an
+    from the wrong word on Cadillacs and Dinosaurs). It stays in the middle until moved with player 1's controls,
+    and the camera stays where it was as the viewer began: on Cadillacs and Dinosaurs it went on following the
+    character, scrolling the stage, and the character slid from side to side as it did.
+  - Cadillacs and Dinosaurs: the episodes' walk in at their start no longer walks the character on the spot a while
+    after the viewer has begun, and things the enemies throw, which can be in a character's colours, are no longer
+    drawn as part of it unless they touch it.
+  - It is unseen until the character is there and standing (on Alien vs. Predator, until the camera has stopped
+    going up or down after it): the stages that bring the players in late, or with an
     entrance (thrown in, dropped from above), showed an empty stage or the character lying down for several seconds.
   - Cadillacs and Dinosaurs: the character is out of harm (unseen things falling knocked it down over and over on some
     stages); the second and third parts of Jack's Garage and the second of the Swamp Forest no longer leave it in the

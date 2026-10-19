@@ -91,6 +91,8 @@ struct Description {
     // -1: not known, found from its picture)
     bool (*characterObject)(uint32_t tile, uint16_t attributes) = nullptr;
     void (*standing)(int &x, int &y) = nullptr;
+    // characterObject can take other things too (told by colour, say): only what touches the character is kept
+    bool sharedObjects = false;
     // Puts the character in the middle of the picture across (each frame of viewing until player 1 moves it: a
     // stage can begin with the players walking in from its edge)
     void (*centre)() = nullptr;
@@ -108,6 +110,7 @@ bool ScoreAttack();
 bool StageViewer();
 int ViewedStage(); // (the stage the viewer is showing or getting to, from 0)
 bool ModelViewer();
+bool ModelShown(); // (the model viewer is seen: its character is in the picture and ready)
 int ViewedCharacter(); // (the character the viewer is showing, from 0)
 // The stage or the model viewer: a game begun unseen at a stage of the viewer's (ViewedStage), with the players
 // out of harm and the enemies standing still and unseen

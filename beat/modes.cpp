@@ -337,6 +337,9 @@ bool StageViewer() {
 bool ModelViewer() {
     return g.mode == Mode::Model;
 }
+bool ModelShown() {
+    return g.mode == Mode::Model && !g.starting && !g.waiting;
+}
 void BeginModel(Machine &machine, int stage) {
     End();
     g.mode = Mode::Model;

@@ -113,6 +113,7 @@ void RegisterModel(const Description &description) {
     };
     d.anchorNow = true;
     d.centred = true;
+    d.nearestOnly = description.sharedObjects;
     d.largeLift = 48;
     model::Register(d);
 }

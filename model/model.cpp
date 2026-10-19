@@ -10,6 +10,7 @@
 #include <iterator>
 #include <map>
 #include <string>
+#include <vector>
 
 namespace cps2recomp::model {
 
@@ -234,6 +235,53 @@ namespace {
     }
 
     // The frame's picture made: the stage (or a plain colour), and the character over it at the size wanted
+    // Of the character's picture, only what touches it where it stands: the pixels in 4x4 blocks, the blocks joined
+    // to those about its feet and middle (with a block's gap between), the others left out (Description::nearestOnly)
+    void KeepNearest(uint32_t *picture, int width, int height) {
+        constexpr int kBlock = 4;
+        const int across = (width + kBlock - 1) / kBlock, down = (height + kBlock - 1) / kBlock;
+        std::vector<uint8_t> blocks(static_cast<size_t>(across) * down); // 1: drawn, 2: kept
+        for (int y = 0; y < height; y++) {
+            for (int x = 0; x < width; x++) {
+                if (picture[static_cast<size_t>(y) * width + x] & 0x80000000u) {
+                    blocks[static_cast<size_t>(y / kBlock) * across + x / kBlock] = 1;
+                }
+            }
+        }
+        std::vector<int> todo;
+        for (int by = std::max(0, (g.anchorY - 96) / kBlock); by <= std::min(down - 1, g.anchorY / kBlock); by++) {
+            for (int bx = std::max(0, (g.anchorX - 12) / kBlock); bx <= std::min(across - 1, (g.anchorX + 12) / kBlock); bx++) {
+                if (blocks[static_cast<size_t>(by) * across + bx] == 1) {
+                    blocks[static_cast<size_t>(by) * across + bx] = 2;
+                    todo.push_back(by * across + bx);
+                }
+            }
+        }
+        if (todo.empty()) {
+            return; // (nothing about where it stands: all of it kept)
+        }
+        while (!todo.empty()) {
+            const int at = todo.back(), bx = at % across, by = at / across;
+            todo.pop_back();
+            for (int dy = -2; dy <= 2; dy++) {
+                for (int dx = -2; dx <= 2; dx++) {
+                    const int x = bx + dx, y = by + dy;
+                    if (x >= 0 && x < across && y >= 0 && y < down && blocks[static_cast<size_t>(y) * across + x] == 1) {
+                        blocks[static_cast<size_t>(y) * across + x] = 2;
+                        todo.push_back(y * across + x);
+                    }
+                }
+            }
+        }
+        for (int y = 0; y < height; y++) {
+            for (int x = 0; x < width; x++) {
+                if (blocks[static_cast<size_t>(y / kBlock) * across + x / kBlock] != 2) {
+                    picture[static_cast<size_t>(y) * width + x] &= ~0x80000000u;
+                }
+            }
+        }
+    }
+
     void Compose(Machine &machine) {
         static std::vector<uint32_t> model, fight;
         const int width = machine.PictureWidth(), height = Video::kHeight;
@@ -301,6 +349,9 @@ namespace {
             }
         }
 
+        if (g_d.nearestOnly) {
+            KeepNearest(model.data(), width, height);
+        }
         if (Plain(g.background)) {
             std::fill(picture, picture + static_cast<size_t>(width) * height, g.background == White() ? 0xFFFFFFu : 0u);
         }

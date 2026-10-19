@@ -288,6 +288,17 @@ void DescribeViewer(beat::Description &d) {
         y = 243 - static_cast<int16_t>(Ram16(Player(0) + kY) - Ram16(kCameraY));
     };
     d.centre = [] { SetRam16(Player(0) + kX, static_cast<uint16_t>(Ram16(kCameraX) + Video::kWidth / 2)); };
+    // (once the camera, which goes up and down after the character a pixel a frame, has stopped: or at once where
+    // the game moves it by itself)
+    d.ready = [] {
+        static uint32_t last = 0;
+        static int still = 0;
+        const uint32_t camera = (static_cast<uint32_t>(Ram16(kCameraX)) << 16) | Ram16(kCameraY);
+        still = camera == last ? still + 1 : 0;
+        last = camera;
+        const Stage &stage = kStages[beat::ViewedStage()];
+        return stage.left == stage.right || still >= 30;
+    };
     AddHook(0x0A9B48, "DrawNext", DrawNext);
     AddHook(0x0A9B62, "DrawDone", DrawDone);
     AddHook(0x0AF8B4, "SceneCamera", SceneCamera);

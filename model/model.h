@@ -74,6 +74,9 @@ struct Description {
     // The character is drawn in the middle of the picture across at every size, not only the larger ones (where it
     // stands is the game's: a beat-'em-up's camera does not keep it in the middle)
     bool centred = false;
+    // Of the objects isModel takes, only those that touch the character where it stands are its own (isModel can
+    // take others: things of the same colours, say)
+    bool nearestOnly = false;
     // How far left the character is moved for a panel at the picture's right (the colour editor's; none: 0)
     int (*shift)() = nullptr;
 
