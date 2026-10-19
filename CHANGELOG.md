@@ -1,5 +1,16 @@
 # Changelog
 
+## Unreleased
+
+- **A release has only its three downloads**, their checksums and three small update lists (it had a file for
+  every file of every download too, 46 more). The launcher's **Update** now downloads the system's download
+  itself, checks it, and puts in place what changed (recomp-common 91b4e51; `update-<system>.txt` names the
+  archive, `tools/release/lib.sh`). **A launcher of 0.4.0-beta.2 can't update itself to this version** (it reads
+  only the old lists and says the list of files could not be read): download it by hand once, and later versions
+  come through Update again.
+- **Each release's page says how to install it** on macOS, Windows, Linux and the Steam Deck and Steam Machine,
+  above its changes (`tools/release/notes.sh`, used by the release workflow).
+
 ## 0.4.0-beta.2
 
 - **Vampire Savior Definitive** no longer sometimes draws a screen of wrong tiles: the scroll screens looked up

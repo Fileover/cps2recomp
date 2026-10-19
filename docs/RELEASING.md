@@ -6,7 +6,8 @@ every platform by hand.
 
 ## What a release is
 
-Three archives and their checksums, as a GitHub release of a tag:
+Three archives, their checksums and the launcher's three manifests, as a GitHub release of a tag. Nothing else:
+a player sees the three downloads.
 
 | File | For |
 | --- | --- |
@@ -15,14 +16,20 @@ Three archives and their checksums, as a GitHub release of a tag:
 | `CPS2Recomp-windows-x64.zip` | Windows 10 and 11, 64-bit |
 | `SHA256SUMS.txt` | |
 | `update-macos.txt`, `update-linux-x86_64.txt`, `update-windows-x64.txt` | The launcher's updates: each system's manifest |
-| `<sha256>.gz`, one for each different file | The launcher's updates: every file of the three, gzipped, named by its SHA-256 |
+
+The release's text is `tools/release/notes.sh`'s: the table of downloads, how to install on macOS, Windows,
+Linux and the Steam devices, how updating works, and the version's section of `CHANGELOG.md`. Change the
+install steps there, once, for every release.
 
 **The launcher updates itself from these** (`recomp-common/launcher/src/update.h`): when it opens it reads the
 repository's releases, takes the newest with a manifest for its system (a beta only while it is a beta itself),
-and downloads only the files whose SHA-256 differs from the manifest's. So a player keeps their copy and gets a
-new game, or a fixed one, as a download of only what changed. `tools/release/all.sh` writes the manifests and
-`build/release/update-files/`. A release without them is not offered to the launchers, and a release whose
-`version` line is not its tag is refused by them.
+and compares the files the manifest lists with its own. **Update** downloads that system's archive (the same
+file as a player's download), checks it against the manifest's SHA-256, unpacks it, checks each file that
+changed, and only then puts them in place. Each release script writes its system's manifest after its archive
+(`tools/release/lib.sh`, `update_files`), and `tools/release/all.sh` checks that each names its archive as it
+is. A release without them is not offered to the launchers, and a release whose `version` line is not its tag is
+refused by them. (0.4.0-beta.2 carried a gzipped file for every file of the three, 46 more files, and its
+launchers read only that kind: they cannot update themselves to a later release.)
 
 Each holds the launcher (`cps2recomp-launcher`), every game's program (`sfa2`, `vampire_savior`,
 `puzzle_fighter`) and the licences. No ROM, graphics, sound or key is in them: the player supplies their own ROM
@@ -53,10 +60,10 @@ code is not part of that source: it is made from the player's own ROM sets by th
    both halves, Linux in a container, Windows under Wine): the same picture hashes as the Mac's build. A person
    plays each archive on its system (picture, sound, a gamepad, the launcher's pages, a save state, training
    mode).
-6. `gh release upload vX.Y.Z build/release/CPS2Recomp-* build/release/SHA256SUMS.txt build/release/update-*.txt
-   build/release/update-files/*.gz`, then publish the draft. A published release's files are never replaced: a fix
-   is a new version. Publishing is what offers it to every launcher that checks, so the archives are played
-   (step 5) first.
+6. `gh release upload vX.Y.Z build/release/CPS2Recomp-* build/release/SHA256SUMS.txt build/release/update-*.txt`
+   (seven files), then publish the draft. A published release's files are never replaced: a fix is a new
+   version. Publishing is what offers it to every launcher that checks, so the archives are played (step 5)
+   first.
 
 ## A new game
 
