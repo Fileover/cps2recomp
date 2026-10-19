@@ -76,15 +76,15 @@ Each game's page has all it does, with pictures.
 - **Your ROM sets are only ever read.** Settings, save states and each board's settings memory go in your own
   user folder.
 - **Updates in the launcher**: new games and fixes come to the copy you have. When a new version is out the
-  launcher says so at the top of its Games page, and **Update** downloads only the files that changed, checks
-  each, puts them in place and starts the new launcher. [More →](#updates)
+  launcher says so at the top of its Games page, and **Update** downloads the new version, checks it, puts
+  what changed in place and starts the new launcher. [More →](#updates)
 
 ![The Features page: what the games share, set for all of them at once](docs/screenshots/launcher-features.png)
 
 ## Playing
 
 1. Download the build for your system from the [releases page](https://github.com/tmcleroy/cps2recomp/releases)
-   and unpack it.
+   and unpack it. Each release's page has the steps for macOS, Windows, Linux and the Steam devices.
 2. Open the launcher (`CPS-2 Recomp.app`, `cps2recomp-launcher`). On its Games page, **Choose folder…** and pick
    the folder you keep your ROM sets in: it finds each game's by the set's name (`sfa.zip`, `sfa2u.zip`,
    `spf2t.zip`, `vsavj.zip`, `vsav2.zip`, `vhunt2.zip`, `avspu.zip`, `dino.zip`, or a folder of the set's files). Or drop a set, or the folder, on the window, or choose each
@@ -109,8 +109,8 @@ at that game's page (or straight into the game once its ROM set has been chosen)
 
 When the launcher opens it asks GitHub for this project's releases (the Games page's Updates card has a switch to
 stop that, and **Check now**). When there is a newer version it shows at the top of the Games page: **What's new**
-opens its notes, and **Update** downloads only the files that changed since your version (a new game is that
-game's program and the launcher, a few megabytes), checks every one against the release's list, and only then
+opens its notes, and **Update** downloads the new version's download for your system (the same file as on the
+releases page), checks it and every file that changed against the release's list, and only then
 puts them all in place; if anything goes wrong nothing is changed. The launcher then starts again as the new
 version. Your settings, save states and ROM sets are not touched. Quit the games first: Update waits until none is
 running. A beta is offered only to a beta.

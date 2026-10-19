@@ -102,10 +102,12 @@ namespace {
         way.place(c);
     }
 
-    // A mode's own place for the camera (modes.h): it goes there, no faster than the game lets it go
+    // A mode's own place for the camera (modes.h): it goes there, no faster than the game lets it go (unless it is
+    // to be held beyond the stage's ends)
     void CameraTo(M68K &c, const Way &way, uint32_t most, int wanted) {
         const uint32_t camera = c.a[6] & 0xFFFFFF;
-        const int now = Signed(Ram16(camera + way.at)), step = std::max<int>(Ram16(camera + most), 1);
+        // (held beyond the stage's ends, the ring out's way down: there at once)
+        const int now = Signed(Ram16(camera + way.at)), step = CameraAt().beyondEnds ? 0x8000 : std::max<int>(Ram16(camera + most), 1);
         const int to = now + std::clamp(wanted - now, -step, step);
         SetRam16(camera + way.at, static_cast<uint16_t>(to));
         SetLow16(c.d[0], static_cast<uint16_t>(to));

@@ -96,20 +96,19 @@ add_notices() {
     printf 'Source for this version (GPL-3.0): https://github.com/tmcleroy/cps2recomp/tree/v%s\n' "$VERSION" > "$1/SOURCE.txt"
 }
 # What the launcher updates itself from (recomp-common/launcher/src/update.h): $OUT/update-$1.txt, the manifest of
-# every file in $2 (the app, or the folder the archive unpacks to) with its SHA-256 and sizes, and each file gzipped
-# as $OUT/update-files/<sha256>.gz. Uploaded to the release with the archives (docs/RELEASING.md).
+# the archive $3 (its SHA-256 and size) and of every file in $2 (the app, or the folder at the archive's top) with
+# its SHA-256 and size. Uploaded to the release beside the archives (docs/RELEASING.md); the launcher downloads the
+# archive itself.
 update_files() {
-    platform=$1 top=$2
+    platform=$1 top=$2 archive=$3
     manifest="$OUT/update-$platform.txt"
-    mkdir -p "$OUT/update-files"
-    printf 'recomp-update 1\nversion %s\n' "$VERSION" > "$manifest"
+    printf 'recomp-update 2\nversion %s\n' "$VERSION" > "$manifest"
+    printf 'archive %s %s %s\n' "$(sha256 "$archive" | cut -d' ' -f1)" "$(wc -c < "$archive" | tr -d ' ')" "$(basename "$archive")" >> "$manifest"
+    printf 'top %s\n' "$(basename "$top")" >> "$manifest"
     (cd "$top" && find . -type f | sed 's|^\./||' | LC_ALL=C sort) | while IFS= read -r path; do
-        sum=$(sha256 "$top/$path" | cut -d' ' -f1)
-        [ -f "$OUT/update-files/$sum.gz" ] || gzip -9nc "$top/$path" > "$OUT/update-files/$sum.gz"
         mode=-
         [ -x "$top/$path" ] && mode=x
-        printf 'file %s %s %s %s %s\n' "$sum" "$(wc -c < "$top/$path" | tr -d ' ')" "$(wc -c < "$OUT/update-files/$sum.gz" | tr -d ' ')" \
-            "$mode" "$path" >> "$manifest"
+        printf 'file %s %s %s %s\n' "$(sha256 "$top/$path" | cut -d' ' -f1)" "$(wc -c < "$top/$path" | tr -d ' ')" "$mode" "$path" >> "$manifest"
     done
     echo "wrote $manifest ($(grep -c '^file ' "$manifest") files)"
 }

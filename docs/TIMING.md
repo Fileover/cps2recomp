@@ -75,6 +75,10 @@ Puzzle Fighter II Turbo jumped into what the translator had taken for data): the
 - Only Street Fighter Alpha 2 was compared with the reference so far; Vampire Savior and Super Puzzle Fighter II
   Turbo have the same board and chips, and the same rules.
 
+## How close it is
+
+What this was compared with, what that shows, and the path to arcade perfect: [ARCADE_ACCURACY.md](ARCADE_ACCURACY.md).
+
 ## Logs
 
 `CPS2RECOMP_BUS_LOG=FILE` writes, for each frame, the acknowledge waits and the DMA's clocks the port counted.

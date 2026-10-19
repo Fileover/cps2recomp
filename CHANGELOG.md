@@ -9,6 +9,37 @@
   soundtrack (its songs named by number for now). Its sources are its own: Alpha 2 is not made from its program (the
   routines Alpha 2's sources hook are mostly not in this game), so no training mode, alternative modes, widescreen or
   custom colours yet.
+- **A release has only its three downloads**, their checksums and three small update lists (it had a file for
+  every file of every download too, 46 more). The launcher's **Update** now downloads the system's download
+  itself, checks it, and puts in place what changed (recomp-common 91b4e51; `update-<system>.txt` names the
+  archive, `tools/release/lib.sh`). **A launcher of 0.4.0-beta.2 can't update itself to this version** (it reads
+  only the old lists and says the list of files could not be read): download it by hand once, and later versions
+  come through Update again.
+- **Each release's page says how to install it** on macOS, Windows, Linux and the Steam Deck and Steam Machine,
+  above its changes (`tools/release/notes.sh`, used by the release workflow).
+
+## 0.4.0-beta.2
+
+- **Vampire Savior Definitive** no longer sometimes draws a screen of wrong tiles: the scroll screens looked up
+  whether a tile was the extra set's at the graphics' offset instead of the map's place, reading past the end of
+  that list (`video/video.cpp`, DrawScroll; the CPS-1 games' tile offset had taken the map base's name).
+
+- **Ring out, in Street Fighter Alpha 2 and the Vampire Savior games**: a fighter knocked over the end of the stage
+  is thrown back with the game's own knock-down animation (and in Street Fighter Alpha 2 its cry), and falls
+  through the floor and out of the picture (before, its picture slid down); it is out as soon as it is past where
+  the board would have stopped it, while still in sight. The winner jumps off, and at the top of its jump goes on
+  in the next match as it was (place, picture, speeds): the camera follows it down past the old stage to the next
+  one's floor, the winner in front of both, and it lands as from any jump. (Vampire Savior's way down faded
+  through black; it is the same as Street Fighter Alpha 2's now.) The winner no longer stands about waiting for the
+  next match: each match and stage after the first is begun from a machine kept at the character choice (about 500
+  frames to its round, not 2,000 from switching on), and made ready twice as fast while the one out falls. In Street
+  Fighter Alpha 2 the player's colours stay the ones chosen from match to match (they went back to the first set). Each
+  match begun from the character choice is given a random number of its own, so the computer's choices do not repeat
+  from one match to the next.
+- **The fighting modes in the toolkit** (`fight/battle.h`): survival, the endless battle and the ring out, one
+  copy for every fighting game, which describes its memory and makes the ring out's two movements at its players'
+  step (`games/sfa2/src/player.cpp`, PlayerFighting; `games/vampire_savior/src/battle.cpp`, RingOutStep from the
+  player step hook). The camera may be held beyond a stage's ends (`CameraWanted::beyondEnds`).
 
 - **Updates in the launcher**: it checks this repository's releases when it opens and offers a newer version at the
   top of the Games page; **Update** downloads only the files that changed (a new game: its program and the

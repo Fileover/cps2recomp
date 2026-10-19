@@ -30,6 +30,12 @@ This page is for people making or working on ports. To play, see the [main page]
   crouches, jumps, guards, records and replays, and hit boxes drawn through the game's camera. A
   game's sources only say, from its own memory, what the players are doing
   ([docs/FIGHT.md](FIGHT.md)).
+- **The fighting modes.** Survival, the endless battle (on one stage, stages that fade one into another, or a floor
+  that scrolls through them) and the ring out are `fight/battle.h`: each match made ready on a spare machine and
+  put in the place of the last, the fighters drawn over a stage another machine shows. A game describes where it
+  keeps the players, the camera and the round's result, and makes the ring out's two movements at its players'
+  step: one knocked out thrown back and falling through the floor, the winner put in the next match in the air
+  as it was ([docs/FIGHT.md](FIGHT.md)).
 - **Players' own colours.** Text files a character, or a ROM file changed with PalMod, recolour the
   characters, and a colour editor in the model viewer makes them; a game only says where its colours
   are (`fight/colours.h`).
@@ -155,7 +161,7 @@ name and choices in each: the collection's launcher then shows it once, for all 
 | `video/`, `sound/` | The picture; the Z80 and QSound; Capcom's sound driver (version 2.01b) as ordinary code (`driver.cpp`) |
 | `third_party/` | The sound file decoders the custom soundtrack reads with (stb_vorbis, dr_flac, dr_mp3, dr_wav), as their projects publish them |
 | `port/` | The frontend (SDL 3), the custom soundtrack's player (`soundtrack.*`, `decoders.*`), putting the picture on the screen (`present.*`; shaders in `shaders/`, compiled into `shaders.inc` by `tools/gen_shaders.py`), the in-game menu adapter, the HUD, control bindings |
-| `fight/` | What a fighting game's training mode has in common, and the players' own colours ([docs/FIGHT.md](FIGHT.md)) |
+| `fight/` | What a fighting game's training mode has in common, its fighting modes, and the players' own colours ([docs/FIGHT.md](FIGHT.md)) |
 | `recomp-common/` | A copy of [recomp-common](https://github.com/tmcleroy/recomp-common) (the in-game menu, the settings rules, the launcher), made by `tools/sync-common.sh`; never changed here |
 | `launcher/` | What this toolkit tells the shared launcher (`recomp-common/launcher`; SDL 3 + Dear ImGui): `src/description.cpp` has the words for a ROM set, the check of the player's, the game's arguments and the buttons that can be chosen, for one game's launcher or the collection's |
 | `games/` | The games ([the main page](../README.md) has the list) |
