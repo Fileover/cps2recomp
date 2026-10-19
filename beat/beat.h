@@ -14,7 +14,7 @@
 //                  and its music. The stick scrolls it, or it scrolls by itself from one end to the other and back;
 //                  "Infinite" is every stage in turn. It is a game begun unseen and taken to that stage, whose camera
 //                  is then the viewer's: the game's sources say how to get there, and how far the camera goes.
-//   Character viewer  one of the players' characters by itself, on one of the stages or on white or black, at any
+//   Model viewer   one of the players' characters by itself, on one of the stages or on white or black, at any
 //                  size, moved with player 1's controls or going through any of its animations (beat/model.cpp).
 //                  It is a game begun unseen on the stage with that character, the enemies standing still and unseen;
 //                  an animation is shown by putting its frames into the character's record, as the game would.
@@ -73,7 +73,7 @@ struct Description {
     void (*view)(Machine &machine, int stage, int x, int y) = nullptr;
     // The scroll screens shown while viewing (Video::layerMask: the panel's left out; objects are never shown)
     unsigned viewLayers = 0xF;
-    // --- character viewer ---
+    // --- model viewer ---
     // The characters a player can be (the game's sources put the one chosen in as a game the viewer begins begins)
     std::vector<const char *> characters;
     // A character's animations: its lists (named A, B, C... in this order), each the frames its animations begin at
@@ -91,6 +91,12 @@ struct Description {
     // -1: not known, found from its picture)
     bool (*characterObject)(uint32_t tile, uint16_t attributes) = nullptr;
     void (*standing)(int &x, int &y) = nullptr;
+    // Puts the character in the middle of the picture across (each frame of viewing until player 1 moves it: a
+    // stage can begin with the players walking in from its edge)
+    void (*centre)() = nullptr;
+    // The character stands as player 1 can move it, its entrance over (none: once it is in the picture). Until then
+    // the viewer is run unseen: some stages bring the players in late, or with an entrance of their own.
+    bool (*ready)() = nullptr;
 };
 
 // The game's description, and the menu's pages, commands and features of the modes
@@ -101,12 +107,12 @@ int AttractShow(); // the "Shows" choice: 0 everything, then the description's s
 bool ScoreAttack();
 bool StageViewer();
 int ViewedStage(); // (the stage the viewer is showing or getting to, from 0)
-bool CharacterViewer();
+bool ModelViewer();
 int ViewedCharacter(); // (the character the viewer is showing, from 0)
-// The stage or the character viewer: a game begun unseen at a stage of the viewer's (ViewedStage), with the players
+// The stage or the model viewer: a game begun unseen at a stage of the viewer's (ViewedStage), with the players
 // out of harm and the enemies standing still and unseen
 inline bool Viewing() {
-    return StageViewer() || CharacterViewer();
+    return StageViewer() || ModelViewer();
 }
 // A mode is getting the board to where it begins (the game's sources leave the board alone meanwhile: no running
 // unseen of their own)
@@ -119,11 +125,12 @@ void BeforeFrame(Machine &machine);
 void Frame(Machine &machine);
 void State(Archive &ar);
 
-// (model.cpp: the character viewer, run by modes.cpp)
+// (model.cpp: the model viewer, run by modes.cpp)
 void RegisterModel(const Description &description);
 void StartModel(Machine &machine);
 void ModelBeforeFrame(Machine &machine);
 void ModelFrame(Machine &machine);
+bool ModelSeen(); // (the character was in the last picture)
 void EndModel();
 
 } // namespace beat

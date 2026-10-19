@@ -54,7 +54,9 @@ inline uint32_t Player(int n) {
 constexpr uint32_t kInPlay = 0x00;  // byte: 1 while the player is in the game
 constexpr uint32_t kCharacter = 0x03; // byte: who it is (0 Jack, 1 Mustapha, 2 Hannah, 3 Mess: 0014EE takes its animations
                                       // by it; put in as a game begins, it is that character)
-constexpr uint32_t kX = 0x0C;       // word: the place across, in the stage (as the camera's: 0211D8 follows it)
+constexpr uint32_t kX = 0x08;       // word: the place across, in the stage (as the camera's: 0211D8 follows it)
+constexpr uint32_t kY = 0x10;       // word: the place up and down on the floor, in the stage (as the camera's; its feet are 239
+                                    // less it in the picture, found from the model viewer's picture)
 constexpr uint32_t kHealth = 0x6D;  // byte: health (found standing still while hit: 64 down to 0, 64 again with a life)
 constexpr uint8_t kHealthFull = 0x64;
 constexpr uint32_t kLives = 0xA3;   // byte: lives left after this one (01BFD6 takes one)

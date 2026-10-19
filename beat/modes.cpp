@@ -35,6 +35,9 @@ namespace {
         // shown in turn
         int32_t stage = 0, along = 0, cameraX = 0, cameraY = 0, direction = 1, chosen = -1;
         bool approaching = false, infinite = false;
+        // model viewer: still unseen until the character is in the picture, and player 1 has moved it (it is no
+        // longer kept in the middle)
+        bool waiting = false, moved = false;
     } g;
     bool g_fast = false;
 
@@ -190,7 +193,7 @@ namespace {
         return from + std::clamp(to - from, -kStick, kStick);
     }
 
-    // (the stage and the character viewers: unseen to the stage; true once there)
+    // (the stage and the model viewers: unseen to the stage; true once there)
     bool ToStage(Machine &machine) {
         Fast(true);
         for (uint16_t &held : machine.players) {
@@ -331,7 +334,7 @@ bool ScoreAttack() {
 bool StageViewer() {
     return g.mode == Mode::Viewer;
 }
-bool CharacterViewer() {
+bool ModelViewer() {
     return g.mode == Mode::Model;
 }
 void BeginModel(Machine &machine, int stage) {
@@ -389,9 +392,25 @@ void BeforeFrame(Machine &machine) {
         ViewerBeforeFrame(machine);
     } else if (g.mode == Mode::Model) {
         if (g.starting) {
-            ToStage(machine);
+            // (then unseen until the character is in the picture and ready)
+            if (ToStage(machine)) {
+                g.waiting = true;
+                g.frames = 0;
+                Fast(true);
+            }
         } else {
+            if (g.waiting && ((ModelSeen() && (!g_d.ready || g_d.ready())) || ++g.frames > kStartMost)) {
+                g.waiting = false;
+                Fast(false);
+            }
             g_d.view(machine, g.stage, -1, -1);
+            // (in the middle until player 1 moves it while it stands; while an animation is shown, its controls are
+            // the viewer's and it stays there)
+            const bool animated = FeatureValue("model_animation") != 0 || FeatureValue("model_all") != 0;
+            g.moved = g.moved || (!animated && (machine.players[0] & (kLeft | kRight | kUp | kDown)));
+            if (g_d.centre && (animated || !g.moved)) {
+                g_d.centre();
+            }
             ModelBeforeFrame(machine);
         }
     } else if (g.mode == Mode::Score) {
@@ -423,7 +442,7 @@ void Frame(Machine &machine) {
         }
     }
     ScoreHud();
-    // (nobody shown while viewing (the character viewer draws its own): and only what this file set is put back)
+    // (nobody shown while viewing (the model viewer draws its own): and only what this file set is put back)
     static bool hid = false;
     const bool viewing = (g.mode == Mode::Viewer || g.mode == Mode::Model) && !g.starting;
     if (viewing || hid) {
@@ -440,7 +459,7 @@ void State(Archive &ar) {
         LoadPath();
     }
     if (!ar.Saving() && !RunningAhead() && g.mode == Mode::Model) {
-        End(); // (the character viewer's own is not kept: a state loaded while viewing ends it)
+        End(); // (the model viewer's own is not kept: a state loaded while viewing ends it)
     }
     if (!ar.Saving() && !RunningAhead()) {
         g_fast = !g.starting; // (put the window's running unseen as the state has it)

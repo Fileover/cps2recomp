@@ -45,7 +45,7 @@ program; what the program expects of the board is code written for this project,
     is kept.
   - **Stage viewer**: each of the rounds' scenes with nobody on it, only the scenery and its music, scrolled with
     the stick or by itself (slow, medium, fast), or every scene in turn.
-  - **Character viewer**: the Predator Warrior, Dutch Schaefer, the Predator Hunter or Linn Kurosawa by themselves,
+  - **Model viewer**: the Predator Warrior, Dutch Schaefer, the Predator Hunter or Linn Kurosawa by themselves,
     on a scene or on white or black, from a quarter of their size to 25 times, moved with your controls or going
     through any of their animations, in slow motion if you like.
 - **Custom soundtrack**: your own music files in place of the board's music ([how](../../README.md#a-custom-soundtrack));
@@ -62,7 +62,7 @@ program; what the program expects of the board is code written for this project,
 
 ![Round 2, War in the Underpass](../../docs/screenshots/avsp/underpass.png)
 
-![The character viewer: the Predator Hunter at twice its size, in the hive of round 4](../../docs/screenshots/avsp/character-viewer.png)
+![The model viewer: the Predator Hunter at twice its size, in the hive of round 4](../../docs/screenshots/avsp/model-viewer.png)
 
 ## What you need
 

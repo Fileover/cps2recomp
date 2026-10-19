@@ -37,6 +37,9 @@ namespace {
         const char *name;
         uint8_t episode, part;
         Place way[8];
+        // The model viewer's camera is the stage viewer's, at the way's start (the game's own, in a game begun at
+        // this part, is not set up right: it shows the scroll screens' rows out of place)
+        bool viewerCamera = false;
     };
     constexpr Place kEnd = {-1, -1};
     constexpr Stage kViewed[] = {
@@ -44,7 +47,7 @@ namespace {
         {"Episode 1: Eastcoast 2513 (2)", 0, 1, {{0, 0}, {0x210, 0}, kEnd}},
         {"Episode 1: Eastcoast 2513 (3)", 0, 2, {{0, 0x300}, {0, 0x100}, {0x1D0, 0x100}, kEnd}},
         {"Episode 2: The Swamp Forest (1)", 1, 0, {{0, 0x40}, {0x68C, 0x40}, {0x6F0, 0}, {0xA00, 0}, {0xA21, 0x10}, {0xB70, 0x10}, kEnd}},
-        {"Episode 2: The Swamp Forest (2)", 1, 2, {{0, 0x100}, {0x100, 0}, {0x260, 0}, kEnd}},
+        {"Episode 2: The Swamp Forest (2)", 1, 2, {{0, 0x100}, {0x100, 0}, {0x260, 0}, kEnd}, true},
         {"Episode 3: Waste Land", 2, 0, {{0, 0}, {0x4000, 0}, kEnd}},
         {"Episode 4: Jack's Garage (1)", 3, 0, {{0, 0}, {0x270, 0}, kEnd}},
         {"Episode 4: Jack's Garage (2)", 3, 1, {{0, 0}, {0x870, 0}, kEnd}},
@@ -62,7 +65,7 @@ namespace {
         {"Episode 8: Deep Deep Down (3)", 7, 2, {{0, 0x200}, {0x103, 0x200}, {0x301, 0x180}, {0x403, 0x180}, {0x600, 0x100}, {0xCB0, 0x100}, kEnd}},
         {"Episode 8: Deep Deep Down (4)", 7, 3, {kEnd}}, // (one room, which its own segment sets up: the game's camera)
     };
-    constexpr int kMiddle = 0x80; // (the camera's place is the picture's left edge and 0x40: its middle is 0x80 on)
+    constexpr int kMiddle = 0x80; // (from the camera's place, which is the picture's left edge)
 
     int32_t g_x = -1, g_y = -1; // where the viewer has the camera (-1: not viewing)
     int32_t g_playing = 0; // frames the game has been played at the wanted part
@@ -97,7 +100,7 @@ namespace {
     // hold the camera where it is until the wave of enemies there is beaten (mode 04, 021086), or for good (06, the
     // episode's end): while viewing none runs, and the camera goes straight on to be drawn where the viewer has it.
     bool CameraMoves(M68K &c) {
-        if (g_x < 0 || !beat::StageViewer()) {
+        if (g_x < 0 || !beat::Viewing()) {
             return false;
         }
         c.pc = 0x02126E;
@@ -106,7 +109,7 @@ namespace {
 
     // 02126E: the camera's place worked out, its new columns and rows to draw: while viewing, the viewer's place
     bool CameraPlaced(M68K &c) {
-        if (g_x >= 0 && beat::StageViewer()) {
+        if (g_x >= 0 && beat::Viewing()) {
             SetRam16(c.a[6] + 0x08, static_cast<uint16_t>(g_x));
             if (g_y >= 0) {
                 SetRam16(c.a[6] + 0x0C, static_cast<uint16_t>(g_y));
@@ -119,6 +122,28 @@ namespace {
     // (023620: the 24 records of 0xC0 bytes after the players', FFB6F4; 0233E2: those from FF8874) return at once
     bool StandStill(M68K &c) {
         if (!beat::Viewing() || beat::Starting()) {
+            return false;
+        }
+        Return(c);
+        return true;
+    }
+
+    // 018AAE: a player put in at an episode's start, about to be given the episode's own entrance (some episodes
+    // only, while the camera's part, FF8786, is still 0). A game begun at a later part by the viewers has not got
+    // what that entrance waits on, and the player would be left in it for good: it is passed over, as it is when the
+    // part is not the first.
+    bool Entrance(M68K &c) {
+        if (!beat::Viewing() || kViewed[beat::ViewedStage()].part == 0) {
+            return false;
+        }
+        c.pc = 0x018B36;
+        return true;
+    }
+
+    // 011652: something's attack (A2) has met what it can hit (A3), which is hit unless it is out of the way: in the
+    // model viewer the character is out of harm (things unseen fall on some stages)
+    bool Hit(M68K &c) {
+        if (!beat::ModelViewer() || beat::Starting() || (c.a[3] & 0xFFFF) != (Player(0) & 0xFFFF)) {
             return false;
         }
         Return(c);
@@ -143,9 +168,13 @@ namespace {
         return ++g_playing > 120;
     }
 
-    void View(Machine &, int, int x, int y) {
+    void View(Machine &, int stage, int x, int y) {
         g_x = x;
         g_y = y;
+        if (beat::ModelViewer() && kViewed[stage].viewerCamera) {
+            g_x = kViewed[stage].way[0].x;
+            g_y = kViewed[stage].way[0].y;
+        }
         // (the players out of harm, and in the middle of the picture, where the game's camera looks for them; and the
         // clock still)
         for (int n = 0; n < kPlayers; n++) {
@@ -161,7 +190,7 @@ namespace {
     }
 } // namespace
 
-// --- the character viewer ---
+// --- the model viewer ---
 namespace {
     // The characters, by their numbers in the game (a player's record's +03), and the colours their objects are in
     // (found from the object list: not their numbers' order). Their animations: six lists of where each begins (word
@@ -225,11 +254,11 @@ int ViewerEpisode() {
     return beat::Viewing() ? kViewed[beat::ViewedStage()].episode : -1;
 }
 int ViewerCharacter() {
-    return beat::CharacterViewer() ? beat::ViewedCharacter() : -1;
+    return beat::ModelViewer() ? beat::ViewedCharacter() : -1;
 }
 
 void ViewerFrame(Machine &) {
-    if (!beat::StageViewer() || beat::Starting()) {
+    if (!beat::Viewing() || beat::Starting()) {
         g_x = g_y = -1;
     }
 }
@@ -271,10 +300,16 @@ void DescribeViewer(beat::Description &d) {
     d.isFrame = IsFrame;
     d.showFrame = ShowFrame;
     d.characterObject = [](uint32_t, uint16_t attributes) { return (attributes & 0x1F) == kColours[beat::ViewedCharacter()]; };
+    // (the camera's place is the picture's left edge)
     d.standing = [](int &x, int &y) {
-        x = static_cast<int16_t>(Ram16(Player(0) + kX) - Ram16(kCameraX) + 0x40);
-        y = -1;
+        x = static_cast<int16_t>(Ram16(Player(0) + kX) - Ram16(kCameraX));
+        y = 239 - static_cast<int16_t>(Ram16(Player(0) + kY) - Ram16(kCameraY));
     };
+    d.centre = [] { SetRam16(Player(0) + kX, static_cast<uint16_t>(Ram16(kCameraX) + Video::kWidth / 2)); };
+    // (a player's routine and its steps, +04: 02000000 standing; an episode's entrance has others)
+    d.ready = [] { return Ram32(Player(0) + 0x04) == 0x02000000; };
+    AddHook(0x011652, "Hit", Hit);
+    AddHook(0x018AAE, "Entrance", Entrance);
     AddHook(0x02075E, "CameraSetUp", CameraSetUp);
     AddHook(0x02091C, "CameraMoves", CameraMoves);
     AddHook(0x02126E, "CameraPlaced", CameraPlaced);

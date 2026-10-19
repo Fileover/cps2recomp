@@ -53,7 +53,7 @@ about a second. No key is in this repository.
     score, which is kept.
   - **Stage viewer**: each part of each episode with nobody on it, only the scenery and its music, scrolled with the
     stick or by itself (slow, medium, fast), up and down where the episode climbs or falls, or every part in turn.
-  - **Character viewer**: Jack, Mustapha, Hannah or Mess by themselves, on a stage or on white or black, from a
+  - **Model viewer**: Jack, Mustapha, Hannah or Mess by themselves, on a stage or on white or black, from a
     quarter of their size to 25 times, moved with your controls or going through any of their animations, in slow
     motion if you like.
 - **Custom soundtrack**: your own music files in place of the board's music ([how](../../README.md#a-custom-soundtrack));

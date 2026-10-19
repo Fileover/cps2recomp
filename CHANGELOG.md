@@ -13,7 +13,7 @@
     scrolled with the stick or by itself, slowly to fast, or every stage in turn. Alien vs. Predator's are its rounds'
     scenes; Cadillacs and Dinosaurs' are the parts of its episodes a game can be continued from, the camera going up
     and down where the episode does (the climb up the building, the shaft in the basement).
-  - **Character viewer**: each of the four characters by itself, on a stage or on plain white or black, at a quarter
+  - **Model viewer**: each of the four characters by itself, on a stage or on plain white or black, at a quarter
     of its size to 25 times, moved with player 1's controls or going through any of its animations (by the game's
     lists of them), in slow motion if you like, one or all of them in turn.
 - **A custom soundtrack for both**: their song tables found (`games/avsp/src/music.cpp`, `games/dino/src/music.cpp`),
@@ -23,11 +23,27 @@
   which of its objects are a character's. The CPS-1 board's picture can now mark which pixels are objects'
   (`Video::markObjects`, as the CPS-2's could).
 - **One model viewer for every game** (`model/model.h`): Street Fighter Alpha 2's, the Vampire Savior games' and the
-  beat-'em-ups' character viewer were three copies of the same thing; now each game says only how it gets to a
+  beat-'em-ups' model viewer were three copies of the same thing; now each game says only how it gets to a
   character alone and where its animations are. The fighting games' viewers are as they were, frame for frame.
-- **The character viewer's "Play all" crashed the beat-'em-ups**: on Alien vs. Predator a list's last entries are not
+- **The model viewer's "Play all" crashed the beat-'em-ups**: on Alien vs. Predator a list's last entries are not
   always animations (Kurosawa's crashed it), and on Cadillacs and Dinosaurs each list's end mark was taken for one, as
   was Jack's A29, which is not one; they are passed over now.
+- **The beat-'em-ups' model viewer** (it was their "Character viewer": it has the fighting games' name now):
+  - Starting it a second time, or choosing another character or background while it was on, began it again every
+    frame, the game going round its start, title and choice of character until it was quit: beginning it ended the
+    viewer it had just begun (`beat/model.cpp`).
+  - The character is in the middle of the picture, as in the fighting games: it was where the game had put it, at
+    the edge or out of the picture on many stages, and at the larger sizes, which are made about where it stands,
+    off to one side or out of the picture altogether (that place was 64 pixels out on Alien vs. Predator and read
+    from the wrong word on Cadillacs and Dinosaurs). It stays in the middle until moved with player 1's controls.
+  - It is unseen until the character is there and standing: the stages that bring the players in late, or with an
+    entrance (thrown in, dropped from above), showed an empty stage or the character lying down for several seconds.
+  - Cadillacs and Dinosaurs: the character is out of harm (unseen things falling knocked it down over and over on some
+    stages); the second and third parts of Jack's Garage and the second of the Swamp Forest no longer leave it in the
+    episode's entrance for good; the Swamp Forest's second part has the stage viewer's camera, the game's own showing
+    its rows out of place.
+  - Alien vs. Predator: the character's body no longer drops out of every fourth picture or so on the busier scenes
+    (the game, slowed down, shows its objects a frame later).
 - **Alien vs. Predator's "Straight to the title"** ran only the board's first second and a half unseen when free play
   was on: the show's step is at FF8000, not FF8002 (`games/avsp/src/avsp.h`, kMode).
 

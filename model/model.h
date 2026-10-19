@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-only
 // Copyright (C) 2026 Tommy McLeroy. Part of cps2recomp.
 //
-// The model viewer every game's sources can have (the fighting games' "Model viewer", the beat-'em-ups' "Character
-// viewer"): one character alone, on one of the game's stages or on plain white or black, at a size from a quarter
+// The model viewer every game's sources can have (the "Model viewer" of the fighting games and the beat-'em-ups alike):
+// one character alone, on one of the game's stages or on plain white or black, at a size from a quarter
 // to twenty-five times its own, moved with player 1's controls or going through any one of its animations.
 //
 // A game gets there its own way (a round of a match reached unseen, a game begun at a stage) and calls these each
@@ -71,6 +71,9 @@ struct Description {
     bool anchorNow = false;
     // How far up from the feet the larger sizes are centred
     int largeLift = 56;
+    // The character is drawn in the middle of the picture across at every size, not only the larger ones (where it
+    // stands is the game's: a beat-'em-up's camera does not keep it in the middle)
+    bool centred = false;
     // How far left the character is moved for a panel at the picture's right (the colour editor's; none: 0)
     int (*shift)() = nullptr;
 
@@ -104,6 +107,8 @@ int Background();
 int CharacterNumber();
 // The choices made since differ from those it began with: the game begins it again
 bool Changed();
+// The character was in the last picture made (Frame)
+bool Seen();
 
 // Each frame while viewing, before the game runs it: the animation shown (player 1's controls taken while one is),
 // and the speed chosen

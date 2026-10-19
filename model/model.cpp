@@ -44,6 +44,7 @@ namespace {
         // before), and whether its feet are to be found from its picture
         int32_t anchorX = 0, anchorY = 0;
         bool feetFound = false, feetKnown = false;
+        bool seen = false; // the character was in the last picture made
     } g;
 
     int Characters() {
@@ -250,8 +251,11 @@ namespace {
         video.layerMask = 1;
         video.markObjects = true;
         video.hideObject = [](uint32_t tile, uint16_t attributes) { return !g_d.isModel(tile, attributes); };
+        g.seen = false;
         for (int line = 0; line < height; line++) {
-            video.RenderLine(line, &model[static_cast<size_t>(line) * width]);
+            uint32_t *row = &model[static_cast<size_t>(line) * width];
+            video.RenderLine(line, row);
+            g.seen = g.seen || std::any_of(row, row + width, [](uint32_t pixel) { return (pixel & 0x80000000u) != 0; });
         }
         // (the stage's pieces in front of the character: at its own size, on a stage, where it is not moved aside
         // for the colour editor's panel; the picture as the board would draw it)
@@ -305,7 +309,7 @@ namespace {
         // middle of the picture, so that it is not all legs)
         const bool large = size > 8;
         const int fromX = g.anchorX, fromY = g.anchorY - (large ? g_d.largeLift : 0);
-        const int toX = (large ? width / 2 : g.anchorX) - Shift(), toY = large ? height / 2 : g.anchorY;
+        const int toX = (large || g_d.centred ? width / 2 : g.anchorX) - Shift(), toY = large ? height / 2 : g.anchorY;
         auto back = [size](int to, int about, int from) { // (rounded down, for places left of or above `about` too)
             const int quarters = (to - about) * 4 + 2;
             return from + (quarters >= 0 ? quarters / size : -((-quarters + size - 1) / size));
@@ -381,6 +385,9 @@ int Background() {
 }
 int CharacterNumber() {
     return Number(g.character);
+}
+bool Seen() {
+    return g.seen;
 }
 bool Changed() {
     return ChosenCharacter() != g.character || ChosenBackground() != g.background;
