@@ -100,6 +100,7 @@ constexpr uint32_t kFrame = 0x1C;      // long: the animation frame being shown 
 // leaves the floor, pulled by 0x8000 a step; RAM dumps through a jump)
 constexpr uint32_t kSpeedX = 0x20, kSpeedY = 0x24, kPullX = 0x28, kPullY = 0x2C;
 constexpr uint32_t kHitStop = 0x4C;    // byte: frames the player stands frozen while a hit lands (both players)
+constexpr uint32_t kAirborne = 0x4F;   // byte: FF while in the air (00E5D2: thrown into the air by a knock-down; a jump's too)
 constexpr uint32_t kAttacking = 0x105; // byte: 1 while an attack of the player's is going on
 constexpr uint32_t kCombo = 0x144;     // byte: hits in the combo being taken
 // The super gauge: bytes, its stocks (9 at most: 013176) and the bar towards the next (013160 on); and the stun, a

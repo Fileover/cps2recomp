@@ -14,6 +14,8 @@
 
 namespace cps2recomp {
 
+bool RingOutStep(M68K &c); // battle.cpp
+
 namespace {
     using namespace pocket;
 
@@ -33,6 +35,10 @@ namespace {
     // player (seen as the player's own routine starts on this step: its record is as the last step left it, which is
     // what the picture showed and the hit tests tested)
     bool PlayerStep(M68K &c) {
+        if (RingOutStep(c)) { // (the ring out's own movements: battle.cpp)
+            Return(c);
+            return true;
+        }
         const uint32_t player = c.a[6] & 0xFFFFFF;
         const int n = PlayerOf(player);
         if (n < 0 || Ram8(player + kState) != 2) {
