@@ -25,6 +25,8 @@ void RegisterTraining(); // training.cpp
 void RegisterBattle(); // battle.cpp
 void RegisterModel(); // model.cpp
 void RegisterColours(); // colours.cpp
+void RegisterChoosing(); // choosing.cpp
+void ChoosingBeforeFrame(Machine &machine);
 void ModelBeforeFrame(Machine &machine);
 void ModelFrame(Machine &machine);
 void ModelState(Archive &ar);
@@ -36,6 +38,7 @@ void RegisterGame() {
     RegisterBattle();
     RegisterModel();
     RegisterColours();
+    RegisterChoosing();
     RegisterCoins();
     RegisterCheats();
     RegisterTitle();
@@ -43,6 +46,7 @@ void RegisterGame() {
     RegisterMusic();
     TheGame().beforeFrame = [](Machine &machine) {
         BoardBeforeFrame(machine);
+        ChoosingBeforeFrame(machine);
         session::BeforeFrame(machine);
         modes::BeforeFrame(machine);
         BattleBeforeFrame(machine);
