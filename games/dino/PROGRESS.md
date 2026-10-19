@@ -51,7 +51,10 @@
   +60 the words, +4C the picture from the table at 11D220). The object list (CPS-1: in video RAM, at the CPS-A's
   first register's place) is written by 0143xx-0145xx with `movem`; an object's colours may be its record's +23.
 - **Characters**: a player's +03 (0 Jack, 1 Mustapha, 2 Hannah, 3 Mess), which can be put in as a game begins; their
-  objects are in colours 0, 2, 1 and 3. Six lists of animations each, from the tables at 00163E, 00164E ... 00168E.
+  objects are in colours 0, 2, 1 and 3. Six lists of animations each, from the tables at 00163E, 00164E ... 00168E;
+  a list ends at a 0 offset (as many as its first offset is twice, that 0 among them). A frame whose time byte's top
+  bit is set is followed by a word, always negative, that says how far back the next is; Jack's A29 says forward and
+  is not an animation (forced on him, the game crashes).
 
 ## Not done yet
 

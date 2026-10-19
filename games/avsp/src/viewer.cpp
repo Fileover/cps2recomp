@@ -137,8 +137,8 @@ namespace {
 // --- the character viewer ---
 namespace {
     // The characters, by their numbers in the game (a player's record's +D2), and their animations: each character's
-    // are four lists of where each begins (word offsets from the list), one after another; the last ends where the
-    // first's first offset points (the first animation's frames follow the lists). Three lists are taken from tables
+    // are four lists of where each begins (word offsets from the list), one after another, each as long as what
+    // begins there is an animation (IsAnimation; the last no further than where the first's first offset points). Three lists are taken from tables
     // by the character's number (01B0E0, 01B104, 021FFA), the fourth in each character's own code (as 021E10 does).
     constexpr const char *kCharacters[] = {"Predator Warrior", "Maj. Dutch Schaefer", "Predator Hunter", "Lt. Linn Kurosawa"};
     constexpr uint32_t kLists[4][4] = {
@@ -160,6 +160,32 @@ namespace {
     }
     uint32_t Long(uint32_t address) {
         return (static_cast<uint32_t>(Word(address)) << 16) | Word(address + 2);
+    }
+    // A frame is shown for a while and its picture is in the program's second half; an animation is one whose frames
+    // all are (a list's last offsets are not always animations: the Predators' last list runs on into other data, and
+    // forcing a frame that is not one on a player crashes the game)
+    bool IsFrame(uint32_t frame) {
+        if ((frame & 1) || frame < 0x100000 || frame >= 0x200000 - kFrameBytes) {
+            return false;
+        }
+        const uint32_t picture = Long(frame + 4);
+        return Word(frame) != 0 && !(picture & 1) && picture >= 0x100000 && picture < 0x200000;
+    }
+    uint32_t NextFrame(uint32_t frame) {
+        return Word(frame + 2) & 0x8000 ? Long(frame + kFrameBytes) : frame + kFrameBytes;
+    }
+    bool IsAnimation(uint32_t frame) {
+        for (int n = 0; n < 64; n++) {
+            if (!IsFrame(frame)) {
+                return false;
+            }
+            const uint32_t next = NextFrame(frame);
+            if (Word(frame) == kForGood || next <= frame) {
+                return true;
+            }
+            frame = next;
+        }
+        return true;
     }
 
     // The character's own objects: the entries the drawing of its record writes into the object list (0A9B48 takes the
@@ -240,14 +266,15 @@ void DescribeViewer(beat::Description &d) {
         for (int n = 0; n < 4; n++) {
             const uint32_t base = kLists[character][n], next = n < 3 ? kLists[character][n + 1] : end;
             std::vector<uint32_t> list;
-            for (uint32_t at = base; at < next; at += 2) {
+            for (uint32_t at = base; at < next && IsAnimation(base + Word(at)); at += 2) {
                 list.push_back(base + Word(at));
             }
             lists.push_back(std::move(list));
         }
     };
     d.frameTime = [](uint32_t frame) { return Word(frame) == kForGood ? 0 : std::max<int>(Word(frame), 1); };
-    d.nextFrame = [](uint32_t frame) { return Word(frame + 2) & 0x8000 ? Long(frame + kFrameBytes) : frame + kFrameBytes; };
+    d.nextFrame = NextFrame;
+    d.isFrame = IsFrame;
     d.showFrame = ShowFrame;
     d.characterObject = [](uint32_t tile, uint16_t attributes) {
         const std::pair<uint16_t, uint16_t> entry = {static_cast<uint16_t>(tile), attributes};
