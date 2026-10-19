@@ -9,6 +9,11 @@
   soundtrack (its songs named by number for now). Its sources are its own: Alpha 2 is not made from its program (the
   routines Alpha 2's sources hook are mostly not in this game), so no training mode, alternative modes, widescreen or
   custom colours yet.
+- **macOS: SDL 3.4.16 or later** for a build from source (CMake asks for it; docs/BUILDING.md). SDL 3.4.14 (Homebrew's
+  until recently) leaves every game's window black while the game runs and sounds: its Metal GPU device takes a
+  frame's fence still being worked on for one signalled, so the swapchain's pictures after the first few are all
+  skipped (SDL 3.4.16: "Fixed the SDL_QueryGPUFence() return value on Apple platforms"). Release builds compile 3.4.16
+  themselves and were not affected. Linux and Windows are unchanged.
 - **A release has only its three downloads**, their checksums and three small update lists (it had a file for
   every file of every download too, 46 more). The launcher's **Update** now downloads the system's download
   itself, checks it, and puts in place what changed (recomp-common 91b4e51; `update-<system>.txt` names the

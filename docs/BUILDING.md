@@ -16,7 +16,8 @@ the build tells you which one is missing or different.
 
 ## macOS
 
-Apple clang (Command Line Tools), then `brew install cmake ninja sdl3 python`.
+Apple clang (Command Line Tools), then `brew install cmake ninja sdl3 python`. SDL 3.4.16 or later (`brew upgrade sdl3`):
+with 3.4.14 the game's window stays black while it runs and sounds, so CMake asks for 3.4.16.
 
 ```sh
 make GAME=sfa2              # build/sfa2/sfa2 (twice the first time: the port itself writes the
