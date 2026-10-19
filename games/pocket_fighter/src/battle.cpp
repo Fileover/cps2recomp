@@ -57,7 +57,7 @@ void RegisterBattle() {
     d.notTheStage = NotTheStage;
     d.thePanel = ThePanel;
     d.notTheFighters = NotTheFighters;
-    d.playerSets = [](int n) { return 0x07u << (Ram8(Player(n) + kColourSet) & 0x1F); };
+    d.playerSets = [](int n) { return 0x1Fu << (Ram8(Player(n) + kColourSet) & 0x1F); };
     d.inAir = [](uint32_t player) { return Ram16(player + kY) != kGround; };
     d.atJumpTop = [](uint32_t player) { return Ram16(player + kY) != kGround && static_cast<int32_t>(Ram32(player + kSpeedY)) <= 0; };
     battle::Register(d);

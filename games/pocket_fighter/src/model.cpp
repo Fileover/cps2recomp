@@ -15,6 +15,7 @@
 // is, and the numbers of its boxes. Showing one is putting its frame in the player's record each frame, as the game's
 // own 010E24 does, with the time left kept high so that the game's own stepping (010EAC) never comes round; the game
 // goes on believing the player stands.
+#include "colours.h"
 #include "model.h"
 #include "modes.h"
 #include "pocket.h"
@@ -115,11 +116,11 @@ namespace {
     bool IsModel(uint32_t tile, uint16_t attributes) {
         const unsigned set = attributes & 0x1F;
         // (not the shadows: both players' are in one set, and only the object list's places would tell them apart)
-        return set >= g_firstSet && set < g_firstSet + 3 && !ThePanel(tile, attributes);
+        return set >= g_firstSet && set < g_firstSet + kPalettesInSet && !ThePanel(tile, attributes);
     }
     bool InAFight(uint32_t tile, uint16_t attributes) {
         const unsigned set = attributes & 0x1F;
-        return !(ThePanel(tile, attributes) || (set >= g_secondSet && set < g_secondSet + 3));
+        return !(ThePanel(tile, attributes) || (set >= g_secondSet && set < g_secondSet + kPalettesInSet));
     }
 
     void StartModel(Machine &machine) {
@@ -147,6 +148,9 @@ namespace {
 bool ModelViewer() {
     return g.on;
 }
+void StartModelViewer(Machine &machine) {
+    StartModel(machine);
+}
 
 void ModelBeforeFrame(Machine &machine) {
     if (!g.on) {
@@ -167,6 +171,10 @@ void ModelBeforeFrame(Machine &machine) {
     }
     machine.players[1] = 0;
     PutAway();
+    if (colours::EditorAnimation()) {
+        model::Scan(machine);
+    }
+    colours::EditorBeforeFrame(machine); // (takes player 1's controls, when it is on)
     SetRam8(kRoundClock, 99);
     model::BeforeFrame(machine);
 }
@@ -190,6 +198,7 @@ void ModelFrame(Machine &machine) {
     }
     machine.video.hideObject = NotTheStage;
     model::Frame(machine);
+    colours::EditorFrame(machine);
 }
 
 // (Nothing of the viewer is kept in a save state: a state loaded while viewing ends the viewer, and what is loaded is
@@ -212,11 +221,14 @@ void RegisterModel() {
                        "character has not got are passed over. While one is showing, left and right go to the one before and the "
                        "one after, and its name is shown.";
     d.foregroundWords = "What the stage has in front of the fighters: in front of the character too, as in a fight, or behind it so "
-                        "that all of it is seen. In front only at the character's own size.";
+                        "that all of it is seen. In front only at the character's own size, and not in the colour editor.";
     d.characters = {std::begin(kCharacterNames), std::end(kCharacterNames)};
     d.numbers = {std::begin(kCharacterNumbers), std::end(kCharacterNumbers)};
     d.stages = {std::begin(kStageNames), std::end(kStageNames)};
-    d.start = StartModel;
+    d.start = [](Machine &machine) {
+        colours::EndEditor();
+        StartModel(machine);
+    };
     d.lists = 3;
     d.perList = kMostAnimations;
     d.animationAt = AnimationAt;
@@ -224,6 +236,7 @@ void RegisterModel() {
     d.frameTime = FrameTime;
     d.nextFrame = NextFrame;
     d.showFrame = ShowFrame;
+    d.animationChoice = colours::EditorAnimation;
     d.isModel = IsModel;
     d.inAFight = InAFight;
     d.beforeCompose = [](Machine &) {
@@ -234,6 +247,10 @@ void RegisterModel() {
         x = static_cast<int16_t>(Ram16(Player(0) + kX)) - static_cast<int16_t>(Ram16(kCameraX));
         y = 239 - (static_cast<int16_t>(Ram16(Player(0) + kY)) - static_cast<int16_t>(Ram16(kCameraY)));
     };
+    d.shift = colours::EditorShift;
+    d.linesInSet = kPalettesInSet;
+    d.firstLine = [](Machine &) { return static_cast<int>(Ram8(Player(0) + kColourSet) & 0x1F); };
+    d.spareFrame = [](Machine &) { SetRam8(kRoundClock, 99); };
     model::Register(d);
 }
 

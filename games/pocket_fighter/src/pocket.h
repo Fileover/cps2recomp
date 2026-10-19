@@ -128,25 +128,39 @@ constexpr uint32_t kBoxX = 0, kBoxY = 2, kBoxWidth = 4, kBoxHeight = 6;
 // down and the third for player 2.
 constexpr uint32_t kControls[2] = {0xFF805C, 0xFF8060};
 
+// --- the characters' colours ---
+
+// A character's colours, in the ROM: from kColourSets, kColourSetsEach sets a character (by its number), each
+// kPalettesInSet palettes of 16 colours (words, 4 bits each of red, green and blue; the game keeps the brightness the
+// palette buffer had). When a round starts the game copies the player's set to its colour sets in the buffer (0274B0:
+// kColourSets + (character * 4 + choice) * 0xA0). The player's byte kColourChoice picks the set: 0 Punch chose the
+// character, 1 Kick, 2 Special, 3 two or more buttons at once (0175C8). Found from the palettes a fight showed, looked
+// for in the ROM.
+constexpr uint32_t kColourSets = 0x2099E8;
+constexpr int kColourSetsEach = 4, kPalettesInSet = 5, kColoursInPalette = 16;
+constexpr uint32_t kColourSetSize = kPalettesInSet * kColoursInPalette * 2;
+constexpr uint32_t kColourChoice = 0x39F; // byte
+
 // Objects by what they are (for Video::hideObject; found by hiding colour sets one at a time and in groups in the
 // stage viewer's picture, and from the object list): sets 00-0F are the panel (the bars, names, gem counters) and the
-// item chest (0A); 10-17 the players (player 1's kColourSet 10, player 2's 15), what they throw (Ryu's fireball 12)
-// and their faces on the panel; 18 on the stage's own pieces, and in 1F the players' shadows (tiles 1D8E0-1D8FF, on
+// item chest (0A); 10-19 the players, five sets each from kColourSet (player 1's 10, player 2's 15: the set's five
+// palettes, kPalettesInSet), with what they throw (Ryu's fireball 12) and their faces on the panel; 1A on the stage's
+// own pieces, and in 1F the players' shadows (tiles 1D8E0-1D8FF, on
 // the floor's line)
 inline bool IsShadow(uint32_t tile, uint16_t attributes) {
     return (attributes & 0x1F) == 0x1F && tile >= 0x1D8E0 && tile < 0x1D900;
 }
 inline bool NotTheStage(uint32_t tile, uint16_t attributes) {
-    return (attributes & 0x1F) < 0x18 || IsShadow(tile, attributes);
+    return (attributes & 0x1F) < 0x1A || IsShadow(tile, attributes);
 }
 // The panel: its own sets, and the faces beside the bars, which are in the players' sets (tiles 14460 and 14Bxx; the
 // fighters' own tiles were all below 3100 in the object lists looked at)
 inline bool ThePanel(uint32_t tile, uint16_t attributes) {
     const unsigned set = attributes & 0x1F;
-    return (set < 0x10 && set != 0x0A) || (set < 0x18 && (tile == 0x14460 || (tile >= 0x14B00 && tile < 0x14C00)));
+    return (set < 0x10 && set != 0x0A) || (set < 0x1A && (tile == 0x14460 || (tile >= 0x14B00 && tile < 0x14C00)));
 }
 inline bool NotTheFighters(uint32_t tile, uint16_t attributes) {
-    return ThePanel(tile, attributes) || ((attributes & 0x1F) >= 0x18 && !IsShadow(tile, attributes));
+    return ThePanel(tile, attributes) || ((attributes & 0x1F) >= 0x1A && !IsShadow(tile, attributes));
 }
 
 // The round's result: bit 0 set when player 2 is knocked out (its health below nothing), bit 1 player 1 (0083B8,

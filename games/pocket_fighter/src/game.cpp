@@ -4,6 +4,7 @@
 // Super Gem Fighter Mini Mix: what the game's own sources add to the port (see PROGRESS.md).
 #include "game.h"
 #include "battle.h"
+#include "colours.h"
 #include "pocket.h"
 #include "modes.h"
 #include "session.h"
@@ -23,6 +24,7 @@ void RegisterModes(); // modes.cpp
 void RegisterTraining(); // training.cpp
 void RegisterBattle(); // battle.cpp
 void RegisterModel(); // model.cpp
+void RegisterColours(); // colours.cpp
 void ModelBeforeFrame(Machine &machine);
 void ModelFrame(Machine &machine);
 void ModelState(Archive &ar);
@@ -33,6 +35,7 @@ void RegisterGame() {
     RegisterTraining();
     RegisterBattle();
     RegisterModel();
+    RegisterColours();
     RegisterCoins();
     RegisterCheats();
     RegisterTitle();
@@ -43,6 +46,7 @@ void RegisterGame() {
         session::BeforeFrame(machine);
         modes::BeforeFrame(machine);
         BattleBeforeFrame(machine);
+        colours::BeforeFrame(machine);
         ModelBeforeFrame(machine);
     };
     // (the training aids see what the frame did before the cheats put things back)
@@ -66,7 +70,7 @@ void RegisterGame() {
     };
     // Its own, never set for the other games by the collection's launcher: Damage level has Super Puzzle Fighter II
     // Turbo's choices (Low, Normal, High, Maximum), where it means the counter gems an attack sends
-    OwnFeatures({"board_damage", "survival_best", "ringout_best", "model_animation"});
+    OwnFeatures({"board_damage", "survival_best", "ringout_best", "model_animation", "colours_animation"});
 }
 
 } // namespace cps2recomp
