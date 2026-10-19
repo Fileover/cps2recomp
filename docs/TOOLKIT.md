@@ -38,13 +38,13 @@ This page is for people making or working on ports. To play, see the [main page]
   as it was ([docs/FIGHT.md](FIGHT.md)).
 - **The beat-'em-up modes.** Attract mode (all of a game's show, or only some of its parts), a score attack (one
   credit, no continue or cheats, the best score kept), a stage viewer (a game taken unseen to a stage and its camera
-  moved along the stage's way, a few pixels a frame so that the game draws as it goes) and a character viewer (a
+  moved along the stage's way, a few pixels a frame so that the game draws as it goes) and a model viewer (a
   character alone at any size, with its animations put into its record frame by frame) are `beat/beat.h`. A game
   says how it gets to a stage, where its camera, its characters' animations and their objects are, and leaves out
   the parts of its show not wanted.
 - **The model viewer.** One character alone, on a stage or on plain white or black, at a quarter of its size to 25
   times, moved with player 1's controls or going through any of its animations (one, or all in turn, repeated, in slow
-  motion) is `model/model.h`, for the fighting games' "Model viewer" and the beat-'em-ups' "Character viewer" alike: the
+  motion) is `model/model.h`, for every game's "Model viewer" (the fighting games' and the beat-'em-ups'): the
   menu's page, the animations shown and stepped, and the picture made at the size wanted. A game gets to a character
   alone its own way and says where its animations and frames are, how a frame is put in a character's record, which
   objects are the character's and where it stands.
@@ -174,8 +174,8 @@ name and choices in each: the collection's launcher then shows it once, for all 
 | `third_party/` | The sound file decoders the custom soundtrack reads with (stb_vorbis, dr_flac, dr_mp3, dr_wav), as their projects publish them |
 | `port/` | The frontend (SDL 3), the custom soundtrack's player (`soundtrack.*`, `decoders.*`), putting the picture on the screen (`present.*`; shaders in `shaders/`, compiled into `shaders.inc` by `tools/gen_shaders.py`), the in-game menu adapter, the HUD, control bindings |
 | `fight/` | What a fighting game's training mode has in common, its fighting modes, and the players' own colours ([docs/FIGHT.md](FIGHT.md)) |
-| `model/` | The model viewer every game can have: the fighting games' "Model viewer" and the beat-'em-ups' "Character viewer" |
-| `beat/` | A beat-'em-up's alternative modes: attract mode, score attack, the stage viewer (`modes.cpp`) and the character viewer (`model.cpp`, on `model/`) |
+| `model/` | The model viewer every game can have, the fighting games' and the beat-'em-ups' alike |
+| `beat/` | A beat-'em-up's alternative modes: attract mode, score attack, the stage viewer (`modes.cpp`) and the model viewer (`model.cpp`, on `model/`) |
 | `recomp-common/` | A copy of [recomp-common](https://github.com/tmcleroy/recomp-common) (the in-game menu, the settings rules, the launcher), made by `tools/sync-common.sh`; never changed here |
 | `launcher/` | What this toolkit tells the shared launcher (`recomp-common/launcher`; SDL 3 + Dear ImGui): `src/description.cpp` has the words for a ROM set, the check of the player's, the game's arguments and the buttons that can be chosen, for one game's launcher or the collection's |
 | `games/` | The games ([the main page](../README.md) has the list) |

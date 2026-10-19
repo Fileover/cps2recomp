@@ -22,7 +22,7 @@ namespace cps2recomp {
 namespace {
     using namespace avsp;
 
-    constexpr uint32_t kCamera = kVars + 0x268, kCameraX = kCamera + 0x20;
+    constexpr uint32_t kCamera = kVars + 0x268, kCameraX = kCamera + 0x20, kCameraY = kCamera + 0x24;
     constexpr uint32_t kCameraFollows = kVars + 0x1AF; // byte: the camera may move (0: it stays, as in a scene's talk)
 
     struct Stage {
@@ -52,7 +52,7 @@ namespace {
         {"Round 7: Hunt's End (5)", 18, 0x200, 0x480},
     };
     constexpr int kBootFrames = 420;
-    constexpr int kMiddle = 0x80; // (the camera's place is the picture's left edge and 0x40: its middle is 0x80 on)
+    constexpr int kMiddle = 0x80; // (from the camera's place, which is the picture's left edge)
 
     int32_t g_x = -1;      // where the viewer has the camera (-1: not viewing)
     int32_t g_inScene = 0; // frames the game has been at the wanted scene
@@ -134,7 +134,7 @@ namespace {
     }
 } // namespace
 
-// --- the character viewer ---
+// --- the model viewer ---
 namespace {
     // The characters, by their numbers in the game (a player's record's +D2), and their animations: each character's
     // are four lists of where each begins (word offsets from the list), one after another, each as long as what
@@ -190,12 +190,13 @@ namespace {
 
     // The character's own objects: the entries the drawing of its record writes into the object list (0A9B48 takes the
     // next record to draw, from the list A3 is at; 0A9B62 is after it and what goes with it are drawn; A1 is where the
-    // entries go), told by their tiles and attributes, of this frame and the one before (the list is shown a frame
-    // after it is written)
-    std::set<std::pair<uint16_t, uint16_t>> g_drawn[2];
+    // entries go), told by their tiles and attributes, of this frame and the two before (the list is shown a frame
+    // after it is written, or two while the game is slowed down: with the enemies of a busy scene standing unseen,
+    // every fourth frame or so)
+    std::set<std::pair<uint16_t, uint16_t>> g_drawn[3];
     uint32_t g_drawFrom = 0;
     bool DrawNext(M68K &c) {
-        g_drawFrom = beat::CharacterViewer() && (Ram16(c.a[3]) | 0xFF0000u) == Player(0) ? c.a[1] : 0;
+        g_drawFrom = beat::ModelViewer() && (Ram16(c.a[3]) | 0xFF0000u) == Player(0) ? c.a[1] : 0;
         return false;
     }
     bool DrawDone(M68K &c) {
@@ -231,13 +232,14 @@ int ViewerScene() {
     return beat::Viewing() ? kStages[beat::ViewedStage()].scene : -1;
 }
 int ViewerCharacter() {
-    return beat::CharacterViewer() ? beat::ViewedCharacter() : -1;
+    return beat::ModelViewer() ? beat::ViewedCharacter() : -1;
 }
 
 void ViewerFrame(Machine &) {
     if (!beat::StageViewer() || beat::Starting()) {
         g_x = -1;
     }
+    g_drawn[2] = std::move(g_drawn[1]);
     g_drawn[1] = std::move(g_drawn[0]);
     g_drawn[0].clear();
 }
@@ -278,11 +280,24 @@ void DescribeViewer(beat::Description &d) {
     d.showFrame = ShowFrame;
     d.characterObject = [](uint32_t tile, uint16_t attributes) {
         const std::pair<uint16_t, uint16_t> entry = {static_cast<uint16_t>(tile), attributes};
-        return g_drawn[0].count(entry) + g_drawn[1].count(entry) > 0;
+        return g_drawn[0].count(entry) + g_drawn[1].count(entry) + g_drawn[2].count(entry) > 0;
     };
+    // (the camera's place is the picture's left edge)
     d.standing = [](int &x, int &y) {
-        x = static_cast<int16_t>(Ram16(Player(0) + kX) - Ram16(kCameraX) + 0x40);
-        y = -1;
+        x = static_cast<int16_t>(Ram16(Player(0) + kX) - Ram16(kCameraX));
+        y = 243 - static_cast<int16_t>(Ram16(Player(0) + kY) - Ram16(kCameraY));
+    };
+    d.centre = [] { SetRam16(Player(0) + kX, static_cast<uint16_t>(Ram16(kCameraX) + Video::kWidth / 2)); };
+    // (once the camera, which goes up and down after the character a pixel a frame, has stopped: or at once where
+    // the game moves it by itself)
+    d.ready = [] {
+        static uint32_t last = 0;
+        static int still = 0;
+        const uint32_t camera = (static_cast<uint32_t>(Ram16(kCameraX)) << 16) | Ram16(kCameraY);
+        still = camera == last ? still + 1 : 0;
+        last = camera;
+        const Stage &stage = kStages[beat::ViewedStage()];
+        return stage.left == stage.right || still >= 30;
     };
     AddHook(0x0A9B48, "DrawNext", DrawNext);
     AddHook(0x0A9B62, "DrawDone", DrawDone);

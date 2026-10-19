@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 // Copyright (C) 2026 Tommy McLeroy. Part of cps2recomp.
 //
-// The character viewer of a beat-'em-up's "Alternative modes" page (beat.h): the toolkit's model viewer
+// The model viewer of a beat-'em-up's "Alternative modes" page (beat.h): the toolkit's model viewer
 // (model/model.h) on a game begun unseen at the stage chosen (modes.cpp, as the stage viewer's are) with the character
 // chosen, the enemies standing still and unseen. What the viewer needs of the game is in beat::Description.
 #include "beat.h"
@@ -39,8 +39,10 @@ int ViewedCharacter() {
 }
 
 void StartModel(Machine &machine) {
+    // (the mode first: beginning it ends the one that was on, this viewer among them, which would leave it ended)
+    const int background = model::ChosenBackground();
+    BeginModel(machine, model::Plain(background) ? 0 : background);
     model::Begin();
-    BeginModel(machine, model::Plain(model::Background()) ? 0 : model::Background());
 }
 
 void EndModel() {
@@ -64,13 +66,17 @@ void ModelFrame(Machine &machine) {
     model::Frame(machine);
 }
 
+bool ModelSeen() {
+    return model::Seen();
+}
+
 void RegisterModel(const Description &description) {
     g_d = description;
     if (description.characters.empty()) {
         return;
     }
     model::Description d;
-    d.page = "Character viewer";
+    d.page = "Model viewer";
     d.pageWords = "One character by itself, on a stage or on white or black, at any size, moved with your controls or going "
                   "through any of its animations.";
     d.resetWords = "Puts every choice of this page back: the first character and stage, its own size, standing, full speed, "
@@ -99,8 +105,15 @@ void RegisterModel(const Description &description) {
         d.isFrame = [](Machine &, uint32_t frame) { return g_d.isFrame(frame); };
     }
     d.isModel = description.characterObject;
-    d.anchor = [](Machine &, int &x, int &y) { g_d.standing(x, y); };
+    d.anchor = [](Machine &, int &x, int &y) {
+        g_d.standing(x, y);
+        if (y >= Video::kHeight) {
+            y = -1; // (a part whose floor the game's sources do not place: its feet found from its picture)
+        }
+    };
     d.anchorNow = true;
+    d.centred = true;
+    d.nearestOnly = description.sharedObjects;
     d.largeLift = 48;
     model::Register(d);
 }
