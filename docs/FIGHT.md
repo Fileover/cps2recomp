@@ -40,8 +40,9 @@ facts and hooks.
   what the game adds of its own (its idea of fighting, a refill's conditions, a player's readout, the HUD's places, the
   dummy's extras, its own features beside the toolkit's).
 
-Vampire Savior (and the games built from its sources), Street Fighter Alpha 2 and Super Gem Fighter Mini Mix use both;
-moving the first two onto them changed none of their pictures, frame hashes, frame data logs or feature lists.
+Vampire Savior (and the games built from its sources), Street Fighter Alpha 2, Super Gem Fighter Mini Mix and Street
+Fighter Alpha use both; moving the first two onto them changed none of their pictures, frame hashes, frame data logs or
+feature lists.
 
 ## The fighting modes
 
@@ -67,7 +68,12 @@ Every match and stage machine after the first is begun from a machine kept at th
 in (the first spare that came there), so the next one is ready in about 500 frames, not 2,000 from switching on.
 
 Street Fighter Alpha 2 makes them in its PlayerFighting rewrite; the Vampire Savior games in their player step hook
-(02244C).
+(02244C); Super Gem Fighter Mini Mix and Street Fighter Alpha in theirs (00C642; 01CE48 and 021DF4).
+
+The endless battle and the ring out lay the fighters' machine's objects over a stage another machine shows. A game whose
+panel (the bars, names and clock) is a scroll screen and not objects says which (`panelLayers`, Video::layerMask's bits):
+the fighters' machine then draws that screen too and marks its pixels with the objects' (Video::markLayers), and the
+stage's machines leave it out. Street Fighter Alpha's panel is its first scroll screen.
 
 ## Custom colours and the colour editor
 

@@ -125,6 +125,9 @@ struct Description {
     bool (*thePanel)(uint32_t tile, uint16_t attributes) = nullptr;
     bool (*notTheFighters)(uint32_t tile, uint16_t attributes) = nullptr;
     uint32_t (*playerSets)(int player) = nullptr;
+    // The scroll screens that are the panel (Video::layerMask's bits; 0: the panel is objects): drawn with the
+    // fighters over a stage another machine shows, and left out of that machine's picture
+    unsigned panelLayers = 0;
     // A player's shadow not drawn from the next frame on (-1: both drawn), or nullptr
     void (*noShadow)(Machine &machine, int player) = nullptr;
     // The ring out's way down: the player is in the air, and at the top of a jump (going up no more)

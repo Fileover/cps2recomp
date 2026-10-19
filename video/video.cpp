@@ -525,8 +525,16 @@ void Video::RenderLineAs(int line, uint32_t *out) {
         out[x] = m_palette[pens[x]];
     }
     if (markObjects) {
+        // (the marks of the scroll screens marked too, by where they are in the order)
+        unsigned marked = 0;
+        for (int n = 0; n < 3; n++) {
+            if (order[n] && (markLayers & (1u << order[n]))) {
+                marked |= 1u << n;
+            }
+        }
         for (int x = 0; x < width; x++) {
-            out[x] |= priority[x] == 31 ? 0x80000000u | (static_cast<uint32_t>(pens[x] >> 4) & 0x1F) << 24 : 0;
+            const bool mark = priority[x] == 31 || (priority[x] & marked) != 0;
+            out[x] |= mark ? 0x80000000u | (static_cast<uint32_t>(pens[x] >> 4) & 0x1F) << 24 : 0;
         }
     }
 }

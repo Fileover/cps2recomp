@@ -20,6 +20,17 @@ soundtrack of your own music, and Alien vs. Predator's "Straight to the title" n
   every game has: free play (the game's own, one of the board's coin settings), straight to the title, the board's
   settings (the Board page), cheats, save states, run-ahead, arcade timing and a custom soundtrack (its music named)
   ([its progress](games/pocket_fighter/PROGRESS.md)).
+- **Street Fighter Alpha: everything the other fighting games have** (`games/sfa`), on the toolkit's shared modules:
+  a **training mode** (hit boxes, frame data, its meter and log, input display, combo and stun readouts, health and
+  gauge refills, a dummy that records, replays and guards, start over, any stage), the **alternative modes** (attract
+  mode three ways, the stage viewer and its infinite stage, the model viewer, the colour editor, survival, endless
+  battle, ring out), **widescreen** and invisible walls (the camera's place and keeping the players inside the picture
+  rewritten as readable C++, checked call by call), **custom colours** (files, PalMod's sfz.06, the editor), the
+  **hidden characters** with no code (Start held on Ryu: Akuma; on Sagat: M. Bison; on Ken: Dan), and the music's
+  names for the custom soundtrack ([its progress](games/sfa/PROGRESS.md)).
+- **A panel that is a scroll screen** (`fight/battle.h`, `panelLayers`; `Video::markLayers`): the endless battle and
+  the ring out lay a game's own bars and names over the stage another machine shows, where the panel is not objects
+  (Street Fighter Alpha's). No other game's picture changes.
 - **The Alternative modes page and the training session in the toolkit** (`fight/alternative.h`, `fight/session.h`):
   what every fighting game had as its own copy (the page, attract mode, the stage viewer, getting a machine to a
   round; the session, start over, the aids put together) is one module each that a game describes itself to. Vampire
