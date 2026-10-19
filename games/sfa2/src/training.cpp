@@ -1,20 +1,22 @@
 // SPDX-License-Identifier: GPL-3.0-only
 // Copyright (C) 2026 Tommy McLeroy
 //
-// Street Fighter Alpha 2: the training mode. A session reached from the menu (the board reset, the coins and
-// Start buttons worked unseen, stopping at the character choice), a fight with no clock and no knock-outs,
-// starting over from where the round began, and the aids the toolkit's fight module keeps (fight.h): frame data
-// and its meter, the input display, the combo readout, the dummy, hit boxes. This file says, from the game's
-// memory, what those need to know.
+// Street Fighter Alpha 2: the training mode. The session is the toolkit's (fight/session.h): reached from the menu (the
+// board reset, the coins and Start buttons worked unseen, stopping at the character choice), a fight with no clock and
+// no knock-outs, starting over from where the round began, and the aids of the toolkit's fight module (frame data and
+// its meter, the input display, the combo readout, the dummy, hit boxes). This file says, from the game's memory, what
+// those need to know, and adds the game's own: the stun and Custom Combo readouts, the throw range, the dummy played by
+// the game or mashing out of stun, the hidden forms, and the stage and characters a mode wants.
 #include "boxes.h"
 #include "fight.h"
 #include "modes.h"
+#include "session.h"
 #include "sfa2.h"
 #include "state.h"
 
 #include <algorithm>
 #include <cstdio>
-#include <cstdlib>
+#include <iterator>
 #include <string>
 
 namespace cps2recomp {
@@ -27,24 +29,6 @@ bool GuardStanding(M68K &c, uint32_t player); // boxes.cpp
 namespace {
     using namespace sfa2;
 
-    constexpr int kRefillAfter = 90; // frames without a hit after which health comes back
-
-    fight::Frames g_frames;
-    fight::InputHistory g_inputs;
-    fight::Combos g_combos;
-    fight::Dummy g_dummy;
-    bool g_fighting = false;
-
-    // Getting to a training session from switching on: coins, then both Start buttons, until both players are
-    // choosing their characters (the game runs unseen meanwhile)
-    bool g_boot = false;
-    int g_bootFrames = 0;
-    constexpr int kBootMost = 4000;
-    // The machine as it was when the round's fighting began, for starting over
-    std::vector<uint8_t> g_roundStart;
-    bool g_roundFought = false;
-    std::vector<HudBox> g_nextBoxes; // the hit boxes for the next picture
-
     // The stage: the players stand from one of these to the other, the picture's left edge goes from one of these
     // to the other; a round starts with the players at kStartX
     constexpr uint16_t kStageLeft = 280, kStageRight = 1000, kCameraLeft = 256, kCameraRight = 640;
@@ -53,8 +37,9 @@ namespace {
     constexpr uint32_t kCameraCopies[] = {0xFF8026, 0xFF82A0, 0xFF82A8, 0xFF8290};
     constexpr uint32_t kCameraX = 0xFF8290, kCameraY = 0xFF8294;
     constexpr int kPictureFloor = 239; // the picture's line that height 0 is on, the camera at the bottom (a player on the floor is at kGround, 40: its feet on line 199, measured)
-    constexpr uint32_t kPlayersIn = 0xFF80A8, kPlayersChosen = 0xFF80AC;
+    constexpr uint32_t kPlayersChosen = 0xFF80AC;
 
+    // A round's fighting, for the aids: both players in it and nobody over the most health
     bool Fighting() {
         if (!RoundFought()) {
             return false;
@@ -66,104 +51,11 @@ namespace {
         }
         return true;
     }
-    bool DummyOnRight() {
-        return Ram16(Player(1) + kX) >= Ram16(Player(0) + kX);
-    }
-
-    void Afresh(bool fighting) {
-        g_fighting = fighting;
-        g_frames.Reset();
-        g_inputs.Clear();
-        g_combos.Clear();
-        g_dummy.Afresh();
-    }
-
-    // --- a training session ---
-
-    void BootToChoice(Machine &machine) {
-        machine.Reset();
-        g_boot = true;
-        g_bootFrames = 0;
-        SetFastForward(true);
-    }
-
-    void Start(Machine &machine) {
-        EndModes();
-        EndBattle();
-        SetFeature("training_mode", true);
-        BootToChoice(machine);
-    }
-
-    void Boot(Machine &machine) {
-        uint16_t &one = machine.players[0], &two = machine.players[1];
-        const bool press = g_bootFrames % 16 < 6;
-        one = two = 0;
-        if (Ram8(kPlayersIn) == 3 || ++g_bootFrames > kBootMost) {
-            g_boot = false;
-            SetFastForward(false);
-        } else if (Ram8(kCredits) < 2 && !FeatureOn("free_play")) {
-            one = press ? kCoin : 0;
-        } else if (!(Ram8(kPlayersIn) & 1)) {
-            one = press ? kStart : 0;
-        } else {
-            two = press ? kStart : 0;
-        }
-    }
-
-    // "Start over": the round as it began, with the players put where the player wants them. The stick held as it
-    // is asked for chooses the place (left or right: a corner; down: sides swapped; up: the middle again).
-    void StartOver(Machine &machine) {
-        if (g_roundStart.empty() || !FeatureOn("training_mode")) {
-            return;
-        }
-        int place = FeatureValue("restart_at"); // 0 middle, 1 left corner, 2 right corner; +3: sides swapped
-        const uint16_t stick = machine.players[0] & 0x0F;
-        if (stick) {
-            int where = place % 3;
-            bool swapped = place >= 3;
-            if (stick & kUp) {
-                where = 0;
-                swapped = false;
-            }
-            if (stick & kLeft) {
-                where = 1;
-            } else if (stick & kRight) {
-                where = 2;
-            }
-            if (stick & kDown) {
-                swapped = !swapped;
-            }
-            place = where + (swapped ? 3 : 0);
-            SetFeatureValue("restart_at", place);
-        }
-        Archive ar(g_roundStart, false);
-        machine.Serialize(ar);
-        uint16_t x[2] = {kStartX[0], kStartX[1]}, camera = Ram16(kCameraX);
-        if (place % 3 == 1) {
-            x[0] = kStageLeft;
-            x[1] = kStageLeft + kCornerApart;
-            camera = kCameraLeft;
-        } else if (place % 3 == 2) {
-            x[0] = kStageRight - kCornerApart;
-            x[1] = kStageRight;
-            camera = kCameraRight;
-        }
-        if (place >= 3) {
-            std::swap(x[0], x[1]);
-        }
-        for (int n = 0; n < 2; n++) {
-            SetRam16(Player(n) + kX, x[n]);
-        }
-        for (const uint32_t copy : kCameraCopies) {
-            SetRam16(copy, camera);
-        }
-        Afresh(true);
-    }
 
     // 00797C: the game has chosen the stage for a match (D0, from the character of one of the players: kStageOf). In
     // a training session with a stage asked for, that one goes in its place.
     bool ChooseStage(M68K &c) {
-        const int stage = Wanted().stage ? Wanted().stage : FeatureOn("training_mode") ? FeatureValue("training_stage") : 0;
+        const int stage = session::WantedStage();
         if (stage >= 1 && stage <= kStages) {
             SetLow8(c.d[0], static_cast<uint8_t>(stage - 1));
         }
@@ -223,60 +115,6 @@ namespace {
         return false;
     }
 
-    bool Choosing() {
-        return Ram16(kMode) == 2 && Ram16(kGameStep) == kGameChoosing && Ram8(kPlayersIn) == 3;
-    }
-
-    bool g_choosingTwo = false; // player 1's controls are choosing player 2's character
-
-    void BeforeFrame(Machine &machine) {
-        if (g_boot) {
-            Boot(machine);
-            return;
-        }
-        if (FeatureOn("training_mode") && Choosing() && (Ram8(kPlayersChosen) & 1) && !(Ram8(kPlayersChosen) & 2)) {
-            // Player 1 has chosen: its controls choose for player 2. What was held as it chose is not passed on
-            // until let go, or the button that chose for player 1 would choose for player 2 at once.
-            static uint16_t heldOver = 0;
-            const uint16_t held = machine.players[0] & (fight::kSticks | fight::kButtons);
-            heldOver = g_choosingTwo ? heldOver & held : held;
-            g_choosingTwo = true;
-            machine.players[1] |= held & ~heldOver;
-            machine.players[0] &= kStart | kCoin;
-            return;
-        }
-        g_choosingTwo = false;
-        fight::DummyView view;
-        view.fighting = Fighting() && g_fighting;
-        view.doing = g_frames.Now(1);
-        view.onRight = DummyOnRight();
-        if (view.fighting && FeatureValue("dummy_guard")) {
-            view.attackInRange = AttackInRange(machine.cpu, Player(1));
-            view.guardStanding = view.attackInRange && GuardStanding(machine.cpu, Player(1));
-        }
-        view.sinceHit = g_combos.Since(1);
-        view.knowsDown = true;
-        // (the game plays the dummy: its own computer player, as in a one-player game)
-        static bool computerWas = false;
-        const bool computer = FeatureOn("dummy_computer") && view.fighting;
-        if (computer || computerWas) {
-            SetRam8(Player(1) + kComputer, computer ? 1 : 0);
-        }
-        computerWas = computer;
-        view.down = Ram8(Player(1) + kControl) == kControlReeling && Ram8(Player(1) + kKnocksDown) != 0;
-        g_dummy.BeforeFrame(machine.players[0], machine.players[1], view);
-        // Stunned, the dummy mashes: a new direction and a new button every frame (the stun's count goes down a step
-        // more for each, player.cpp's Stunned)
-        if (FeatureOn("dummy_stun_mash") && view.fighting && !computer && Ram8(Player(1) + kControl) == kControlOwn &&
-            Ram8(Player(1) + kAction) == kActionStunned) {
-            static bool other = false;
-            other = !other;
-            machine.players[1] = other ? static_cast<uint16_t>(kLeft | kPunch1) : static_cast<uint16_t>(kRight | kKick1);
-        }
-    }
-
-    void LogStep(int n, uint32_t player); // below
-
     // --- a step of the game: what each player is doing (for frame data) ---
 
     bool PlayerStep(M68K &c) {
@@ -289,9 +127,9 @@ namespace {
         const uint8_t control = Ram8(player + kControl);
         view.control = control == kControlOwn ? fight::StepView::Own : control == kControlReeling ? fight::StepView::Reeling : fight::StepView::Held;
         if (view.control == fight::StepView::Reeling) {
-            g_frames.Contact(n, Ram8(player + kGuardedHit) == 0xFF);
+            session::Contact(n, Ram8(player + kGuardedHit) == 0xFF);
         } else if (view.control == fight::StepView::Held) {
-            g_frames.Contact(n, false);
+            session::Contact(n, false);
         }
         view.canAct = CanAct(n);
         const uint32_t frame = Ram32(player + kFrame);
@@ -299,12 +137,9 @@ namespace {
         view.attacking = Ram8(player + kAction) == kActionAttack || Ram8(player + kAttackOut) != 0;
         view.jumping = Ram8(player + kAction) == kActionJump;
         view.attackOut = frame < 0x400000 && Mem8(c, frame + kFrameAttack) != 0 && !(Mem8(c, frame + kFrameHarmless) & 0x80);
-        g_frames.Step(n, view);
-        LogStep(n, player);
+        session::Step(n, view); // (and the frame data log: MoveStart)
         return false;
     }
-
-    // --- after a frame ---
 
     // What the game read off the panel for a player this frame, as Button bits
     uint16_t PanelHeld(int player) {
@@ -315,10 +150,6 @@ namespace {
         return held;
     }
 
-    // --- the frame data log: every move's numbers in frame_data.csv beside settings.ini (fight::MoveLog) ---
-
-    fight::MoveLog g_log;
-
     fight::MoveLog::Start MoveStart(int n) {
         const uint32_t player = Player(n);
         const uint8_t who = Ram8(player + kCharacter);
@@ -328,12 +159,6 @@ namespace {
         start.air = Ram8(player + kAction) == kActionJump || Ram16(player + kY) != kGround;
         start.id = Ram32(player + kFrame); // (the move's first animation frame)
         return start;
-    }
-
-    void LogStep(int n, uint32_t) {
-        if (FeatureOn("frame_log")) {
-            g_log.Step(n, g_frames, MoveStart);
-        }
     }
 
     // A Custom Combo going on: its time left, as a bar of text under the player's own bar
@@ -392,180 +217,151 @@ namespace {
         }
     }
 
-    void Frame(Machine &machine) {
-        if (StageViewer() || BattleMode()) {
-            g_fighting = false;
-            g_roundFought = false;
-            return;
-        }
-        const bool fought = RoundFought();
-        if (fought && !g_roundFought && FeatureOn("training_mode")) {
-            g_roundStart.clear();
-            Archive ar(g_roundStart, true);
-            machine.Serialize(ar);
-        }
-        g_roundFought = fought;
-        const bool fighting = Fighting();
-        if (!fighting || !g_fighting) {
-            Afresh(fighting);
-            SetHud({});
-            SetBoxes({});
-            g_nextBoxes.clear();
-            return;
-        }
-        g_combos.Frame();
-        std::vector<HudLine> lines;
-        const bool readout = FeatureOn("damage_readout"), refill = FeatureOn("health_refill"), inputs = FeatureOn("input_display");
-        const bool stun = FeatureOn("stun_readout");
-        for (int n = 0; n < 2; n++) {
-            if (refill && g_combos.Since(n) > kRefillAfter && Ram16(Player(n) + kHealth) < kHealthFull && CanAct(n)) {
-                SetRam16(Player(n) + kHealth, kHealthFull);
-                SetRam16(Player(n) + kHealthShown, kHealthFull);
-            }
-            if (FeatureOn("custom_combo_readout")) {
-                const std::string cc = CustomComboLine(n);
-                if (!cc.empty()) {
-                    lines.push_back({n == 0 ? 0.03f : 0.97f, 0.11f, n == 0 ? -1 : 1, cc});
-                }
-            }
-            if (readout || stun) {
-                const std::string extra = stun ? StunLine(n) : std::string();
-                if (readout) {
-                    g_combos.Hud(n, lines, 0.17f, true, extra);
-                } else if (!extra.empty()) {
-                    lines.push_back({n == 0 ? 0.03f : 0.97f, 0.17f, n == 0 ? -1 : 1, extra});
-                }
-            }
-            g_inputs.Push(n, PanelHeld(n), Ram8(Player(n) + kFacesRight) == 0);
-            if (inputs) {
-                g_inputs.Hud(n, lines, 0.36f, 0.052f);
+    // Under each player's bar: the Custom Combo's time, the combo readout and the stun line (or the stun line alone)
+    void PlayerReadout(int n, const fight::Combos &combos, std::vector<HudLine> &lines) {
+        if (FeatureOn("custom_combo_readout")) {
+            const std::string cc = CustomComboLine(n);
+            if (!cc.empty()) {
+                lines.push_back({n == 0 ? 0.03f : 0.97f, 0.11f, n == 0 ? -1 : 1, cc});
             }
         }
-        std::vector<HudBox> boxes;
-        g_frames.Hud(FeatureOn("frame_data"), FeatureOn("frame_meter"), lines, boxes, 0.735f, 190, Video::kWidth, WideSide());
-        if (FeatureOn("hit_boxes")) {
-            // What the game's memory says now is what the next picture shows: the boxes are drawn a frame late (in a
-            // wide picture, as far right as the stage is drawn: widescreen.cpp)
-            for (HudBox &box : g_nextBoxes) {
-                box.x += WideStage();
+        const bool readout = FeatureOn("damage_readout"), stun = FeatureOn("stun_readout");
+        if (readout || stun) {
+            const std::string extra = stun ? StunLine(n) : std::string();
+            if (readout) {
+                combos.Hud(n, lines, 0.17f, true, extra);
+            } else if (!extra.empty()) {
+                lines.push_back({n == 0 ? 0.03f : 0.97f, 0.17f, n == 0 ? -1 : 1, extra});
             }
-            boxes.insert(boxes.begin(), g_nextBoxes.begin(), g_nextBoxes.end());
-            g_nextBoxes.clear();
-            const int cameraX = static_cast<int16_t>(Ram16(kCameraX)), cameraY = static_cast<int16_t>(Ram16(kCameraY));
-            std::vector<fight::StageBox> stage = AllBoxes(machine);
-            if (FeatureOn("throw_range")) {
-                ThrowRanges(machine, stage);
-            }
-            for (const fight::StageBox &box : stage) {
-                g_nextBoxes.push_back(fight::ToPicture(box, cameraX, cameraY, kPictureFloor));
-            }
-        } else {
-            g_nextBoxes.clear();
         }
-        SetBoxes(std::move(boxes));
-        g_dummy.Hud(lines, 0.17f);
-        SetHud(std::move(lines));
+    }
+
+    // The boxes the game tests, and the throw ranges if asked for
+    std::vector<fight::StageBox> Boxes(Machine &machine) {
+        std::vector<fight::StageBox> stage = AllBoxes(machine);
+        if (FeatureOn("throw_range")) {
+            ThrowRanges(machine, stage);
+        }
+        return stage;
+    }
+
+    // The dummy: the game knows when it is knocked down; the game's own computer player plays it if asked for
+    bool g_computerWas = false;
+    void DummyView(Machine &, fight::DummyView &view) {
+        view.knowsDown = true;
+        const bool computer = FeatureOn("dummy_computer") && view.fighting;
+        if (computer || g_computerWas) {
+            SetRam8(Player(1) + kComputer, computer ? 1 : 0);
+        }
+        g_computerWas = computer;
+        view.down = Ram8(Player(1) + kControl) == kControlReeling && Ram8(Player(1) + kKnocksDown) != 0;
+    }
+    // Stunned, the dummy mashes: a new direction and a new button every frame (the stun's count goes down a step more
+    // for each, player.cpp's Stunned)
+    void AfterDummy(Machine &machine, const fight::DummyView &view) {
+        const bool computer = FeatureOn("dummy_computer") && view.fighting;
+        if (FeatureOn("dummy_stun_mash") && view.fighting && !computer && Ram8(Player(1) + kControl) == kControlOwn &&
+            Ram8(Player(1) + kAction) == kActionStunned) {
+            static bool other = false;
+            other = !other;
+            machine.players[1] = other ? static_cast<uint16_t>(kLeft | kPunch1) : static_cast<uint16_t>(kRight | kKick1);
+        }
     }
 } // namespace
 
 // A hit's damage is being taken (fight.cpp)
 void TrainingHit(int player, unsigned damage, bool chip) {
-    const fight::Doing doing = g_frames.Now(player);
-    g_combos.Hit(player, damage, 0, !chip && (doing == fight::Doing::HitStun || doing == fight::Doing::Held));
+    session::Hit(player, damage, 0, chip);
 }
 void TrainingDamageTaken(int) {}
 
 // A training session is on, or the stage viewer: no clock and no knock-outs (fight.cpp, damage.cpp)
 bool TrainingMode() {
-    return FeatureOn("training_mode") || StageViewer() || BattleNoKnockOut();
+    return session::NoKnockOut();
 }
 
 // "Training mode" on the menu's Alternative modes page (modes.cpp)
 void StartTraining(Machine &machine) {
-    Start(machine);
+    session::StartSession(machine);
 }
 
 void TrainingBeforeFrame(Machine &machine) {
-    BeforeFrame(machine);
+    session::BeforeFrame(machine);
 }
-
 void TrainingFrame(Machine &machine) {
-    Frame(machine);
+    session::Frame(machine);
 }
-
 void TrainingState(Archive &ar) {
-    ar.Mark(0x5452414E);
-    g_frames.Serialize(ar);
-    g_dummy.Serialize(ar);
-    ar.Vec(g_roundStart);
-    ar.Pod(g_roundFought);
-    ar.Pod(g_fighting);
-    ar.Pod(g_combos);
-    ar.Pod(g_inputs);
+    session::State(ar);
 }
 
 void RegisterTraining() {
     Game &game = TheGame();
-    g_frames.print = getenv("SFA2_FRAMES") != nullptr;
     AddHook(kPlayerDispatch, "PlayerStep", PlayerStep);
     AddHook(0x00797C, "ChooseStage", ChooseStage);
     AddHook(0x007914, "ChooseCharacters", ChooseCharacters);
     AddHook(0x0628D8, "CharacterChosen", CharacterChosen);
-    game.commands.push_back({"training_restart", "Training mode", "Start over",
-                             "In a training session: the round as it began, with the players where \"Start over at\" says. Backspace "
-                             "or a gamepad's left shoulder does this while playing; the stick held as it is pressed chooses the place "
-                             "(left, right: a corner; down: sides swapped; up: the middle).",
-                             StartOver, kKeyRestart});
     game.features.push_back({"hidden_forms", "Game", "Hidden characters",
                              "Choosing Ryu, Akuma, Chun-Li, Dhalsim or Zangief gives their hidden form instead: Evil Ryu, Shin "
                              "Akuma, the classic Chun-Li, and Dhalsim's and Zangief's other forms. For player 1, player 2 or both.",
                              0, {"Off", "Player 1", "Player 2", "Both"}});
-    game.features.push_back({"restart_at", "Training mode", "Start over at",
-                             "Where \"Start over\" puts the players: the middle or a corner, player 1 on the left or (swapped) on the right.",
-                             0, {"Middle", "Left corner", "Right corner", "Middle, swapped", "Left corner, swapped", "Right corner, swapped"}});
-    std::vector<const char *> stages = {"The game's choice"};
-    for (const char *name : kStageNames) {
-        stages.push_back(name);
-    }
-    game.features.push_back({"training_stage", "Training mode", "Stage",
-                             "Where a training session's fight is: the game's own choice (the stage of one of the two characters) "
-                             "or a stage named here. Takes effect when the characters are next chosen.",
-                             0, stages});
-    game.features.push_back({"training_mode", "Training mode", "Training session",
-                             "The fight has no clock and nobody is knocked out. (\"Start\" above switches this on and takes the game to "
-                             "the character choice; Reset ends it.)",
-                             kFeatureSession});
-    game.features.push_back({"damage_readout", "Training mode", "Combo readout",
-                             "Under the bar of the player hit: what the hit took off; for a combo (hits landing before the player is "
-                             "free again) the hits and the damage; the round's best."});
-    game.features.push_back({"stun_readout", "Training mode", "Stun readout",
-                             "Under each bar: how much stun the player has taken and how much stuns them (it drains when they are "
-                             "left alone for a while)."});
-    game.features.push_back({"custom_combo_readout", "Training mode", "Custom Combo time",
-                             "While a player's Custom Combo goes on, how much of its time is left, under that player's bar."});
-    game.features.push_back({"input_display", "Training mode", "Input display",
-                             "What each player presses and for how many frames: the stick as a keypad number from the player's side "
-                             "(6 forward, 4 back, 2 down), then the buttons."});
-    game.features.push_back({"hit_boxes", "Training mode", "Hit boxes",
-                             "Draws the boxes the game tests: where a player can be hit (blue), attacks (red; orange for things "
-                             "thrown), and the boxes that keep the players apart (green)."});
-    game.features.push_back({"throw_range", "Training mode", "Throw range",
-                             "With hit boxes on: the zone in front of each player that the other's push box edge (the yellow line) "
-                             "has to be in for a throw, as the game tests it (both on the floor and free to act)."});
-    game.features.push_back({"frame_data", "Training mode", "Frame data",
-                             "After a move: the step it can first hit on (startup), how many it can hit for (active) and how many "
-                             "follow before the player can act (recovery). After a hit or a guarded one: who can act first, by how "
-                             "many steps (+: the attacker)."});
-    game.features.push_back({"frame_log", "Training mode", "Frame data log",
-                             "Writes every move's frame data to frame_data.csv, beside the settings file: the character, what was "
-                             "held as it began, startup, active, recovery and the advantage after a hit or a guarded one."});
-    game.features.push_back({"frame_meter", "Training mode", "Frame meter",
-                             "A row of cells for each player, one for every step of the game: green before a move can hit, red while "
-                             "it can, blue after; yellow reeling from a hit, light blue from a guarded one; grey in the air."});
-    game.features.push_back({"health_refill", "Training mode", "Health refills",
-                             "A player's health comes back when they have not been hit for a moment."});
-
-    fight::DummyOptions dummy;
+    session::Description d;
+    d.player1 = kPlayer1;
+    d.playerSize = kPlayerSize;
+    d.x = kX;
+    d.health = kHealth;
+    d.healthFull = kHealthFull;
+    d.healthShown = kHealthShown;
+    d.clock = kClock;
+    d.clockFull = kClockFull;
+    d.cameraX = kCameraX;
+    d.cameraY = kCameraY;
+    d.cameraCopies.assign(std::begin(kCameraCopies), std::end(kCameraCopies));
+    d.startX[0] = kStartX[0];
+    d.startX[1] = kStartX[1];
+    d.stageLeft = kStageLeft;
+    d.stageRight = kStageRight;
+    d.cameraLeft = kCameraLeft;
+    d.cameraRight = kCameraRight;
+    d.cornerApart = kCornerApart;
+    d.pictureFloor = kPictureFloor;
+    d.fighting = Fighting;
+    d.mayRefill = CanAct;
+    d.chosen = [](int n) { return (Ram8(kPlayersChosen) & (1 << n)) != 0; };
+    d.panelHeld = PanelHeld;
+    d.facingLeft = [](int n) { return Ram8(Player(n) + kFacesRight) == 0; };
+    d.moveStart = MoveStart;
+    d.boxes = Boxes;
+    d.guardView = [](Machine &machine, bool &inRange, bool &standing) {
+        inRange = AttackInRange(machine.cpu, Player(1));
+        standing = inRange && GuardStanding(machine.cpu, Player(1));
+    };
+    d.playerReadout = PlayerReadout;
+    d.inputY = 0.36f;
+    d.inputSpacing = 0.052f;
+    d.framesY = 0.735f;
+    d.framesTop = 190;
+    d.dummyView = DummyView;
+    d.afterDummy = AfterDummy;
+    d.dummyAfterAfresh = true;
+    d.framesFirstInState = true;
+    d.wideStage = WideStage;
+    d.wideSide = WideSide;
+    d.stageChoices = modes::StageChoices({"The game's choice"});
+    d.stageWords = "Where a training session's fight is: the game's own choice (the stage of one of the two characters) or a stage "
+                   "named here. Takes effect when the characters are next chosen.";
+    d.inputWords = "What each player presses and for how many frames: the stick as a keypad number from the player's side (6 forward, "
+                   "4 back, 2 down), then the buttons.";
+    d.framesPrintVariable = "SFA2_FRAMES";
+    d.readoutFeatures = {{"stun_readout", "Training mode", "Stun readout",
+                          "Under each bar: how much stun the player has taken and how much stuns them (it drains when they are left "
+                          "alone for a while)."},
+                         {"custom_combo_readout", "Training mode", "Custom Combo time",
+                          "While a player's Custom Combo goes on, how much of its time is left, under that player's bar."}};
+    d.boxFeatures = {{"throw_range", "Training mode", "Throw range",
+                      "With hit boxes on: the zone in front of each player that the other's push box edge (the yellow line) has to be "
+                      "in for a throw, as the game tests it (both on the floor and free to act)."}};
+    fight::DummyOptions &dummy = d.dummy;
     // The Alpha counter: while guarding, back, down-back, down with a punch (or a kick)
     dummy.guardActions.push_back({"Alpha counter, punch", [](int frame, uint16_t, uint16_t away) -> uint16_t {
                                       static constexpr int kEach = 2;
@@ -590,7 +386,7 @@ void RegisterTraining() {
                                const int at = (frame / 2) % 4;
                                return at == 0 ? kDown : at == 1 ? static_cast<uint16_t>(kDown | away) : at == 2 ? away : static_cast<uint16_t>(away | kPunch1);
                            }});
-    fight::RegisterDummy(dummy);
+    session::Register(d);
     game.features.push_back({"dummy_stun_mash", "Dummy", "Mashes out of stun",
                              "Stunned, the dummy works the stick and the buttons as fast as it can, as a player does to get out sooner."});
     game.features.push_back({"dummy_computer", "Dummy", "Played by the game",

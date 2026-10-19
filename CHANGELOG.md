@@ -2,6 +2,29 @@
 
 ## Unreleased
 
+A tenth game, Super Gem Fighter Mini Mix (*Pocket Fighter* in Japan), with everything the other fighting games have:
+a full training mode, attract mode, the stage and model viewers, survival, endless battle, ring out, widescreen, custom
+colours and the hidden characters. Alien vs. Predator and Cadillacs and Dinosaurs
+gain the beat-'em-up modes: attract mode, score attack, and stage and character viewers. Both also get a custom
+soundtrack of your own music, and Alien vs. Predator's "Straight to the title" now works with free play on.
+
+- **Another game: Super Gem Fighter Mini Mix** (`games/pocket_fighter`; ROM set `sgemf`, *Super Gem Fighter: Mini
+  Mix*, USA 970904, the parent set and the one competitive play uses; *Pocket Fighter* in Japan). The game as the
+  board plays it, translated whole (its 68000 program, and its sound program, Capcom's driver 1.30) and checked,
+  with everything the other fighting games have: a **training mode** (hit boxes, frame data, its meter and log, input
+  display, combo and stun readouts, health and gauge refills, a dummy that records, replays and guards, start over, any
+  stage), the **alternative modes** (attract mode, the stage viewer and its infinite stage, the model viewer, the colour
+  editor, survival, endless battle, ring out), **widescreen** and invisible walls (the camera's place and keeping the
+  players inside the picture rewritten as readable C++, checked call by call), **custom colours** (files, PalMod's
+  pcf.07, the editor), the **hidden characters** with no code (Start held on Ryu: Akuma; on Ken: Dan), and the features
+  every game has: free play (the game's own, one of the board's coin settings), straight to the title, the board's
+  settings (the Board page), cheats, save states, run-ahead, arcade timing and a custom soundtrack (its music named)
+  ([its progress](games/pocket_fighter/PROGRESS.md)).
+- **The Alternative modes page and the training session in the toolkit** (`fight/alternative.h`, `fight/session.h`):
+  what every fighting game had as its own copy (the page, attract mode, the stage viewer, getting a machine to a
+  round; the session, start over, the aids put together) is one module each that a game describes itself to. Vampire
+  Savior (and the games built from its sources) and Street Fighter Alpha 2 are on them, every scripted run of their
+  modes and training the same as before, picture for picture ([FIGHT.md](docs/FIGHT.md)).
 - **Alien vs. Predator and Cadillacs and Dinosaurs: alternative modes**, at the head of the in-game menu as the
   fighting games have them:
   - **Attract mode**: the game's own show on a loop, with its sound on and no coin in: all of it, or only the story,

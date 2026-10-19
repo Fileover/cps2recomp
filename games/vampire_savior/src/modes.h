@@ -7,6 +7,7 @@
 // are loaded into the port's machine, run and put away again within a frame.
 #pragma once
 
+#include "alternative.h"
 #include "battle.h"
 #include "machine.h"
 #include "spare.h"

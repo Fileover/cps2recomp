@@ -2,8 +2,8 @@
 # SPDX-License-Identifier: GPL-3.0-only
 # Copyright (C) 2026 Tommy McLeroy. Part of cps2recomp.
 #
-# A release's text: what to download, how to install it on each system, and the version's section of
-# CHANGELOG.md. Written by .github/workflows/release.yml for the draft (docs/RELEASING.md).
+# A release's text: what is in the release (the paragraph a version's section of CHANGELOG.md begins with,
+# before its list), what to download, how to install it on each system, and the rest of that section. Written by .github/workflows/release.yml for the draft (docs/RELEASING.md).
 #   tools/release/notes.sh 0.5.0 > notes.md
 set -eu
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
@@ -13,7 +13,19 @@ if [ -z "$changes" ]; then
     echo "error: CHANGELOG.md has no section for $VERSION" >&2
     exit 1
 fi
+# The section's opening paragraph (everything before its first "- " line), and the list after it
+summary=$(printf '%s\n' "$changes" | awk '/^- / { exit } { line[n++] = $0 }
+    END { s = 0; while (s < n && line[s] == "") s++; e = n - 1; while (e >= s && line[e] == "") e--
+          for (i = s; i <= e; i++) print line[i] }')
+list=$(printf '%s\n' "$changes" | awk '/^- / { on = 1 } on')
+if [ -z "$summary" ]; then
+    echo "error: CHANGELOG.md's section for $VERSION has no paragraph before its list (what is in the release, for" >&2
+    echo "the top of the release's page)" >&2
+    exit 1
+fi
 cat <<EOF
+$summary
+
 Unofficial native ports of Capcom's CPS-2 (and CPS-1) arcade games, in one download with one launcher. **No game
 is included: you need your own ROM sets** ([which ones](https://github.com/tmcleroy/cps2recomp#what-you-need)).
 
@@ -77,5 +89,6 @@ downloads it, checks it and starts the new version. Or download this release and
 or folder. Your settings, save states and ROM sets are kept either way: they are in your own user folder.
 
 ## What's new in $VERSION
-$changes
+
+$list
 EOF
