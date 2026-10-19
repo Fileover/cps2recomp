@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- **Another game: Street Fighter Alpha** (`games/sfa`; ROM set `sfa`, *Street Fighter Alpha: Warriors' Dreams*,
+  Europe 950727). Its 68000 program and its sound program (driver 1.05A) translated whole, checked block by block
+  over the ladder and versus movies; with free play, straight to the title, the board's settings (Board page), cheats
+  (no damage for each player, one-hit knockouts, infinite time), save states, run-ahead, arcade timing and a custom
+  soundtrack (its songs named by number for now). Its sources are its own: Alpha 2 is not made from its program (the
+  routines Alpha 2's sources hook are mostly not in this game), so no training mode, alternative modes, widescreen or
+  custom colours yet.
 - **macOS: SDL 3.4.16 or later** for a build from source (CMake asks for it; docs/BUILDING.md). SDL 3.4.14 (Homebrew's
   until recently) leaves every game's window black while the game runs and sounds: its Metal GPU device takes a
   frame's fence still being worked on for one signalled, so the swapchain's pictures after the first few are all
