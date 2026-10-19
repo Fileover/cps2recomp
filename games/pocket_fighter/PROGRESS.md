@@ -29,8 +29,18 @@ Predator's). Three buttons a player (Punch, Kick, Special: MAME's `cps2_2p3b`).
   this game's.
 - The features every game has: free play (Enhanced; the game's own), straight to the title, the board's settings
   (the Board page), cheats (no damage for each player, one-hit knockouts, infinite time), save states, run-ahead,
-  arcade timing, a custom soundtrack (its songs named by number until found), the in-game menu and the launcher.
-- Not yet: a training mode, the alternative modes, widescreen, custom colours (below, "Next").
+  arcade timing, a custom soundtrack (its music named), the in-game menu and the launcher.
+- Everything the other fighting games have (2026-10-19, the same day): a training mode on the toolkit's session
+  (fight/session.h: hit boxes, frame data, its meter and log, input display, combo readout, health refills, the dummy;
+  and the game's own stun readout and gauge refill), the Alternative modes page on the toolkit's (fight/alternative.h:
+  attract mode, the stage viewer), the fighting modes (fight/battle.h: survival, endless battle, ring out), the model
+  viewer (model/), custom colours and the colour editor (fight/colours.h), widescreen and invisible walls, the hidden
+  characters with no code. The session and the Alternative modes page were made toolkit modules from Vampire Savior's
+  and Alpha 2's copies of them for this game, and those two games moved onto them.
+- Readable rewrites: four, for widescreen (`widescreen.cpp`): the camera's place across (01F9C6) and up (01FA52),
+  keeping a player inside the picture (010EDA) and both together (010F88); `check_rewrites.sh` checks every call of
+  each against the game's own code over four movies (0 differed, about 15,000 to 31,000 calls each), and each is
+  charged the time its original takes on average (within a few cycles).
 
 ## The game's memory and routines (found by experiment)
 
@@ -94,6 +104,52 @@ Variables are reached from A5 = FF8000, as in the Alpha games.
   Vampire Savior's; not the toolkit's 2.01b, so the Z80 runs translated. Its table of songs is at 0x9006, four bytes
   a song, the word at 0x9000 the count (0x7ED), as Vampire Savior's.
 
+## What the modes and the training mode use (found by experiment)
+
+- **The steps of a game**: a round is fought with FF8000 2, FF8004 4, FF8008 4, FF800C **6** (2 and 4 its
+  introduction). **Who is in**: FF810D, bit 0 player 1, bit 1 player 2.
+- **The characters**: a player's byte **+381** (the cursor writes it, 017586; the fight reads it, 003806 on); +3F0
+  keeps the last one chosen. 0 Ryu, 1 Ken, 2 Chun-Li, 3 Sakura, 4 Morrigan, 5 Hsien-Ko, 6 Felicia, 7 Tessa, 8 Ibuki,
+  9 Zangief, 10 Dan, 11 Akuma (each seen in a fight with +381 held). A player has chosen when its +05 is 2 (017598);
+  the button that chose sets the colours, +39F (0175C8: Punch 0, Kick 1, Special 2, two or more at once 3).
+- **The stages**: a word at **FF8180**, the stage doubled (0 to 0E), from a table of one per character at 009A3C
+  (009A0A). The match is made at 009970 (called at 01778A): the hook where it returns (017790) puts in the characters
+  and the stage a mode wants. Stage n's tune is n + 1 (the soundtrack log over a fight on each); player select 0B,
+  versus 0F (two players) and 0C (one).
+- **The sound queue**: a ring of sixteen-byte requests at A5+6230 with the end word at A5+7230 (003264 puts one in),
+  Vampire Savior's layout.
+- **The camera**: its record at FF8280, the place at FF8290 (copies FF802A, FF82A0, FF82A8); 0 to 100 across on every
+  stage (the table at 01FBF0: ends top +40, bottom +42, left +44, right +46); the step's most at +5C and +5E; held
+  while A5+533, A5+933 or its +60 is set. The players start at E8 and 198; the walls are 10 and 270.
+- **A player's record**: +04-07 the steps (in a fight 2; +05 0 the player in charge, 2 reeling; +06 00 standing, 02
+  crouching, 04 walking, 06 jumping, 0A attacking, 0C guarding, 16 a special move), +0B facing right, +0D its first
+  colour set (player 1 10, player 2 15; five each), +10 X, +14 height (30 the floor), +18 the frame's time, +1C the
+  animation frame, +20/+24 the speeds and +28/+2C their pulls (longs), +4C the hit stop, +4F in the air (FF), +105
+  attacking, +130 half its width and +AD not followed by the camera (the camera's 01FAF0), +144 the combo's hits,
+  +17F/+19E the stun and its most, +194/+195 the gauge's stocks (9 at most: 013176) and bar, +39E played by the game
+  (the fight step goes to 0149D6 for it).
+- **Boxes** (the hit test 0154CA, the boxes' test 016088, the push 016188): four words, the middle's offset across
+  (turned about when facing right) and up, the whole width and height. The record names two boxes it can be hit in
+  (+90 into the table at +80, +91 into +84) and its push box (+93 into +8C); the animation frame names the attack
+  (+0A into the 32-byte table at +88). A frame's +08 to +0B are copied to the record's +90 to +93 when it starts
+  (010E24). Drawn in the right places on the picture (seen).
+- **Animations**: three tables of a long a character (072B10, 072B44, 072B78; started by 010E04, 010DF4, 010DFC with
+  the number in D0), each a list of word offsets; a frame is 0x18 bytes, as in Alpha 2 (a word of time, 0FFF for
+  good; a byte whose top bit says the next is a jump to the long after the frame; the picture; the boxes' numbers);
+  stepped at 010EAC. A knock-down's reelings are in the third list: 12 thrown into the air, 8 falling.
+- **A player's step**: 00C51C, by its state; a fight's at 00C602, which goes on by +05 at **00C642** (the frame data's
+  hook, and the ring out's). A hit reaches the other at **0155F2** (A6 the attacker, A1 the other); guarded when the
+  other is in its guarding pose (a guarded hit takes nothing: 015D6E with D4 0). The fly routines: 011AA6 (across),
+  011AB8 (up).
+- **The round's result**: FF818C, bit 0 player 2 knocked out, bit 1 player 1 (0083B8).
+- **Thrown things**: a pool of 14 records of 0x100 from FF8C00 (01B30E; Ryu's fireball the last).
+- **Objects**: sets 00-0F the panel and the item chest (0A); 10-19 the players (five each), what they throw and their
+  faces on the panel (tiles 14460 and 14Bxx); 1A on the stage; the shadows in 1F, tiles 1D8E0-1D8FF (found by hiding
+  sets one at a time in the stage viewer).
+- **Colours**: the characters' sets at 2099E8, four of five palettes each (0274B0); in pcf.07, PalMod's file.
+- **The scroll screens** are drawn whole when a stage begins (nothing written to them while the camera moves: watched),
+  so the wide picture needs only its width.
+
 ## Checked
 
 All on 2026-10-19, on the branch that brought the game in:
@@ -122,8 +178,26 @@ All on 2026-10-19, on the branch that brought the game in:
 - The game's launcher, drawn with no window: the Game page (the set's name), the Features page (Enhanced, free play
   on, the cheats, the Board page's nine settings), the Controllers page (Punch, Kick, Special).
 
+The modes and the training mode (2026-10-19), all headless, by pictures and RAM:
+
+- Training: the session reached from the menu, player 1 choosing for both, the aids drawn (hit boxes over the
+  fighters, frame data: a jab startup 5, active 4, recovery 17; the meter; the input display; the combo and stun
+  readouts); the dummy guarding (player 2's health unchanged over 21 hits with "Always", 0x90 after each); start over.
+- Attract mode (all three ways), the stage viewer and its infinite stage, survival, endless battle, the ring out (the
+  player knocked over the left end and falling out; the opponent knocked over the right end and the winner jumping down
+  onto the next stage), the model viewer (the character alone on white, black or a stage), the colour editor, custom
+  colours from a file (a fight in them), the hidden characters (Start on Ryu: Akuma).
+- `make GAME=pocket_fighter check-rewrites`: every call of the four rewrites the game's own (above).
+- `make GAME=pocket_fighter check-widescreen`: no unpainted columns at either end of any of the eight stages; with
+  invisible walls the game's memory the same as with widescreen off every 4,000 frames of the ladder; nothing to the
+  interpreter.
+- `make GAME=pocket_fighter check` (ladder, versus), `check-blocks` (the ladder: 346,229,240 blocks and 139,442,309 of
+  the sound program's, no difference) and `check-release` (11 frames early, the same last picture), again with all of
+  it in.
+
 **Not checked by a person yet**: nobody has played it in a window, heard its sound or music, or tried it with a
-gamepad; the custom soundtrack has not been tried with files; arcade timing has not been run over the ladder.
+gamepad; the custom soundtrack has not been tried with files; arcade timing has not been run over the ladder; the
+dummy's recording and replay and its answers have not been tried by hand.
 
 ## The movies
 
@@ -133,10 +207,9 @@ player 1 forward and Punch, player 2 Kick now and then.
 
 ## Next
 
-- A training mode, the alternative modes, widescreen and custom colours, as the other fighting games' ports have
-  them: written for this game's own fight code (its hit tests, damage, the players' state machine, the gems), found
-  as above. The FBNeo training-mode script names more of the player record (state +06, facing +0B, combo +144,
-  stun +146/+17F/+19E/+19F, the gauge +194/+195, the special moves' levels +18A and +1A2, items +1F0): to be checked
-  here before use.
-- The music's names (`CPS2RECOMP_SOUNDTRACK_LOG` over every stage and screen; `--music-test`).
+- Hand-play: the training mode (the dummy's recording and replay, its answers), the modes, widescreen, the colour
+  editor.
+- More readable rewrites where features want them: the hit test and damage (fixed damage, a throw range readout), the
+  players' state machine.
+- Throws: where the game tests a throw's reach, for a throw-range box as Alpha 2's.
 - The settings memory's shortcut (`AddSettingsMemory`), if its routines are Capcom's usual ones.
