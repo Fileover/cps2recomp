@@ -33,10 +33,12 @@ constexpr uint32_t kSwitches = kVars + 0x777A, kBoardSwitches = kVars + 0x776D;
 constexpr uint32_t kShow = kVars + 0x35;
 constexpr uint8_t kShowTitle = 0x50;
 
-// The game's step (byte: 4 as a game begins, 0C while it is played, 08 between stages, 1C at a stage's end;
-// 0 in the attract) and the stage (byte, 0-7; 00ABE8 steps it on as a stage ends; 00004CEE clears it, with the rest
+// The game's step (byte: 4 as a game begins (the choice of characters), 0C while it is played, 08 between stages, 1C
+// at a stage's end, 10 14 18 its game over, up to the show's next demonstration; 0 in the attract, and 0C in its
+// demonstrations) and the stage (byte, 0-7; 00ABE8 steps it on as a stage ends; 00004CEE clears it, with the rest
 // of the game's variables, as a game begins: 00A9EC, returning to 00A9F2)
 constexpr uint32_t kStep = kVars + 0x4D0, kStage = kVars + 0x4D9;
+constexpr uint8_t kStepGameOver = 0x10;
 constexpr int kStages = 8;
 
 // The stage's clock: minutes and seconds (BCD bytes), counted down at 0103C0 each time the frame count (byte, from
@@ -53,5 +55,6 @@ constexpr uint32_t kInPlay = 0x00;  // byte: 1 while the player is in the game
 constexpr uint32_t kHealth = 0x6D;  // byte: health (found standing still while hit: 64 down to 0, 64 again with a life)
 constexpr uint8_t kHealthFull = 0x64;
 constexpr uint32_t kLives = 0xA3;   // byte: lives left after this one (01BFD6 takes one)
+constexpr uint32_t kScore = 0x100;  // long: the score, in BCD (found from dumps while it went up; a copy at +110)
 
 } // namespace cps2recomp::dino

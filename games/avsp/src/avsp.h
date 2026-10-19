@@ -13,10 +13,28 @@ namespace cps2recomp::avsp {
 
 constexpr uint32_t kVars = 0xFF8000; // A5
 
-// The show's step (word): 2-C as the board starts, 0, then the attract's 2, 4 ... (C the story, 10 the title, 12
-// on the characters and a demonstration); and the step's own step (word: the title is drawn at 8). Traced.
-constexpr uint32_t kMode = kVars + 0x02, kModeStep = kVars + 0x04;
-constexpr uint16_t kModeTitle = 0x10;
+// The show's step (word): 2-C as the board starts, 0, then the attract's parts, each a step of four (the step between
+// is the next part's setting up), from 4 to 68 and round again from 0; 2 for good while a game is played (from the
+// choice of characters to the game over). And the step's own step (word: the title is drawn at 8). Traced.
+constexpr uint32_t kMode = kVars + 0x00, kModeStep = kVars + 0x04;
+// The character whose file the show's next "characters" part shows (word, 0-3; the demonstration after it moves it
+// on: 004E9A)
+constexpr uint32_t kShowCharacter = kVars - 0x6FF6;
+constexpr uint16_t kModeTitle = 0x10, kModeGame = 0x02, kModeShowEnd = 0x6C;
+// The show's parts by their steps (pictures of each, traced over a whole loop): the notices (the EPA's, QSound's),
+// the story, the title, a character's file and how to play them, a demonstration, the best scores
+enum class ShowPart { Other, Notices, Story, Title, Characters, Demonstration, Scores };
+constexpr ShowPart Part(uint16_t step) {
+    switch (step) {
+    case 0x04: case 0x08: case 0x38: case 0x3C: return ShowPart::Notices;
+    case 0x0C: case 0x40: return ShowPart::Story;
+    case 0x10: case 0x24: case 0x44: case 0x58: return ShowPart::Title;
+    case 0x14: case 0x18: case 0x28: case 0x2C: case 0x48: case 0x4C: case 0x5C: case 0x60: return ShowPart::Characters;
+    case 0x1C: case 0x30: case 0x50: case 0x64: return ShowPart::Demonstration;
+    case 0x20: case 0x34: case 0x54: case 0x68: return ShowPart::Scores;
+    default: return ShowPart::Other;
+    }
+}
 
 // The credits (byte, 0-9; found from dumps after one, two and three coins; 0016B4 holds it at 9)
 constexpr uint32_t kCredits = kVars + 0x18C;
@@ -58,5 +76,6 @@ constexpr uint32_t kInPlay = 0x00;    // byte: 1 while the player is in the game
 constexpr uint32_t kHealth = 0x41;    // byte: health, down to 0; FF once down (found standing still while hit)
 constexpr uint32_t kHealthMax = 0x45; // byte: what it starts at (0x65)
 constexpr uint32_t kLives = 0xF1;     // byte: lives left after this one ("x1"; found as it went 0, 1, 2)
+constexpr uint32_t kScore = 0xE0;     // long: the score, in BCD (as shown at the top: found from dumps while it went up)
 
 } // namespace cps2recomp::avsp

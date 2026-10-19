@@ -9,6 +9,11 @@ namespace cps2recomp {
 
 void RegisterBoard(); // board.cpp
 void RegisterMusic(); // music.cpp
+void RegisterModes(); // modes.cpp
+bool ChoicesLeftOut();
+void ModesBeforeFrame(Machine &machine);
+void ModesFrame(Machine &machine);
+void ModesState(Archive &ar);
 void BoardFrame(Machine &machine);
 
 namespace {
@@ -16,7 +21,7 @@ namespace {
 
     // 00A9F2: a game begins, its variables just cleared (the stage among them)
     bool GameBegins(M68K &) {
-        const int stage = FeatureValue("start_stage");
+        const int stage = ChoicesLeftOut() ? 0 : FeatureValue("start_stage");
         if (stage > 0 && stage < kStages) {
             SetRam8(kStage, static_cast<uint8_t>(stage));
         }
@@ -27,6 +32,11 @@ namespace {
     bool g_skipping = false, g_fast = false;
     int g_frames = 0;
     void TitleFrame(Machine &machine) {
+        // (a mode of the menu started: its start is its own, and so is running unseen)
+        if (ChoicesLeftOut()) {
+            g_skipping = g_fast = false;
+            return;
+        }
         if (machine.frame <= 1 && !g_skipping) {
             g_skipping = FeatureOn("skip_intro");
             g_frames = 0;
@@ -42,6 +52,11 @@ namespace {
 
     void Frame(Machine &machine) {
         BoardFrame(machine);
+        ModesFrame(machine);
+        if (ChoicesLeftOut()) {
+            TitleFrame(machine);
+            return; // (free play and the cheats are not the board's own game)
+        }
         if (FeatureOn("free_play")) {
             for (int n = 0; n < 3; n++) {
                 const uint32_t credits = kChute + kChuteSize * static_cast<uint32_t>(n) + kChuteCredits;
@@ -74,6 +89,7 @@ void RegisterGame() {
     Game &game = TheGame();
     RegisterMusic();
     RegisterBoard();
+    RegisterModes();
     game.features.push_back({"free_play", "Game", "Free play", "Start works without a coin.", kFeatureEnhanced});
     game.features.push_back({"skip_intro", "Game", "Straight to the title",
                              "When the game starts, and when it is reset, goes straight to the title: the board's start, its version "
@@ -86,7 +102,9 @@ void RegisterGame() {
     game.features.push_back({"infinite_lives", "Cheats", "Infinite lives", "A player who goes down always has another life."});
     game.features.push_back({"infinite_time", "Cheats", "Infinite time", "The stage's clock stands still."});
     AddHook(0x00A9F2, "GameBegins", GameBegins);
+    game.beforeFrame = ModesBeforeFrame;
     game.frame = Frame;
+    game.state = ModesState;
     OwnFeatures({"start_stage"});
 }
 

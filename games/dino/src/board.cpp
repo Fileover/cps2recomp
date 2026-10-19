@@ -5,6 +5,7 @@
 // unless chosen, and a choice is what the test menu would have set. The game reads its settings from three bytes laid
 // out as the older CPS-1 boards' DIP switches (dino.h, kSwitches); the choices are put into them, on the board's own
 // (kBoardSwitches), before every frame but while the test menu is shown, which shows and saves the board's own.
+#include "beat.h"
 #include "dino.h"
 
 namespace cps2recomp {
@@ -31,6 +32,14 @@ void BoardFrame(Machine &machine) {
     }
     uint8_t switches[3] = {Ram8(kBoardSwitches), Ram8(kBoardSwitches + 1), Ram8(kBoardSwitches + 2)};
     bool chosen = false;
+    // (attract mode with its sound, and score attack with no continue: beat/beat.h)
+    if (beat::AttractMode()) {
+        switches[2] |= 1 << 5;
+        chosen = true;
+    } else if (beat::ScoreAttack()) {
+        switches[2] &= static_cast<uint8_t>(~(1 << 6));
+        chosen = true;
+    }
     for (const Field &field : kFields) {
         const int choice = FeatureValue(field.name);
         if (choice > 0) {
