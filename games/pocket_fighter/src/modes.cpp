@@ -73,6 +73,10 @@ void RegisterModes() {
     d.cameraLeft = kCameraLeft;
     d.cameraRight = kCameraRight;
     d.notTheStage = NotTheStage; // (pocket.h)
+    d.wideSide = WideSide;
+    d.wideMargin = WideMargin;
+    d.wideForSpare = WideForSpare;
+    d.wideForPort = WideForPort;
     d.attractLooping = [] { return Ram16(kMode) >= kLoop; };
     d.attractStep = AttractStep;
     d.attractWords = "The game's own show on a loop, with no coin in: the introduction, the title, fights and rankings.";

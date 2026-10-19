@@ -26,6 +26,9 @@ void RegisterBattle(); // battle.cpp
 void RegisterModel(); // model.cpp
 void RegisterColours(); // colours.cpp
 void RegisterChoosing(); // choosing.cpp
+void RegisterWidescreen(); // widescreen.cpp
+void WidescreenBeforeFrame(Machine &machine);
+bool WidePlay();
 void ChoosingBeforeFrame(Machine &machine);
 void ModelBeforeFrame(Machine &machine);
 void ModelFrame(Machine &machine);
@@ -39,6 +42,7 @@ void RegisterGame() {
     RegisterModel();
     RegisterColours();
     RegisterChoosing();
+    RegisterWidescreen();
     RegisterCoins();
     RegisterCheats();
     RegisterTitle();
@@ -47,6 +51,7 @@ void RegisterGame() {
     TheGame().beforeFrame = [](Machine &machine) {
         BoardBeforeFrame(machine);
         ChoosingBeforeFrame(machine);
+        WidescreenBeforeFrame(machine);
         session::BeforeFrame(machine);
         modes::BeforeFrame(machine);
         BattleBeforeFrame(machine);
@@ -71,6 +76,12 @@ void RegisterGame() {
         modes::State(ar);
         BattleState(ar);
         ModelState(ar);
+    };
+    // With the arcade timing, the game's own code runs in place of the rewrites but where they carry what the port adds
+    // (game.h, rewritesNeeded): the modes, widescreen
+    TheGame().rewritesNeeded = [] {
+        return session::InSession() || modes::AttractMode() || modes::StageViewer() || BattleMode() || ModelViewer() || WidePlay() ||
+               FeatureOn("widescreen");
     };
     // Its own, never set for the other games by the collection's launcher: Damage level has Super Puzzle Fighter II
     // Turbo's choices (Low, Normal, High, Maximum), where it means the counter gems an attack sends

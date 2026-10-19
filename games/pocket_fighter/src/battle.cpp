@@ -52,8 +52,8 @@ void RegisterBattle() {
     d.cameraAt = modes::CameraAt;
     d.endModes = modes::End;
     d.stageViewer = modes::StageViewer;
-    d.wideSide = [] { return 0; };
-    d.wideMargin = [] { return 0; };
+    d.wideSide = WideSide;
+    d.wideMargin = WideMargin;
     d.notTheStage = NotTheStage;
     d.thePanel = ThePanel;
     d.notTheFighters = NotTheFighters;
