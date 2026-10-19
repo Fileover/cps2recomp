@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+A tenth game, Super Gem Fighter Mini Mix (*Pocket Fighter* in Japan), played as the arcade board plays it, with
+free play, straight to the title, the board's settings and cheats. Alien vs. Predator and Cadillacs and Dinosaurs
+gain the beat-'em-up modes: attract mode, score attack, and stage and character viewers. Both also get a custom
+soundtrack of your own music, and Alien vs. Predator's "Straight to the title" now works with free play on.
+
 - **Another game: Super Gem Fighter Mini Mix** (`games/pocket_fighter`; ROM set `sgemf`, *Super Gem Fighter: Mini
   Mix*, USA 970904, the parent set and the one competitive play uses; *Pocket Fighter* in Japan). The game as the
   board plays it, translated whole (its 68000 program, and its sound program, Capcom's driver 1.30) and checked,

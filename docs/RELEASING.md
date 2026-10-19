@@ -17,9 +17,10 @@ a player sees the three downloads.
 | `SHA256SUMS.txt` | |
 | `update-macos.txt`, `update-linux-x86_64.txt`, `update-windows-x64.txt` | The launcher's updates: each system's manifest |
 
-The release's text is `tools/release/notes.sh`'s: the table of downloads, how to install on macOS, Windows,
-Linux and the Steam devices, how updating works, and the version's section of `CHANGELOG.md`. Change the
-install steps there, once, for every release.
+The release's text is `tools/release/notes.sh`'s. At the top, the paragraph the version's section of `CHANGELOG.md`
+begins with: a few sentences on what is in the release, before the section's list (the script stops if there is
+none). Then the table of downloads, how to install on macOS, Windows, Linux and the Steam devices, how updating
+works, and the rest of the version's section. Change the install steps there, once, for every release.
 
 **The launcher updates itself from these** (`recomp-common/launcher/src/update.h`): when it opens it reads the
 repository's releases, takes the newest with a manifest for its system (a beta only while it is a beta itself),
@@ -46,7 +47,7 @@ code is not part of that source: it is made from the player's own ROM sets by th
 ## The steps
 
 1. In a pull request: set `VERSION`, move the "Unreleased" lines of `CHANGELOG.md` under a heading for the
-   version. `make check` passes; for every game, with its ROM set: `make GAME=<id> check` over its ladder movie,
+   version, and begin the section with a paragraph saying what is in the release (the release's page opens with it). `make check` passes; for every game, with its ROM set: `make GAME=<id> check` over its ladder movie,
    `check-blocks`, `check-rewrites` and `check-release` (40,000 frames; Puzzle Fighter's ladder is 66,000).
    Merge it.
 2. On `main`: `git tag -a vX.Y.Z -m "X.Y.Z"` and `git push origin vX.Y.Z`.
