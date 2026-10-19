@@ -280,7 +280,7 @@ void Video::LatchObjectsCps1() {
 // A CPS-1's objects on a raster line: entries of x, y, tile and attributes (colour, flips, a block of up to 16 x 16
 // tiles whose numbers go on within their row of sixteen), the first entry in front. Each is drawn in front of the
 // layers below it but where `high` is set (the high pens of the scroll screen just below the objects).
-void Video::DrawObjectsCps1(int rasterLine, uint16_t *pens, const uint8_t *high) {
+void Video::DrawObjectsCps1(int rasterLine, uint16_t *pens, const uint8_t *high, uint16_t *drawn) {
     const int width = Width();
     uint8_t claimed[kMaxWidth] = {};
     for (int i = 0; i <= m_lastObject; i += 4) {
@@ -325,6 +325,9 @@ void Video::DrawObjectsCps1(int rasterLine, uint16_t *pens, const uint8_t *high)
                         claimed[px] = 1;
                         if (!high[px]) {
                             pens[px] = static_cast<uint16_t>(colour + pen);
+                            if (drawn) {
+                                drawn[px] = pens[px];
+                            }
                         }
                     }
                 }
@@ -346,6 +349,10 @@ void Video::RenderLineCps1(int line, uint32_t *out) {
     }
     memset(priority, 0, sizeof(priority));
     memset(high, 0, sizeof(high));
+    uint16_t drawn[kMaxWidth]; // (markObjects: the pen an object drew at each pixel, 0xFFFF: none)
+    if (markObjects) {
+        memset(drawn, 0xFF, sizeof(drawn));
+    }
     const Board &board = m_src.board;
     const uint16_t control = m_src.cpsB[board.layerControl / 2];
     const uint16_t videoControl = m_src.cpsA[kVideoControl];
@@ -354,7 +361,7 @@ void Video::RenderLineCps1(int line, uint32_t *out) {
         const unsigned layer = order[n];
         if (layer == 0) {
             if (layerMask & 1) {
-                DrawObjectsCps1(rasterLine, pens, high);
+                DrawObjectsCps1(rasterLine, pens, high, markObjects ? drawn : nullptr);
             }
             continue;
         }
@@ -374,6 +381,12 @@ void Video::RenderLineCps1(int line, uint32_t *out) {
     }
     for (int x = 0; x < width; x++) {
         out[x] = m_palette[pens[x]];
+    }
+    if (markObjects) {
+        // (an object's pixel where nothing in front of it has drawn since: as RenderLineAs marks them)
+        for (int x = 0; x < width; x++) {
+            out[x] |= drawn[x] == pens[x] ? 0x80000000u | (static_cast<uint32_t>(pens[x] >> 4) & 0x1F) << 24 : 0;
+        }
     }
 }
 

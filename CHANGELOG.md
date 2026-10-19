@@ -1,5 +1,30 @@
 # Changelog
 
+## Unreleased
+
+- **Alien vs. Predator and Cadillacs and Dinosaurs: alternative modes**, at the head of the in-game menu as the
+  fighting games have them:
+  - **Attract mode**: the game's own show on a loop, with its sound on and no coin in: all of it, or only the story,
+    only the demonstrations, or only the characters' files.
+  - **Score attack**: one player and one credit from the first round, with no continue and none of the cheats, free
+    play or "Start at round": the board's own game for the best score, which is kept (`score_attack.txt` beside
+    `settings.ini`) and shown as it begins and ends.
+  - **Stage viewer**: each stage with nobody on it (no players, enemies or panel), only the stage and its music,
+    scrolled with the stick or by itself, slowly to fast, or every stage in turn. Alien vs. Predator's are its rounds'
+    scenes; Cadillacs and Dinosaurs' are the parts of its episodes a game can be continued from, the camera going up
+    and down where the episode does (the climb up the building, the shaft in the basement).
+  - **Character viewer**: each of the four characters by itself, on a stage or on plain white or black, at a quarter
+    of its size to 25 times, moved with player 1's controls or going through any of its animations (by the game's
+    lists of them), in slow motion if you like, one or all of them in turn.
+- **A custom soundtrack for both**: their song tables found (`games/avsp/src/music.cpp`, `games/dino/src/music.cpp`),
+  and the songs heard in attract mode, each round or episode and a continue named in `songs.txt`.
+- **The beat-'em-up modes in the toolkit** (`beat/beat.h`, `beat/modes.cpp`, `beat/model.cpp`): one copy for every
+  beat-'em-up, which says how its game gets to a stage, where its camera and its characters' animations are, and
+  which of its objects are a character's. The CPS-1 board's picture can now mark which pixels are objects'
+  (`Video::markObjects`, as the CPS-2's could).
+- **Alien vs. Predator's "Straight to the title"** ran only the board's first second and a half unseen when free play
+  was on: the show's step is at FF8000, not FF8002 (`games/avsp/src/avsp.h`, kMode).
+
 ## 0.4.0-beta.2
 
 - **Vampire Savior Definitive** no longer sometimes draws a screen of wrong tiles: the scroll screens looked up

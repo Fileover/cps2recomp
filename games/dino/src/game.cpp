@@ -10,6 +10,7 @@ namespace cps2recomp {
 void RegisterBoard(); // board.cpp
 void RegisterMusic(); // music.cpp
 int ViewerEpisode(); // viewer.cpp
+int ViewerCharacter();
 void ViewerFrame(Machine &machine);
 void RegisterModes(); // modes.cpp
 bool ChoicesLeftOut();
@@ -25,6 +26,9 @@ namespace {
     bool GameBegins(M68K &) {
         if (ViewerEpisode() >= 0) {
             SetRam8(kStage, static_cast<uint8_t>(ViewerEpisode()));
+            if (ViewerCharacter() >= 0) {
+                SetRam8(Player(0) + kCharacter, static_cast<uint8_t>(ViewerCharacter()));
+            }
             return false;
         }
         const int stage = ChoicesLeftOut() ? 0 : FeatureValue("start_stage");

@@ -7,8 +7,8 @@
 **Unofficial native PC ports of Capcom's CPS-2 arcade games (and CPS-1 ones), for macOS, Linux (Steam Deck
 included) and Windows, in one download with one launcher.** Each game's program is translated ahead of time into C++
 and runs on a machine written for this project, not an emulator. Each fighting game has a training mode, which no
-release of these games has ever had; the beat-'em-ups take three players at once, with free play and a stage to start
-at.
+release of these games has ever had; the beat-'em-ups take three players at once, with free play, a stage to start
+at, a score attack and viewers for their stages and characters.
 
 **[Get started: download it and play →](#playing)**
 
@@ -38,8 +38,8 @@ their owners, used here only to say what the programs work with.
 | [**Vampire Savior 2: The Lord of Vampire**](games/vsav2/README.md) (1997) | `vsav2` (Japan 970913) | Donovan, Phobos and Pyron back, and Donovan's stage; everything Vampire Savior's port has (its sources, checked against this game's code) |
 | [**Vampire Savior Definitive**](games/vsav_definitive/README.md) (beta) | `vsavj` and `vsav2` | Vampire Savior with Donovan, Phobos and Pyron taken from Vampire Savior 2, all eighteen by Vampire Savior's rules, the three with places of their own at the character choice; everything Vampire Savior's port has |
 | [**Vampire Hunter 2: Darkstalkers Revenge**](games/vhunt2/README.md) (1997) | `vhunt2` (Japan 970929) | Night Warriors' cast on Vampire Savior's engine, each fighter's own theme; everything Vampire Savior's port has, and Dark Gallon among the hidden characters |
-| [**Alien vs. Predator**](games/avsp/README.md) (1994) | `avspu` (USA 940520) | Three players at once (the board's own setting, on in Enhanced), free play, a round to start at, rapid fire, the board's settings, infinite health, lives and time |
-| [**Cadillacs and Dinosaurs**](games/dino/README.md) (1993, CPS-1) | `dino` (World 930201) | The first CPS-1 game here, on a CPS-1 board written for it; three players at once, free play, a stage to start at, rapid fire, the board's settings, infinite health, lives and time |
+| [**Alien vs. Predator**](games/avsp/README.md) (1994) | `avspu` (USA 940520) | Three players at once (the board's own setting, on in Enhanced), free play, a round to start at, score attack, attract mode, the stage and character viewers, rapid fire, the board's settings, infinite health, lives and time |
+| [**Cadillacs and Dinosaurs**](games/dino/README.md) (1993, CPS-1) | `dino` (World 930201) | The first CPS-1 game here, on a CPS-1 board written for it; three players at once, free play, a stage to start at, score attack, attract mode, the stage and character viewers, rapid fire, the board's settings, infinite health, lives and time |
 
 | | | |
 | --- | --- | --- |
@@ -70,7 +70,7 @@ Each game's page has all it does, with pictures.
 - **The board's operator settings** (difficulty, damage, timer speed, game speed, rounds and the rest), each as
   the board is set unless you choose, and the game's own test menu.
 - **Straight to the title**: at a start or a reset, everything before the title runs unseen.
-- **A custom soundtrack** (the fighting games and Puzzle Fighter so far): your own music files (an arranged soundtrack from a console version, say) in place of
+- **A custom soundtrack**: your own music files (an arranged soundtrack from a console version, say) in place of
   the board's music, song by song, with the board's sound effects and voices. [How →](#a-custom-soundtrack)
 - **Your ROM sets are only ever read.** Settings, save states and each board's settings memory go in your own
   user folder.

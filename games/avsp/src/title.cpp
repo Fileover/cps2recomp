@@ -31,7 +31,7 @@ namespace {
 
 void TitleFrame(Machine &machine) {
     // (a mode of the menu started: its start is its own, and so is running unseen)
-    if (beat::AttractMode() || beat::ScoreAttack() || beat::StageViewer()) {
+    if (beat::AttractMode() || beat::ScoreAttack() || beat::Viewing()) {
         g_skipping = g_fast = false;
         return;
     }

@@ -16,6 +16,7 @@
 #include "beat.h"
 #include "dino.h"
 
+#include <algorithm>
 #include <iterator>
 
 namespace cps2recomp {
@@ -42,8 +43,8 @@ namespace {
         {"Episode 1: Eastcoast 2513 (1)", 0, 0, {{0, 0x100}, {0x40A, 0x100}, {0x45F, 0xD5}, {0x570, 0xD5}, kEnd}},
         {"Episode 1: Eastcoast 2513 (2)", 0, 1, {{0, 0}, {0x210, 0}, kEnd}},
         {"Episode 1: Eastcoast 2513 (3)", 0, 2, {{0, 0x300}, {0, 0x100}, {0x1D0, 0x100}, kEnd}},
-        {"Episode 2: The Swamp Forest (1)", 1, 0, {{0, 0x40}, {0xA00, 0x40}, {0xA30, 0x10}, {0xB70, 0x10}, kEnd}},
-        {"Episode 2: The Swamp Forest (2)", 1, 2, {{0, 0}, {0x260, 0}, kEnd}},
+        {"Episode 2: The Swamp Forest (1)", 1, 0, {{0, 0x40}, {0x68C, 0x40}, {0x6F0, 0}, {0xA00, 0}, {0xA21, 0x10}, {0xB70, 0x10}, kEnd}},
+        {"Episode 2: The Swamp Forest (2)", 1, 2, {{0, 0x100}, {0x100, 0}, {0x260, 0}, kEnd}},
         {"Episode 3: Waste Land", 2, 0, {{0, 0}, {0x4000, 0}, kEnd}},
         {"Episode 4: Jack's Garage (1)", 3, 0, {{0, 0}, {0x270, 0}, kEnd}},
         {"Episode 4: Jack's Garage (2)", 3, 1, {{0, 0}, {0x870, 0}, kEnd}},
@@ -51,14 +52,14 @@ namespace {
         {"Episode 5: Village of Flame", 4, 0, {{0, 0x200}, {0xD51, 0x200}, {0xDB2, 0x19F}, {0xEF0, 0x19F}, {0xF10, 0x17F}, {0x11C0, 0x17F}, kEnd}},
         {"Episode 6: Jungle & Mine (1)", 5, 0, {{0, 0}, {0x770, 0}, kEnd}},
         {"Episode 6: Jungle & Mine (2)", 5, 1,
-         {{0, 0x100}, {0x931, 0x100}, {0x951, 0xE0}, {0xCA4, 0xE0}, {0xD1D, 0xFF}, {0xE01, 0xFF}, {0xE20, 0x11E}, {0x1000, 0x11E}}},
+         {{0, 0x100}, {0x932, 0x100}, {0x950, 0xE0}, {0xCA0, 0xE0}, {0xD20, 0x100}, {0xE00, 0x100}, {0xE70, 0x170}, {0x1000, 0x170}}},
         {"Episode 7: The Basement (1)", 6, 0, {{0, 0}, {0x9D0, 0}, kEnd}},
         {"Episode 7: The Basement (2)", 6, 1, {{0, 0x3700}, {0, 0x10}, kEnd}},
         {"Episode 7: The Basement (3)", 6, 2, {{0, 0}, {0x6F0, 0}, kEnd}},
         {"Episode 7: The Basement (4)", 6, 3, {{0, 0}, {0x4F0, 0}, kEnd}},
         {"Episode 8: Deep Deep Down (1)", 7, 0, {{0, 0}, {0x570, 0}, kEnd}},
         {"Episode 8: Deep Deep Down (2)", 7, 1, {{0, 0x300}, {0xBC0, 0x300}, kEnd}},
-        {"Episode 8: Deep Deep Down (3)", 7, 2, {{0, 0x200}, {0x104, 0x200}, {0x2FD, 0x181}, {0x404, 0x181}, {0x5FD, 0x102}, {0xCB0, 0x102}, kEnd}},
+        {"Episode 8: Deep Deep Down (3)", 7, 2, {{0, 0x200}, {0x103, 0x200}, {0x301, 0x180}, {0x403, 0x180}, {0x600, 0x100}, {0xCB0, 0x100}, kEnd}},
         {"Episode 8: Deep Deep Down (4)", 7, 3, {kEnd}}, // (one room, which its own segment sets up: the game's camera)
     };
     constexpr int kMiddle = 0x80; // (the camera's place is the picture's left edge and 0x40: its middle is 0x80 on)
@@ -74,7 +75,7 @@ namespace {
     // 02075E: the camera's set-up has loaded the episode's first segment; for a part after the first, its own first
     // segment instead (the set-up then takes the part's place to start at)
     bool CameraSetUp(M68K &c) {
-        if (!beat::StageViewer()) {
+        if (!beat::Viewing()) {
             return false;
         }
         const Stage &stage = kViewed[beat::ViewedStage()];
@@ -117,7 +118,7 @@ namespace {
     // The enemies (and the other things the game moves) stand still while viewing: their two pools' routines
     // (023620: the 24 records of 0xC0 bytes after the players', FFB6F4; 0233E2: those from FF8874) return at once
     bool StandStill(M68K &c) {
-        if (!beat::StageViewer() || beat::Starting()) {
+        if (!beat::Viewing() || beat::Starting()) {
             return false;
         }
         Return(c);
@@ -160,9 +161,62 @@ namespace {
     }
 } // namespace
 
-// The episode a game the viewer begins starts at (-1: not the viewer's)
+// --- the character viewer ---
+namespace {
+    // The characters, by their numbers in the game (a player's record's +03), and the colours their objects are in
+    // (found from the object list: not their numbers' order). Their animations: six lists of where each begins (word
+    // offsets from the list, as many as the first is twice), from the tables at 00163E, 00164E ... 00168E by the
+    // character's number (0014EE and the like take them).
+    constexpr const char *kCharacters[] = {"Jack Tenrec", "Mustapha Cairo", "Hannah Dundee", "Mess O'Bradovich"};
+    constexpr uint8_t kColours[] = {0, 2, 1, 3};
+    constexpr uint32_t kListTables = 0x00163E, kListTableSize = 0x10;
+    constexpr int kListsEach = 6;
+    // A frame (as 00143E and 001426 step them): 12 bytes, two words of its picture, a long whose last byte is how many
+    // frames it is shown for (its top bit: the next word says how far on the frame after it is), and two words more.
+    // A player's record keeps the frame (+28), the long (+2C, the time left in +2F), the two words (+48, +60) and the
+    // picture (+4C, from the table at 11D220)
+    constexpr uint32_t kFrameBytes = 12;
+    constexpr uint32_t kPictures = 0x11D220;
+
+    uint32_t Long(uint32_t address) {
+        return (static_cast<uint32_t>(Word(address)) << 16) | Word(address + 2);
+    }
+    int FrameTime(uint32_t frame) {
+        return Program(frame)[7] & 0x7F;
+    }
+    uint32_t NextFrame(uint32_t frame) {
+        const uint32_t next = frame + kFrameBytes;
+        return Program(frame)[7] & 0x80 ? next + static_cast<int16_t>(Word(next)) : next;
+    }
+
+    // A frame put in player 1's record as 00143E would, with its time kept high so that the game's own stepping
+    // never comes round (0: back to standing, the first animation of the first list)
+    void ShowFrame(uint32_t frame) {
+        const uint32_t p = Player(0);
+        const bool standing = frame == 0;
+        if (standing) {
+            const uint32_t list = Long(kListTables + beat::ViewedCharacter() * 4u);
+            frame = list + Word(list);
+        }
+        SetRam32(p + 0x28, frame);
+        const uint32_t time = Long(frame + 4) & ~0x80u;
+        SetRam32(p + 0x2C, standing ? std::max<uint32_t>(time & 0xFF, 1) | (time & ~0xFFu) : time | 0x7F);
+        SetRam16(p + 0x48, Word(frame + 8));
+        SetRam16(p + 0x60, Word(frame + 10));
+        const int16_t picture = static_cast<int16_t>(Word(frame + 2)) >= 0 ? static_cast<int16_t>(Word(frame + 2))
+                                                                            : static_cast<int16_t>(Word(frame));
+        if (!(Ram8(p + 0x25) & 1)) {
+            SetRam32(p + 0x4C, Long(kPictures + picture));
+        }
+    }
+} // namespace
+
+// The episode a game the viewers begin starts at (-1: not the viewers'), and the character it is played with
 int ViewerEpisode() {
-    return beat::StageViewer() ? kViewed[beat::ViewedStage()].episode : -1;
+    return beat::Viewing() ? kViewed[beat::ViewedStage()].episode : -1;
+}
+int ViewerCharacter() {
+    return beat::CharacterViewer() ? beat::ViewedCharacter() : -1;
 }
 
 void ViewerFrame(Machine &) {
@@ -190,6 +244,27 @@ void DescribeViewer(beat::Description &d) {
     };
     d.view = View;
     d.viewLayers = 0xD; // (not the first scroll screen: the panel)
+    for (const char *character : kCharacters) {
+        d.characters.push_back(character);
+    }
+    d.animations = [](int character, std::vector<std::vector<uint32_t>> &lists) {
+        for (int n = 0; n < kListsEach; n++) {
+            const uint32_t base = Long(kListTables + kListTableSize * static_cast<uint32_t>(n) + character * 4u);
+            std::vector<uint32_t> list;
+            for (uint32_t k = 0; k < Word(base) / 2u; k++) {
+                list.push_back(base + Word(base + 2 * k));
+            }
+            lists.push_back(std::move(list));
+        }
+    };
+    d.frameTime = FrameTime;
+    d.nextFrame = NextFrame;
+    d.showFrame = ShowFrame;
+    d.characterObject = [](uint32_t, uint16_t attributes) { return (attributes & 0x1F) == kColours[beat::ViewedCharacter()]; };
+    d.standing = [](int &x, int &y) {
+        x = static_cast<int16_t>(Ram16(Player(0) + kX) - Ram16(kCameraX) + 0x40);
+        y = -1;
+    };
     AddHook(0x02075E, "CameraSetUp", CameraSetUp);
     AddHook(0x02091C, "CameraMoves", CameraMoves);
     AddHook(0x02126E, "CameraPlaced", CameraPlaced);

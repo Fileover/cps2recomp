@@ -65,7 +65,9 @@ named for a song is a playlist: every piece of music is replaced, and `port/soun
 the numbers a game asks for (`CPS2RECOMP_SOUNDTRACK_LOG`, or the shared memory's first sixteen bytes), find what
 each piece is by playing (the arcade ladder with each character, attract mode, a lost game), and which end of
 themselves with `--music-test 5400` (with `--test-switch 300:99999999`, so that the game asks for nothing).
-`games/<id>/src/music.cpp` is each game's.
+`games/<id>/src/music.cpp` is each game's. In every sound program seen so far (the CPS-2's drivers and the CPS-1
+QSound board's) the table follows a word of how many songs there are, near the start of the second 32 KB: a run of
+four-byte entries whose fourth byte is 0 and whose address is inside the program finds it.
 
 ## Arcade timing
 

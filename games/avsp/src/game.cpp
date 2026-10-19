@@ -14,6 +14,7 @@ void TitleFrame(Machine &machine);
 void RegisterMusic(); // music.cpp
 void RegisterModes(); // modes.cpp
 int ViewerScene(); // viewer.cpp
+int ViewerCharacter();
 void ViewerFrame(Machine &machine);
 bool ChoicesLeftOut();
 void ModesBeforeFrame(Machine &machine);
@@ -98,6 +99,9 @@ namespace {
     bool GameBegins(M68K &) {
         if (ViewerScene() >= 0) {
             SetRam16(kScene, static_cast<uint16_t>(ViewerScene() * 2));
+            if (ViewerCharacter() >= 0) {
+                SetRam8(Player(0) + kCharacter, static_cast<uint8_t>(ViewerCharacter()));
+            }
             return false;
         }
         const int round = ChoicesLeftOut() ? 0 : FeatureValue("start_round");

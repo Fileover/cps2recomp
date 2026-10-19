@@ -77,6 +77,8 @@ constexpr uint32_t kX = 0x10;         // word: the place across, in the stage (a
 constexpr uint32_t kHealth = 0x41;    // byte: health, down to 0; FF once down (found standing still while hit)
 constexpr uint32_t kHealthMax = 0x45; // byte: what it starts at (0x65)
 constexpr uint32_t kLives = 0xF1;     // byte: lives left after this one ("x1"; found as it went 0, 1, 2)
+constexpr uint32_t kCharacter = 0xD2;  // byte: who it is (0 Predator Warrior, 1 Maj. Schaefer, 2 Predator Hunter, 3 Lt.
+                                       // Kurosawa: 01B0C4 takes its animations by it; put in as a game begins, it is that character)
 constexpr uint32_t kScore = 0xE0;     // long: the score, in BCD (as shown at the top: found from dumps while it went up)
 
 } // namespace cps2recomp::avsp

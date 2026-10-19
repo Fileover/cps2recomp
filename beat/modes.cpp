@@ -20,7 +20,7 @@ namespace {
 
     Description g_d;
 
-    enum class Mode : int32_t { None, Attract, Score, Viewer };
+    enum class Mode : int32_t { None, Attract, Score, Viewer, Model };
     struct State {
         Mode mode = Mode::None;
         bool starting = false;
@@ -48,6 +48,9 @@ namespace {
     void End() {
         if (g.mode == Mode::None) {
             return;
+        }
+        if (g.mode == Mode::Model) {
+            EndModel();
         }
         g = State();
         Fast(false);
@@ -187,15 +190,26 @@ namespace {
         return from + std::clamp(to - from, -kStick, kStick);
     }
 
+    // (the stage and the character viewers: unseen to the stage; true once there)
+    bool ToStage(Machine &machine) {
+        Fast(true);
+        for (uint16_t &held : machine.players) {
+            held = 0;
+        }
+        if (g_d.toStage(machine, g.stage, g.frames)) {
+            g.starting = false;
+            Fast(false);
+            return true;
+        }
+        if (++g.frames > kStartMost) {
+            End();
+        }
+        return false;
+    }
+
     void ViewerBeforeFrame(Machine &machine) {
         if (g.starting) {
-            Fast(true);
-            for (uint16_t &held : machine.players) {
-                held = 0;
-            }
-            if (g_d.toStage(machine, g.stage, g.frames)) {
-                g.starting = false;
-                Fast(false);
+            if (ToStage(machine)) {
                 LoadPath();
                 int x = 0, y = 0;
                 g_d.stageCamera(x, y);
@@ -204,8 +218,6 @@ namespace {
                 g.along = Nearest(g.cameraX, g_path.empty() || g_path[0].y < 0 ? -1 : g.cameraY);
                 g.approaching = true;
                 g.direction = 1;
-            } else if (++g.frames > kStartMost) {
-                End();
             }
             return;
         }
@@ -319,6 +331,16 @@ bool ScoreAttack() {
 bool StageViewer() {
     return g.mode == Mode::Viewer;
 }
+bool CharacterViewer() {
+    return g.mode == Mode::Model;
+}
+void BeginModel(Machine &machine, int stage) {
+    End();
+    g.mode = Mode::Model;
+    g.starting = true;
+    g.stage = stage;
+    machine.Reset();
+}
 int ViewedStage() {
     return g.stage;
 }
@@ -365,6 +387,13 @@ void BeforeFrame(Machine &machine) {
         }
     } else if (g.mode == Mode::Viewer) {
         ViewerBeforeFrame(machine);
+    } else if (g.mode == Mode::Model) {
+        if (g.starting) {
+            ToStage(machine);
+        } else {
+            g_d.view(machine, g.stage, -1, -1);
+            ModelBeforeFrame(machine);
+        }
     } else if (g.mode == Mode::Score) {
         // (one player only: the others' Starts and coins are not taken)
         for (int n = 1; n < Machine::kMaxPlayers; n++) {
@@ -386,11 +415,17 @@ void Frame(Machine &machine) {
         ScoreFrame();
     } else if (g.mode == Mode::Viewer) {
         ViewerFrame(machine);
+    } else if (g.mode == Mode::Model && !g.starting) {
+        if (!g_d.inGame()) {
+            End(); // (the board reset)
+        } else {
+            ModelFrame(machine);
+        }
     }
     ScoreHud();
-    // (nobody shown while viewing: and only what this file set is put back)
+    // (nobody shown while viewing (the character viewer draws its own): and only what this file set is put back)
     static bool hid = false;
-    const bool viewing = g.mode == Mode::Viewer && !g.starting;
+    const bool viewing = (g.mode == Mode::Viewer || g.mode == Mode::Model) && !g.starting;
     if (viewing || hid) {
         machine.video.hideObject = viewing ? HideAll : nullptr;
         machine.video.layerMask = viewing ? g_d.viewLayers : 0xF;
@@ -403,6 +438,9 @@ void State(Archive &ar) {
     ar.Pod(g);
     if (!ar.Saving() && g.mode == Mode::Viewer) {
         LoadPath();
+    }
+    if (!ar.Saving() && !RunningAhead() && g.mode == Mode::Model) {
+        End(); // (the character viewer's own is not kept: a state loaded while viewing ends it)
     }
     if (!ar.Saving() && !RunningAhead()) {
         g_fast = !g.starting; // (put the window's running unseen as the state has it)
@@ -438,6 +476,9 @@ void Register(const Description &description) {
                                  "back (Infinite: on to the next stage at the end).",
                                  0, {"With the stick", "Slow", "Medium", "Fast"}});
     }
+    RegisterModel(description);
+    // (their choices are this game's: in the collection, the fighting games' rows of the same names are others')
+    OwnFeatures({"attract_show", "viewer_stage", "model_character", "model_background", "model_animation"});
     game.commands.push_back({"score_start", kScore, "Start",
                              "Starts a game for player 1 alone: one credit and no continue, from the first round, with free play, "
                              "the cheats and \"Start at round\" left out. The best score is kept. The game over ends it.",

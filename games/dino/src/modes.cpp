@@ -41,7 +41,7 @@ namespace {
 // Whether the player's own choices (free play, the cheats, where a game starts, the board's settings for the show's
 // sound and continuing) are left out now
 bool ChoicesLeftOut() {
-    return beat::AttractMode() || beat::ScoreAttack() || beat::StageViewer();
+    return beat::AttractMode() || beat::ScoreAttack() || beat::Viewing();
 }
 
 void ModesBeforeFrame(Machine &machine) {
