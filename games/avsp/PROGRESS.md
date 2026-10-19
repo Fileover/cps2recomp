@@ -57,7 +57,8 @@
 - **Characters**: a player's +D2 (0 Predator Warrior, 1 Maj. Schaefer, 2 Predator Hunter, 3 Lt. Kurosawa), which
   can be put in as a game begins. Each character's animations are four lists, one after another (15E240, 162F90,
   168564, 16D122 and on): three from the tables at 01B0E0, 01B104 and 021FFA by the character, the fourth in the
-  character's own code (021E10).
+  character's own code (021E10). A list's last offsets are not always animations (Kurosawa's crash the game when
+  forced on him): one is if its frames are (a time, and a picture in 100000-1FFFFF).
 
 ## Not done yet
 

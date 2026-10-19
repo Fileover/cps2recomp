@@ -82,6 +82,8 @@ struct Description {
     // the animation ends there; the same frame: it is held)
     int (*frameTime)(uint32_t frame) = nullptr;
     uint32_t (*nextFrame)(uint32_t frame) = nullptr;
+    // Whether an address is a frame (none: every one the game's lists and frames give is): one that is not is not shown
+    bool (*isFrame)(uint32_t frame) = nullptr;
     // Each frame, before the game runs it: the frame to show on the character (0: none, the game's own: player 1's
     // controls work it), as the game would put it in its record
     void (*showFrame)(uint32_t frame) = nullptr;

@@ -165,8 +165,8 @@ namespace {
 namespace {
     // The characters, by their numbers in the game (a player's record's +03), and the colours their objects are in
     // (found from the object list: not their numbers' order). Their animations: six lists of where each begins (word
-    // offsets from the list, as many as the first is twice), from the tables at 00163E, 00164E ... 00168E by the
-    // character's number (0014EE and the like take them).
+    // offsets from the list, up to as many as the first is twice, ending at a 0), from the tables at 00163E, 00164E ...
+    // 00168E by the character's number (0014EE and the like take them).
     constexpr const char *kCharacters[] = {"Jack Tenrec", "Mustapha Cairo", "Hannah Dundee", "Mess O'Bradovich"};
     constexpr uint8_t kColours[] = {0, 2, 1, 3};
     constexpr uint32_t kListTables = 0x00163E, kListTableSize = 0x10;
@@ -187,6 +187,15 @@ namespace {
     uint32_t NextFrame(uint32_t frame) {
         const uint32_t next = frame + kFrameBytes;
         return Program(frame)[7] & 0x80 ? next + static_cast<int16_t>(Word(next)) : next;
+    }
+    // The frame after one that says how far on it is is always one before it: one that says otherwise is not a frame
+    // (Jack's A29 is not an animation: forcing it on him crashes the game)
+    bool IsFrame(uint32_t frame) {
+        if (frame & 1) {
+            return false;
+        }
+        const int16_t on = static_cast<int16_t>(Word(frame + kFrameBytes));
+        return !(Program(frame)[7] & 0x80) || (on < 0 && !(on & 1));
     }
 
     // A frame put in player 1's record as 00143E would, with its time kept high so that the game's own stepping
@@ -251,7 +260,7 @@ void DescribeViewer(beat::Description &d) {
         for (int n = 0; n < kListsEach; n++) {
             const uint32_t base = Long(kListTables + kListTableSize * static_cast<uint32_t>(n) + character * 4u);
             std::vector<uint32_t> list;
-            for (uint32_t k = 0; k < Word(base) / 2u; k++) {
+            for (uint32_t k = 0; k < Word(base) / 2u && Word(base + 2 * k); k++) {
                 list.push_back(base + Word(base + 2 * k));
             }
             lists.push_back(std::move(list));
@@ -259,6 +268,7 @@ void DescribeViewer(beat::Description &d) {
     };
     d.frameTime = FrameTime;
     d.nextFrame = NextFrame;
+    d.isFrame = IsFrame;
     d.showFrame = ShowFrame;
     d.characterObject = [](uint32_t, uint16_t attributes) { return (attributes & 0x1F) == kColours[beat::ViewedCharacter()]; };
     d.standing = [](int &x, int &y) {

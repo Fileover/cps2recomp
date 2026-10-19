@@ -35,6 +35,12 @@ soundtrack of your own music, and Alien vs. Predator's "Straight to the title" n
   beat-'em-up, which says how its game gets to a stage, where its camera and its characters' animations are, and
   which of its objects are a character's. The CPS-1 board's picture can now mark which pixels are objects'
   (`Video::markObjects`, as the CPS-2's could).
+- **One model viewer for every game** (`model/model.h`): Street Fighter Alpha 2's, the Vampire Savior games' and the
+  beat-'em-ups' character viewer were three copies of the same thing; now each game says only how it gets to a
+  character alone and where its animations are. The fighting games' viewers are as they were, frame for frame.
+- **The character viewer's "Play all" crashed the beat-'em-ups**: on Alien vs. Predator a list's last entries are not
+  always animations (Kurosawa's crashed it), and on Cadillacs and Dinosaurs each list's end mark was taken for one, as
+  was Jack's A29, which is not one; they are passed over now.
 - **Alien vs. Predator's "Straight to the title"** ran only the board's first second and a half unseen when free play
   was on: the show's step is at FF8000, not FF8002 (`games/avsp/src/avsp.h`, kMode).
 
