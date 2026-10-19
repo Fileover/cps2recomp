@@ -105,8 +105,7 @@ All on 2026-10-19, on the branch that brought the game in:
   program's), versus (113,258,704 and 48,420,936), 20,000 frames of the test menu with made-up input (198,334,937 and
   79,271,831). No difference.
 - `make GAME=pocket_fighter check-release` (40,000 frames): two runs of the build with no translated code alike;
-  its pictures the translated build's but for 10 frames, ending on the same. Picture hashes
-  `8f86169b2d68eceb0e78413fedf544727d13eb7906659c3116f0f9aea304f117`.
+  its pictures the translated build's but for 10 frames, ending on the same.
 - **With every feature off the game runs as with no sources**: the interpreter (`--cpu interp`) gives the same
   per-frame hashes with `src/` and with an empty one, 6,000 frames of made-up play.
 - Straight to the title: the per-frame hashes are the same with it on and off (4,900 frames).
