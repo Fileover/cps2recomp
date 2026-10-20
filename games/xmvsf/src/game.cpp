@@ -3,6 +3,7 @@
 //
 // X-Men vs. Street Fighter: what the game's own sources add to the port (see PROGRESS.md).
 #include "alternative.h"
+#include "battle.h"
 #include "colours.h"
 #include "game.h"
 #include "session.h"
@@ -29,6 +30,7 @@ void ModelFrame(Machine &machine);
 void ModelState(Archive &ar);
 bool ModelViewer();
 void RegisterColours(); // colours.cpp
+void RegisterBattle(); // battle.cpp
 void ChoosingBeforeFrame(Machine &machine);
 
 void RegisterGame() {
@@ -37,6 +39,7 @@ void RegisterGame() {
     RegisterChoosing();
     RegisterModel();
     RegisterColours();
+    RegisterBattle();
     RegisterCoins();
     RegisterCheats();
     RegisterTitle();
@@ -47,6 +50,7 @@ void RegisterGame() {
         ChoosingBeforeFrame(machine);
         session::BeforeFrame(machine);
         modes::BeforeFrame(machine);
+        BattleBeforeFrame(machine);
         colours::BeforeFrame(machine);
         ModelBeforeFrame(machine);
     };
@@ -54,6 +58,7 @@ void RegisterGame() {
     TheGame().frame = [](Machine &machine) {
         session::Frame(machine);
         modes::Frame(machine);
+        BattleFrame(machine);
         ModelFrame(machine);
         TitleFrame(machine);
         CoinsFrame(machine);
@@ -64,15 +69,18 @@ void RegisterGame() {
         session::State(ar);
         modes::State(ar);
         ModesState(ar);
+        BattleState(ar);
         ModelState(ar);
     };
     // (run-ahead: not in the modes, whose workings a save state does not wholly hold)
-    TheGame().noRunAhead = [] { return modes::AttractMode() || modes::StageViewer() || ModelViewer(); };
+    TheGame().noRunAhead = [] { return modes::AttractMode() || modes::StageViewer() || BattleMode() || ModelViewer(); };
     // With the arcade timing, the game's own code runs in place of the rewrites but where they carry what the port adds
-    TheGame().rewritesNeeded = [] { return session::InSession() || modes::AttractMode() || modes::StageViewer() || ModelViewer(); };
+    TheGame().rewritesNeeded = [] {
+        return session::InSession() || modes::AttractMode() || modes::StageViewer() || BattleMode() || ModelViewer();
+    };
     // Its own, never set for the other games by the collection's launcher: Damage level has other choices in the Alpha
-    // games (Low, Medium, Normal, High), and the animations are this game's
-    OwnFeatures({"board_damage", "model_animation", "colours_animation"});
+    // games (Low, Medium, Normal, High); the best scores and the animations are this game's
+    OwnFeatures({"board_damage", "survival_best", "ringout_best", "model_animation", "colours_animation"});
 }
 
 } // namespace cps2recomp

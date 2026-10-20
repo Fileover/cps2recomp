@@ -86,6 +86,9 @@ constexpr uint16_t kGaugeBarFull = 0x90;
 // Where a player stands: a long, the word at +0C across (with 16 bits of fraction after it) and the word at +10 down
 // (0x1D8 on the floor; smaller is higher). Both players start a round at 0x100 and 0x200 (RAM traces of rounds).
 constexpr uint32_t kX = 0x0C, kY = 0x10;
+// Longs, 16 bits of fraction: the speed across (a walk's 4 pixels a step), and the speed down and what is added to it
+// each step (a jump: up 6.1 pixels a step as it leaves the floor, pulled down by 0.42 a step; RAM dumps through a jump)
+constexpr uint32_t kSpeedX = 0x14, kSpeedY = 0x1C, kPullY = 0x20;
 constexpr uint16_t kStartX[2] = {0x100, 0x200};
 constexpr uint16_t kGround = 0x1D8;
 // A byte: bit 0 set facing right (a box's offset across is kept as if facing left), bit 1 turned upside down (the
@@ -140,7 +143,7 @@ inline uint32_t CameraRecord() {
                                              -0x2D40, -0x2D40, -0x2DC0, -0x2DC0, -0x2DC0, -0x2DC0, -0x2DC0, -0x2DC0};
     return static_cast<uint32_t>(0xFF8000 + kOffsets[cps2recomp::Ram8(kStage) & 0x0F]);
 }
-constexpr uint32_t kCameraX = 0x0C, kCameraY = 0x10, kCameraLeft = 0x72, kCameraRight = 0x74;
+constexpr uint32_t kCameraX = 0x0C, kCameraY = 0x10, kCameraLeft = 0x72, kCameraRight = 0x74, kCameraTop = 0x76;
 // How the camera moves, a byte (070232 goes by it, or by the one two after it when a player's +257 says): 0 after both
 // players, 4 after player 1 alone (070320: its middle 0x100 on from the camera's word); the game sets it every frame
 constexpr uint32_t kCameraWay = 0xFF53E8;
@@ -193,8 +196,11 @@ constexpr unsigned kPlayer1Set = 0x0C, kPlayer2Set = 0x0F, kShadowSet = 0x08;
 inline bool NotTheStage(uint32_t, uint16_t attributes) {
     return (attributes & 0x1F) < 0x1A;
 }
+// The panel: its sets and the fighters' faces, and the round's words ("READY" in set 00, "FIGHT!" in 18: tiles
+// 1C000-1D1FF, from the object lists as each was shown)
 inline bool ThePanel(uint32_t tile, uint16_t attributes) {
-    return (attributes & 0x1F) <= 0x04 || (tile >= 0x15400 && tile < 0x15D00);
+    const unsigned set = attributes & 0x1F;
+    return set <= 0x04 || (tile >= 0x15400 && tile < 0x15D00) || ((set == 0x00 || set == 0x18) && tile >= 0x1C000 && tile < 0x1D200);
 }
 
 // --- for hooks ---

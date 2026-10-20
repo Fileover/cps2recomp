@@ -45,13 +45,14 @@ namespace {
         if (stage >= 1 && stage <= kStages) {
             SetRam8(kStage, static_cast<uint8_t>(stage - 1));
         }
-        // ... and the characters a mode wants, as the players' picks (each round is made from them: 00FFC0)
+        // ... and the characters a mode wants (by the game's own word for them, kCharacter), as the players' picks (each
+        // round is made from them: 00FFC0)
         const MatchWanted &wanted = modes::Wanted();
         for (int n = 0; n < 2; n++) {
             const int both[2] = {wanted.characters[n], wanted.partners[n]};
             for (int pick = 0; pick < 2; pick++) {
-                if (both[pick] >= 0 && both[pick] < kCharacters) {
-                    SetRam16(kPicks + static_cast<uint32_t>(n * 4 + pick * 2), static_cast<uint16_t>(both[pick] * 2));
+                if (both[pick] >= 0 && both[pick] < 2 * kCharacters) {
+                    SetRam16(kPicks + static_cast<uint32_t>(n * 4 + pick * 2), static_cast<uint16_t>(both[pick]));
                 }
             }
         }

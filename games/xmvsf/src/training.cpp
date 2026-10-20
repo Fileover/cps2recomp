@@ -15,6 +15,8 @@
 
 namespace cps2recomp {
 
+bool RingOutStep(M68K &c); // battle.cpp
+
 namespace {
     using namespace xmvsf;
 
@@ -41,6 +43,10 @@ namespace {
     // four, the point characters first of their sides); state 2 is fighting. Seen as the step starts, the record is as
     // the last step left it, which is what the picture showed and the hit tests tested.
     bool PlayerStep(M68K &c) {
+        if (RingOutStep(c)) { // (the ring out's own movements: battle.cpp)
+            Return(c);
+            return true;
+        }
         const uint32_t player = c.a[6] & 0xFFFFFF;
         const int n = PlayerOf(player);
         if (n < 0 || Ram16(player + 0x04) != 2) {

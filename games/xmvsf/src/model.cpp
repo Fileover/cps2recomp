@@ -21,6 +21,7 @@
 #include "state.h"
 #include "xmvsf.h"
 
+#include <algorithm>
 #include <iterator>
 
 namespace cps2recomp {
@@ -131,8 +132,8 @@ namespace {
         model::Begin();
         modes::Wanted().stage = model::Plain(model::Background()) ? 2 : model::Background() + 1;
         const int who = model::Number(model::Character());
-        modes::Wanted().characters[0] = modes::Wanted().partners[0] = who;
-        modes::Wanted().characters[1] = modes::Wanted().partners[1] = (who + 1) % kCharacters;
+        modes::Wanted().characters[0] = modes::Wanted().partners[0] = who * 2;
+        modes::Wanted().characters[1] = modes::Wanted().partners[1] = (who + 1) % kCharacters * 2;
         machine.Reset();
     }
 
@@ -147,12 +148,30 @@ bool ModelViewer() {
     return g.on;
 }
 
-// 070232: the camera's step (A6 its record): it goes the way the byte kCameraWay says (or the one after it, for some
-// fights' ends). In the viewer, after player 1 alone, its own way of doing that.
-bool CameraWay(M68K &) {
+// 070232: the camera's step (A6 its record): it goes the way the byte kCameraWay says (or the one two after it, for
+// some fights' ends). In the viewer, after player 1 alone, its own way of doing that; where a mode wants the camera
+// (fight/battle.h, CameraWanted), there, and the game's step not made.
+bool CameraWay(M68K &c) {
     if (g.on && !g.starting) {
         SetRam8(kCameraWay, kCameraFollowsOne);
         SetRam8(kCameraWay + 2, kCameraFollowsOne);
+    }
+    const CameraWanted &wanted = modes::CameraAt();
+    const uint32_t camera = c.a[6] & 0xFFFFFF;
+    if ((wanted.x >= 0 || wanted.y >= 0) && camera == CameraRecord()) {
+        // (either where it is wanted, the other where it is; kept between its ends unless wanted beyond them)
+        const auto place = [&](uint32_t word, int at, uint32_t ends) {
+            const int low = static_cast<int16_t>(Ram16(camera + ends)), high = static_cast<int16_t>(Ram16(camera + ends + 2));
+            SetRam16(camera + word, static_cast<uint16_t>(wanted.beyondEnds ? at : std::clamp(at, low, high)));
+        };
+        if (wanted.x >= 0) {
+            place(kCameraX, wanted.x, kCameraLeft);
+        }
+        if (wanted.y >= 0) {
+            place(kCameraY, wanted.y, kCameraTop);
+        }
+        Return(c);
+        return true;
     }
     return false;
 }
