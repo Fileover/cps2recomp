@@ -31,6 +31,9 @@ void ModelState(Archive &ar);
 bool ModelViewer();
 void RegisterColours(); // colours.cpp
 void RegisterBattle(); // battle.cpp
+void RegisterWidescreen(); // widescreen.cpp
+void WidescreenBeforeFrame(Machine &machine);
+bool WidePlay();
 void ChoosingBeforeFrame(Machine &machine);
 
 void RegisterGame() {
@@ -40,6 +43,7 @@ void RegisterGame() {
     RegisterModel();
     RegisterColours();
     RegisterBattle();
+    RegisterWidescreen();
     RegisterCoins();
     RegisterCheats();
     RegisterTitle();
@@ -48,6 +52,7 @@ void RegisterGame() {
     TheGame().beforeFrame = [](Machine &machine) {
         BoardBeforeFrame(machine);
         ChoosingBeforeFrame(machine);
+        WidescreenBeforeFrame(machine);
         session::BeforeFrame(machine);
         modes::BeforeFrame(machine);
         BattleBeforeFrame(machine);
@@ -76,7 +81,8 @@ void RegisterGame() {
     TheGame().noRunAhead = [] { return modes::AttractMode() || modes::StageViewer() || BattleMode() || ModelViewer(); };
     // With the arcade timing, the game's own code runs in place of the rewrites but where they carry what the port adds
     TheGame().rewritesNeeded = [] {
-        return session::InSession() || modes::AttractMode() || modes::StageViewer() || BattleMode() || ModelViewer();
+        return session::InSession() || modes::AttractMode() || modes::StageViewer() || BattleMode() || ModelViewer() || WidePlay() ||
+               FeatureOn("widescreen");
     };
     // Its own, never set for the other games by the collection's launcher: Damage level has other choices in the Alpha
     // games (Low, Medium, Normal, High); the best scores and the animations are this game's

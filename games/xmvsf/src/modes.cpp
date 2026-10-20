@@ -99,6 +99,10 @@ void RegisterModes() {
     d.cameraEnds = [](int stage, int &left, int &right) { CameraEnds(stage - 1, left, right); };
     d.apart = 0x100; // (the players either side of the picture's middle: the camera's word + 0x40 + 0xC0)
     d.notTheStage = NotTheStage;
+    d.wideSide = WideSide;
+    d.wideMargin = WideMargin;
+    d.wideForSpare = WideForSpare;
+    d.wideForPort = WideForPort;
     modes::Register(d);
     AddHook(HookAt(0x00BAEA), "StageChosen", StageChosen);
 }

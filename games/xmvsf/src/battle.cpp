@@ -110,8 +110,8 @@ void RegisterBattle() {
     d.cameraAt = modes::CameraAt;
     d.endModes = modes::End;
     d.stageViewer = modes::StageViewer;
-    d.wideSide = [] { return 0; };
-    d.wideMargin = [] { return 0; };
+    d.wideSide = WideSide;
+    d.wideMargin = WideMargin;
     d.notTheStage = NotTheStage;
     d.thePanel = ThePanel;
     d.notTheFighters = [](uint32_t tile, uint16_t attributes) { return ThePanel(tile, attributes) || (attributes & 0x1F) >= 0x1A; };
@@ -126,16 +126,6 @@ void RegisterBattle() {
     d.inAir = [](uint32_t player) { return Ram16(player + kY) != kGround; };
     d.atJumpTop = [](uint32_t player) { return Ram16(player + kY) != kGround && static_cast<int32_t>(Ram32(player + kSpeedY)) >= 0; };
     battle::Register(d);
-    // 010806: a character kept between the picture's edges (A6; +A9 says at which), but in a ring out one knocked about
-    // at an end of the stage, which goes over it
-    AddHook(HookAt(0x010806), "KeptIn", [](M68K &c) {
-        if (RingOutLetsOut(c.a[6] & 0xFFFFFF)) {
-            SetRam8((c.a[6] & 0xFFFFFF) + 0xA9, 0);
-            Return(c);
-            return true;
-        }
-        return false;
-    });
 }
 
 } // namespace cps2recomp

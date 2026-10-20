@@ -215,6 +215,9 @@ void RegisterTraining() {
     d.facingLeft = FacingLeft;
     d.moveStart = MoveStart;
     d.boxes = Boxes;
+    d.wideStage = WideStage;
+    d.wideSide = WideSide;
+    d.wideMargin = WideMargin;
     d.stageChoices = modes::StageChoices({"The game's choice"});
     d.hud = Hud;
     d.ownAids = {"gauge_refill"};

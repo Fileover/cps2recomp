@@ -210,3 +210,14 @@ inline void SetLow16(uint32_t &reg, uint32_t value) {
 }
 
 } // namespace xmvsf
+
+namespace cps2recomp {
+// The wide picture (widescreen.cpp): the columns it adds on each side (0: none), how far right the stage is drawn in it,
+// how far short of each end the camera stops (64, or 0: played as on the board), and a spare's frame drawn as wide as
+// the port's (and the port's machine back)
+int WideSide();
+int WideStage();
+int WideMargin();
+void WideForSpare(Machine &machine);
+void WideForPort(Machine &machine);
+} // namespace cps2recomp
