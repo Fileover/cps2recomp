@@ -141,6 +141,10 @@ inline uint32_t CameraRecord() {
     return static_cast<uint32_t>(0xFF8000 + kOffsets[cps2recomp::Ram8(kStage) & 0x0F]);
 }
 constexpr uint32_t kCameraX = 0x0C, kCameraY = 0x10, kCameraLeft = 0x72, kCameraRight = 0x74;
+// How the camera moves, a byte (070232 goes by it, or by the one two after it when a player's +257 says): 0 after both
+// players, 4 after player 1 alone (070320: its middle 0x100 on from the camera's word); the game sets it every frame
+constexpr uint32_t kCameraWay = 0xFF53E8;
+constexpr uint8_t kCameraFollowsOne = 4;
 // The camera's ends across, by stage (each read from the record in a round on the stage): Apocalypse's lair and the
 // refinery have their own, the others the same
 inline void CameraEnds(int stage, int &left, int &right) {
@@ -154,6 +158,9 @@ constexpr int kWall = 0x15; // how near the picture's edge a player can go (a pl
 // has chosen both characters, the mode and the speed (traced through choosing)
 constexpr uint32_t kChoosing = 0xFF5180, kChoosingSize = 0x20;
 constexpr uint8_t kChoosingDone = 7;
+// The players' picks: words, player 1's first and second character, then player 2's (a round's records are made from
+// them, 00FFC0: the record's byte +220 says which of the two it is)
+constexpr uint32_t kPicks = 0xFF50B0;
 
 // The control panel as read this frame (000BDE on): a word a player, the stick (bit 0 right, 1 left, 2 down, 3 up) and
 // the punches (bits 4-6) in its low byte, the kicks in bits 8-10
@@ -164,9 +171,25 @@ constexpr uint32_t kPanel[2] = {0xFF5416, 0xFF5418};
 constexpr uint32_t kSoundQueue = 0xFF2648, kSoundQueueEnd = 0xFF2642;
 constexpr uint16_t kSoundQueueMask = 0x3F0;
 
+// --- the characters' colours ---
+
+// A character's colours, in the ROM: a long a character (by its word kCharacter) at kColourTable, the first of its sets,
+// kColourSetsEach of them kColourSetSize apart, each kPalettesInSet palettes of 16 colours (words, 4 bits each of red,
+// green and blue; the game keeps the brightness the palette buffer had). The round's start copies the player's set to
+// its colour sets in the buffer (009F64: kColourTable, then + 0x60 for the kick's; Rogue's has one palette). The
+// player's byte kColourChoice picks the set: 0 a punch chose the character, 1 a kick. The record's long kPalette is
+// where its palettes are in the buffer the board shows from (914000, 0x20 bytes a colour set): player 1's point
+// character's at set 0C, player 2's at 0F, their partners' at 12 and 15 (00FFC0).
+constexpr uint32_t kColourTable = 0x1145A8;
+constexpr int kColourSetsEach = 2, kPalettesInSet = 3, kColoursInPalette = 16;
+constexpr uint32_t kColourSetSize = 0x60;
+constexpr uint32_t kColourChoice = 0x217, kPalette = 0x228;
+constexpr uint32_t kPaletteBuffer = 0x914000;
+constexpr unsigned kPlayer1Set = 0x0C, kPlayer2Set = 0x0F, kShadowSet = 0x08;
+
 // Objects by what they are (for Video::hideObject; from the object lists of rounds on each stage): colour sets 00-04 are
-// the panel, 08 the fighters' shadows, 0C-0F the fighters (and their faces on the panel, tiles 15Bxx), 1A-1E the stage's
-// own pieces
+// the panel, 08 the fighters' shadows, 0C-17 the fighters (their three sets each, kPalette; and their faces on the
+// panel, tiles 15Bxx), 1A-1E the stage's own pieces
 inline bool NotTheStage(uint32_t, uint16_t attributes) {
     return (attributes & 0x1F) < 0x1A;
 }

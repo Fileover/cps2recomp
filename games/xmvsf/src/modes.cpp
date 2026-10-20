@@ -18,32 +18,42 @@ namespace {
 
     // Which part of the show's loop is on (xmvsf.h, kShowStep): the rest (notices, rankings), the introduction, the
     // fight after the title; and whether the title has been placed since the introduction began
-    enum Part : uint8_t { kRest, kIntro, kFight };
+    enum Part : uint8_t { kPartRest, kPartIntro, kPartFight };
     struct Show {
-        Part part = kRest;
+        Part part = kPartRest;
         bool title = false;
     } g_show;
 
     bool AttractStep(int show) {
         const bool match = Ram16(kGameStep) == kGameMatch;
-        if (g_show.part == kRest && Ram8(kShowStep) == 2) {
-            g_show = {kIntro, false};
-        } else if (g_show.part == kIntro && g_show.title && match) {
-            g_show = {kFight, false};
-        } else if (g_show.part == kFight && !match) {
-            g_show.part = kRest;
+        if (g_show.part == kPartRest && Ram8(kShowStep) == 2) {
+            g_show = {kPartIntro, false};
+        } else if (g_show.part == kPartIntro && g_show.title && match) {
+            g_show = {kPartFight, false};
+        } else if (g_show.part == kPartFight && !match) {
+            g_show.part = kPartRest;
         }
         // (the parts not wanted run unseen)
-        return show == modes::kShowIntro ? g_show.part != kIntro : g_show.part != kFight;
+        return show == modes::kShowIntro ? g_show.part != kPartIntro : g_show.part != kPartFight;
     }
 
-    // 00BAEA: the stage of the next match has been taken (00BABC: from the table of stages at 088BFA, by a count that
+    // 00BAEA: the stage of the next match has been taken (both players have chosen) (00BABC: from the table of stages at 088BFA, by a count that
     // goes on from match to match; the computer's last fight is on Apocalypse's, set after this at 00BD06). A mode's
     // or the session's stage is put in its place.
     bool StageChosen(M68K &) {
         const int stage = session::WantedStage();
         if (stage >= 1 && stage <= kStages) {
             SetRam8(kStage, static_cast<uint8_t>(stage - 1));
+        }
+        // ... and the characters a mode wants, as the players' picks (each round is made from them: 00FFC0)
+        const MatchWanted &wanted = modes::Wanted();
+        for (int n = 0; n < 2; n++) {
+            const int both[2] = {wanted.characters[n], wanted.partners[n]};
+            for (int pick = 0; pick < 2; pick++) {
+                if (both[pick] >= 0 && both[pick] < kCharacters) {
+                    SetRam16(kPicks + static_cast<uint32_t>(n * 4 + pick * 2), static_cast<uint16_t>(both[pick] * 2));
+                }
+            }
         }
         return false;
     }
@@ -82,7 +92,8 @@ void RegisterModes() {
     d.attractWords = "The game's own show on a loop, with no coin in: the introduction, the title, a fight and the rankings.";
     d.attractOver = [] { return Ram8(kPlaying) != 0 || Ram8(kCredits) != 0; };
     d.startTraining = session::StartSession;
-    d.modesWords = "Other ways to run the game: training, attract mode and a viewer for the stages.";
+    d.modesWords = "Other ways to run the game: training, attract mode, viewers for the stages and the characters, and the "
+                   "colour editor.";
     d.stageNames.assign(std::begin(kStageNames), std::end(kStageNames));
     d.cameraEnds = [](int stage, int &left, int &right) { CameraEnds(stage - 1, left, right); };
     d.apart = 0x100; // (the players either side of the picture's middle: the camera's word + 0x40 + 0xC0)

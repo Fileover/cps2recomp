@@ -36,6 +36,7 @@ struct MatchWanted {
     int stage = 0;
     int characters[2] = {-1, -1};
     int colours[2] = {-1, -1}; // which of a character's sets of colours (-1: as chosen)
+    int partners[2] = {-1, -1}; // a tag-team game's second character of each side (-1: as chosen)
 };
 
 // Where the machine that is running is to have its camera (the picture's left edge and bottom, in the stage),
