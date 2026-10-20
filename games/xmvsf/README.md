@@ -26,7 +26,7 @@ of Capcom Co., Ltd.; *X-Men* and its characters are trademarks of Marvel Charact
 
 ![The title screen](../../docs/screenshots/xmvsf/title.png)
 
-![Cyclops against Ryu](../../docs/screenshots/xmvsf/fight.png)
+![Ryu's hurricane kick against Charlie, on the refinery in flames](../../docs/screenshots/xmvsf/fight.png)
 
 ![Training mode: hit boxes, frame data and the frame meter, the input display](../../docs/screenshots/xmvsf/training.png)
 
