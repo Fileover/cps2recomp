@@ -1,5 +1,26 @@
 # Changelog
 
+## Unreleased
+
+- **Another game: X-Men vs. Street Fighter** (`games/xmvsf`; ROM set `xmvsf`, *X-Men Vs. Street Fighter*, Europe
+  961004, the parent set and the one competitive play uses), the first tag-team game here. The game as the board plays
+  it, translated whole (its 68000 program, and its sound program, Capcom's driver 1.16b) and checked, with everything
+  the other fighting games have: a **training mode** (hit boxes, frame data, its meter and log, input display, combo
+  readout, health and gauge refills, a dummy that records, replays and guards, start over, any stage), the
+  **alternative modes** (attract mode three ways, the stage viewer and its infinite stage, the model viewer, the colour
+  editor, survival, endless battle, ring out), **widescreen** and invisible walls, **custom colours** (files, PalMod's
+  xvs.05a, the editor), the **hidden character** with no code (Start held on Ryu: Akuma), and the features every game
+  has: free play (the game's own), straight to the title, the board's settings (the Board page), cheats, save states,
+  run-ahead, arcade timing and a custom soundtrack (its music named) ([its progress](games/xmvsf/PROGRESS.md)).
+- **The fighting modules for games built otherwise** (`fight/alternative.h`, `fight/session.h`, `fight/battle.h`): a
+  game whose steps are not the Alpha games' four words says itself when a round is fought, the players choose and a
+  game runs; a sound queue of another size; a camera whose words move with the stage, with ends that differ by stage;
+  a camera word that is not the picture's left edge, and heights that grow downwards (the ring out); a computer byte
+  that is 0 for the computer; a tag team's partner (MatchWanted::partners, and the partner told who plays it). All
+  optional: the other games' scripted runs are the same as before.
+- **Fix: run-ahead in a training session's character choice** (`fight/session.cpp`): run-ahead's frames no longer
+  move on what player 1 held as it chose, so player 2's choice is the same with run-ahead as without.
+
 ## 0.4.0-beta.4
 
 A tenth game, Super Gem Fighter Mini Mix (*Pocket Fighter* in Japan), with everything the other fighting games have:

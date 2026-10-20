@@ -58,7 +58,9 @@ namespace {
             const uint8_t action = Ram8(player + kAction);
             session::Contact(n, action == kActionGuard || action == kActionCrouchGuard);
         }
-        g_hitStop[n] = stop;
+        if (!RunningAhead()) {
+            g_hitStop[n] = stop; // (run-ahead's frames are taken back)
+        }
         fight::StepView view;
         view.control = Ram16(player + kControl) == 0 ? fight::StepView::Own : fight::StepView::Reeling;
         view.frozen = stop != 0;
@@ -203,8 +205,7 @@ void RegisterTraining() {
     d.cameraXAt = [] { return CameraRecord() + kCameraX; };
     d.cameraYAt = [] { return CameraRecord() + kCameraY; };
     d.ends = Ends;
-    d.startX[0] = kStartX[0];
-    d.startX[1] = kStartX[1];
+    // (no start places: "Start over" takes the round's own, which are not the same on every stage)
     d.pictureFloor = kFloorLine;
     d.fighting = [] {
         const uint8_t clock = Ram8(kRoundClock);

@@ -84,12 +84,12 @@ constexpr uint8_t kGaugeFull = 3;
 constexpr uint16_t kGaugeBarFull = 0x90;
 
 // Where a player stands: a long, the word at +0C across (with 16 bits of fraction after it) and the word at +10 down
-// (0x1D8 on the floor; smaller is higher). Both players start a round at 0x100 and 0x200 (RAM traces of rounds).
+// (0x1D8 on the floor; smaller is higher). Players start a round at 0x100 and 0x200 on most stages, elsewhere on
+// Apocalypse's lair and the refinery (RAM traces of rounds).
 constexpr uint32_t kX = 0x0C, kY = 0x10;
 // Longs, 16 bits of fraction: the speed across (a walk's 4 pixels a step), and the speed down and what is added to it
 // each step (a jump: up 6.1 pixels a step as it leaves the floor, pulled down by 0.42 a step; RAM dumps through a jump)
 constexpr uint32_t kSpeedX = 0x14, kSpeedY = 0x1C, kPullY = 0x20;
-constexpr uint16_t kStartX[2] = {0x100, 0x200};
 constexpr uint16_t kGround = 0x1D8;
 // A byte: bit 0 set facing right (a box's offset across is kept as if facing left), bit 1 turned upside down (the
 // hitbox script for this engine in fbneo-training-mode names it; confirmed by the players' sides)

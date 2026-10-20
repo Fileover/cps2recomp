@@ -96,6 +96,18 @@ void RegisterModes() {
     d.modesWords = "Other ways to run the game: training, attract mode, viewers for the stages and the characters, and the "
                    "colour editor.";
     d.stageNames.assign(std::begin(kStageNames), std::end(kStageNames));
+    // (the stages have no tunes of their own: a round plays player 2's character's. The viewer offers each character's
+    // theme, 0B on: music.cpp)
+    static const char *const kThemes[] = {"Wolverine's theme", "Cyclops's theme", "Storm's theme", "Rogue's theme", "Gambit's theme",
+                                          "Sabretooth's theme", "Juggernaut's theme", "Magneto's theme", "Apocalypse's theme",
+                                          "Ryu's theme", "Ken's theme", "Chun-Li's theme", "Dhalsim's theme", "Zangief's theme",
+                                          "M. Bison's theme", "Akuma's theme", "Charlie's theme", "Cammy's theme"};
+    for (size_t n = 0; n < std::size(kThemes); n++) {
+        d.otherTuneNames.push_back(kThemes[n]);
+        d.otherTunes.push_back(static_cast<uint16_t>(0x0B + n));
+    }
+    d.otherTuneNames.push_back("Player select");
+    d.otherTunes.push_back(0x02);
     d.cameraEnds = [](int stage, int &left, int &right) { CameraEnds(stage - 1, left, right); };
     d.apart = 0x100; // (the players either side of the picture's middle: the camera's word + 0x40 + 0xC0)
     d.notTheStage = NotTheStage;

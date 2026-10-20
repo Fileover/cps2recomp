@@ -36,7 +36,17 @@ void WidescreenBeforeFrame(Machine &machine);
 bool WidePlay();
 void ChoosingBeforeFrame(Machine &machine);
 
+// 001608, the game's random number: a long divs (001614, about 150 cycles), then the number kept (00161A). The board
+// takes an interrupt between any two instructions, and the frame's interrupt, which asks for a random number of its own
+// (00069A), often comes during the divs: it then reads the number before this one is kept. Translated code takes
+// interrupts only where a block starts; a block starting after the divs (where nothing is done) lets it take this one
+// where the board does, or the game's numbers part from the board's (seen at frame 5,227 of the ladder movie).
+static void RandomNumberAsTheBoardDoes() {
+    AddHook(HookAt(0x001618), "AfterRandomDivide", [](M68K &) { return false; });
+}
+
 void RegisterGame() {
+    RandomNumberAsTheBoardDoes();
     RegisterModes();
     RegisterTraining();
     RegisterChoosing();
