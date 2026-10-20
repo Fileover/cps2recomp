@@ -21,10 +21,13 @@ void RegisterMusic(); // music.cpp
 void RegisterModes(); // modes.cpp
 void ModesState(Archive &ar);
 void RegisterTraining(); // training.cpp
+void RegisterChoosing(); // choosing.cpp
+void ChoosingBeforeFrame(Machine &machine);
 
 void RegisterGame() {
     RegisterModes();
     RegisterTraining();
+    RegisterChoosing();
     RegisterCoins();
     RegisterCheats();
     RegisterTitle();
@@ -32,6 +35,7 @@ void RegisterGame() {
     RegisterMusic();
     TheGame().beforeFrame = [](Machine &machine) {
         BoardBeforeFrame(machine);
+        ChoosingBeforeFrame(machine);
         session::BeforeFrame(machine);
         modes::BeforeFrame(machine);
     };
