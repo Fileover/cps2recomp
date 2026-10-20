@@ -42,11 +42,17 @@ struct Description {
     // these for the players choosing, a match, a round of it, and the round being fought
     uint32_t steps = 0xFF8000;
     uint16_t gameChoosing = 2, gameMatch = 4, matchRound = 4, roundFought = 2;
+    // A game whose steps are not four such words says them itself (none: the words above): a round being fought, the
+    // players choosing their characters (both in), and the board in its game or its show (not starting up)
+    bool (*roundFoughtNow)() = nullptr;
+    bool (*choosingNow)() = nullptr;
+    bool (*running)() = nullptr;
     // Bytes: credits, and who is in (bit 0 player 1, bit 1 player 2)
     uint32_t credits = 0, playersIn = 0;
     // The sound queue: a ring of sixteen-byte requests from `soundQueue`, the word at `soundQueueEnd` the place of
     // the next (bytes into the ring); a tune asked for off before another
     uint32_t soundQueue = 0, soundQueueEnd = 0;
+    uint16_t soundQueueMask = 0xFF0; // (the ring's size less 0x10)
     uint16_t tuneOff = 0xFF05;
     // The players' records, and where each stands across (a word, or a long with 16 bits of fraction)
     uint32_t player1 = 0xFF8400, playerSize = 0x400, x = 0x10;

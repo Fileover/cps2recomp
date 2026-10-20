@@ -2,7 +2,9 @@
 // Copyright (C) 2026 Tommy McLeroy
 //
 // X-Men vs. Street Fighter: what the game's own sources add to the port (see PROGRESS.md).
+#include "alternative.h"
 #include "game.h"
+#include "session.h"
 #include "xmvsf.h"
 
 namespace cps2recomp {
@@ -16,8 +18,12 @@ void RegisterBoard(); // board.cpp
 void BoardBeforeFrame(Machine &machine);
 void BoardState(Archive &ar);
 void RegisterMusic(); // music.cpp
+void RegisterModes(); // modes.cpp
+void RegisterTraining(); // training.cpp
 
 void RegisterGame() {
+    RegisterModes();
+    RegisterTraining();
     RegisterCoins();
     RegisterCheats();
     RegisterTitle();
@@ -25,15 +31,26 @@ void RegisterGame() {
     RegisterMusic();
     TheGame().beforeFrame = [](Machine &machine) {
         BoardBeforeFrame(machine);
+        session::BeforeFrame(machine);
+        modes::BeforeFrame(machine);
     };
+    // (the training aids see what the frame did before the cheats put things back)
     TheGame().frame = [](Machine &machine) {
+        session::Frame(machine);
+        modes::Frame(machine);
         TitleFrame(machine);
         CoinsFrame(machine);
     };
     // (what the sources keep between frames, with save states and run-ahead's frames taken back)
     TheGame().state = [](Archive &ar) {
         BoardState(ar);
+        session::State(ar);
+        modes::State(ar);
     };
+    // (run-ahead: not in the modes, whose workings a save state does not wholly hold)
+    TheGame().noRunAhead = [] { return modes::AttractMode() || modes::StageViewer(); };
+    // With the arcade timing, the game's own code runs in place of the rewrites but where they carry what the port adds
+    TheGame().rewritesNeeded = [] { return session::InSession() || modes::AttractMode() || modes::StageViewer(); };
     // Its own, never set for the other games by the collection's launcher: Damage level has other choices in the Alpha
     // games (Low, Medium, Normal, High)
     OwnFeatures({"board_damage"});

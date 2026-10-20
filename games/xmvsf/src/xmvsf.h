@@ -72,6 +72,80 @@ constexpr uint32_t kHealth = 0x210;
 constexpr uint16_t kHealthFull = 0x90;
 constexpr uint32_t kRedHealth = 0x21A; // what comes back while the character rests (016934)
 constexpr uint32_t kPartner = 0x224;   // long: the record of the same side's other character (0155C4)
+// The hyper combo gauge, the side's (both characters show the same): a byte, its levels (three at most), and a word, the
+// bar towards the next (0x90 full) (the FBNeo training script names them)
+constexpr uint32_t kGaugeLevel = 0x214, kGaugeBar = 0x212;
+constexpr uint8_t kGaugeFull = 3;
+constexpr uint16_t kGaugeBarFull = 0x90;
+
+// Where a player stands: a long, the word at +0C across (with 16 bits of fraction after it) and the word at +10 down
+// (0x1D8 on the floor; smaller is higher). Both players start a round at 0x100 and 0x200 (RAM traces of rounds).
+constexpr uint32_t kX = 0x0C, kY = 0x10;
+constexpr uint16_t kStartX[2] = {0x100, 0x200};
+constexpr uint16_t kGround = 0x1D8;
+// A byte: bit 0 set facing right (a box's offset across is kept as if facing left), bit 1 turned upside down (the
+// hitbox script for this engine in fbneo-training-mode names it; confirmed by the players' sides)
+constexpr uint32_t kFlip = 0x4B;
+// Who the character is: a word, even (0 Wolverine to 24 Alpha Chun-Li: the FBNeo training script's table, each seen
+// in the model viewer)
+constexpr uint32_t kCharacter = 0x52;
+constexpr int kCharacters = 19;
+inline constexpr const char *kCharacterNames[kCharacters] = {
+    "Wolverine", "Cyclops", "Storm", "Rogue", "Gambit", "Sabretooth", "Juggernaut", "Magneto", "Apocalypse", "Ryu",
+    "Ken", "Chun-Li", "Dhalsim", "Zangief", "M. Bison", "Akuma", "Charlie", "Cammy", "Chun-Li (Alpha)"};
+// A word: who is in charge of the character, 0 itself (the player); other values reeling from a hit (0C), thrown, and
+// so on (RAM dumps through hits)
+constexpr uint32_t kControl = 0x06;
+// A byte: what the character is doing (a guarded hit 24, crouching 26; RAM dumps of standing, walking, jumping,
+// crouching, attacking, guarding and being hit)
+constexpr uint32_t kAction = 0xA0;
+enum : uint8_t {
+    kActionStand = 0x00, kActionWalk = 0x02, kActionJump = 0x06, kActionCrouch = 0x0C, kActionGuard = 0x24,
+    kActionCrouchGuard = 0x26, kActionAttack = 0x28, kActionHit = 0x36
+};
+constexpr uint32_t kAttackPhase = 0x64; // byte: 80 an attack going on, 40 its recovery
+constexpr uint32_t kFrame = 0x34;       // long: the animation frame being shown (in the ROM)
+constexpr uint32_t kHitStop = 0x85;     // byte: steps both players stay frozen as a hit lands, counted down
+// The character's boxes (the hitbox script names their places): a long, the table of its boxes (eight bytes each: the
+// middle across from where it stands and half the width, then the same up and down, signed words), and words, each a
+// box's number in it (the low 13 bits; 0 none): two attacks, four places it can be hit and one it can be thrown in; a
+// byte, its push box's number in kPushTable (then the character's own of it, eight bytes each). An attack's high bit
+// says a throw. Bytes: attacks hit only while kCanHit is not 0, and it is hit only while kCanBeHit is not 0.
+constexpr uint32_t kBoxTable = 0x6C, kAttackBoxes = 0x70, kHurtBoxes = 0x74, kThrowableBox = 0x7C, kPushBox = 0xA4;
+constexpr uint32_t kCanHit = 0x82, kCanBeHit = 0x83;
+constexpr uint32_t kPushTable = 0x08B022;
+// What they throw: for each player a list of the records (longs, the newest last) ending at kThrownList (player 2's
+// 0x150 on), the list's end where a long is a player's record or less (the hitbox script)
+constexpr uint32_t kThrownList = 0xFFE3D8, kThrownListSpace = 0x150;
+
+// The picture follows the stage's scroll layer that moves with the fighters: a record (one of three, by the stage, the
+// byte kStage: the hitbox script's table), with the camera's place at +0C across and +10 down, and its ends at +72/74
+// across and +76/78 down (074488 keeps it between them; 0702D4 moves it after the players). The picture's left edge
+// is the word across + 0x40, its top the word down; the floor's line in the picture is 0x1D8 less the word down less
+// 0x0F.
+constexpr uint32_t kStage = 0xFF5113;
+inline uint32_t CameraRecord() {
+    static constexpr int16_t kOffsets[16] = {-0x2CC0, -0x2DC0, -0x2DC0, -0x2D40, -0x2DC0, -0x2DC0, -0x2CC0, -0x2DC0,
+                                             -0x2D40, -0x2D40, -0x2DC0, -0x2DC0, -0x2DC0, -0x2DC0, -0x2DC0, -0x2DC0};
+    return static_cast<uint32_t>(0xFF8000 + kOffsets[cps2recomp::Ram8(kStage) & 0x0F]);
+}
+constexpr uint32_t kCameraX = 0x0C, kCameraY = 0x10, kCameraLeft = 0x72, kCameraRight = 0x74;
+constexpr int kPictureLeft = 0x40;
+constexpr int kWall = 0x15; // how near the picture's edge a player can go (a player held against the right edge: 747 of 768)
+
+// Each player's choosing: a record of 0x20 bytes, player 1's at FF5180; its first byte steps up to 7 once the player
+// has chosen both characters, the mode and the speed (traced through choosing)
+constexpr uint32_t kChoosing = 0xFF5180, kChoosingSize = 0x20;
+constexpr uint8_t kChoosingDone = 7;
+
+// The control panel as read this frame (000BDE on): a word a player, the stick (bit 0 right, 1 left, 2 down, 3 up) and
+// the punches (bits 4-6) in its low byte, the kicks in bits 8-10
+constexpr uint32_t kPanel[2] = {0xFF5416, 0xFF5418};
+
+// The sound queue: a ring of sixteen-byte requests at FF2648, 0x400 long, the word at FF2642 the place of the next
+// (0787E0 puts one in; 000B04 sends the oldest to the sound CPU)
+constexpr uint32_t kSoundQueue = 0xFF2648, kSoundQueueEnd = 0xFF2642;
+constexpr uint16_t kSoundQueueMask = 0x3F0;
 
 // --- for hooks ---
 

@@ -44,6 +44,12 @@ namespace {
     int X(int n) {
         return d.xLong ? static_cast<int>(Ram32(Player(n) + d.x) >> 16) : static_cast<int16_t>(Ram16(Player(n) + d.x));
     }
+    uint32_t CameraX() {
+        return d.cameraXAt ? d.cameraXAt() : d.cameraX;
+    }
+    uint32_t CameraY() {
+        return d.cameraYAt ? d.cameraYAt() : d.cameraY;
+    }
     void SetX(int n, int x) {
         if (d.xLong) {
             SetRam32(Player(n) + d.x, static_cast<uint32_t>(x) << 16);
@@ -127,15 +133,19 @@ namespace {
         machine.Serialize(ar);
         const int margin = d.wideMargin ? d.wideMargin() : 0; // (the camera's end in the picture played in)
         int x[2] = {d.startX[0], d.startX[1]};
-        int camera = static_cast<int16_t>(Ram16(d.cameraX)); // (the middle: where it is)
+        int camera = static_cast<int16_t>(Ram16(CameraX())); // (the middle: where it is)
+        int stageLeft = d.stageLeft, stageRight = d.stageRight, cameraLeft = d.cameraLeft, cameraRight = d.cameraRight;
+        if (d.ends) {
+            d.ends(stageLeft, stageRight, cameraLeft, cameraRight);
+        }
         if (place % 3 == 1) {
-            x[0] = d.stageLeft;
-            x[1] = d.stageLeft + d.cornerApart;
-            camera = d.cameraLeft + margin;
+            x[0] = stageLeft;
+            x[1] = stageLeft + d.cornerApart;
+            camera = cameraLeft + margin;
         } else if (place % 3 == 2) {
-            x[0] = d.stageRight - d.cornerApart;
-            x[1] = d.stageRight;
-            camera = d.cameraRight - margin;
+            x[0] = stageRight - d.cornerApart;
+            x[1] = stageRight;
+            camera = cameraRight - margin;
         }
         if (place >= 3) {
             std::swap(x[0], x[1]);
@@ -145,6 +155,9 @@ namespace {
         }
         for (const uint32_t copy : d.cameraCopies) {
             SetRam16(copy, static_cast<uint16_t>(camera));
+        }
+        if (d.cameraXAt) {
+            SetRam16(CameraX(), static_cast<uint16_t>(camera));
         }
         // (and the training aids start afresh; a recording being replayed from its beginning)
         Afresh(true);
@@ -309,7 +322,7 @@ void Frame(Machine &machine) {
         }
         boxes.insert(boxes.begin(), g_nextBoxes.begin(), g_nextBoxes.end());
         g_nextBoxes.clear();
-        const int cameraX = static_cast<int16_t>(Ram16(d.cameraX)), cameraY = static_cast<int16_t>(Ram16(d.cameraY));
+        const int cameraX = static_cast<int16_t>(Ram16(CameraX())), cameraY = static_cast<int16_t>(Ram16(CameraY()));
         for (const fight::StageBox &box : d.boxes(machine)) {
             g_nextBoxes.push_back(fight::ToPicture(box, cameraX, cameraY, d.pictureFloor));
         }

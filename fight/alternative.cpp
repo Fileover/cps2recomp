@@ -346,11 +346,17 @@ CameraWanted &CameraAt() {
 }
 
 bool RoundFought() {
+    if (d.roundFoughtNow) {
+        return d.roundFoughtNow();
+    }
     return Ram16(d.steps) == 2 && Ram16(d.steps + 4) == d.gameMatch && Ram16(d.steps + 8) == d.matchRound &&
            Ram16(d.steps + 12) == d.roundFought;
 }
 
 bool Choosing() {
+    if (d.choosingNow) {
+        return d.choosingNow();
+    }
     return Ram16(d.steps) == 2 && Ram16(d.steps + 4) == d.gameChoosing && Ram8(d.playersIn) == 3;
 }
 
@@ -384,11 +390,11 @@ bool ToRound(Machine &machine, int32_t &frames, bool choose) {
 }
 
 void PlaySound(uint16_t code) {
-    const uint16_t at = Ram16(d.soundQueueEnd) & 0xFF0;
+    const uint16_t at = Ram16(d.soundQueueEnd) & d.soundQueueMask;
     SetRam32(d.soundQueue + at, code);
     SetRam32(d.soundQueue + at + 4, 0);
     SetRam32(d.soundQueue + at + 8, 0);
-    SetRam16(d.soundQueueEnd, static_cast<uint16_t>((at + 0x10) & 0xFF0));
+    SetRam16(d.soundQueueEnd, static_cast<uint16_t>((at + 0x10) & d.soundQueueMask));
 }
 
 void GoTo(uint16_t part) {
@@ -441,7 +447,7 @@ void Frame(Machine &machine) {
         } else if (d.attractOver && d.attractOver()) {
             EndThis();
         }
-    } else if (g.mode == Mode::Viewer && !g.starting && Ram16(d.steps) == 0) {
+    } else if (g.mode == Mode::Viewer && !g.starting && (d.running ? !d.running() : Ram16(d.steps) == 0)) {
         EndThis();
     }
     if (g.mode == Mode::Attract && !g.starting) {

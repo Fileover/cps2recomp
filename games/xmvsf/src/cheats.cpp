@@ -3,6 +3,7 @@
 //
 // X-Men vs. Street Fighter: cheats (optional features: the launcher's Features page and the in-game menu switch
 // them). Made-up play needs them to go up the ladder to its end ('make explore', game.cfg's explore features).
+#include "session.h"
 #include "xmvsf.h"
 
 namespace cps2recomp {
@@ -12,16 +13,26 @@ namespace {
 
     // 0155A2 and 015B6A: sub.w d5,0x210(a6), a hit's damage (D5) off the health of the character hit (A6), either of
     // a side's two. Health at nothing or below after it is a knockout (the partner then comes in, or the round is
-    // lost), so one-hit knockouts take off more than a full bar.
+    // lost), so one-hit knockouts take off more than a full bar; with no knockouts (a training session) a hit takes
+    // no more than leaves one point.
     bool Damage(M68K &c) {
         const int side = SideOf(c.a[6]);
         if (side < 0) {
             return false;
         }
+        const uint32_t record = c.a[6] & 0xFFFFFF;
+        if ((c.d[5] & 0xFFFF) && record == Player(side)) {
+            // (what comes back: the part of the bar left red, 016934, which the hit takes before this)
+            session::Hit(side, c.d[5] & 0xFFFF);
+        }
         if (FeatureOn(side == 0 ? "no_damage" : "no_damage_2")) {
             SetLow16(c.d[5], 0);
         } else if (side == 1 && FeatureOn("one_hit")) {
             SetLow16(c.d[5], kHealthFull + 1);
+        }
+        const int16_t health = static_cast<int16_t>(Ram16(record + kHealth));
+        if (session::NoKnockOut() && static_cast<int16_t>(c.d[5] & 0xFFFF) >= health) {
+            SetLow16(c.d[5], static_cast<uint32_t>(health > 1 ? health - 1 : 0));
         }
         return false;
     }
@@ -33,7 +44,7 @@ void RegisterCheats() {
     // 00FB14: the frames left of the round's second, taken one off (at nothing a second comes off the clock). With
     // the cheat the frame is given back first, so the clock stands still.
     AddHook(0x00FB14, "ClockFrame", [](M68K &) {
-        if (FeatureOn("infinite_time")) {
+        if (FeatureOn("infinite_time") || session::NoClock()) {
             SetRam8(kClockFrames, static_cast<uint8_t>(Ram8(kClockFrames) + 1));
         }
         return false;
