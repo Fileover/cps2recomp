@@ -1,10 +1,10 @@
 # Changelog
 
-## Unreleased
+## 0.4.0-beta.4
 
 A tenth game, Super Gem Fighter Mini Mix (*Pocket Fighter* in Japan), with everything the other fighting games have:
 a full training mode, attract mode, the stage and model viewers, survival, endless battle, ring out, widescreen, custom
-colours and the hidden characters. Alien vs. Predator and Cadillacs and Dinosaurs
+colours and the hidden characters. Street Fighter Alpha gets all of that too. Alien vs. Predator and Cadillacs and Dinosaurs
 gain the beat-'em-up modes: attract mode, score attack, and stage and character viewers. Both also get a custom
 soundtrack of your own music, and Alien vs. Predator's "Straight to the title" now works with free play on.
 

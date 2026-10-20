@@ -47,16 +47,18 @@ code is not part of that source: it is made from the player's own ROM sets by th
 ## The steps
 
 1. In a pull request: set `VERSION`, move the "Unreleased" lines of `CHANGELOG.md` under a heading for the
-   version, and begin the section with a paragraph saying what is in the release (the release's page opens with it). `make check` passes; for every game, with its ROM set: `make GAME=<id> check` over its ladder movie,
-   `check-blocks`, `check-rewrites` and `check-release` (40,000 frames; Puzzle Fighter's ladder is 66,000).
+   version, and begin the section with a paragraph saying what is in the release (the release's page opens with it).
+   On a Mac with every ROM set in `rom/<id>/`, `tools/release/checks.sh` passes (a few hours): for every game its
+   build, `check`, `check-blocks`, `check-release` over its ladder movie (40,000 frames; Puzzle Fighter's 66,000),
+   `check-rewrites` and `check-widescreen` where it has them, then `make check`. Put its lines in the pull request.
    Merge it.
 2. On `main`: `git tag -a vX.Y.Z -m "X.Y.Z"` and `git push origin vX.Y.Z`.
 3. `.github/workflows/release.yml` runs on tags `v*`: the audit, and the builds of `ci.yml` on GitHub's macOS,
    Linux and Windows machines (every game's program with no translated code and the launcher, each started with
    no display: the proof the tag compiles everywhere). It then makes a **draft** release whose notes are the
    version's section of the changelog, with no files. A tag with `-beta` or `-rc` is marked pre-release.
-4. On a Mac with Docker and every ROM set, at the tag: `make GAME=<id>` for each game, the checks of step 1
-   again, then `tools/release/all.sh`, which writes the three archives and `SHA256SUMS.txt` in `build/release/`.
+4. On a Mac with Docker and every ROM set, at the tag (the same source as the merged pull request, so its
+   checks stand): `tools/release/all.sh`, which writes the three archives and `SHA256SUMS.txt` in `build/release/`.
 5. Each archive's game programs are run over their ladder movies with `--hash-picture` on their systems (macOS
    both halves, Linux in a container, Windows under Wine): the same picture hashes as the Mac's build. A person
    plays each archive on its system (picture, sound, a gamepad, the launcher's pages, a save state, training
