@@ -72,6 +72,8 @@ struct Description {
     // (the camera then keeps their middle in the picture's)
     int cameraLeft = 256, cameraRight = 640;
     int apart = 0xC0;
+    // Stages whose camera's ends are not the same (none: the above): stage n's (1 the first)
+    void (*cameraEnds)(int stage, int &left, int &right) = nullptr;
 
     // --- the picture ---
     // Objects that are not the stage's own (hidden in the viewer), and the scroll screens the viewer shows

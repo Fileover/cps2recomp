@@ -19,6 +19,7 @@ void BoardBeforeFrame(Machine &machine);
 void BoardState(Archive &ar);
 void RegisterMusic(); // music.cpp
 void RegisterModes(); // modes.cpp
+void ModesState(Archive &ar);
 void RegisterTraining(); // training.cpp
 
 void RegisterGame() {
@@ -46,6 +47,7 @@ void RegisterGame() {
         BoardState(ar);
         session::State(ar);
         modes::State(ar);
+        ModesState(ar);
     };
     // (run-ahead: not in the modes, whose workings a save state does not wholly hold)
     TheGame().noRunAhead = [] { return modes::AttractMode() || modes::StageViewer(); };

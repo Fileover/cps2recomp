@@ -50,6 +50,11 @@ constexpr uint8_t kCoinFreePlay = 0x12;
 // and where each goes are in board.cpp. The attract mode places the title's picture (its parts 4, 5 and 6, 06BA02)
 // at 075BF2: the show has reached the title.
 constexpr uint32_t kSettings = 0xFFFAA4;
+// The show's scenes are run by a task whose record is at FF24DC (seen as the title is placed): its step byte at +4 is 2
+// while a scene of the introduction runs, 0 in the rankings and the notices. The show's loop: the notices and the
+// maker's logo; the introduction (pictures, words and short fights, the title last, 075BF2); a fight with the
+// copyright over it (the game's step kGameMatch); the rankings.
+constexpr uint32_t kShowStep = 0xFF24E0;
 
 // --- the players ---
 
@@ -124,12 +129,24 @@ constexpr uint32_t kThrownList = 0xFFE3D8, kThrownListSpace = 0x150;
 // is the word across + 0x40, its top the word down; the floor's line in the picture is 0x1D8 less the word down less
 // 0x0F.
 constexpr uint32_t kStage = 0xFF5113;
+// The stages, by the byte kStage (each seen with a training session's stage held at it; named for what they show). The
+// music is the characters', not the stage's.
+constexpr int kStages = 11;
+inline constexpr const char *kStageNames[kStages] = {
+    "Apocalypse's lair", "The garden pond", "The cavern",    "The waterfall",   "The snowy temple", "The great tree",
+    "Manhattan at night", "The refinery",   "The space base", "The TV studio", "The shopping mall"};
 inline uint32_t CameraRecord() {
     static constexpr int16_t kOffsets[16] = {-0x2CC0, -0x2DC0, -0x2DC0, -0x2D40, -0x2DC0, -0x2DC0, -0x2CC0, -0x2DC0,
                                              -0x2D40, -0x2D40, -0x2DC0, -0x2DC0, -0x2DC0, -0x2DC0, -0x2DC0, -0x2DC0};
     return static_cast<uint32_t>(0xFF8000 + kOffsets[cps2recomp::Ram8(kStage) & 0x0F]);
 }
 constexpr uint32_t kCameraX = 0x0C, kCameraY = 0x10, kCameraLeft = 0x72, kCameraRight = 0x74;
+// The camera's ends across, by stage (each read from the record in a round on the stage): Apocalypse's lair and the
+// refinery have their own, the others the same
+inline void CameraEnds(int stage, int &left, int &right) {
+    left = stage == 0 ? 704 : stage == 7 ? -256 : -64;
+    right = left + 384;
+}
 constexpr int kPictureLeft = 0x40;
 constexpr int kWall = 0x15; // how near the picture's edge a player can go (a player held against the right edge: 747 of 768)
 
@@ -146,6 +163,16 @@ constexpr uint32_t kPanel[2] = {0xFF5416, 0xFF5418};
 // (0787E0 puts one in; 000B04 sends the oldest to the sound CPU)
 constexpr uint32_t kSoundQueue = 0xFF2648, kSoundQueueEnd = 0xFF2642;
 constexpr uint16_t kSoundQueueMask = 0x3F0;
+
+// Objects by what they are (for Video::hideObject; from the object lists of rounds on each stage): colour sets 00-04 are
+// the panel, 08 the fighters' shadows, 0C-0F the fighters (and their faces on the panel, tiles 15Bxx), 1A-1E the stage's
+// own pieces
+inline bool NotTheStage(uint32_t, uint16_t attributes) {
+    return (attributes & 0x1F) < 0x1A;
+}
+inline bool ThePanel(uint32_t tile, uint16_t attributes) {
+    return (attributes & 0x1F) <= 0x04 || (tile >= 0x15400 && tile < 0x15D00);
+}
 
 // --- for hooks ---
 

@@ -98,11 +98,25 @@ namespace {
 
     // The camera's ends, in 256ths of a pixel, for the picture being played in (a wide picture's camera stops short
     // of where the board's does)
+    int CameraLeft(int stage) {
+        int left = d.cameraLeft, right = d.cameraRight;
+        if (d.cameraEnds) {
+            d.cameraEnds(stage, left, right);
+        }
+        return left;
+    }
+    int CameraRight(int stage) {
+        int left = d.cameraLeft, right = d.cameraRight;
+        if (d.cameraEnds) {
+            d.cameraEnds(stage, left, right);
+        }
+        return right;
+    }
     int32_t LeftEnd() {
-        return (d.cameraLeft + WideMargin()) * 256;
+        return (CameraLeft(g.stage) + WideMargin()) * 256;
     }
     int32_t RightEnd() {
-        return (d.cameraRight - WideMargin()) * 256;
+        return (CameraRight(g.stage) - WideMargin()) * 256;
     }
     int32_t Across() { // the picture's width: how far a stage slides to be gone
         return (Video::kWidth + 2 * WideSide()) * 256;
@@ -219,7 +233,7 @@ namespace {
             g.nextReady = g.nextReady || ToRound(machine, g.nextFrames);
             if (g.nextReady) {
                 machine.players[0] = machine.players[1] = 0;
-                Place(LeftEnd());
+                Place((CameraLeft(g.next) + WideMargin()) * 256); // (the next stage's own left end)
             }
             machine.RunFrame();
             if (g.nextReady || g.nextFrames > kStartMost) {

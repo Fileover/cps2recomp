@@ -133,6 +133,10 @@ namespace {
         machine.Serialize(ar);
         const int margin = d.wideMargin ? d.wideMargin() : 0; // (the camera's end in the picture played in)
         int x[2] = {d.startX[0], d.startX[1]};
+        if (x[0] == 0 && x[1] == 0) {
+            x[0] = X(0); // (none given: where the round began)
+            x[1] = X(1);
+        }
         int camera = static_cast<int16_t>(Ram16(CameraX())); // (the middle: where it is)
         int stageLeft = d.stageLeft, stageRight = d.stageRight, cameraLeft = d.cameraLeft, cameraRight = d.cameraRight;
         if (d.ends) {

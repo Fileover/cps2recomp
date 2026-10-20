@@ -46,8 +46,8 @@ struct Description {
     // A camera whose words move (with the stage, say): their addresses now (none: cameraX, cameraY)
     uint32_t (*cameraXAt)() = nullptr;
     uint32_t (*cameraYAt)() = nullptr;
-    // Where the players stand: at a round's start, and the ends they can go to; the camera's ends; how far apart
-    // the players are put in a corner
+    // Where the players stand: at a round's start (0, 0: where the round being started over began), and the ends they
+    // can go to; the camera's ends; how far apart the players are put in a corner
     uint16_t startX[2] = {0, 0};
     int stageLeft = 0, stageRight = 0, cameraLeft = 0, cameraRight = 0;
     int cornerApart = 120;

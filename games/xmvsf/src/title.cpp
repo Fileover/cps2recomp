@@ -15,6 +15,8 @@
 
 namespace cps2recomp {
 
+void AttractTitle(); // modes.cpp
+
 namespace {
     using namespace xmvsf;
 
@@ -58,6 +60,7 @@ void TitleBooted() {
 void RegisterTitle() {
     AddHook(HookAt(0x075BF2), "ShowTitle", [](M68K &) {
         g_title = true;
+        AttractTitle();
         return false;
     });
     TheGame().features.push_back({"skip_intro", "Game", "Straight to the title",
