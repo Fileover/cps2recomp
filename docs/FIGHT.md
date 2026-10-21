@@ -44,6 +44,17 @@ Vampire Savior (and the games built from its sources), Street Fighter Alpha 2, S
 Fighter Alpha use both; moving the first two onto them changed none of their pictures, frame hashes, frame data logs or
 feature lists.
 
+## Tag team for four people
+
+`fight/tag.h` (`tag::`): in a tag-team game, each character of a team played by a person of its own ("Co-op vs.
+computer": players 1 and 2 against the computer; "2 vs 2": 1 and 3 against 2 and 4), with no patched ROM. The board
+reads only players 1 and 2, so it is an input router run first in the game's `beforeFrame`: choosing, a side's panel
+is the person whose pick it is; in a match, the person whose character is on point, by the game's own byte for it, with
+the partner's tag buttons (HP+HK) passed while a round is fought; elsewhere the first person's, with the partner's
+Start and coins. Players 3 and 4 never reach the board (a six-button game reads the kicks on their lines). Its `Frame`
+puts a P1-P4 label under each side's bars. A game describes where the point character and the choosing are
+(`tag::Description`), and when a mode of its own works the controls instead. X-Men vs. Street Fighter is the first.
+
 ## The fighting modes
 
 `fight/battle.h`: survival, the endless battle and the ring out, for a game's "Alternative modes" page. A game fills

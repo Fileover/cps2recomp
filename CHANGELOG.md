@@ -12,6 +12,12 @@
   xvs.05a, the editor), the **hidden character** with no code (Start held on Ryu: Akuma), and the features every game
   has: free play (the game's own), straight to the title, the board's settings (the Board page), cheats, save states,
   run-ahead, arcade timing and a custom soundtrack (its music named) ([its progress](games/xmvsf/PROGRESS.md)).
+- **Tag-team co-op and 2 vs 2** (`fight/tag.h`, issue #69; X-Men vs. Street Fighter first): each character of a team
+  played by a person of its own, from "Tag team" on the Alternative modes page. Co-op: players 1 and 2 against the
+  computer; 2 vs 2: players 1 and 3 against 2 and 4. Each person chooses their own character, the controls follow the
+  game's own point character (tags, knock-outs, team supers), the partner tags in with HP+HK, and a label under the
+  bars says who is on point. No patched ROM. The game's Controllers page has four players. Off, the game is the same as
+  before frame for frame.
 - **The fighting modules for games built otherwise** (`fight/alternative.h`, `fight/session.h`, `fight/battle.h`): a
   game whose steps are not the Alpha games' four words says itself when a round is fought, the players choose and a
   game runs; a sound queue of another size; a camera whose words move with the stage, with ends that differ by stage;
