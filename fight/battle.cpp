@@ -54,10 +54,40 @@ namespace {
         return d.player1 + static_cast<uint32_t>(n) * d.playerSize;
     }
     int CameraX() {
-        return static_cast<int16_t>(Ram16(d.cameraX));
+        return static_cast<int16_t>(Ram16(d.cameraXAt ? d.cameraXAt() : d.cameraX));
     }
     int CameraY() {
-        return static_cast<int16_t>(Ram16(d.cameraY));
+        return static_cast<int16_t>(Ram16(d.cameraYAt ? d.cameraYAt() : d.cameraY));
+    }
+    // The camera's ends across, on the stage of the machine that is running
+    int CameraLeft() {
+        int left = d.cameraLeft, right = d.cameraRight;
+        if (d.cameraEnds) {
+            d.cameraEnds(left, right);
+        }
+        return left;
+    }
+    int CameraRight() {
+        int left = d.cameraLeft, right = d.cameraRight;
+        if (d.cameraEnds) {
+            d.cameraEnds(left, right);
+        }
+        return right;
+    }
+    // The picture's left edge in the stage, and half a player's width
+    int PictureLeft() {
+        return CameraX() + d.pictureLeft;
+    }
+    int HalfWidth(uint32_t player) {
+        return d.halfWidth ? Ram16(player + d.halfWidth) : d.fixedHalfWidth;
+    }
+    // Who plays a player, told to the game (and to its partner's record, in a tag-team game)
+    void SetComputer(int n, bool computer) {
+        const uint8_t value = static_cast<uint8_t>(computer != d.computerIsZero ? 1 : 0);
+        SetRam8(Player(n) + d.computer, value);
+        if (d.partner) {
+            SetRam8(Player(n) + d.partner + d.computer, value);
+        }
     }
     MatchWanted &Wanted() {
         return d.wanted();
@@ -68,10 +98,10 @@ namespace {
     // The camera's ends and the picture's width, in 256ths of a pixel, for the picture being played in (a wide
     // picture's camera stops short of where the board's does)
     int32_t LeftEnd() {
-        return (d.cameraLeft + d.wideMargin()) * 256;
+        return (CameraLeft() + d.wideMargin()) * 256;
     }
     int32_t RightEnd() {
-        return (d.cameraRight - d.wideMargin()) * 256;
+        return (CameraRight() - d.wideMargin()) * 256;
     }
     int PictureWidth() {
         return Video::kWidth + 2 * d.wideSide();
@@ -80,7 +110,7 @@ namespace {
         return PictureWidth() * 256;
     }
     int Arena() { // where the fighters' own camera is kept while the stage scrolls
-        return (d.cameraLeft + d.cameraRight) / 2;
+        return (CameraLeft() + CameraRight()) / 2;
     }
 
     enum class Kind : int32_t { None, Survival, Endless, RingOut };
@@ -317,7 +347,7 @@ namespace {
     // Who the game plays, told to the game: the players' records say
     void SayWhoPlays(bool nobody = false) {
         for (int n = 0; n < 2; n++) {
-            SetRam8(Player(n) + d.computer, g.computer[n] && !nobody ? 1 : 0);
+            SetComputer(n, g.computer[n] && !nobody);
         }
         BothPlay();
     }
@@ -583,15 +613,15 @@ namespace {
     // Is a fighter out? Knocked about (not its own master), it has gone past where it would have been kept in at
     // an end of the stage (RingOutLetsOut): its side past the picture's edge.
     void LookForOut() {
-        const int camera = CameraX();
+        const int camera = CameraX(), edge = PictureLeft();
         for (int n = 0; n < 2 && g.out < 0; n++) {
             if (Ram8(Player(n) + d.control) == d.controlOwn) {
                 continue;
             }
-            const int x = static_cast<int16_t>(Ram16(Player(n) + d.x)), half = Ram16(Player(n) + d.halfWidth);
+            const int x = static_cast<int16_t>(Ram16(Player(n) + d.x)), half = HalfWidth(Player(n));
             const int margin = d.wideMargin();
-            const int side = camera <= d.cameraLeft + margin && x - half < camera - margin ? -1 :
-                             camera >= d.cameraRight - margin && x + half > camera + Video::kWidth + margin ? 1 : 0;
+            const int side = camera <= CameraLeft() + margin && x - half < edge - margin ? -1 :
+                             camera >= CameraRight() - margin && x + half > edge + Video::kWidth + margin ? 1 : 0;
             if (side) {
                 g.out = n;
                 g.outSide = side;
@@ -632,9 +662,11 @@ namespace {
         if (g.dropped || g.handing || g.since <= kDropJump + 2 || !d.atJumpTop(winner)) {
             return;
         }
-        const int across = static_cast<int16_t>(Ram16(winner + d.x)) - CameraX();
-        g.flightX = g.dropCameraX + std::clamp(across, kDropInside, PictureWidth() - kDropInside);
-        g.flightY = static_cast<int16_t>(Ram16(winner + d.y)) - CameraY() + g.dropCameraY + Video::kHeight;
+        const int across = static_cast<int16_t>(Ram16(winner + d.x)) - PictureLeft();
+        g.flightX = g.dropCameraX + d.pictureLeft + std::clamp(across, kDropInside, PictureWidth() - kDropInside);
+        // (a picture above the next stage's: up from its bottom, or with heights downwards up from its top)
+        g.flightY = d.yDown ? static_cast<int16_t>(Ram16(winner + d.y)) - CameraY() + g.dropCameraY - Video::kHeight :
+                              static_cast<int16_t>(Ram16(winner + d.y)) - CameraY() + g.dropCameraY + Video::kHeight;
         for (uint32_t n = 0; n < std::min(d.playerSize, battle::kMostRecord); n++) {
             g.flight[n] = Ram8(winner + n);
         }
@@ -655,7 +687,8 @@ namespace {
         }
         // (the camera: held up till then; then, as the winner falls, down as far as it has fallen)
         if (g.dropped) {
-            const int32_t follow = std::clamp((height - (g.handedY - g.dropY)) * 256, 0, height * 256);
+            const int fallen = d.yDown ? g.dropY - g.handedY : g.handedY - g.dropY;
+            const int32_t follow = std::clamp((height - fallen) * 256, 0, height * 256);
             g.raised += (follow - g.raised) / kDropFollow;
             if (std::abs(follow - g.raised) < 256) {
                 g.raised = follow;
@@ -670,13 +703,13 @@ namespace {
             m.video.markLayers = d.panelLayers;
             m.players[0] = 0;
             for (int n = 0; n < 2; n++) {
-                SetRam8(Player(n) + d.computer, 0);
+                SetComputer(n, false);
             }
             BothPlay();
             if (g.since == 1) {
                 d.playSound(d.tuneOff);
             }
-            CameraAt().y = g.dropCameraY + g.raised / 256;
+            CameraAt().y = d.yDown ? g.dropCameraY - g.raised / 256 : g.dropCameraY + g.raised / 256;
             CameraAt().beyondEnds = true;
             g_dropIn = g.handing;
             g.handing = false;
@@ -958,11 +991,11 @@ bool RingOutLetsOut(uint32_t player) {
     if (!g_open || (player != Player(0) && player != Player(1)) || Ram8(player + d.control) == d.controlOwn) {
         return false;
     }
-    const int x = static_cast<int16_t>(Ram16(player + d.x)), half = Ram16(player + d.halfWidth);
-    const int camera = CameraX();
+    const int x = static_cast<int16_t>(Ram16(player + d.x)), half = HalfWidth(player);
+    const int camera = CameraX(), edge = PictureLeft();
     const int margin = d.wideMargin(); // (the picture's edges and the camera's ends)
-    const bool left = camera <= d.cameraLeft + margin && x - half <= camera - margin;
-    const bool right = camera >= d.cameraRight - margin && x + half >= camera + Video::kWidth + margin;
+    const bool left = camera <= CameraLeft() + margin && x - half <= edge - margin;
+    const bool right = camera >= CameraRight() - margin && x + half >= edge + Video::kWidth + margin;
     return left || right;
 }
 

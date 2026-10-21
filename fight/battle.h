@@ -36,6 +36,7 @@ struct MatchWanted {
     int stage = 0;
     int characters[2] = {-1, -1};
     int colours[2] = {-1, -1}; // which of a character's sets of colours (-1: as chosen)
+    int partners[2] = {-1, -1}; // a tag-team game's second character of each side (-1: as chosen)
 };
 
 // Where the machine that is running is to have its camera (the picture's left edge and bottom, in the stage),
@@ -67,6 +68,11 @@ struct Description {
     uint32_t result = 0;            // byte: the round's result: 0 still going, 1 player 1 has won, 2 player 2, 3 neither
     uint32_t cameraX = 0, cameraY = 0; // words: where the camera is (the picture's left edge and bottom)
     int cameraLeft = 256, cameraRight = 640; // the camera's ends across on every stage (the board's picture)
+    // A camera whose words move (with the stage, say): their addresses now; and stages whose camera's ends differ:
+    // the stage's that is running (none: the above)
+    uint32_t (*cameraXAt)() = nullptr;
+    uint32_t (*cameraYAt)() = nullptr;
+    void (*cameraEnds)(int &left, int &right) = nullptr;
     // The players' records, and the records of what they throw (a byte `active` not zero for one in use); the
     // players' first, their objects' places across (longs, 16 bits of fraction) at `x`
     uint32_t player1 = 0, playerSize = 0;
@@ -78,6 +84,16 @@ struct Description {
     // `controlOwn` the player itself), half its width (word)
     uint32_t character = 0, computer = 0, control = 0, halfWidth = 0;
     uint8_t controlOwn = 0;
+    // The computer byte is 0 for the game playing it, 1 for a person (not the other way round)
+    bool computerIsZero = false;
+    // A tag-team game's: how far after a player's record its partner's is (0: none), told the same of who plays it
+    uint32_t partner = 0;
+    // A game whose camera's word across is not the picture's left edge (the edge is this far on from it), whose heights
+    // grow downwards (the camera's word down is the picture's top), and which keeps no word of a player's half width
+    // (halfWidth 0: this)
+    int pictureLeft = 0;
+    bool yDown = false;
+    int fixedHalfWidth = 0;
     // Bytes set to 2 for both players while a mode runs (the game counts down for one not set), or 0: none
     uint32_t plays = 0;
     // A byte: which of its sets of colours the player chose (kept from match to match), or 0: none

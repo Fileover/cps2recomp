@@ -43,11 +43,16 @@ struct Description {
     // across, its own word too (each set by "Start over")
     uint32_t cameraX = 0, cameraY = 0;
     std::vector<uint32_t> cameraCopies;
-    // Where the players stand: at a round's start, and the ends they can go to; the camera's ends; how far apart
-    // the players are put in a corner
+    // A camera whose words move (with the stage, say): their addresses now (none: cameraX, cameraY)
+    uint32_t (*cameraXAt)() = nullptr;
+    uint32_t (*cameraYAt)() = nullptr;
+    // Where the players stand: at a round's start (0, 0: where the round being started over began), and the ends they
+    // can go to; the camera's ends; how far apart the players are put in a corner
     uint16_t startX[2] = {0, 0};
     int stageLeft = 0, stageRight = 0, cameraLeft = 0, cameraRight = 0;
     int cornerApart = 120;
+    // Stages of different widths: the ends the players can go to and the camera's, for the stage now (none: the above)
+    void (*ends)(int &stageLeft, int &stageRight, int &cameraLeft, int &cameraRight) = nullptr;
     // The picture's line that height 0 in the stage is on, with the camera at the bottom (for the boxes)
     int pictureFloor = 239;
 

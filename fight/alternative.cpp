@@ -98,11 +98,25 @@ namespace {
 
     // The camera's ends, in 256ths of a pixel, for the picture being played in (a wide picture's camera stops short
     // of where the board's does)
+    int CameraLeft(int stage) {
+        int left = d.cameraLeft, right = d.cameraRight;
+        if (d.cameraEnds) {
+            d.cameraEnds(stage, left, right);
+        }
+        return left;
+    }
+    int CameraRight(int stage) {
+        int left = d.cameraLeft, right = d.cameraRight;
+        if (d.cameraEnds) {
+            d.cameraEnds(stage, left, right);
+        }
+        return right;
+    }
     int32_t LeftEnd() {
-        return (d.cameraLeft + WideMargin()) * 256;
+        return (CameraLeft(g.stage) + WideMargin()) * 256;
     }
     int32_t RightEnd() {
-        return (d.cameraRight - WideMargin()) * 256;
+        return (CameraRight(g.stage) - WideMargin()) * 256;
     }
     int32_t Across() { // the picture's width: how far a stage slides to be gone
         return (Video::kWidth + 2 * WideSide()) * 256;
@@ -219,7 +233,7 @@ namespace {
             g.nextReady = g.nextReady || ToRound(machine, g.nextFrames);
             if (g.nextReady) {
                 machine.players[0] = machine.players[1] = 0;
-                Place(LeftEnd());
+                Place((CameraLeft(g.next) + WideMargin()) * 256); // (the next stage's own left end)
             }
             machine.RunFrame();
             if (g.nextReady || g.nextFrames > kStartMost) {
@@ -346,11 +360,17 @@ CameraWanted &CameraAt() {
 }
 
 bool RoundFought() {
+    if (d.roundFoughtNow) {
+        return d.roundFoughtNow();
+    }
     return Ram16(d.steps) == 2 && Ram16(d.steps + 4) == d.gameMatch && Ram16(d.steps + 8) == d.matchRound &&
            Ram16(d.steps + 12) == d.roundFought;
 }
 
 bool Choosing() {
+    if (d.choosingNow) {
+        return d.choosingNow();
+    }
     return Ram16(d.steps) == 2 && Ram16(d.steps + 4) == d.gameChoosing && Ram8(d.playersIn) == 3;
 }
 
@@ -384,11 +404,11 @@ bool ToRound(Machine &machine, int32_t &frames, bool choose) {
 }
 
 void PlaySound(uint16_t code) {
-    const uint16_t at = Ram16(d.soundQueueEnd) & 0xFF0;
+    const uint16_t at = Ram16(d.soundQueueEnd) & d.soundQueueMask;
     SetRam32(d.soundQueue + at, code);
     SetRam32(d.soundQueue + at + 4, 0);
     SetRam32(d.soundQueue + at + 8, 0);
-    SetRam16(d.soundQueueEnd, static_cast<uint16_t>((at + 0x10) & 0xFF0));
+    SetRam16(d.soundQueueEnd, static_cast<uint16_t>((at + 0x10) & d.soundQueueMask));
 }
 
 void GoTo(uint16_t part) {
@@ -441,7 +461,7 @@ void Frame(Machine &machine) {
         } else if (d.attractOver && d.attractOver()) {
             EndThis();
         }
-    } else if (g.mode == Mode::Viewer && !g.starting && Ram16(d.steps) == 0) {
+    } else if (g.mode == Mode::Viewer && !g.starting && (d.running ? !d.running() : Ram16(d.steps) == 0)) {
         EndThis();
     }
     if (g.mode == Mode::Attract && !g.starting) {

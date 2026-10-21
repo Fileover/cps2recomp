@@ -37,12 +37,19 @@ namespace {
     bool g_roundFought = false;
     std::vector<HudBox> g_nextBoxes; // the hit boxes for the next picture
     bool g_choosingTwo = false;      // player 1's controls are choosing player 2's character
+    uint16_t g_heldOver = 0;         //   and what it held as it chose for player 1, not passed on until let go
 
     uint32_t Player(int n) {
         return d.player1 + static_cast<uint32_t>(n) * d.playerSize;
     }
     int X(int n) {
         return d.xLong ? static_cast<int>(Ram32(Player(n) + d.x) >> 16) : static_cast<int16_t>(Ram16(Player(n) + d.x));
+    }
+    uint32_t CameraX() {
+        return d.cameraXAt ? d.cameraXAt() : d.cameraX;
+    }
+    uint32_t CameraY() {
+        return d.cameraYAt ? d.cameraYAt() : d.cameraY;
     }
     void SetX(int n, int x) {
         if (d.xLong) {
@@ -127,15 +134,23 @@ namespace {
         machine.Serialize(ar);
         const int margin = d.wideMargin ? d.wideMargin() : 0; // (the camera's end in the picture played in)
         int x[2] = {d.startX[0], d.startX[1]};
-        int camera = static_cast<int16_t>(Ram16(d.cameraX)); // (the middle: where it is)
+        if (x[0] == 0 && x[1] == 0) {
+            x[0] = X(0); // (none given: where the round began)
+            x[1] = X(1);
+        }
+        int camera = static_cast<int16_t>(Ram16(CameraX())); // (the middle: where it is)
+        int stageLeft = d.stageLeft, stageRight = d.stageRight, cameraLeft = d.cameraLeft, cameraRight = d.cameraRight;
+        if (d.ends) {
+            d.ends(stageLeft, stageRight, cameraLeft, cameraRight);
+        }
         if (place % 3 == 1) {
-            x[0] = d.stageLeft;
-            x[1] = d.stageLeft + d.cornerApart;
-            camera = d.cameraLeft + margin;
+            x[0] = stageLeft;
+            x[1] = stageLeft + d.cornerApart;
+            camera = cameraLeft + margin;
         } else if (place % 3 == 2) {
-            x[0] = d.stageRight - d.cornerApart;
-            x[1] = d.stageRight;
-            camera = d.cameraRight - margin;
+            x[0] = stageRight - d.cornerApart;
+            x[1] = stageRight;
+            camera = cameraRight - margin;
         }
         if (place >= 3) {
             std::swap(x[0], x[1]);
@@ -145,6 +160,9 @@ namespace {
         }
         for (const uint32_t copy : d.cameraCopies) {
             SetRam16(copy, static_cast<uint16_t>(camera));
+        }
+        if (d.cameraXAt) {
+            SetRam16(CameraX(), static_cast<uint16_t>(camera));
         }
         // (and the training aids start afresh; a recording being replayed from its beginning)
         Afresh(true);
@@ -233,16 +251,20 @@ void BeforeFrame(Machine &machine) {
     if (InSession() && modes::Choosing() && d.chosen && d.chosen(0) && !d.chosen(1)) {
         // Player 1 has chosen: its controls choose for player 2 (training with one set of controls). What was held as
         // it chose is not passed on until let go, or the button that chose for player 1 would choose for player 2 at
-        // once.
-        static uint16_t heldOver = 0;
+        // once. (Run-ahead's frames see this as it is and leave it: they are taken back.)
         const uint16_t held = machine.players[0] & (kSticks | kAllButtons);
-        heldOver = g_choosingTwo ? heldOver & held : held;
-        g_choosingTwo = true;
+        const uint16_t heldOver = g_choosingTwo ? g_heldOver & held : held;
+        if (!RunningAhead()) {
+            g_heldOver = heldOver;
+            g_choosingTwo = true;
+        }
         machine.players[1] |= held & ~heldOver;
         machine.players[0] &= kStart | kCoin;
         return;
     }
-    g_choosingTwo = false;
+    if (!RunningAhead()) {
+        g_choosingTwo = false;
+    }
     Dummy(machine);
 }
 
@@ -309,7 +331,7 @@ void Frame(Machine &machine) {
         }
         boxes.insert(boxes.begin(), g_nextBoxes.begin(), g_nextBoxes.end());
         g_nextBoxes.clear();
-        const int cameraX = static_cast<int16_t>(Ram16(d.cameraX)), cameraY = static_cast<int16_t>(Ram16(d.cameraY));
+        const int cameraX = static_cast<int16_t>(Ram16(CameraX())), cameraY = static_cast<int16_t>(Ram16(CameraY()));
         for (const fight::StageBox &box : d.boxes(machine)) {
             g_nextBoxes.push_back(fight::ToPicture(box, cameraX, cameraY, d.pictureFloor));
         }
