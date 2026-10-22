@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+## 0.4.0-beta.5
+
+An eleventh game, X-Men vs. Street Fighter, the first tag-team game here, with everything the other fighting games
+have: a full training mode, attract mode, the stage and model viewers, the colour editor, survival, endless battle,
+ring out, widescreen, custom colours and the hidden character. It also has tag-team play for up to four people: co-op
+against the computer, or 2 vs 2, each person playing a character of their own, from "Tag team" on the Alternative
+modes page.
+
 - **Another game: X-Men vs. Street Fighter** (`games/xmvsf`; ROM set `xmvsf`, *X-Men Vs. Street Fighter*, Europe
   961004, the parent set and the one competitive play uses), the first tag-team game here. The game as the board plays
   it, translated whole (its 68000 program, and its sound program, Capcom's driver 1.16b) and checked, with everything
