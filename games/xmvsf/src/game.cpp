@@ -7,6 +7,7 @@
 #include "colours.h"
 #include "game.h"
 #include "session.h"
+#include "tag.h"
 #include "xmvsf.h"
 
 namespace cps2recomp {
@@ -35,6 +36,7 @@ void RegisterWidescreen(); // widescreen.cpp
 void WidescreenBeforeFrame(Machine &machine);
 bool WidePlay();
 void ChoosingBeforeFrame(Machine &machine);
+void RegisterTag(); // tag.cpp
 
 // 001608, the game's random number: a long divs (001614, about 150 cycles), then the number kept (00161A). The board
 // takes an interrupt between any two instructions, and the frame's interrupt, which asks for a random number of its own
@@ -54,12 +56,14 @@ void RegisterGame() {
     RegisterColours();
     RegisterBattle();
     RegisterWidescreen();
+    RegisterTag();
     RegisterCoins();
     RegisterCheats();
     RegisterTitle();
     RegisterBoard();
     RegisterMusic();
     TheGame().beforeFrame = [](Machine &machine) {
+        tag::BeforeFrame(machine);
         BoardBeforeFrame(machine);
         ChoosingBeforeFrame(machine);
         WidescreenBeforeFrame(machine);
@@ -77,6 +81,7 @@ void RegisterGame() {
         ModelFrame(machine);
         TitleFrame(machine);
         CoinsFrame(machine);
+        tag::Frame(machine);
     };
     // (what the sources keep between frames, with save states and run-ahead's frames taken back)
     TheGame().state = [](Archive &ar) {

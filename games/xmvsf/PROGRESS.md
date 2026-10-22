@@ -36,6 +36,9 @@ The graphics are two rows of four 4 MB sockets. Six buttons a player (MAME's `cp
   viewer), the fighting modes (`fight/battle.h`: survival, endless battle, ring out), the model viewer (`model/`),
   custom colours and the colour editor (`fight/colours.h`), widescreen and invisible walls, the hidden character with
   no code.
+- Tag-team co-op and 2 vs 2 (issue #69, 2026-10-21): the toolkit's input router (`fight/tag.h`), told by `src/tag.cpp`
+  where the point character and the choosing are. Four players' controls (game.cfg `players = 4`); the board still
+  reads two.
 - No readable rewrites: what the features change is done in hooks that run the game's own code unless a feature is
   on (the camera's clamp and the walls with widescreen, the ring out's flight), each a few lines.
 - The toolkit's fighting modules were made to take a game built otherwise than the Alpha games (all optional; the
@@ -68,6 +71,10 @@ Variables sit below A5 = FF8000 (A5-3000 on); the facts are in `src/xmvsf.h`, ea
   (00FFC0). Choosing: a 0x20 record a player from FF5180, its first byte 7 once all is chosen; the cursor's character
   is taken at 00B1E8 (the hidden character's hook), and the game gives Alpha Chun-Li for Chun-Li with Start held
   (00B1DA).
+- **Tag team** (traced for the router): a point record's +220 is 0 or 1, the pick it is; a tag (HP+HK) swaps the
+  records' contents 14 frames after the press, a knock-out as the partner comes in, a team super as the partner stays
+  in after it. A choosing record's first byte is its step (0 not choosing, 1 entering, 2 the first pick, 7 all chosen)
+  and its byte +03 the picks taken (0-2; the speed is chosen at 2).
 - **Damage**: `sub.w d5,0x210(a6)` at 0155A2 (hits) and 015B6A, the character hit in A6.
 - **Clock**: FF5008 (BCD seconds), FF5009 frames of the second, counted down at 00FB14.
 - **Stage**: FF5113 (0 Apocalypse's lair, 1-10 the others); taken at 00BABC from a table (088BFA) by a count that goes
@@ -107,6 +114,14 @@ Facts were confirmed with the help of the FBNeo training mode's scripts (peon2/f
 - `make GAME=xmvsf check-widescreen`: every stage walked to both ends in widescreen, no unpainted columns; invisible
   walls leave the game's memory the board's at every 4,000 frames of the ladder; the ladder in widescreen with no
   instruction left to the interpreter.
+- `make GAME=xmvsf check FRAMES=6200 MOVIE=games/xmvsf/movies/coop.txt ARGS="--features free_play,tag_team=1 --poke FF4214=03"`
+  and `make GAME=xmvsf check FRAMES=5200 MOVIE=games/xmvsf/movies/two_vs_two.txt ARGS="--features free_play,one_hit,tag_team=2"`:
+  the tag-team movies (four players' input: a Start by the second person, each pick by its own person with the other's
+  presses ignored, a tag, a tag back, knock-outs and the partner coming in, a team super) translated as interpreted;
+  two runs alike. Seen in pictures every 25-100 frames; the point bytes traced. The two vs two movie with player 1's
+  presses while off point taken out gives the same hashes (they never reach the board). Run-ahead 1 and 2 give the
+  co-op movie's hashes; a state saved at 2,500 of two vs two and loaded gives the same frames after. With the mode off,
+  the ladder (40,000 frames) and versus (12,000) give the same hashes as the build before it.
 - By hand: save states (a state saved at frame 3,000 and loaded into a run of the same input: frames 3,001-6,000
   alike); run-ahead (1 and 2 frames: the same hashes as without over 8,000 frames of versus and a training session);
   features off and no sources (`--cpu interp --features -free_play` against a build with `src/` empty: 8,000 frames
@@ -124,6 +139,4 @@ custom soundtrack files, the dummy's record and replay, and the arcade timing ha
 
 ## Next
 
-- Tag-team co-op and 2 vs 2 for four players (issue #69): the facts it needs are above (the point character's record,
-  +220, the picks, the choosing records, the tag input HP+HK).
 - Online play (issue #70).

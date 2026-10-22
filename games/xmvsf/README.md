@@ -10,8 +10,8 @@ is a team of two characters, swapped in and out during the fight.
 
 It has everything the other fighting games here have: a full **training mode** (hit boxes, frame data and a frame
 meter, input display, combo readout, a dummy that records, replays and guards), the **alternative modes** (attract
-mode, the stage and model viewers, survival, endless battle, ring out), **widescreen**, **custom colours** with a
-colour editor, the **hidden character** with no code, and the features every game shares: free play, straight to the
+mode, the stage and model viewers, survival, endless battle, ring out), **tag-team co-op and 2 vs 2** for up to four
+players, **widescreen**, **custom colours** with a colour editor, the **hidden character** with no code, and the features every game shares: free play, straight to the
 title, the board's operator settings, cheats, save states, run-ahead, arcade timing, a custom soundtrack.
 
 > **Beta.** The game plays from start to ending and its code is checked instruction by instruction, but it has
@@ -101,6 +101,25 @@ have. Each has a page with a Start row and its own choices, and runs until anoth
 | Survival | One computer team after another on the health you have left. How many can you beat? |
 | Endless battle | Two teams the game plays, for as long as you like, with no bars and no clock, on one stage, on stages that fade one into another, or on a floor that scrolls through them all. Touch the controls to take a side over |
 | Ring out | No health. Knock your opponent over the end of the stage (it is flung into the air and falls through the floor), then jump down after it and land on the next stage |
+
+## Tag team: co-op and 2 vs 2
+
+Each character of a team can be played by a person of its own, with no patched ROM: "Tag team" on the Alternative
+modes page (or the launcher's Features page) chooses how.
+
+| Choice | Who plays |
+| --- | --- |
+| Off | One player a side, as on the board |
+| Co-op vs. computer | Players 1 and 2 are one team against the computer. Either one's Start begins the game on player 1's side; nobody can come in on the computer's side |
+| 2 vs 2 | Four players: 1 and 3 are one team, 2 and 4 the other. Either person of a team can Start (or continue) for it |
+
+- **Choosing**: the team's first character is chosen by its first person (player 1 or 2), the second by its partner
+  (player 2 in co-op, else 3 or 4). Only the person choosing moves the cursor; the first person chooses the speed.
+- **Fighting**: the controls are whoever plays the character on point. The partner tags in by pressing a strong
+  punch and a strong kick together; the one on point can still tag out the same way, and team supers work as on the
+  board. A knock-out, a tag or a team super changes who is on point exactly when the game does.
+- A small label under each side's bars (P1-P4) says who is on point.
+- The launcher's Controllers page has keys and buttons for four players.
 
 ![The model viewer: Cyclops on white, three times his size](../../docs/screenshots/xmvsf/model-viewer.png)
 
