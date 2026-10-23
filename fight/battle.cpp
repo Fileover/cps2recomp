@@ -11,9 +11,9 @@
 #include "tag.h"
 
 #include <algorithm>
+#include <cstdlib>
 #include <array>
 #include <cstdio>
-#include <cstdlib>
 #include <cstring>
 #include <random>
 #include <string>
@@ -895,7 +895,7 @@ namespace {
                 HandOver();
             }
         } else if (g.phase == Phase::Fighting) {
-            const uint8_t result = Ram8(d.result);
+            const uint8_t result = d.resultNow ? d.resultNow() : Ram8(d.result);
             if (result) {
                 g.winner = result == 2 ? 1 : 0; // (both down at once: the first player's)
                 g.phase = Phase::Decided;

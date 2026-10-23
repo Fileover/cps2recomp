@@ -4,9 +4,11 @@
 // X-Men vs. Street Fighter: the fighting modes of the menu's "Alternative modes" page (survival, the endless battle,
 // the ring out) are the toolkit's (fight/battle.h); this says where the game keeps what they need. A side is a team of
 // two here: the modes follow the character on point (the first two records, xmvsf.h), and a match is one round, won
-// when both of a side's characters are down.
+// when both of a side's characters are down. The ring out's own movements at a character's step are the engine's
+// shared code (fight/marvel.h, at the hook training.cpp places).
 #include "alternative.h"
 #include "battle.h"
+#include "marvel.h"
 #include "xmvsf.h"
 
 #include <iterator>
@@ -22,55 +24,13 @@ namespace {
     constexpr uint32_t kActive = 0x00;     // a byte of a record: not 0 while it is in use
     constexpr uint32_t kResult = 0xFF5005; // the round's result: 1 player 1's side has won, 2 player 2's (a knockout and a
                                            // time over watched)
-    constexpr int32_t kFlungAcross = 0xC000;  // knocked out: away over the end, three quarters of a pixel a step
-    constexpr int32_t kFlungUp = -0x60000;    //   and up, six pixels a step at first
-    constexpr int32_t kPull = 0x6C00;         //   pulled down as a jump is
-    constexpr int kGoneBelow = 400;           // how far under the floor one falling stops (long out of the picture)
-    // The part of a player's record that is how it moves and is drawn (its steps, its frame, its speeds, its boxes):
-    // taken from its record on the old stage when it comes down onto the next, but for its place and its opponent's
-    // record
-    constexpr uint32_t kMovingFrom = 0x04, kMovingTo = 0x100, kOpponent = 0xB0;
 } // namespace
-
-// The ring out's own movements (fight/battle.h, RingOutMove) at a character's step (A6): true when it has made the
-// step, the game's own routine for the character not run (training.cpp's PlayerStep, at 00C0D8). Flung out and falling,
-// it keeps the picture it had and goes through the air by the speeds kept in its record.
-bool RingOutStep(M68K &c) {
-    const uint32_t player = c.a[6] & 0xFFFFFF;
-    const RingOut ringOut = RingOutMove(player);
-    if (ringOut.move == RingOut::kFlungOut) {
-        SetRam32(player + kSpeedX, static_cast<uint32_t>(ringOut.side * kFlungAcross));
-        SetRam32(player + kSpeedY, static_cast<uint32_t>(kFlungUp));
-        SetRam8(player + kHitStop, 0);
-        return true;
-    }
-    if (ringOut.move == RingOut::kFalling) {
-        if (static_cast<int16_t>(Ram16(player + kY)) < kGround + kGoneBelow) {
-            SetRam32(player + kX, Ram32(player + kX) + Ram32(player + kSpeedX));
-            SetRam32(player + kY, Ram32(player + kY) + Ram32(player + kSpeedY));
-            SetRam32(player + kSpeedY, Ram32(player + kSpeedY) + static_cast<uint32_t>(kPull));
-        }
-        return true;
-    }
-    if (ringOut.move == RingOut::kDropsIn) {
-        // Coming down onto the next stage: as it was in its jump over the old stage, at its place here; the game's jump
-        // goes on from there and lands it
-        for (uint32_t at = kMovingFrom; at < kMovingTo; at++) {
-            if ((at < kX || at >= kY + 4) && (at < kOpponent || at >= kOpponent + 4)) {
-                SetRam8(player + at, ringOut.record[at]);
-            }
-        }
-        SetRam32(player + kX, static_cast<uint32_t>(ringOut.x) << 16);
-        SetRam32(player + kY, static_cast<uint32_t>(ringOut.y) << 16);
-    }
-    return false;
-}
 
 void RegisterBattle() {
     battle::Description d;
     d.result = kResult;
-    d.cameraXAt = [] { return CameraRecord() + kCameraX; };
-    d.cameraYAt = [] { return CameraRecord() + kCameraY; };
+    d.cameraXAt = marvel::CameraXAt;
+    d.cameraYAt = marvel::CameraYAt;
     d.cameraEnds = [](int &left, int &right) {
         left = static_cast<int16_t>(Ram16(CameraRecord() + kCameraLeft));
         right = static_cast<int16_t>(Ram16(CameraRecord() + kCameraRight));
@@ -110,8 +70,8 @@ void RegisterBattle() {
     d.cameraAt = modes::CameraAt;
     d.endModes = modes::End;
     d.stageViewer = modes::StageViewer;
-    d.wideSide = WideSide;
-    d.wideMargin = WideMargin;
+    d.wideSide = marvel::WideSide;
+    d.wideMargin = marvel::WideMargin;
     d.notTheStage = NotTheStage;
     d.thePanel = ThePanel;
     d.notTheFighters = [](uint32_t tile, uint16_t attributes) { return ThePanel(tile, attributes) || (attributes & 0x1F) >= 0x1A; };
