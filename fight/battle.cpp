@@ -294,7 +294,7 @@ namespace {
     // Side 2 is the game's: chosen so, or player 2 is on player 1's team (tag.h's co-op)
     bool TeamComputer() {
         const tag::Mode people = tag::Chosen();
-        return people == tag::kCoop || (people == tag::kOff && FeatureValue("team_opponent") == 1);
+        return people == tag::kCoop || (people == tag::kOff && FeatureValue("team_opponent") == 0);
     }
     // A character's name, as the menu's rows have it (nullptr: none of them)
     const char *NameOf(int character) {
@@ -964,7 +964,7 @@ namespace {
             g.since++;
             const bool people = !g.computer[1];
             lines.push_back({0.5f, 0.36f, 0, g.winner < 0 ? "DRAW" : g.winner == 0 ? (people ? "TEAM 1 WINS" : "YOUR TEAM WINS") :
-                                                                              (people ? "TEAM 2 WINS" : "THE COMPUTER'S TEAM WINS")});
+                                                                              (people ? "TEAM 2 WINS" : "CPU TEAM WINS")});
             if (g.since > kOverFor) {
                 End();
                 machine.Reset();
@@ -1183,8 +1183,8 @@ void battle::Register(const Description &description) {
                                  0, {"One each", "As the board is set"}});
     }
     game.features.push_back({"team_opponent", kTeam, "Team 2",
-                             "Who plays the second team: player 2, or the game. (With \"Tag team\" below, that says who plays.)",
-                             0, {"Player 2", "The computer"}});
+                             "Who plays the second team: the CPU (the game), or player 2. (With \"Tag team\" below, that says who plays.)",
+                             0, {"CPU", "Player 2"}});
     {
         // (the stages: the choices after the endless battle's two ways of changing them)
         static std::vector<const char *> stages = {"Random"};
