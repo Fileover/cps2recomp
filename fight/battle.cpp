@@ -9,6 +9,7 @@
 #include "state.h"
 
 #include <algorithm>
+#include <cstdlib>
 #include <array>
 #include <cstdio>
 #include <cstring>
@@ -282,7 +283,9 @@ namespace {
         SetFeature("training_mode", false);
         g.kind = kind;
         g.phase = Phase::Starting;
-        g.random = std::random_device()() | 1;
+        // (CPS2RECOMP_BATTLE_SEED=N for tests: the same choices every run)
+        const char *seed = getenv("CPS2RECOMP_BATTLE_SEED");
+        g.random = (seed ? static_cast<uint32_t>(strtoul(seed, nullptr, 0)) : std::random_device()()) | 1;
         if (kind != Kind::Endless) {
             g.characters[0] = -1; // (the player's choice)
             g.characters[1] = AnyCharacter();
@@ -799,7 +802,7 @@ namespace {
                 HandOver();
             }
         } else if (g.phase == Phase::Fighting) {
-            const uint8_t result = Ram8(d.result);
+            const uint8_t result = d.resultNow ? d.resultNow() : Ram8(d.result);
             if (result) {
                 g.winner = result == 2 ? 1 : 0; // (both down at once: the first player's)
                 g.phase = Phase::Decided;

@@ -66,6 +66,8 @@ constexpr uint32_t kMostRecord = 0x400; // the most bytes of a player's record (
 struct Description {
     // --- the game's memory ---
     uint32_t result = 0;            // byte: the round's result: 0 still going, 1 player 1 has won, 2 player 2, 3 neither
+    // ... or, for a game that keeps it some other way, the same worked out from its memory (nullptr: the byte)
+    uint8_t (*resultNow)() = nullptr;
     uint32_t cameraX = 0, cameraY = 0; // words: where the camera is (the picture's left edge and bottom)
     int cameraLeft = 256, cameraRight = 640; // the camera's ends across on every stage (the board's picture)
     // A camera whose words move (with the stage, say): their addresses now; and stages whose camera's ends differ:

@@ -5,6 +5,7 @@
 // (fight/alternative.h); this says where the game keeps what they need. Its steps are not the Alpha games' four words
 // (xmvsf.h), so it says itself when a round is fought, the players are choosing and a game is on.
 #include "alternative.h"
+#include "marvel.h"
 #include "session.h"
 #include "state.h"
 #include "xmvsf.h"
@@ -111,10 +112,10 @@ void RegisterModes() {
     d.cameraEnds = [](int stage, int &left, int &right) { CameraEnds(stage - 1, left, right); };
     d.apart = 0x100; // (the players either side of the picture's middle: the camera's word + 0x40 + 0xC0)
     d.notTheStage = NotTheStage;
-    d.wideSide = WideSide;
-    d.wideMargin = WideMargin;
-    d.wideForSpare = WideForSpare;
-    d.wideForPort = WideForPort;
+    d.wideSide = marvel::WideSide;
+    d.wideMargin = marvel::WideMargin;
+    d.wideForSpare = marvel::WideForSpare;
+    d.wideForPort = marvel::WideForPort;
     modes::Register(d);
     AddHook(HookAt(0x00BAEA), "StageChosen", StageChosen);
 }
