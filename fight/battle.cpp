@@ -169,6 +169,7 @@ namespace {
         int32_t teamSize = 2;
         int32_t on[2] = {0, 0};
         int32_t stays = -1;
+        int32_t full = 0;                // a fighter's health when it comes on
     } g;
     Spare g_dropBack;                    // the ring out: the machine of the next match's stage
     bool g_open = false;                 // the ring out: the port's machine is running a fight with open ends
@@ -333,9 +334,11 @@ namespace {
         }
         g.stays = down[0] == down[1] ? -1 : down[0] ? 1 : 0;
         if (g.stays >= 0) {
-            const auto left = [](uint32_t which) {
+            // (a little back: as survival gives, in the proportion of the health a fighter comes on with)
+            const int full = g.full > 0 ? g.full : d.healthFull;
+            const auto left = [full](uint32_t which) {
                 const int now = static_cast<int16_t>(Ram16(Player(g.stays) + which));
-                return std::min<int>(std::max(now, 0) + d.healthBack, d.healthFull);
+                return std::min<int>(std::max(now, 0) + d.healthBack * full / std::max<int>(d.healthFull, 1), full);
             };
             g.health = left(d.health);
             g.ceiling = d.ceilingShown ? g.health : std::max(left(d.healthCeiling), g.health);
@@ -418,6 +421,9 @@ namespace {
     }
 
     void Want() {
+        if (g.kind == Kind::Team && d.oneBarEach && FeatureValue("team_bars") == 0) {
+            d.oneBarEach();
+        }
         Wanted().stage = g.stage;
         Wanted().characters[0] = g.characters[0];
         Wanted().characters[1] = g.characters[1];
@@ -456,6 +462,7 @@ namespace {
                 g.fadeIn = kFade;
                 g.characters[0] = Ram8(Player(0) + d.character);
                 g.characters[1] = Ram8(Player(1) + d.character);
+                g.full = static_cast<int16_t>(Ram16(Player(0) + d.health));
                 if (Chooses() && d.colours) {
                     g.colours = Ram8(Player(0) + d.colours);
                 }
@@ -1169,6 +1176,12 @@ void battle::Register(const Description &description) {
                              "and a little back. Over when a side has nobody left.",
                              StartTeam});
     game.features.push_back({"team_size", kTeam, "Fighters", "How many fighters each team has.", 0, {"2", "3"}});
+    if (d.oneBarEach) {
+        game.features.push_back({"team_bars", kTeam, "Health bars",
+                                 "How much health each fighter comes on with: one bar (a team of two has two bars between them), or as "
+                                 "many as the board's \"Damage gauges\" setting gives.",
+                                 0, {"One each", "As the board is set"}});
+    }
     game.features.push_back({"team_opponent", kTeam, "Team 2",
                              "Who plays the second team: player 2, or the game. (With \"Tag team\" below, that says who plays.)",
                              0, {"Player 2", "The computer"}});

@@ -66,7 +66,9 @@ features are the same in every game.
 
 The team battle (`Description::teams`; the Vampire Savior games first) is survival on both sides: each knock-down
 ends a match, as in Vampire Savior, which has no rounds, and the next is made ready on the spare machine with the
-loser's next fighter and the winner's health put back. With `battle::RegisterTeamTag` the tag-team router below follows
+loser's next fighter and the winner's health put back. A game can give each fighter one health bar, whatever its
+board says (`Description::oneBarEach`, run before each frame of the team battle's machines: Vampire Savior's puts
+its "damage gauges" setting at one), so that a team of two has the bars one fighter usually has. With `battle::RegisterTeamTag` the tag-team router below follows
 whose fighter is on (no tag buttons: a fighter comes on only at a knock-down), and puts its labels beside the battle's
 own lines.
 

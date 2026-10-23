@@ -123,6 +123,9 @@ struct Description {
     std::vector<const char *> fighterChoices, stageChoices;
     uint16_t tuneOff = 0xFF05;      // a sound asked for before another tune
     bool teams = false;             // the team battle is on the menu
+    // The team battle's machines, before each of their frames, with "one health bar each" chosen: the game's own
+    // setting for it put in (nullptr: no such choice)
+    void (*oneBarEach)() = nullptr;
 
     // A game is being played (no: the board was reset)
     bool (*inGame)() = nullptr;
