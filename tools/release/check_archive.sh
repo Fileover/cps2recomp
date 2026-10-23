@@ -26,9 +26,9 @@ for archive in "$@"; do
     for need in LICENSE.txt THIRD_PARTY_NOTICES.md licenses/SDL3.txt licenses/DearImGui.txt licenses/Inter-OFL.txt licenses/sound-decoders.txt SOURCE.txt; do
         echo "$names" | grep -q "/$need\$" || bad "missing $need"
     done
-    # A game's program: the port, its interpreters and SDL come to 3 MB or so for each processor it is built
-    # for, and the game's translated code adds 3 to 10 MB or more for each. So its size says which it is: 8 MB,
-    # unless the game's game.cfg says otherwise (release_size, release_size_windows).
+    # A game's program: the build with no translated code carries the words runtime/no_blocks.cpp gives it, and a
+    # release's (with it) does not. (Its size told them apart once; translated code is 3 MB to 10 MB or more a
+    # processor, but the toolkit grows, and a small game's release is smaller than a large one's CI build.)
     : > "$dir/.programs"
     for game in $GAMES; do
         find "$dir" -type f \( -name "$game" -o -name "$game.exe" \) > "$dir/.one"
@@ -37,17 +37,10 @@ for archive in "$@"; do
     done
     find "$dir" -type f \( -name 'cps2recomp-launcher' -o -name 'cps2recomp-launcher.exe' \) | grep -q . || bad "no launcher"
     while IFS= read -r program; do
-        size=$(wc -c < "$program" | tr -d ' ')
-        game=$(basename "$program" .exe)
-        case "$program" in
-            *.exe) line=$(cd "$ROOT" && python3 tools/gamecfg.py release_size_windows "$game") ;;
-            *) line=$(cd "$ROOT" && python3 tools/gamecfg.py release_size "$game") ;;
-        esac
-        line=${line:-8000000}
-        if [ "$kind" = release ]; then
-            [ "$size" -ge "$line" ] || bad "$(basename "$program") is $size bytes: it has no translated code (a CI build, not a release)"
+        if LC_ALL=C grep -qa "cps2recomp: built with no translated code" "$program"; then
+            [ "$kind" = nocode ] || bad "$(basename "$program") has no translated code (a CI build, not a release)"
         else
-            [ "$size" -lt "$line" ] || bad "$(basename "$program") is $size bytes: it holds translated code"
+            [ "$kind" = release ] || bad "$(basename "$program") holds translated code"
         fi
     done < "$dir/.programs"
     paths="$(cd "$dir" && grep -rlaE '/Users/[a-z]|/home/[a-z]+/|C:\\Users\\' . || true)"
