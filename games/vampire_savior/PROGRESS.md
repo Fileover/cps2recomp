@@ -623,8 +623,12 @@ asks first (true: the step is made, the game's routine not run):
   with 0x120, the end and back to the title); teams of three in 2 vs 2 with made-up play for four players, the labels
   P1/P2, then P4 on team 2's second, then P2 again on its third; the game's panel word for player 2 (A5+5C) is player
   2's controls, then player 4's, then player 2's (printed beside the router's choice).
-- Not checked: a double knock-out, a time over (both decided by the game's own result byte, 3 and the health), by
-  hand with four controllers.
+- `CPS2RECOMP_BATTLE_SEED=1 make GAME=vampire_savior check FRAMES=27000 MOVIE=games/vampire_savior/movies/team_two_vs_two.txt
+  ARGS="--features <the movie's first line> --keys 60:cteam_start"`: translated code against the interpreter and two
+  runs alike, both ok; `--check-rewrites` over it: 1,020,730 calls, none differ. The movie has two time overs and
+  knock-downs on both sides (team 1 down to its third, team 2 out). With the mode off, the versus (6,000 frames) and
+  ladder (20,000) movies hash as before, as do X-Men vs. Street Fighter's co-op and 2 vs 2 movies.
+- Not checked: a double knock-out (the game's result 3: both teams' next on, or a draw), by hand with four controllers.
 
 ## Board settings (2026-10-15)
 
