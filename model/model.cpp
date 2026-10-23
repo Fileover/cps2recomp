@@ -221,13 +221,18 @@ namespace {
         machine.players[0] = 0; // (the controls would start moves of the game's own)
     }
 
+    // A list of animations by its letter: A to Z, then AA, AB... (a game with more than 26 of them)
+    std::string ListName(int list) {
+        return list < 26 ? std::string(1, static_cast<char>('A' + list)) : std::string("A") + static_cast<char>('A' + list - 26);
+    }
+
     // The animation's name over the picture for a while after it changes (set after the frame, when the other
     // modes' own readouts have been cleared)
     void NameAnimation() {
         if (g.table && g.named > 0) {
             g.named--;
             char text[32];
-            snprintf(text, sizeof(text), "%c%d", 'A' + g.table - 1, g.number);
+            snprintf(text, sizeof(text), "%s%d", ListName(g.table - 1).c_str(), g.number);
             SetHud({{0.5f, 0.04f, 0, text}});
         } else {
             SetHud({});
@@ -551,7 +556,7 @@ const std::vector<const char *> &AnimationNames() {
         text.push_back("Standing (you control it)");
         for (int list = 0; list < g_d.lists; list++) {
             for (int n = 0; n < g_d.perList; n++) {
-                text.push_back(std::string(1, static_cast<char>('A' + list)) + std::to_string(n));
+                text.push_back(ListName(list) + std::to_string(n));
             }
         }
         for (const std::string &one : text) {

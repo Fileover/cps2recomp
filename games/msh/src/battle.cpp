@@ -71,7 +71,7 @@ void RegisterBattle() {
     d.wideMargin = marvel::WideMargin;
     d.notTheStage = NotTheStage;
     d.thePanel = ThePanel;
-    d.notTheFighters = [](uint32_t tile, uint16_t attributes) { return ThePanel(tile, attributes) || (attributes & 0x1F) >= 0x18; };
+    d.notTheFighters = [](uint32_t tile, uint16_t attributes) { return ThePanel(tile, attributes) || (attributes & 0x1F) >= kStageSets; };
     // (a player's colour sets: its three)
     d.playerSets = [](int n) { return 0x7u << (n == 0 ? kPlayer1Set : kPlayer2Set); };
     d.pictureLeft = kPictureLeft;

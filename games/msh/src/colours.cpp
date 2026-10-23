@@ -39,8 +39,8 @@ namespace {
     }
 
     std::vector<const char *> Backgrounds() {
-        static const char *const names[kStages] = {"Street", "Ship",     "Carnival", "Laboratory", "Lake",    "Factory",
-                                                   "Fire",   "Skull",    "Harbour",  "Space",      "Gems",    "Throne"};
+        static const char *const names[kStages] = {"Street", "Shipwreck", "Carnival", "Stark",  "Lake", "Neon city",
+                                                   "Fire",   "Skull",     "Harbour",  "Space",  "Gems", "Throne"};
         std::vector<const char *> list(std::begin(names), std::end(names));
         list.push_back("White");
         list.push_back("Black");

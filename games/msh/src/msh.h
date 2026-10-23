@@ -128,11 +128,12 @@ constexpr uint32_t kColourChoice = 0xAF;
 // The stage, a byte: in a one-player game the computer's character's own (008CB4: from the list of opponents), in a
 // two-player one taken at random from a table (008D60), or by the buttons held as the second player chooses (008CD8)
 constexpr uint32_t kStage = 0xFF4893;
-// The stages (each put in a round and seen; named for what they show)
+// The stages, each a character's own (in that character's order: a one-player game fights each opponent on its own;
+// each seen in the stage viewer, and named for what it shows)
 constexpr int kStages = 12;
 inline constexpr const char *kStageNames[kStages] = {
-    "The city street",  "The wrecked ship", "The carnival",     "The laboratory",   "The mountain lake",    "The factory",
-    "The burning field", "The skull canyon", "The harbour",     "The space station", "The Infinity Gem chamber", "Thanos's throne"};
+    "The city street", "The shipwreck",   "The carnival", "Stark Enterprises", "The mountain lake",  "The neon city",
+    "The burning field", "The skull canyon", "The harbour", "The space station", "The Infinity Gem chamber", "Thanos's throne"};
 // The picture follows the stage's scroll layer that moves with the fighters: a record (by the stage, as the hitbox
 // script has it: FF4980 on the mountain lake, FF4B00 on the burning field, FF4A00 elsewhere), with the camera's place at
 // +0C across and +10 down, and its ends at +72/74 across and +76/78 down (083A46 keeps it between them; 082440 moves it
@@ -196,13 +197,16 @@ constexpr uint32_t kColourSetSize = 0x80;
 constexpr uint32_t kPaletteBuffer = 0x914000;
 constexpr unsigned kPlayer1Set = 0x0C, kPlayer2Set = 0x10, kShadowSet = 0x08;
 
-// Objects by what they are (for Video::hideObject; from the object lists of rounds): colour sets 00-03 are the panel,
-// 08 the fighters' shadows, 0C-12 the fighters, 18 on the stage's own pieces
+// Objects by what they are (for Video::hideObject; from the object lists of rounds on every stage): colour sets 00-03
+// are the panel, 08 the fighters' shadows, 0B the gems' marks, 0C-12 the fighters (player 1's three, then player 2's),
+// 13 on the stage's own pieces. The panel's pieces drawn in other sets are tiles 16000-16FFF: the fighters' faces (in
+// their own sets), the clock's mark (08) and the gems' marks.
+constexpr unsigned kStageSets = 0x13;
 inline bool NotTheStage(uint32_t, uint16_t attributes) {
-    return (attributes & 0x1F) < 0x18;
+    return (attributes & 0x1F) < kStageSets;
 }
-inline bool ThePanel(uint32_t, uint16_t attributes) {
-    return (attributes & 0x1F) <= 0x03;
+inline bool ThePanel(uint32_t tile, uint16_t attributes) {
+    return (attributes & 0x1F) <= 0x03 || (tile >= 0x16000 && tile < 0x17000);
 }
 
 // --- for hooks ---
