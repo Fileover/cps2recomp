@@ -85,8 +85,16 @@ ends a match, as in Vampire Savior, which has no rounds, and the next is made re
 loser's next fighter and the winner's health put back. A game can give each fighter one health bar, whatever its
 board says (`Description::oneBarEach`, run before each frame of the team battle's machines: Vampire Savior's puts
 its "damage gauges" setting at one), so that a team of two has the bars one fighter usually has. With `battle::RegisterTeamTag` the tag-team router below follows
-whose fighter is on (no tag buttons: a fighter comes on only at a knock-down), and puts its labels beside the battle's
-own lines.
+whose fighter is on, and puts its labels beside the battle's own lines.
+
+Its tag style (`Description::canTag`, `tagIn`, `meter`) swaps a side's fighter in the middle of a match: the toolkit
+keeps each fighter's health and ceiling while it rests (the ceiling's health coming back to it), swaps on Start (or the
+partner's Start, through the router: `tagButtons` is Start there) when the game says the fighter can act, swaps in the
+next when the bar on has emptied (the game's sources ask `TeamHoldsKnockOut` where health is taken, so that it stops at
+nothing while a partner is left), puts the health and the gauges' bytes back after the game's frame has set the
+newcomer up, and decides a time over by the teams' health (`TeamTimeOverResult`). How a fighter is swapped is the
+game's: in Vampire Savior, its own setting up of a player run again with the new character, after the objects the
+outgoing one made are given back to the game's pools (`src/livetag.cpp`).
 
 The ring out needs two things of the game's player code, at each player's step of a fight (`RingOutMove`):
 

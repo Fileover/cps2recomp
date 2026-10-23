@@ -27,7 +27,7 @@ inline constexpr Place kPlaceList[] = {
     {0x0099A8, 0x008162}, // an instruction, 24 on alike
     {0x00A3B2, 0x008B58}, // an instruction, 8 on alike
     {0x00A3EA, 0x008B92}, // an instruction, 6 on alike
-    {0x00A4BA, 0x008C64}, // the same bytes, once only
+    {0x00A4BA, 0x008C64}, // an instruction, 24 on alike
     {0x00A60A, 0x008DC0}, // an instruction, 24 on alike
     {0x00AE7C, 0x00964C}, // an instruction, 10 on alike
     {0x00D560, 0x00BB9E}, // an instruction, 24 on alike
@@ -128,7 +128,7 @@ inline constexpr Place kPlaceList[] = {
     {0x01F7C2, 0x01E300}, // an instruction, 24 on alike
     {0x01FDFE, 0x01E98A}, // an instruction, 11 on alike
     {0x01FE88, 0x01EA14}, // a place the code names so (2/2)
-    {0x01FEA0, 0x01EA2E}, // moved as the code before or after it, 24 on alike
+    {0x01FEA0, 0x01EA2E}, // an instruction, 24 on alike
     {0x01FF1A, 0x01EAA8}, // an instruction, 24 on alike
     {0x01FF76, 0x01EB04}, // an instruction, 24 on alike
     {0x01FFCE, 0x01EB5C}, // an instruction, 24 on alike
@@ -164,7 +164,7 @@ inline constexpr Place kPlaceList[] = {
     {0x07D68A, 0x08B9C4}, // an instruction, 13 on alike
     {0x07D6D4, 0x08BA0E}, // an instruction, 5 on alike
     {0x07D6E6, 0x08BA20}, // an instruction, 6 on alike
-    {0x07D6FE, 0x08BA38}, // inside code that moved alike, 4 on alike
+    {0x07D6FE, 0x08BA38}, // an instruction, 4 on alike
     {0x07D70A, 0x08BA44}, // the same entry of a jump table, 1 on alike
     {0x07D710, 0x08BAE2}, // the same entry of a jump table, 3 on alike
     {0x07D724, 0x08BAF6}, // the same entry of a jump table, 24 on alike
@@ -287,7 +287,7 @@ inline constexpr Place kPlaceList[] = {
     {0x07F0A6, 0x08D3DC}, // an instruction, 24 on alike
     {0x07F126, 0x08D45C}, // an instruction, 11 on alike
     {0x07F150, 0x08D486}, // an instruction, 6 on alike
-    {0x07F168, 0x08D49E}, // the same bytes, once only
+    {0x07F168, 0x08D49E}, // an instruction, 11 on alike
     {0x07F19E, 0x08D4D4}, // the same entry of a jump table, 1 on alike
     {0x07F1A4, 0x08D4DA}, // the same entry of a jump table, 3 on alike
     {0x07F1B8, 0x08D4EE}, // the same entry of a jump table, 4 on alike
@@ -448,14 +448,14 @@ inline constexpr Place kPlaceList[] = {
     {0x0BCE7A, 0x0D68AA}, // a place the code names so (2/2)
     {0x0BCEFA, 0x0D692A}, // a place the code names so (1/1)
     {0x0BCF7A, 0x0D69AA}, // a place the code names so (4/4)
-    {0x100000, 0x100000}, // a place the code names so (18/18)
+    {0x100000, 0x100000}, // a place the code names so (19/19)
     {0x2776B0, 0x2981FC}, // a place the code names so (2/2)
     {0x357CA4, 0x348C94}, // a place the code names so (3/3)
     {0x35AD18, 0x34BD08}, // a place the code names so (2/2)
     {0x35C918, 0x34D288}, // a place the code names so (2/2)
-    {0x38C198, 0x376B68}, // a place the code names so (5/5)
-    {0x38C218, 0x376BE8}, // a place the code names so (4/4)
-    {0x38C298, 0x376C68}, // a place the code names so (3/3)
+    {0x38C198, 0x376B68}, // a place the code names so (8/8)
+    {0x38C218, 0x376BE8}, // a place the code names so (8/8)
+    {0x38C298, 0x376C68}, // a place the code names so (4/4)
     {0x3A0B20, 0x397FB0}, // the same bytes, once only
     {0x3A1420, 0x3989F0}, // the same bytes, once only
     {0x3A1660, 0x398C30}, // a table between two that moved alike (the same bytes)
@@ -471,7 +471,7 @@ inline constexpr Place kPlaceList[] = {
     {0xFF0D70, 0xFF0D70}, // a variable the code names so (6/6)
     {0xFF0E0E, 0xFF0E0E}, // a variable the code names so (3/3)
     {0xFF1E0E, 0xFF1E0E}, // a variable the code names so (4/4)
-    {0xFF1E2A, 0xFF1E2A}, // a variable the code names so (1/1)
+    {0xFF1E2A, 0xFF1E2A}, // a variable the code names so (5/5)
     {0xFF310E, 0xFF3120}, // the end of the first list (the things thrown), as ThrownAgainstPlayers (0193C4) has it by hand
     {0xFF3436, 0xFF3488}, // a variable the code names so (3/3)
     {0xFF3438, 0xFF348A}, // a variable the code names so (3/3)
@@ -497,18 +497,20 @@ inline constexpr Place kPlaceList[] = {
     {0xFF347E, 0xFF34D0}, // a variable the code names so (1/1)
     {0xFF3480, 0xFF34D2}, // a variable the code names so (1/1)
     {0xFF4302, 0xFF4382}, // a variable the code names so (5/5)
-    {0xFF8004, 0xFF8004}, // a variable the code names so (39/39)
-    {0xFF8008, 0xFF8008}, // a variable the code names so (80/80)
-    {0xFF800C, 0xFF800C}, // a variable the code names so (101/101)
-    {0xFF8010, 0xFF8010}, // a variable the code names so (62/62)
+    {0xFF50B0, 0xFF5130}, // a variable the code names so (5/5)
+    {0xFF50B1, 0xFF5131}, // a variable the code names so (3/3)
+    {0xFF8004, 0xFF8004}, // a variable the code names so (55/55)
+    {0xFF8008, 0xFF8008}, // a variable the code names so (110/111)
+    {0xFF800C, 0xFF800C}, // a variable the code names so (111/111)
+    {0xFF8010, 0xFF8010}, // a variable the code names so (74/74)
     {0xFF801A, 0xFF801A}, // a variable the code names so (12/12)
     {0xFF801E, 0xFF801E}, // a variable the code names so (8/8)
-    {0xFF8022, 0xFF8022}, // a variable the code names so (23/23)
-    {0xFF8024, 0xFF8024}, // a variable the code names so (23/23)
-    {0xFF8026, 0xFF8026}, // a variable the code names so (22/22)
-    {0xFF8028, 0xFF8028}, // a variable the code names so (23/23)
-    {0xFF802A, 0xFF802A}, // a variable the code names so (18/18)
-    {0xFF802C, 0xFF802C}, // a variable the code names so (18/18)
+    {0xFF8022, 0xFF8022}, // a variable the code names so (26/27)
+    {0xFF8024, 0xFF8024}, // a variable the code names so (26/26)
+    {0xFF8026, 0xFF8026}, // a variable the code names so (24/24)
+    {0xFF8028, 0xFF8028}, // a variable the code names so (25/25)
+    {0xFF802A, 0xFF802A}, // a variable the code names so (22/22)
+    {0xFF802C, 0xFF802C}, // a variable the code names so (22/23)
     {0xFF802E, 0xFF802E}, // a variable the code names so (4/4)
     {0xFF8058, 0xFF8058}, // a variable the code names so (20/20)
     {0xFF805A, 0xFF805A}, // a variable the code names so (8/8)
@@ -519,70 +521,87 @@ inline constexpr Place kPlaceList[] = {
     {0xFF8076, 0xFF8076}, // a variable the code names so (7/7)
     {0xFF8085, 0xFF8085}, // a variable the code names so (4/4)
     {0xFF8087, 0xFF8087}, // a variable the code names so (6/6)
-    {0xFF808A, 0xFF808A}, // a variable the code names so (34/34)
-    {0xFF808C, 0xFF808C}, // a variable the code names so (10/10)
-    {0xFF808D, 0xFF808D}, // a variable the code names so (15/15)
-    {0xFF808F, 0xFF808F}, // a variable the code names so (39/39)
-    {0xFF8090, 0xFF8090}, // a variable the code names so (112/112)
-    {0xFF8098, 0xFF8098}, // a variable the code names so (18/18)
+    {0xFF808A, 0xFF808A}, // a variable the code names so (38/38)
+    {0xFF808C, 0xFF808C}, // a variable the code names so (11/11)
+    {0xFF808D, 0xFF808D}, // a variable the code names so (16/16)
+    {0xFF808F, 0xFF808F}, // a variable the code names so (42/42)
+    {0xFF8090, 0xFF8090}, // a variable the code names so (115/115)
+    {0xFF8098, 0xFF8098}, // a variable the code names so (19/19)
     {0xFF8099, 0xFF8099}, // a variable the code names so (9/9)
-    {0xFF80A0, 0xFF80A0}, // a variable the code names so (10/10)
+    {0xFF80A0, 0xFF80A0}, // a variable the code names so (11/11)
     {0xFF80A1, 0xFF80A1}, // a variable the code names so (10/10)
     {0xFF80A2, 0xFF80A2}, // a variable the code names so (10/10)
     {0xFF80A3, 0xFF80A3}, // a variable the code names so (15/15)
     {0xFF80A4, 0xFF80A4}, // a variable the code names so (12/12)
     {0xFF80A5, 0xFF80A5}, // a variable the code names so (17/17)
-    {0xFF80AC, 0xFF80AC}, // a variable the code names so (49/49)
-    {0xFF80B4, 0xFF80B4}, // a variable the code names so (51/51)
+    {0xFF80AC, 0xFF80AC}, // a variable the code names so (52/52)
+    {0xFF80B4, 0xFF80B4}, // a variable the code names so (61/61)
     {0xFF80B5, 0xFF80B5}, // a variable the code names so (22/22)
     {0xFF80BB, 0xFF80BB}, // a variable the code names so (10/10)
-    {0xFF80BD, 0xFF80BD}, // a variable the code names so (33/33)
+    {0xFF80BD, 0xFF80BD}, // a variable the code names so (37/37)
     {0xFF80BF, 0xFF80BF}, // a variable the code names so (10/12)
-    {0xFF80D0, 0xFF80D0}, // a variable the code names so (28/28)
+    {0xFF80D0, 0xFF80D0}, // a variable the code names so (36/36)
     {0xFF80D4, 0xFF80D4}, // the random number (battle.cpp): 0xD4(a5) in this game's routine of it too (013584) by hand
-    {0xFF8100, 0xFF8100}, // a variable the code names so (41/41)
-    {0xFF8107, 0xFF8107}, // a variable the code names so (26/26)
-    {0xFF8109, 0xFF8109}, // a variable the code names so (12/12)
-    {0xFF810A, 0xFF810A}, // a variable the code names so (2/2)
-    {0xFF810B, 0xFF810B}, // a variable the code names so (50/50)
-    {0xFF810C, 0xFF810C}, // a variable the code names so (10/10)
-    {0xFF810D, 0xFF810D}, // a variable the code names so (61/61)
-    {0xFF810E, 0xFF810E}, // a variable the code names so (35/35)
+    {0xFF8100, 0xFF8100}, // a variable the code names so (47/47)
+    {0xFF8102, 0xFF8102}, // a variable the code names so (7/7)
+    {0xFF8107, 0xFF8107}, // a variable the code names so (27/27)
+    {0xFF8109, 0xFF8109}, // a variable the code names so (14/14)
+    {0xFF810A, 0xFF810A}, // a variable the code names so (5/5)
+    {0xFF810B, 0xFF810B}, // a variable the code names so (53/53)
+    {0xFF810C, 0xFF810C}, // a variable the code names so (11/11)
+    {0xFF810D, 0xFF810D}, // a variable the code names so (68/68)
+    {0xFF810E, 0xFF810E}, // a variable the code names so (36/36)
     {0xFF8118, 0xFF8118}, // a variable the code names so (8/8)
     {0xFF8125, 0xFF8125}, // a variable the code names so (4/4)
-    {0xFF812C, 0xFF812C}, // a variable the code names so (14/14)
-    {0xFF812D, 0xFF812D}, // a variable the code names so (7/7)
+    {0xFF812C, 0xFF812C}, // a variable the code names so (15/15)
+    {0xFF812D, 0xFF812D}, // a variable the code names so (9/9)
     {0xFF8131, 0xFF8131}, // a variable the code names so (6/6)
-    {0xFF8133, 0xFF8165}, // a variable the code names so (6/9)
-    {0xFF8134, 0xFF8134}, // a variable the code names so (74/74)
-    {0xFF8137, 0xFF8137}, // a variable the code names so (10/10)
+    {0xFF8133, 0xFF8165}, // a variable the code names so (7/10)
+    {0xFF8134, 0xFF8134}, // a variable the code names so (75/75)
+    {0xFF8137, 0xFF8137}, // a variable the code names so (12/12)
     {0xFF813E, 0xFF813E}, // a variable the code names so (16/16)
-    {0xFF8140, 0xFF8140}, // a variable the code names so (10/10)
-    {0xFF814C, 0xFF814C}, // a variable the code names so (10/10)
-    {0xFF815D, 0xFF815D}, // a variable the code names so (18/19)
-    {0xFF8200, 0xFF8200}, // a variable the code names so (3/3)
-    {0xFF8280, 0xFF8280}, // a variable the code names so (5/5)
-    {0xFF8290, 0xFF8290}, // a variable the code names so (56/56)
-    {0xFF8294, 0xFF8294}, // a variable the code names so (20/20)
+    {0xFF8140, 0xFF8140}, // a variable the code names so (15/15)
+    {0xFF814C, 0xFF814C}, // a variable the code names so (11/11)
+    {0xFF815D, 0xFF815D}, // a variable the code names so (19/20)
+    {0xFF8200, 0xFF8200}, // a variable the code names so (4/4)
+    {0xFF8280, 0xFF8280}, // a variable the code names so (6/6)
+    {0xFF8290, 0xFF8290}, // a variable the code names so (59/59)
+    {0xFF8294, 0xFF8294}, // a variable the code names so (21/21)
     {0xFF82A0, 0xFF82A0}, // a variable the code names so (15/15)
-    {0xFF82A8, 0xFF82A8}, // a variable between two that moved alike
-    {0xFF8300, 0xFF8300}, // a variable the code names so (4/4)
+    {0xFF82A8, 0xFF1E3A}, // a variable the code names so (1/1)
+    {0xFF8300, 0xFF8300}, // a variable the code names so (5/5)
     {0xFF8380, 0xFF8380}, // a variable the code names so (10/10)
     {0xFF8390, 0xFF8390}, // a variable between two that moved alike
     {0xFF8398, 0xFF8398}, // a variable the code names so (9/9)
     {0xFF83A0, 0xFF83A0}, // a variable the code names so (6/6)
-    {0xFF8400, 0xFF8400}, // a variable the code names so (61/61)
-    {0xFF8800, 0xFF8800}, // a variable the code names so (60/60)
+    {0xFF8400, 0xFF8400}, // a variable the code names so (63/63)
+    {0xFF8800, 0xFF8800}, // a variable the code names so (62/62)
     {0xFF9400, 0xFF9400}, // a variable the code names so (4/4)
+    {0xFFB400, 0xFFB400}, // a variable the code names so (2/2)
+    {0xFFB800, 0xFFB800}, // a variable the code names so (2/2)
     {0xFFC800, 0xFFC800}, // a variable the code names so (2/2)
+    {0xFFD400, 0xFFD400}, // a variable the code names so (2/2)
+    {0xFFE400, 0xFFE400}, // a variable the code names so (2/2)
+    {0xFFE800, 0xFFE800}, // a variable the code names so (4/4)
     {0xFFF420, 0xFFF420}, // a variable the code names so (1/1)
     {0xFFF421, 0xFFF421}, // a variable the code names so (1/1)
     {0xFFF424, 0xFFF424}, // a variable the code names so (4/4)
     {0xFFF425, 0xFFF425}, // a variable the code names so (2/2)
+    {0xFFF966, 0xFFF9E6}, // a variable the code names so (5/5)
+    {0xFFF96A, 0xFFF9EA}, // a variable the code names so (5/5)
+    {0xFFF96E, 0xFFF9EE}, // a variable the code names so (5/5)
     {0xFFF972, 0xFFF9F2}, // a variable the code names so (5/5)
+    {0xFFF976, 0xFFF9F6}, // a variable the code names so (5/5)
+    {0xFFF97A, 0xFFF9FA}, // a variable the code names so (5/5)
+    {0xFFF97E, 0xFFF9FE}, // a variable the code names so (5/5)
     {0xFFF982, 0xFFFA02}, // a variable the code names so (6/6)
+    {0xFFF9BE, 0xFFFA42}, // a variable the code names so (20/20)
+    {0xFFF9BF, 0xFFFA43}, // a variable the code names so (5/5)
+    {0xFFF9C0, 0xFFFA44}, // a variable the code names so (18/19)
     {0xFFF9C1, 0xFFFA45}, // a variable the code names so (6/6)
+    {0xFFF9C2, 0xFFFA46}, // a variable the code names so (6/6)
     {0xFFF9C3, 0xFFFA47}, // a variable the code names so (4/4)
+    {0xFFF9C4, 0xFFFA48}, // a variable the code names so (5/5)
     {0xFFF9C5, 0xFFFA49}, // a variable the code names so (4/5)
     // places: end
 };

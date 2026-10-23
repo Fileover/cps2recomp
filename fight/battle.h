@@ -16,7 +16,9 @@
 //   Team battle     two teams of two or three, chosen on the menu: one fighter of each side at a time, the one
 //                   knocked down out and the next of that side in, with full health; the winner stays on with
 //                   the health it has left. Over when a side has nobody left. Side 2 is a person or the game; with
-//                   the tag-team modes (tag.h) each fighter of a side may be a person of its own.
+//                   the tag-team modes (tag.h) each fighter of a side may be a person of its own. Its tag style
+//                   (a game that can swap a fighter mid-fight): each fighter has a bar of its own, Start tags
+//                   the next one in whenever the fighter on can act, and a bar emptied brings the next in.
 //
 // A game's sources describe where the game keeps what these need (Description) and register it; they also
 // make the ring out's own movements of a player at its step of a fight (RingOutMove) and let a player knocked
@@ -128,6 +130,12 @@ struct Description {
     // The team battle's machines, before each of their frames, with "one health bar each" chosen: the game's own
     // setting for it put in (nullptr: no such choice)
     void (*oneBarEach)() = nullptr;
+    // The team battle's tag style (nullptr: no such style): whether a side's fighter can be swapped now (it can act),
+    // and swapping it: the game sets the side's player up again as this character (the health and the bytes of
+    // `meter` are put back by the toolkit after the game's frame)
+    bool (*canTag)(int side) = nullptr;
+    void (*tagIn)(int side, int character) = nullptr;
+    uint32_t meter = 0, meterSize = 0; // bytes of a player's record kept by the side across a swap (its gauges)
 
     // A game is being played (no: the board was reset)
     bool (*inGame)() = nullptr;
@@ -175,6 +183,11 @@ void EndBattle();
 bool BattleNoClock();    // the round's clock stands still
 bool BattleNoKnockOut(); // nobody's health goes below nothing
 bool TeamBattle();
+// The tag style: a player's health stops at nothing, not below (a partner comes in instead of a knock-out)
+bool TeamHoldsKnockOut(int player);
+// The tag style: a time over's result by the teams' health, all their fighters' (1: team 1 has won, 2: team 2, 3:
+// neither), or 0: not the tag style (the game's own, by the two players')
+int TeamTimeOverResult();
 // Around the port's machine's frame (the game's beforeFrame and frame), and its save states
 void BattleBeforeFrame(Machine &machine);
 void BattleFrame(Machine &machine);

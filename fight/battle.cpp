@@ -170,6 +170,16 @@ namespace {
         int32_t on[2] = {0, 0};
         int32_t stays = -1;
         int32_t full = 0;                // a fighter's health when it comes on
+        // The tag style: each fighter's health and ceiling while it is not on (down: 0), the side's gauges kept across
+        // a swap, a swap's health still to be put back after the game's frame, frames before a side can tag again,
+        // Start held the frame before
+        bool tag = false;
+        int32_t kept[2][kTeamMost] = {}, keptCeiling[2][kTeamMost] = {};
+        uint8_t meter[2][8] = {};
+        bool putBack[2] = {false, false};
+        int32_t cool[2] = {0, 0};
+        bool startWas[2] = {false, false};
+        int32_t rest = 0;                // frames counted for the health that comes back while resting
     } g;
     Spare g_dropBack;                    // the ring out: the machine of the next match's stage
     bool g_open = false;                 // the ring out: the port's machine is running a fight with open ends
@@ -316,6 +326,7 @@ namespace {
             g.characters[side] = g.team[side][0];
         }
         g.computer[1] = TeamComputer();
+        g.tag = d.tagIn && FeatureValue("team_style") == 1;
         const int stage = FeatureValue("team_stage");
         g.stage = stage >= 1 && stage <= d.stages ? stage : AnyStage(0);
     }
@@ -347,16 +358,109 @@ namespace {
             g.characters[side] = g.team[side][g.on[side]];
         }
     }
-    // Under each side's bars: who of the side is still to come on
+    // Under each side's bars: who of the side is still to come on (the tag style: the others, with their health)
     void TeamLines(std::vector<HudLine> &lines) {
         for (int side = 0; side < 2; side++) {
             std::string text;
+            if (g.tag) {
+                for (int n = 0; n < g.teamSize; n++) {
+                    if (n == g.on[side]) {
+                        continue;
+                    }
+                    const char *name = NameOf(g.team[side][n]);
+                    char health[16];
+                    if (g.kept[side][n] > 0) {
+                        snprintf(health, sizeof(health), " %d%%", std::max(1, g.kept[side][n] * 100 / std::max(g.full, 1)));
+                    } else {
+                        snprintf(health, sizeof(health), " down");
+                    }
+                    text += std::string(text.empty() ? "" : "  ") + (name ? name : "?") + health;
+                }
+                if (!text.empty()) {
+                    lines.push_back({side == 0 ? 0.02f : 0.98f, 0.27f, side == 0 ? -1 : 1, text});
+                }
+                continue;
+            }
             for (int n = g.on[side] + 1; n < g.teamSize; n++) {
                 const char *name = NameOf(g.team[side][n]);
                 text += std::string(text.empty() ? "Next: " : ", ") + (name ? name : "?");
             }
             if (!text.empty()) {
                 lines.push_back({side == 0 ? 0.02f : 0.98f, 0.27f, side == 0 ? -1 : 1, text});
+            }
+        }
+    }
+
+    // --- the team battle's tag style ---
+
+    constexpr int kTagCool = 30; // frames after a swap before the side can tag again
+    constexpr int kRestEvery = 6; // a resting fighter gets back a point of its health that comes back this often
+
+    // A side's next fighter that is not down, after the one on (-1: none)
+    int NextUp(int side) {
+        for (int k = 1; k < g.teamSize; k++) {
+            const int n = (g.on[side] + k) % g.teamSize;
+            if (g.kept[side][n] > 0) {
+                return n;
+            }
+        }
+        return -1;
+    }
+    // The side's fighter on goes off, with what it has, and `next` comes on
+    void Swap(int side, int next) {
+        const int16_t health = static_cast<int16_t>(Ram16(Player(side) + d.health));
+        const int16_t ceiling = static_cast<int16_t>(Ram16(Player(side) + d.healthCeiling));
+        g.kept[side][g.on[side]] = std::max<int>(health, 0);
+        g.keptCeiling[side][g.on[side]] = std::max<int>(std::max<int>(ceiling, health), 0);
+        for (uint32_t n = 0; n < std::min<uint32_t>(d.meterSize, sizeof(g.meter[side])); n++) {
+            g.meter[side][n] = Ram8(Player(side) + d.meter + n);
+        }
+        g.on[side] = next;
+        g.characters[side] = g.team[side][next];
+        d.tagIn(side, g.team[side][next]);
+        g.putBack[side] = true;
+        g.cool[side] = kTagCool;
+    }
+    // Before the frame: a side whose fighter can act tags the next one in on Start (a person's side), or must (its
+    // fighter's bar emptied)
+    void TagBeforeFrame(uint16_t one, uint16_t two) {
+        const uint16_t held[2] = {one, two};
+        for (int side = 0; side < 2; side++) {
+            const bool start = (held[side] & kStart) != 0;
+            const bool pressed = start && !g.startWas[side] && !g.computer[side];
+            g.startWas[side] = start;
+            if (g.cool[side] > 0) {
+                g.cool[side]--;
+                continue;
+            }
+            const bool emptied = static_cast<int16_t>(Ram16(Player(side) + d.health)) <= 0;
+            const int next = NextUp(side);
+            if ((pressed || emptied) && next >= 0 && !g.putBack[side] && d.canTag(side)) {
+                Swap(side, next);
+            }
+        }
+    }
+    // After the frame: the health and gauges of the ones who came on put back (the game set them up with full health
+    // and none), and the health that comes back by itself coming back to the ones resting
+    void TagFrame() {
+        for (int side = 0; side < 2; side++) {
+            if (g.putBack[side]) {
+                g.putBack[side] = false;
+                SetRam16(Player(side) + d.health, static_cast<uint16_t>(g.kept[side][g.on[side]]));
+                SetRam16(Player(side) + d.healthCeiling, static_cast<uint16_t>(g.keptCeiling[side][g.on[side]]));
+                for (uint32_t n = 0; n < std::min<uint32_t>(d.meterSize, sizeof(g.meter[side])); n++) {
+                    SetRam8(Player(side) + d.meter + n, g.meter[side][n]);
+                }
+            }
+        }
+        if (++g.rest >= kRestEvery) {
+            g.rest = 0;
+            for (int side = 0; side < 2; side++) {
+                for (int n = 0; n < g.teamSize; n++) {
+                    if (n != g.on[side] && g.kept[side][n] > 0 && g.kept[side][n] < g.keptCeiling[side][n]) {
+                        g.kept[side][n]++;
+                    }
+                }
             }
         }
     }
@@ -463,6 +567,11 @@ namespace {
                 g.characters[0] = Ram8(Player(0) + d.character);
                 g.characters[1] = Ram8(Player(1) + d.character);
                 g.full = static_cast<int16_t>(Ram16(Player(0) + d.health));
+                for (int side = 0; side < 2; side++) {
+                    for (int n = 0; n < kTeamMost; n++) {
+                        g.kept[side][n] = g.keptCeiling[side][n] = g.full;
+                    }
+                }
                 if (Chooses() && d.colours) {
                     g.colours = Ram8(Player(0) + d.colours);
                 }
@@ -504,6 +613,9 @@ namespace {
                     g.computer[n] = true;
                 }
             }
+        }
+        if (g.kind == Kind::Team && g.tag && g.phase == Phase::Fighting) {
+            TagBeforeFrame(one, two);
         }
         // (a fighter the game plays hears nothing of the controls; nobody's Start or coin does anything)
         one = g.computer[0] ? 0 : one & kAnyButton;
@@ -901,7 +1013,11 @@ namespace {
                 g.phase = Phase::Decided;
                 g.since = 0;
                 Begin(g_next);
-                if (g.kind == Kind::Team) {
+                if (g.kind == Kind::Team && g.tag) {
+                    // (the tag style: the last fighter of a side knocked out, as only the last one can be)
+                    g.phase = Phase::Over;
+                    g.winner = result == 3 ? -1 : result == 2 ? 1 : 0;
+                } else if (g.kind == Kind::Team) {
                     TeamDecided(result);
                 } else if (g.kind == Kind::Survival) {
                     if (result != 1) {
@@ -1008,6 +1124,9 @@ namespace {
             snprintf(text, sizeof(text), "Beaten: %d", g.score);
             lines.push_back({0.5f, 0.21f, 0, text});
         }
+        if (g.kind == Kind::Team && g.tag && g.phase == Phase::Fighting) {
+            TagFrame();
+        }
         if (g.kind == Kind::Team && (g.phase == Phase::Fighting || g.phase == Phase::Decided)) {
             TeamLines(lines);
         }
@@ -1030,6 +1149,30 @@ bool BattleNoKnockOut() {
 }
 bool TeamBattle() {
     return g.kind == Kind::Team;
+}
+int TeamTimeOverResult() {
+    if (g.kind != Kind::Team || !g.tag) {
+        return 0;
+    }
+    int total[2] = {0, 0};
+    for (int side = 0; side < 2; side++) {
+        total[side] = std::max<int>(static_cast<int16_t>(Ram16(Player(side) + d.health)), 0);
+        for (int n = 0; n < g.teamSize; n++) {
+            total[side] += n != g.on[side] ? g.kept[side][n] : 0;
+        }
+    }
+    return total[0] == total[1] ? 3 : total[0] > total[1] ? 1 : 2;
+}
+bool TeamHoldsKnockOut(int player) {
+    if (g.kind != Kind::Team || !g.tag || g.phase != Phase::Fighting || (player != 0 && player != 1)) {
+        return false;
+    }
+    for (int n = 0; n < g.teamSize; n++) {
+        if (n != g.on[player] && g.kept[player][n] > 0) {
+            return true;
+        }
+    }
+    return false;
 }
 
 void BattleBeforeFrame(Machine &machine) {
@@ -1175,6 +1318,14 @@ void battle::Register(const Description &description) {
                              "the next of that side comes on with full health; the winner stays on with the health it has left, "
                              "and a little back. Over when a side has nobody left.",
                              StartTeam});
+    if (d.tagIn) {
+        game.features.push_back({"team_style", kTeam, "Style",
+                                 "Knock-out: one fighter of each team at a time, the next coming on when one is knocked out. Tag: "
+                                 "each fighter has its own health; Start tags the next one in whenever yours can act, and when a "
+                                 "fighter's health runs out the next comes in. Resting fighters get back the health that comes back "
+                                 "by itself. The match is over when a team has nobody left.",
+                                 0, {"Knock-out", "Tag"}});
+    }
     game.features.push_back({"team_size", kTeam, "Fighters", "How many fighters each team has.", 0, {"2", "3"}});
     if (d.oneBarEach) {
         game.features.push_back({"team_bars", kTeam, "Health bars",
@@ -1208,12 +1359,15 @@ void battle::RegisterTeamTag(float labelY) {
     // (no fighter is on outside a match; a team of three's third is its first person's again)
     t.onPoint = [](int side) { return g.kind == Kind::Team && (g.phase == Phase::Fighting || g.phase == Phase::Decided) ? g.on[side] % 2 : -1; };
     t.otherMode = [] { return g.kind != Kind::Team; };
-    t.tagButtons = 0;
+    // (the tag style: the partner's Start tags them in)
+    t.fighting = [] { return g.kind == Kind::Team && g.tag && g.phase == Phase::Fighting; };
+    t.tagButtons = kStart;
     t.labelY = labelY;
     t.page = kTeam;
     t.help = "In the team battle, each fighter of a team played by a person of its own. Co-op: players 1 and 2 are one team "
              "against the computer's. 2 vs 2: players 1 and 3 against players 2 and 4. A team's panel is whoever's fighter is on "
-             "(in a team of three, the third is the first person's again). The labels under the bars say who is on.";
+             "(in a team of three, the third is the first person's again), and in the tag style the partner tags in with "
+             "Start. The labels under the bars say who is on.";
     tag::Register(t);
 }
 

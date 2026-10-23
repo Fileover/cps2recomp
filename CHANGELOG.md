@@ -31,7 +31,14 @@ with X-Men vs. Street Fighter.
   comes on with a full bar, and the winner stays on with the health it has left (and a little back). Team 2 is the CPU, or player 2.
   With "Tag team" on the same page each fighter is a person's own (co-op against the computer's team, or 2 vs 2 for
   four players): the tag-team router (`fight/tag.h`) follows whose fighter is on, and the Controllers page has four
-  players. The first step towards tagging in during a fight. Off, every game is as it was.
+  players. Off, every game is as it was.
+- **The team battle's tag style** ("Style: Tag" on its page; the same four games): Marvel-style, each fighter with a
+  bar of its own, tagged in with Start whenever the fighter on can act; a bar emptied brings the next one in instead of
+  a knock-out; resting fighters get back the health that comes back by itself; the team's super gauges carry across a
+  tag; the others' health listed under the bars; a time over decided by the teams' health in all. In co-op and 2 vs 2
+  the partner tags in with their own Start. The game sets a fighter up anew itself (its own setting up of a player,
+  mid-fight), after what the outgoing character made is given back; every pair of characters swapped back and forth
+  under made-up play in Vampire Savior, Vampire Savior 2 and Vampire Hunter 2 (602 pairs, 3,010 swaps) with no fault.
 
 ## 0.4.0-beta.5
 

@@ -1,10 +1,17 @@
 // SPDX-License-Identifier: GPL-3.0-only
 // Copyright (C) 2026 Tommy McLeroy
 //
-// Vampire Savior: a spike for tagging in during a fight (not a feature yet). VSAV_SWAP=FRAME:PLAYER:CHARACTER[:QUIET],...
-// (hex character) has the player's record given the character at that frame and its step put back to 0, so that the
-// game's own setting up of a player (0222C8) makes it that character; QUIET sets the player's bit at A5+102 first,
-// which skips the entrance.
+// Vampire Savior: swapping a player's fighter in the middle of a fight, for the team battle's tag style (fight/battle.h).
+// The game sets the player up again itself: its routine's step 0 (0222C8) clears the record from +80 to +37F, sets the
+// health, the armour, the palette slot and the first animation, calls the character's own setting up (a routine by
+// number at BD0FA), and plays no entrance (the player's bit at A5+102 set). What the outgoing character made (objects
+// from the game's pools that name its record at +30 or +32, and its links at +28-+2E) is given back first, as the game
+// gives an object back, or it would run on with another character in the record (Q-Bee's and Lilith's crashed the
+// game). The colours are put in on the next frame. Checked with every pair of the fifteen swapped back and forth under
+// made-up play (PROGRESS.md).
+//
+// For tests, VSAV_SWAP=FRAME:PLAYER:CHARACTER,... (hex character) swaps outside the team battle, at that frame or, with
+// VSAV_SWAP_FREE, as soon after as the player can act.
 #include "machine.h"
 #include "vsav.h"
 
@@ -15,34 +22,50 @@
 namespace cps2recomp {
 
 namespace {
+    using namespace vsav;
+
     // The pools the game takes objects from (016C4E on: each a free list from A5, pushed to on release, 017028 on):
-    // where the objects are, how many and how big, the tag at +8 a free one has, the list's pointer and count
+    // where the objects are, how many and how big, the tag at +8 a free one has, the list's pointer and count, and a
+    // byte set on release (+3C FF, +0D 1; 0: none)
     struct Pool {
         uint32_t first;
         int count;
         uint32_t size;
         uint8_t tag;
-        int32_t list, left;
-        uint32_t extra; // a byte set on release (+3C FF, +0D 1), or 0
+        uint32_t list, left;
+        uint32_t extra;
         uint8_t extraValue;
     };
     constexpr Pool kPools[] = {
-        {0xFF9400, 32, 0x100, 0x04, 0x7966, 0x79BE, 0x3C, 0xFF}, {0xFFB400, 8, 0x80, 0x08, 0x796A, 0x79BF, 0, 0},
-        {0xFFB800, 32, 0x80, 0x0C, 0x796E, 0x79C0, 0x3C, 0xFF}, {0xFFC800, 24, 0x80, 0x10, 0x7972, 0x79C1, 0x0D, 1},
-        {0xFFD400, 32, 0x80, 0x14, 0x7976, 0x79C2, 0, 0},       {0xFFE400, 16, 0x40, 0x18, 0x797A, 0x79C3, 0, 0},
-        {0xFFE800, 6, 0x200, 0x1C, 0x797E, 0x79C4, 0, 0},
+        {At(0xFF9400), 32, 0x100, 0x04, At(0xFFF966), At(0xFFF9BE), 0x3C, 0xFF},
+        {At(0xFFB400), 8, 0x80, 0x08, At(0xFFF96A), At(0xFFF9BF), 0, 0},
+        {At(0xFFB800), 32, 0x80, 0x0C, At(0xFFF96E), At(0xFFF9C0), 0x3C, 0xFF},
+        {At(0xFFC800), 24, 0x80, 0x10, At(0xFFF972), At(0xFFF9C1), 0x0D, 1},
+        {At(0xFFD400), 32, 0x80, 0x14, At(0xFFF976), At(0xFFF9C2), 0, 0},
+        {At(0xFFE400), 16, 0x40, 0x18, At(0xFFF97A), At(0xFFF9C3), 0, 0},
+        {At(0xFFE800), 6, 0x200, 0x1C, At(0xFFF97E), At(0xFFF9C4), 0, 0},
     };
-    constexpr uint32_t kOwner = 0x30; // word: the record of whoever made the object
-    constexpr uint32_t kLinks = 0x28; // four words of a player's record: objects of its own (01ADF6)
+    constexpr uint32_t kOwner = 0x30;            // word: the record of whoever made the object
+    constexpr uint32_t kPlayerOf = 0x32;         // word: the player's record it belongs to, for some (Q-Bee's, Anakaris's)
+    constexpr uint32_t kDrawing = 0x3C;          // byte: how the object is drawn (01ADD6); some characters' setting up
+                                                 // sets their own (Aulbath 4), the rest keep the 0 a match begins with
+    constexpr uint32_t kLinks = 0x28;            // four words of a player's record: objects of its own (01ADF6)
+    // Aulbath's: a bit by player (+381) while one of his moves is going on, and the player that set it (045D7C; his
+    // setting up clears his own, and the second byte): cleared as his setting up clears them, for one swapped out
+    constexpr uint32_t kAulbathMoves = At(0xFF50B0), kAulbathMover = At(0xFF50B1);
+    constexpr uint32_t kSkipEntrance = At(0xFF8102); // a bit by player (+381): its setting up plays no entrance
+    constexpr uint32_t kPlayerNumber = 0x381;
 
-    // Every object `owner` made (and everything they made), given back to its pool as the game gives one back
-    int ReleaseOwned(uint32_t owner) {
-        int released = 0;
+    // Every live object `owner` made (and everything those made), given back to its pool as the game gives one back;
+    // the links to it of every player's record (the opponent's too) cleared
+    int GiveBack(uint32_t owner) {
+        int given = 0;
         for (const Pool &pool : kPools) {
             for (int n = 0; n < pool.count; n++) {
                 const uint32_t object = pool.first + static_cast<uint32_t>(n) * pool.size;
-                if (!Ram8(object + vsav::kActive) || Ram16(object + kOwner) != (owner & 0xFFFF) || object == owner) {
-                    continue; // (free already, or not the owner's)
+                const uint16_t mine = static_cast<uint16_t>(owner);
+                if (!Ram8(object + kActive) || object == owner || (Ram16(object + kOwner) != mine && Ram16(object + kPlayerOf) != mine)) {
+                    continue;
                 }
                 for (uint32_t at = 0; at < 0x10; at += 4) {
                     SetRam32(object + at, 0);
@@ -51,32 +74,69 @@ namespace {
                 if (pool.extra) {
                     SetRam8(object + pool.extra, pool.extraValue);
                 }
-                const uint32_t list = Ram32(0xFF8000 + static_cast<uint32_t>(pool.list)) - 2;
+                const uint32_t list = Ram32(pool.list) - 2;
                 SetRam16(list, static_cast<uint16_t>(object));
-                SetRam32(0xFF8000 + static_cast<uint32_t>(pool.list), list);
-                SetRam8(0xFF8000 + static_cast<uint32_t>(pool.left), static_cast<uint8_t>(Ram8(0xFF8000 + static_cast<uint32_t>(pool.left)) + 1));
-                released += 1 + ReleaseOwned(object);
+                SetRam32(pool.list, list);
+                SetRam8(pool.left, static_cast<uint8_t>(Ram8(pool.left) + 1));
+                for (int n = 0; n < kPlayerRecords; n++) {
+                    for (uint32_t at = kLinks; at < kLinks + 8; at += 2) {
+                        if (Ram16(Player(n) + at) == (object & 0xFFFF)) {
+                            SetRam16(Player(n) + at, 0);
+                        }
+                    }
+                }
+                given += 1 + GiveBack(object);
             }
         }
-        return released;
+        return given;
     }
+
+    // A swap's colours still to come (on the next frame), by player
+    bool g_colours[2] = {false, false};
 } // namespace
 
-void LiveTagBeforeFrame(Machine &machine) {
-    using namespace vsav;
-    static const char *swap = getenv("VSAV_SWAP");
-    static int frame = 0;
-    if (!swap) {
-        return;
+// The player's fighter can be swapped now: a round is being fought and it can act (not held, reeling or frozen)
+bool CanTag(int player) {
+    return Ram16(kGameStep) == kGameMatch && Ram16(kMatchStep) == kMatchRound && Ram16(kRoundStep) == kRoundFought && CanAct(player) &&
+           !Ram8(Player(player) + kHitStop);
+}
+
+// The player's fighter becomes `character`, set up by the game anew at its next step
+void TagIn(int player, int character) {
+    const uint32_t record = Player(player);
+    GiveBack(record);
+    for (uint32_t at = kLinks; at < kLinks + 8; at += 2) {
+        SetRam16(record + at, 0);
     }
-    frame++;
-    // (the frame after: the player set up again by then, its set's palettes put in as at a round's start, 02ADAC)
-    static int colour = -1;
-    if (colour >= 0) {
+    SetRam8(record + kDrawing, 0);
+    const uint8_t number = Ram8(record + kPlayerNumber);
+    if (Ram8(kAulbathMoves) & (1u << number)) {
+        SetRam8(kAulbathMoves, static_cast<uint8_t>(Ram8(kAulbathMoves) & ~(1u << number)));
+        SetRam8(kAulbathMover, 0);
+    }
+    SetRam8(record + kCharacter, static_cast<uint8_t>(character));
+    SetRam8(record + kCharacterAgain, static_cast<uint8_t>(character));
+    SetRam8(kSkipEntrance, static_cast<uint8_t>(Ram8(kSkipEntrance) | (1u << number)));
+    // (the colours: the same set of the character's sets as the player chose; kColourSet is above what is cleared)
+    const uint8_t *p = Program(kColourSets + 4u * static_cast<uint32_t>(character));
+    const uint32_t sets = (static_cast<uint32_t>(p[0]) << 24) | (static_cast<uint32_t>(p[1]) << 16) | (static_cast<uint32_t>(p[2]) << 8) | p[3];
+    SetRam32(record + kColourSet, sets + static_cast<uint32_t>(Ram8(record + kColours)) * kColourSetSize);
+    SetRam32(record + kState, 0);
+    g_colours[player] = true;
+}
+
+// Before each frame: the colours of a swap, and the tests' swaps
+void LiveTagBeforeFrame(Machine &machine) {
+    for (int player = 0; player < 2; player++) {
+        if (!g_colours[player]) {
+            continue;
+        }
         // (as 02ADAC does: the set's first palette, and its other three unless the character's bit says not, into the
-        // buffer the board shows from at the player's slot, each colour keeping the brightness the buffer had)
+        // buffer the board shows from at the player's slot, each colour keeping the brightness the buffer had; the
+        // game's routine is not called from here, with the CPU stopped inside another)
+        g_colours[player] = false;
+        const uint32_t record = Player(player);
         M68K &c = machine.cpu;
-        const uint32_t record = Player(colour);
         const int lines = (kFirstLineOnly >> (Ram8(record + kCharacter) & 31)) & 1 ? 1 : kPalettesInSet;
         uint32_t from = Ram32(record + kColourSet);
         uint32_t to = Ram32(kPaletteBuffer) + static_cast<uint32_t>(Ram8(record + kPaletteSlot)) * kColoursInPalette * 2;
@@ -84,48 +144,29 @@ void LiveTagBeforeFrame(Machine &machine) {
             const uint16_t bright = static_cast<uint16_t>(c.Read(to, 1) & 0xF000);
             c.Write(to, 1, static_cast<uint16_t>(Mem16(c, from) | bright));
         }
-        colour = -1;
     }
-    // (several, comma between; each done at its frame or, with VSAV_SWAP_FREE, as soon after as the player can act)
+
+    static const char *swap = getenv("VSAV_SWAP");
+    if (!swap) {
+        return;
+    }
     static const bool free = getenv("VSAV_SWAP_FREE") != nullptr;
-    static int done = 0; // (the entries done, a bit each)
-    int at = 0, player = 0, character = 0, quiet = 0;
-    bool now = false;
+    static int frame = 0, done = 0; // (the entries done, a bit each)
+    frame++;
     int index = 0;
     for (const char *entry = swap; entry; entry = strchr(entry, ',') ? strchr(entry, ',') + 1 : nullptr, index++) {
-        quiet = 0;
-        if (sscanf(entry, "%d:%d:%x:%d", &at, &player, &character, &quiet) < 3 || (done >> index) & 1) {
+        int at = 0, player = 0, character = 0;
+        if (sscanf(entry, "%d:%d:%x", &at, &player, &character) < 3 || (done >> index) & 1) {
             continue;
         }
-        if (free ? frame >= at && CanAct(player) && !Ram8(Player(player) + kHitStop) && Ram16(kGameStep) == kGameMatch : frame == at) {
+        if (free ? frame >= at && CanTag(player) : frame == at) {
             done |= 1 << index;
-            now = true;
+            fprintf(stderr, "swap at %d: player %d %02X -> %02X\n", frame, player, Ram8(Player(player) + kCharacter), character);
+            TagIn(player, character);
             break;
         }
     }
-    if (!now) {
-        return;
-    }
-    const uint32_t record = Player(player);
-    const uint16_t health = Ram16(record + kHealth), ceiling = Ram16(record + kHealthCeiling);
-    fprintf(stderr, "swap at %d: player %d %02X -> %02X (health %04X/%04X, state %08X)\n", frame, player, Ram8(record + kCharacter),
-            character, health, ceiling, Ram32(record + kState));
-    const int released = ReleaseOwned(record);
-    for (uint32_t at = kLinks; at < kLinks + 8; at += 2) {
-        SetRam16(record + at, 0);
-    }
-    fprintf(stderr, "  released %d objects\n", released);
-    SetRam8(record + kCharacter, static_cast<uint8_t>(character));
-    SetRam8(record + kCharacterAgain, static_cast<uint8_t>(character));
-    if (quiet) {
-        SetRam8(0xFF8102, static_cast<uint8_t>(Ram8(0xFF8102) | (1u << Ram8(record + 0x381))));
-    }
-    // (the colours: the set of the character's sets that the player chose, kColourSet above what setting up clears)
-    const uint8_t *p = Program(kColourSets + 4u * static_cast<uint32_t>(character));
-    const uint32_t sets = (static_cast<uint32_t>(p[0]) << 24) | (static_cast<uint32_t>(p[1]) << 16) | (static_cast<uint32_t>(p[2]) << 8) | p[3];
-    SetRam32(record + kColourSet, sets + static_cast<uint32_t>(Ram8(record + kColours)) * kColourSetSize);
-    SetRam32(record + kState, 0);
-    colour = player;
 }
 
 } // namespace cps2recomp
+

@@ -10,6 +10,9 @@
 
 namespace cps2recomp {
 
+bool CanTag(int player); // livetag.cpp
+void TagIn(int player, int character);
+
 namespace {
     using namespace vsav;
 
@@ -129,6 +132,10 @@ void RegisterBattle() {
     d.atJumpTop = [](uint32_t player) { return Ram8(player + kAirborne) && static_cast<int32_t>(Ram32(player + kSpeedY)) <= 0; };
     d.teams = true;
     d.oneBarEach = [] { SetRam8(At(0xFF80A4), 0); }; // (the board's damage gauges: 0 is one; board.cpp)
+    d.canTag = CanTag;
+    d.tagIn = TagIn;
+    d.meter = kStocks; // (the stocks and the gauge being filled, cleared by the setting up)
+    d.meterSize = 3;
     battle::Register(d);
     battle::RegisterTeamTag(0.22f);
 }
