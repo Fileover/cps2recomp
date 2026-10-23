@@ -637,6 +637,45 @@ asks first (true: the step is made, the game's routine not run):
   ladder (20,000) movies hash as before, as do X-Men vs. Street Fighter's co-op and 2 vs 2 movies.
 - Not checked: a double knock-out (the game's result 3: both teams' next on, or a draw), by hand with four controllers.
 
+## Tagging in during a fight: the feasibility spike (2026-10-23)
+
+`src/livetag.cpp` (switched by environment variables, not a feature): `VSAV_SWAP=FRAME:PLAYER:CHARACTER[:QUIET],...`
+swaps a fighter mid-fight; `VSAV_SWAP_FREE=1` waits until the player can act; `VSAV_NO_KO=1` keeps health at 0
+(`fight.cpp`'s damage and round frame) so that nobody is knocked out.
+
+- **The game sets a fighter up again itself.** A player's routine (0222AC, by the step at +04) has a step 0, 0222C8:
+  it clears +80 to +37F of the record (the place at +10/+14 and +380 on, the character's bytes, are kept), sets the
+  health from the gauges (022374), the armour, the palette slot and the first animation, and calls the character's
+  own setting up (a table of routines at BD0FA, by number); then either the round's entrance (state 020E0000,
+  26244) or, with the player's bit set at A5+102, nothing. So a swap is: the character bytes (+382, +3E0), the colour
+  set's pointer (+3A4, above what is cleared: the character's sets at kColourSets, the set by +3AE), the state put at
+  0. The panel's name changes by itself. The palettes are put in on the next frame as 02ADAC does (in C++: calling
+  the game's routine from beforeFrame reset the board, the CPU being stopped inside a routine there).
+- **What a character leaves behind.** Its own setting up takes objects from the game's seven pools (free lists from
+  A5+7966/79BE on: FF9400 32 x 100, FFB400 8 x 80, FFB800 32 x 80, FFC800 24 x 80, FFD400 32 x 80, FFE400 16 x 40,
+  FFE800 6 x 200; given back by 017028 on, the pool's tag at +8): Q-Bee four, Victor two and one more, Lilith four.
+  Each has its maker's record at +30, and the record keeps up to four links at +28-+2E (01ADF6). Left running with
+  another character in the record, they crashed the game (Q-Bee's in nearly every pair). The spike gives back every
+  live object (+00 not zero) made by the outgoing player, and what those made, as the game does, and clears the
+  links. (Testing +8 for "free" was wrong: the game takes an object without changing it.)
+- **The matrix** (`--auto` for both players from a state 1,990 frames into the versus movie, one per first
+  character; player 1 swapped A->B->A->B and player 2 L->B->L in 2,400 frames, both players' fights going on): of
+  the 210 pairs of the fifteen, with every object given back, 209 run with no reset, no interpreter fallback and the
+  right character each time, with or without the entrance. Before objects were given back, 167. Skipping the
+  entrance crashed Q-Bee (she needs something it sets: not looked into). Swapping a player while knocked about
+  (state 02020202) crashed once: swaps only when the player can act. The one pair left: Anakaris swapped out for
+  Q-Bee, then player 2 swapped (to anyone) a while later, jumps to 01B3FF; something of Anakaris's or Q-Bee's still
+  refers to player 2 (the curse?). Not looked into.
+- **A bar emptied with a partner left:** health kept at 0 where the damage is taken (as training does; keeping only
+  the round's result from being decided is not enough: the player's own code goes into its lost state, 0C, and the
+  winner poses), the hit is an ordinary one, and when the player can act again it is swapped: the partner, on full
+  health, plays its entrance (about 110 frames) and fights on. Rewrites checked over a run of seven swaps: 119,170
+  calls, none differ.
+- Still to do for the feature: the swap kept to a fighter that can act (and not held by the opponent); the entrance
+  (the game's is too long and leaves the newcomer open; Q-Bee needs what it sets); the meter (+109/+10A, cleared by
+  the setting up) and each fighter's health kept by the side; the knocked-out look for a bar emptied; the per-
+  character long tail (the Anakaris and Q-Bee pair; effects on the opponent).
+
 ## Board settings (2026-10-15)
 
 `board.cpp`: the test menu's operator settings (設定: System and Game) as features on the Board page, each

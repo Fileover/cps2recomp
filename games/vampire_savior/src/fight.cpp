@@ -6,6 +6,8 @@
 // near enough to guard. The cheats that change damage and the clock are here, in the rules they change.
 #include "vsav.h"
 
+#include <cstdlib>
+
 namespace cps2recomp {
 
 void TrainingHit(int player, unsigned forGood, unsigned besides); // training.cpp
@@ -72,7 +74,8 @@ namespace {
             floor(kHealth);
         }
         // (a training session: nobody is knocked out, so health stops at nothing left)
-        if (TrainingMode()) {
+        static const bool noKnockOut = getenv("VSAV_NO_KO") != nullptr; // (livetag.cpp's spike)
+        if (TrainingMode() || noKnockOut) {
             for (const uint32_t which : {kHealthCeiling, kHealth}) {
                 if (Ram16(victim + which) & 0x8000) {
                     SetRam16(victim + which, 0);
@@ -247,7 +250,8 @@ namespace {
         }
         Call(c, At(0x00A60A));
         const bool training = TrainingMode();
-        if (training) {
+        static const bool noKnockOut = getenv("VSAV_NO_KO") != nullptr; // (livetag.cpp's spike)
+        if (training || noKnockOut) {
             // (whatever else takes health off: not below nothing)
             for (int n = 0; n < 2; n++) {
                 if (Ram16(Player(n) + kHealth) & 0x8000) {
