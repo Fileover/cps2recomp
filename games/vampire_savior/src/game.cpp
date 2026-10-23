@@ -5,6 +5,7 @@
 #include "colours.h"
 #include "game.h"
 #include "modes.h"
+#include "tag.h"
 
 #include <cstdlib>
 #include <cstring>
@@ -94,6 +95,7 @@ void RegisterGame() {
             Wanted().characters[0] = static_cast<int32_t>(strtol(characters, nullptr, 16));
             Wanted().characters[1] = comma ? static_cast<int32_t>(strtol(comma + 1, nullptr, 16)) : -1;
         }
+        tag::BeforeFrame(machine); // (first: the rest see the panels as routed)
         BoardBeforeFrame(machine);
         colours::BeforeFrame(machine);
         // (first: the modes below may run other machines' frames, which are never wide)
@@ -108,6 +110,7 @@ void RegisterGame() {
         TrainingFrame(machine);
         ModesFrame(machine);
         BattleFrame(machine);
+        tag::Frame(machine); // (after the battle's lines: its labels go beside them)
         ModelFrame(machine);
         TitleFrame(machine);
         CheatsFrame(machine);

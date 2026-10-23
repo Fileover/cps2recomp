@@ -2,15 +2,18 @@
 // Copyright (C) 2026 Tommy McLeroy. Part of cps2recomp.
 //
 // The fighting modes of a fighting game's "Alternative modes" page (battle.h): survival, the endless battle and
-// the ring out, on what a game's sources describe. First written for Vampire Savior, then Street Fighter Alpha 2.
+// the ring out, and the team battle, on what a game's sources describe. First written for Vampire Savior, then Street
+// Fighter Alpha 2.
 #include "battle.h"
 
 #include "spare.h"
 #include "state.h"
+#include "tag.h"
 
 #include <algorithm>
 #include <array>
 #include <cstdio>
+#include <cstdlib>
 #include <cstring>
 #include <random>
 #include <string>
@@ -21,7 +24,8 @@ namespace {
     battle::Description d; // the game's (battle::Register)
 
     constexpr const char *kModes = "Alternative modes", *kSurvival = "Survival", *kEndless = "Endless battle";
-    constexpr const char *kRingOut = "Ring out";
+    constexpr const char *kRingOut = "Ring out", *kTeam = "Team battle";
+    constexpr int kTeamMost = 3;            // fighters a team has at most
 
     constexpr int kStartMost = 9000;        // frames after which getting to a round is given up
     constexpr int kAfter = 230;             // frames a decided round is left to play out before the next match
@@ -113,7 +117,7 @@ namespace {
         return (CameraLeft() + CameraRight()) / 2;
     }
 
-    enum class Kind : int32_t { None, Survival, Endless, RingOut };
+    enum class Kind : int32_t { None, Survival, Endless, RingOut, Team };
     enum class Phase : int32_t { Starting, Fighting, Decided, Over, Falling, Dropping };
     // (the menu's choices can be changed while the battle goes on: read each frame)
     int ShuffleAfter() {
@@ -159,6 +163,12 @@ namespace {
         int32_t handedY = 0, dropY = 0;  // the winner's height in the next match as it was put there, and now
         int32_t flightX = 0, flightY = 0; // where it is put there (RingOutMove)
         std::array<uint8_t, battle::kMostRecord> flight = {}; // and its record as it was on the old stage
+        // The team battle: each side's fighters in the order they come on, how many it has, which is on now (the
+        // number knocked down), and the side whose fighter stays on with what health it had left (-1: neither)
+        int32_t team[2][kTeamMost] = {{-1, -1, -1}, {-1, -1, -1}};
+        int32_t teamSize = 2;
+        int32_t on[2] = {0, 0};
+        int32_t stays = -1;
     } g;
     Spare g_dropBack;                    // the ring out: the machine of the next match's stage
     bool g_open = false;                 // the ring out: the port's machine is running a fight with open ends
@@ -276,14 +286,90 @@ namespace {
         return g.way != kStageOne;
     }
 
+    // --- the team battle ---
+
+    // The menu's rows of a team's fighters: side, then which of them (0 the first on)
+    constexpr const char *kTeamRows[2][kTeamMost] = {{"team_1_1", "team_1_2", "team_1_3"}, {"team_2_1", "team_2_2", "team_2_3"}};
+    // Side 2 is the game's: chosen so, or player 2 is on player 1's team (tag.h's co-op)
+    bool TeamComputer() {
+        const tag::Mode people = tag::Chosen();
+        return people == tag::kCoop || (people == tag::kOff && FeatureValue("team_opponent") == 1);
+    }
+    // A character's name, as the menu's rows have it (nullptr: none of them)
+    const char *NameOf(int character) {
+        for (size_t choice = 1; choice < d.fighterChoices.size(); choice++) {
+            if (d.rosterNumber(static_cast<int>(choice)) == character) {
+                return d.fighterChoices[choice];
+            }
+        }
+        return nullptr;
+    }
+    // The teams as the menu has them (a fighter at random: not one already on that side), on one stage throughout
+    void StartTeams() {
+        g.teamSize = FeatureValue("team_size") == 1 ? 3 : 2;
+        for (int side = 0; side < 2; side++) {
+            for (int n = 0; n < g.teamSize; n++) {
+                const int chosen = ChosenCharacter(kTeamRows[side][n]);
+                g.team[side][n] = chosen >= 0 ? chosen : AnyCharacter(n > 0 ? g.team[side][0] : -1, n > 1 ? g.team[side][1] : -1);
+            }
+            g.characters[side] = g.team[side][0];
+        }
+        g.computer[1] = TeamComputer();
+        const int stage = FeatureValue("team_stage");
+        g.stage = stage >= 1 && stage <= d.stages ? stage : AnyStage(0);
+    }
+    // A match decided (the round's result: 1 player 1 has won, 2 player 2, 3 both down): the one knocked down is
+    // out and the next of that side comes on; the other stays on with what it has left, and a little back
+    void TeamDecided(uint8_t result) {
+        const bool down[2] = {result == 2 || result == 3, result == 1 || result == 3};
+        for (int side = 0; side < 2; side++) {
+            g.on[side] += down[side];
+        }
+        const bool out[2] = {g.on[0] >= g.teamSize, g.on[1] >= g.teamSize};
+        if (out[0] || out[1]) {
+            g.phase = Phase::Over;
+            g.winner = out[0] && out[1] ? -1 : out[0] ? 1 : 0;
+            return;
+        }
+        g.stays = down[0] == down[1] ? -1 : down[0] ? 1 : 0;
+        if (g.stays >= 0) {
+            const auto left = [](uint32_t which) {
+                const int now = static_cast<int16_t>(Ram16(Player(g.stays) + which));
+                return std::min<int>(std::max(now, 0) + d.healthBack, d.healthFull);
+            };
+            g.health = left(d.health);
+            g.ceiling = d.ceilingShown ? g.health : std::max(left(d.healthCeiling), g.health);
+        }
+        for (int side = 0; side < 2; side++) {
+            g.characters[side] = g.team[side][g.on[side]];
+        }
+    }
+    // Under each side's bars: who of the side is still to come on
+    void TeamLines(std::vector<HudLine> &lines) {
+        for (int side = 0; side < 2; side++) {
+            std::string text;
+            for (int n = g.on[side] + 1; n < g.teamSize; n++) {
+                const char *name = NameOf(g.team[side][n]);
+                text += std::string(text.empty() ? "Next: " : ", ") + (name ? name : "?");
+            }
+            if (!text.empty()) {
+                lines.push_back({side == 0 ? 0.02f : 0.98f, 0.27f, side == 0 ? -1 : 1, text});
+            }
+        }
+    }
+
     void Start(Machine &machine, Kind kind) {
         d.endModes();
         End();
         SetFeature("training_mode", false);
         g.kind = kind;
         g.phase = Phase::Starting;
-        g.random = std::random_device()() | 1;
-        if (kind != Kind::Endless) {
+        // (for tests, CPS2RECOMP_BATTLE_SEED=N: the same choices at random every time, so that a movie plays back)
+        static const char *seed = getenv("CPS2RECOMP_BATTLE_SEED");
+        g.random = (seed ? static_cast<uint32_t>(strtoul(seed, nullptr, 10)) : std::random_device()()) | 1;
+        if (kind == Kind::Team) {
+            StartTeams();
+        } else if (kind != Kind::Endless) {
             g.characters[0] = -1; // (the player's choice)
             g.characters[1] = AnyCharacter();
             g.computer[1] = true;
@@ -315,6 +401,9 @@ namespace {
         }
         machine.Reset();
     }
+    void StartTeam(Machine &machine) {
+        Start(machine, Kind::Team);
+    }
     void StartSurvival(Machine &machine) {
         Start(machine, Kind::Survival);
     }
@@ -325,7 +414,7 @@ namespace {
         Start(machine, Kind::RingOut);
     }
     bool Chooses() {
-        return g.kind != Kind::Endless; // (the player chooses a character)
+        return g.kind == Kind::Survival || g.kind == Kind::RingOut; // (the player chooses a character)
     }
 
     void Want() {
@@ -805,7 +894,9 @@ namespace {
                 g.phase = Phase::Decided;
                 g.since = 0;
                 Begin(g_next);
-                if (g.kind == Kind::Survival) {
+                if (g.kind == Kind::Team) {
+                    TeamDecided(result);
+                } else if (g.kind == Kind::Survival) {
                     if (result != 1) {
                         g.phase = Phase::Over;
                         if (g.score > FeatureValue("survival_best")) {
@@ -845,9 +936,11 @@ namespace {
                     layered = true;
                 }
                 Promote(machine, g_next);
-                if (g.kind == Kind::Survival) {
-                    SetRam16(Player(0) + d.health, static_cast<uint16_t>(g.health));
-                    SetRam16(Player(0) + d.healthCeiling, static_cast<uint16_t>(g.ceiling));
+                // (the one who stays on, with the health it had left)
+                const int stays = g.kind == Kind::Survival ? 0 : g.kind == Kind::Team ? g.stays : -1;
+                if (stays >= 0) {
+                    SetRam16(Player(stays) + d.health, static_cast<uint16_t>(g.health));
+                    SetRam16(Player(stays) + d.healthCeiling, static_cast<uint16_t>(g.ceiling));
                 }
                 if (Layered()) {
                     d.playSound(d.tuneOff);
@@ -858,6 +951,16 @@ namespace {
                 g.fadeIn = kFade;
             } else if (g_next.frames > kStartMost) {
                 End();
+                return;
+            }
+        } else if (g.phase == Phase::Over && g.kind == Kind::Team) {
+            g.since++;
+            const bool people = !g.computer[1];
+            lines.push_back({0.5f, 0.36f, 0, g.winner < 0 ? "DRAW" : g.winner == 0 ? (people ? "TEAM 1 WINS" : "YOUR TEAM WINS") :
+                                                                              (people ? "TEAM 2 WINS" : "THE COMPUTER'S TEAM WINS")});
+            if (g.since > kOverFor) {
+                End();
+                machine.Reset();
                 return;
             }
         } else if (g.phase == Phase::Over) {
@@ -898,6 +1001,9 @@ namespace {
             snprintf(text, sizeof(text), "Beaten: %d", g.score);
             lines.push_back({0.5f, 0.21f, 0, text});
         }
+        if (g.kind == Kind::Team && (g.phase == Phase::Fighting || g.phase == Phase::Decided)) {
+            TeamLines(lines);
+        }
         SetHud(std::move(lines));
         SetBoxes({});
     }
@@ -914,6 +1020,9 @@ bool BattleNoClock() {
 }
 bool BattleNoKnockOut() {
     return g.kind == Kind::RingOut;
+}
+bool TeamBattle() {
+    return g.kind == Kind::Team;
 }
 
 void BattleBeforeFrame(Machine &machine) {
@@ -1050,6 +1159,49 @@ void battle::Register(const Description &description) {
                              "Shuffle: how long they fight on a stage before it fades into another.", 0,
                              {"1 minute", "2 minutes", "3 minutes", "5 minutes", "10 minutes"}});
     game.features.push_back({"endless_scroll", kEndless, "Scroll speed", "Scroll: how fast the stages go by.", 0, {"Slow", "Medium", "Fast"}});
+    if (!d.teams) {
+        return;
+    }
+    game.pages.push_back({kTeam, kModes, "Two teams: knock a fighter down and the next of that team comes on. The last team standing wins."});
+    game.commands.push_back({"team_start", kTeam, "Start",
+                             "Each side's fighters come on one at a time, in the order below. The one knocked down is out, and "
+                             "the next of that side comes on with full health; the winner stays on with the health it has left, "
+                             "and a little back. Over when a side has nobody left.",
+                             StartTeam});
+    game.features.push_back({"team_size", kTeam, "Fighters", "How many fighters each team has.", 0, {"2", "3"}});
+    game.features.push_back({"team_opponent", kTeam, "Team 2",
+                             "Who plays the second team: player 2, or the game. (With \"Tag team\" below, that says who plays.)",
+                             0, {"Player 2", "The computer"}});
+    {
+        // (the stages: the choices after the endless battle's two ways of changing them)
+        static std::vector<const char *> stages = {"Random"};
+        stages.insert(stages.end(), d.stageChoices.begin() + std::min<size_t>(2, d.stageChoices.size()), d.stageChoices.end());
+        game.features.push_back({"team_stage", kTeam, "Stage", "Where the teams fight, from the first fight to the last.", 0, stages});
+    }
+    static const char *const kOrder[kTeamMost] = {"first", "second", "third"};
+    static std::string titles[2][kTeamMost], helps[2][kTeamMost];
+    for (int side = 0; side < 2; side++) {
+        for (int n = 0; n < kTeamMost; n++) {
+            titles[side][n] = "Team " + std::to_string(side + 1) + ", " + kOrder[n];
+            helps[side][n] = std::string("Team ") + std::to_string(side + 1) + "'s " + kOrder[n] + " fighter on" +
+                             (n == 2 ? " (with three fighters a team)" : "") + ": someone at random, or this one.";
+            game.features.push_back({kTeamRows[side][n], kTeam, titles[side][n].c_str(), helps[side][n].c_str(), 0, d.fighterChoices});
+        }
+    }
+}
+
+void battle::RegisterTeamTag(float labelY) {
+    tag::Description t;
+    // (no fighter is on outside a match; a team of three's third is its first person's again)
+    t.onPoint = [](int side) { return g.kind == Kind::Team && (g.phase == Phase::Fighting || g.phase == Phase::Decided) ? g.on[side] % 2 : -1; };
+    t.otherMode = [] { return g.kind != Kind::Team; };
+    t.tagButtons = 0;
+    t.labelY = labelY;
+    t.page = kTeam;
+    t.help = "In the team battle, each fighter of a team played by a person of its own. Co-op: players 1 and 2 are one team "
+             "against the computer's. 2 vs 2: players 1 and 3 against players 2 and 4. A team's panel is whoever's fighter is on "
+             "(in a team of three, the third is the first person's again). The labels under the bars say who is on.";
+    tag::Register(t);
 }
 
 } // namespace cps2recomp

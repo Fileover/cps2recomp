@@ -18,9 +18,11 @@
 //     person's Start or coin is player 1's.
 // Players 3 and 4 never reach the board's own lines (a six-button game reads player 1's and 2's kicks there).
 //
-// Over the picture, under each side's bars while a match is on, the person playing the character on point (P1-P4).
-// The page's choice is a feature on the Alternative modes page, kept in settings.ini. The modes of the sources' own
-// (training, attract mode, the viewers, the battle modes) keep the board's two players as they are.
+// Over the picture, under each side's bars while a match is on, the person playing the character on point (P1-P4),
+// beside what else the game's sources show there.
+// The page's choice is a feature on the Alternative modes page (or a page the game names), kept in settings.ini. The
+// modes of the sources' own (training, attract mode, the viewers, the battle modes) keep the board's two players as
+// they are, unless the game says otherwise (Description::otherMode: the team battle, battle.h).
 #pragma once
 
 #include "machine.h"
@@ -42,10 +44,13 @@ struct Description {
     bool (*fighting)() = nullptr;
     // A mode of the sources' own is on (it works the controls itself): no routing
     bool (*otherMode)() = nullptr;
-    // The buttons pressed together that tag the partner in
+    // The buttons pressed together that tag the partner in (0: there is no tagging in)
     uint16_t tagButtons = kPunch3 | kKick3;
     // Where the labels go, as parts of the picture (under each side's bars)
     float labelY = 0.2f, labelLeft = 0.02f, labelRight = 0.98f;
+    // What the menu says of the modes (nullptr: as for a tag-team Vs game), and the page they are on (nullptr: the
+    // Alternative modes page)
+    const char *help = nullptr, *page = nullptr;
 };
 
 void Register(const Description &description);

@@ -606,6 +606,26 @@ asks first (true: the step is made, the game's routine not run):
 - Known: a "FIGHT" sign shows on the old stage a second or so after a ring out, before the winner jumps; it did
   before this change too (seen with the fling switched off). Not looked into.
 
+## Team battle (2026-10-23)
+
+- The toolkit's team battle (`fight/battle.h`, `Description::teams`): two teams of two or three from the menu's
+  rows, one stage throughout. Vampire Savior has no rounds: a match is over at the first knock-down, and the board's
+  "damage gauges" only make the health bar longer (one: 0x90, two: 0x120, four: 0x240; one knock-down still ends it,
+  traced with `--trace` over the steps at FF8004-FF800C and the result byte). So the team battle is survival on
+  both sides: each knock-down's next match is made ready on the spare machine with the loser's next fighter, and the
+  one who stays on is given its health (and ceiling) back, plus 0x30, as survival does.
+- The tag-team router (`fight/tag.h`, through `battle::RegisterTeamTag`): with "Tag team" set, a team's panel is the
+  person whose fighter is on (a team of three's third is its first person's), no tag buttons. Run first in
+  `beforeFrame`; its P1-P4 labels (0.22 of the picture down) go with the battle's "Next:" lines (0.27).
+  `players = 4` in game.cfg (and in Vampire Savior 2's, Vampire Hunter 2's and Definitive's).
+- Checked headless (pictures every 50 frames; the characters, health and result bytes traced): a team of two
+  against the computer's, with one-hit knock-outs (the winner on with 0xBC + 0x30 = 0xEC, the next of team 2 on
+  with 0x120, the end and back to the title); teams of three in 2 vs 2 with made-up play for four players, the labels
+  P1/P2, then P4 on team 2's second, then P2 again on its third; the game's panel word for player 2 (A5+5C) is player
+  2's controls, then player 4's, then player 2's (printed beside the router's choice).
+- Not checked: a double knock-out, a time over (both decided by the game's own result byte, 3 and the health), by
+  hand with four controllers.
+
 ## Board settings (2026-10-15)
 
 `board.cpp`: the test menu's operator settings (設定: System and Game) as features on the Board page, each

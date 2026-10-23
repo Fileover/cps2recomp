@@ -13,6 +13,10 @@
 //   Ring out        the player against one opponent after another, with no health: a stage's ends are open,
 //                   and whoever is knocked over one is thrown out and falls through the floor. The winner jumps
 //                   off, and the camera follows it down onto the next stage.
+//   Team battle     two teams of two or three, chosen on the menu: one fighter of each side at a time, the one
+//                   knocked down out and the next of that side in, with full health; the winner stays on with
+//                   the health it has left. Over when a side has nobody left. Side 2 is a person or the game; with
+//                   the tag-team modes (tag.h) each fighter of a side may be a person of its own.
 //
 // A game's sources describe where the game keeps what these need (Description) and register it; they also
 // make the ring out's own movements of a player at its step of a fight (RingOutMove) and let a player knocked
@@ -118,6 +122,7 @@ struct Description {
     // The menu's choices: who (first "Random"), and where (first "Shuffle", "Scroll", then the stages)
     std::vector<const char *> fighterChoices, stageChoices;
     uint16_t tuneOff = 0xFF05;      // a sound asked for before another tune
+    bool teams = false;             // the team battle is on the menu
 
     // A game is being played (no: the board was reset)
     bool (*inGame)() = nullptr;
@@ -153,6 +158,9 @@ struct Description {
 
 // The game's description, and the menu's pages, commands and features of the modes
 void Register(const Description &description);
+// The tag-team modes (tag.h) for the team battle: each fighter of a side played by a person of its own, the side's
+// panel whoever's fighter is on (no tagging in: the next comes on at a knock-down). `labelY`: where the labels go.
+void RegisterTeamTag(float labelY);
 
 } // namespace battle
 
@@ -161,6 +169,7 @@ bool BattleMode();
 void EndBattle();
 bool BattleNoClock();    // the round's clock stands still
 bool BattleNoKnockOut(); // nobody's health goes below nothing
+bool TeamBattle();
 // Around the port's machine's frame (the game's beforeFrame and frame), and its save states
 void BattleBeforeFrame(Machine &machine);
 void BattleFrame(Machine &machine);

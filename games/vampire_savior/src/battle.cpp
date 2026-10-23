@@ -2,7 +2,7 @@
 // Copyright (C) 2026 Tommy McLeroy
 //
 // Vampire Savior: the fighting modes of the menu's "Alternative modes" page (survival, the endless battle, the ring
-// out) are the toolkit's (fight/battle.h); this says where the game keeps what they need, and makes the ring out's
+// out, the team battle and its tag-team modes) are the toolkit's (fight/battle.h); this says where the game keeps what they need, and makes the ring out's
 // own movements of a player at its step (RingOutStep, from frames.cpp's PlayerStep).
 #include "battle.h"
 #include "modes.h"
@@ -127,7 +127,9 @@ void RegisterBattle() {
     d.noShadow = NoShadow;
     d.inAir = [](uint32_t player) { return Ram8(player + kAirborne) != 0; };
     d.atJumpTop = [](uint32_t player) { return Ram8(player + kAirborne) && static_cast<int32_t>(Ram32(player + kSpeedY)) <= 0; };
+    d.teams = true;
     battle::Register(d);
+    battle::RegisterTeamTag(0.22f);
 }
 
 } // namespace cps2recomp

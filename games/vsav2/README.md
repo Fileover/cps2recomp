@@ -97,6 +97,7 @@ gauge, infinite time).
 | Survival | One opponent after another on the health you have left. How many can you beat? |
 | Endless battle | Two fighters the game plays, for as long as you like, with no bars and no clock, on one stage, on stages that fade one into another, or on a floor that scrolls through them all. Touch the controls to take a fighter over |
 | Ring out | No health. Knock your opponent over the end of the stage (it is thrown back, as by a knock-down, and falls through the floor), then jump down after it and land on the next stage |
+| Team battle | Two teams of two or three, chosen on its page: one fighter of each team at a time, all on one stage. The one knocked down is out and the next of that team comes on with full health; the winner stays on with the health it has left. Team 2 is player 2 or the computer. With "Tag team" on the same page, each fighter is a person's own: co-op (players 1 and 2 against the computer's team) or 2 vs 2 for four players, a label under the bars saying who is on |
 | Colour editor | Change a character's colours while you watch: custom colours, below |
 
 ## Widescreen
