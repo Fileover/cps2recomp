@@ -686,6 +686,13 @@ Marvel-style tagging in the team battle (`fight/battle.h`, "Style: Tag"; the swa
   ok both ways; `--check-rewrites` 335,526 calls, none differ. The knock-out style's movie and the versus movie hash
   as before. Routing in co-op traced: Morrigan's (player 1's) frames take player 1's controls, Q-Bee's (player 2's)
   player 2's.
+- A tag waits for a round that is not paused (A5+8A), and the colours, health and gauges are put back only once the
+  game has set the newcomer up (its step off 0): the game does not run a player's code in every frame. A newcomer of
+  the same character and set as the other player takes the next set, as the game gives a second player.
+- Seen once by hand (2026-10-23): the computer's Q-Bee tagged in (after Zabel and Aulbath went down) with the owner's
+  Q-Bee on, in widescreen, and most of her and of the bars' frames were not drawn. Not made again headless: the same
+  teams and stage in widescreen, two Q-Bees, supers throughout (full gauges both sides), 284 tags fuzzed, 85 tags in
+  one 40,000-frame fight (no object leaked from the pools: their free counts steady). Waiting for a save state of it.
 - Not done: a tag-in that looks like one (the newcomer appears where the other stood; the outgoing one is gone in a
   frame); the computer tags only when its bar empties; not played by hand.
 

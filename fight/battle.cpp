@@ -444,7 +444,7 @@ namespace {
     // and none), and the health that comes back by itself coming back to the ones resting
     void TagFrame() {
         for (int side = 0; side < 2; side++) {
-            if (g.putBack[side]) {
+            if (g.putBack[side] && (!d.taggedIn || d.taggedIn(side))) {
                 g.putBack[side] = false;
                 SetRam16(Player(side) + d.health, static_cast<uint16_t>(g.kept[side][g.on[side]]));
                 SetRam16(Player(side) + d.healthCeiling, static_cast<uint16_t>(g.keptCeiling[side][g.on[side]]));

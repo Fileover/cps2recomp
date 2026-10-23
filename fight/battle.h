@@ -135,6 +135,8 @@ struct Description {
     // `meter` are put back by the toolkit after the game's frame)
     bool (*canTag)(int side) = nullptr;
     void (*tagIn)(int side, int character) = nullptr;
+    // ... and whether the game has set the side's newcomer up yet (it may not have run the player's code that frame)
+    bool (*taggedIn)(int side) = nullptr;
     uint32_t meter = 0, meterSize = 0; // bytes of a player's record kept by the side across a swap (its gauges)
 
     // A game is being played (no: the board was reset)

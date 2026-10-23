@@ -91,14 +91,20 @@ namespace {
         return given;
     }
 
-    // A swap's colours still to come (on the next frame), by player
+    // A swap's colours still to come (once the game has set the newcomer up), by player
     bool g_colours[2] = {false, false};
 } // namespace
 
-// The player's fighter can be swapped now: a round is being fought and it can act (not held, reeling or frozen)
+// The player's fighter can be swapped now: a round is being fought, not paused, and it can act (not held, reeling or
+// frozen)
 bool CanTag(int player) {
-    return Ram16(kGameStep) == kGameMatch && Ram16(kMatchStep) == kMatchRound && Ram16(kRoundStep) == kRoundFought && CanAct(player) &&
-           !Ram8(Player(player) + kHitStop);
+    return Ram16(kGameStep) == kGameMatch && Ram16(kMatchStep) == kMatchRound && Ram16(kRoundStep) == kRoundFought &&
+           !Ram8(0xFF8000 + static_cast<uint32_t>(kRoundPaused)) && CanAct(player) && !Ram8(Player(player) + kHitStop);
+}
+
+// The game has set the player's newcomer up: its routine has gone on from step 0 (it is not run in every frame)
+bool TaggedIn(int player) {
+    return Ram8(Player(player) + kState) != 0;
 }
 
 // The player's fighter becomes `character`, set up by the game anew at its next step
@@ -117,7 +123,13 @@ void TagIn(int player, int character) {
     SetRam8(record + kCharacter, static_cast<uint8_t>(character));
     SetRam8(record + kCharacterAgain, static_cast<uint8_t>(character));
     SetRam8(kSkipEntrance, static_cast<uint8_t>(Ram8(kSkipEntrance) | (1u << number)));
-    // (the colours: the same set of the character's sets as the player chose; kColourSet is above what is cleared)
+    // (the colours: the same set of the character's sets as the player chose, or, the other player being the same
+    // character in the same set, the next one, as the game gives a second player of the same character; kColourSet is
+    // above what is cleared)
+    const uint32_t other = Player(1 - player);
+    if (Ram8(other + kCharacter) == character && Ram8(other + kColours) == Ram8(record + kColours)) {
+        SetRam8(record + kColours, static_cast<uint8_t>(Ram8(record + kColours) ^ 1));
+    }
     const uint8_t *p = Program(kColourSets + 4u * static_cast<uint32_t>(character));
     const uint32_t sets = (static_cast<uint32_t>(p[0]) << 24) | (static_cast<uint32_t>(p[1]) << 16) | (static_cast<uint32_t>(p[2]) << 8) | p[3];
     SetRam32(record + kColourSet, sets + static_cast<uint32_t>(Ram8(record + kColours)) * kColourSetSize);
@@ -128,7 +140,7 @@ void TagIn(int player, int character) {
 // Before each frame: the colours of a swap, and the tests' swaps
 void LiveTagBeforeFrame(Machine &machine) {
     for (int player = 0; player < 2; player++) {
-        if (!g_colours[player]) {
+        if (!g_colours[player] || !TaggedIn(player)) {
             continue;
         }
         // (as 02ADAC does: the set's first palette, and its other three unless the character's bit says not, into the
