@@ -3,9 +3,10 @@
 //
 // X-Men vs. Street Fighter: the players' own colours for the characters and the colour editor, which are the toolkit's
 // (fight/colours.h). These are the game's facts for them: where its characters' colours are (xmvsf.h), the ROM file
-// PalMod changes, and how the editor shows a set on player 1 in the model viewer (model.cpp).
+// PalMod changes, and how the editor shows a set on player 1 in the model viewer (fight/marvel.h).
 #include "colours.h"
 #include "machine.h"
+#include "marvel.h"
 #include "model.h"
 #include "xmvsf.h"
 
@@ -13,9 +14,6 @@
 #include <vector>
 
 namespace cps2recomp {
-
-void StartModelViewer(Machine &machine); // model.cpp
-bool ModelViewer();
 
 namespace {
     using namespace xmvsf;
@@ -76,8 +74,8 @@ void RegisterColours() {
                      "# a line is never seen. A colour is #RRGGBB or #RGB, rounded to the board's 16 levels of each; - keeps\n"
                      "# the game's. Sets and lines that are left out keep the game's colours.\n";
     d.showSet = ShowSet;
-    d.startViewer = StartModelViewer;
-    d.viewerOn = ModelViewer;
+    d.startViewer = marvel::StartModelViewer;
+    d.viewerOn = marvel::ModelViewer;
     d.viewerCharacter = model::CharacterNumber;
     d.characterNumber = model::Number;
     d.animationStep = model::AnimationStep;

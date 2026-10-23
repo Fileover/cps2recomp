@@ -5,6 +5,7 @@
 // point and the choosing.
 #include "alternative.h"
 #include "battle.h"
+#include "marvel.h"
 #include "session.h"
 #include "tag.h"
 #include "xmvsf.h"
@@ -12,8 +13,6 @@
 #include <algorithm>
 
 namespace cps2recomp {
-
-bool ModelViewer(); // model.cpp
 
 namespace {
     using namespace xmvsf;
@@ -37,7 +36,7 @@ void RegisterTag() {
         return Ram8(record) == kChoosingDone ? 2 : std::min<int>(Ram8(record + kPicksTaken), 2);
     };
     d.fighting = [] { return Ram16(kGameStep) == kGameMatch && Ram8(kFight) == kFighting; };
-    d.otherMode = [] { return session::InSession() || modes::AttractMode() || modes::StageViewer() || BattleMode() || ModelViewer(); };
+    d.otherMode = [] { return session::InSession() || modes::AttractMode() || modes::StageViewer() || BattleMode() || marvel::ModelViewer(); };
     d.labelY = 0.19f;
     tag::Register(d);
 }

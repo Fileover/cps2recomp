@@ -2,6 +2,29 @@
 
 ## Unreleased
 
+A twelfth game, Marvel Super Heroes, with everything the other fighting games have, on a part of the toolkit it shares
+with X-Men vs. Street Fighter.
+
+- **Another game: Marvel Super Heroes** (`games/msh`; ROM set `msh`, *Marvel Super Heroes*, Europe 951024, the parent
+  set and the one competitive play uses). The game as the board plays it, translated whole (its 68000 program, and its
+  sound program, Capcom's driver 1.05) and checked, with everything the other fighting games have: a **training mode**
+  (hit boxes, frame data, its meter and log, input display, combo readout, health and gauge refills, all six Infinity
+  Gems at hand, a dummy that records, replays and guards, start over, any stage), the **alternative modes** (attract
+  mode three ways, the stage viewer and its infinite stage, the model viewer, the colour editor, survival, endless
+  battle, ring out), **widescreen** and invisible walls, **custom colours** (files, PalMod's msh.05, the editor), the
+  **hidden characters** with no code (Start held as a character is chosen: a punch Dr. Doom, a kick Thanos), and the
+  features every game has: free play (the game's own), straight to the title, the board's settings (the Board page:
+  difficulty, damage, timer, rounds, mode, event, join-in, continue, demo sound), cheats, save states, run-ahead,
+  arcade timing and a custom soundtrack (its music named) ([its progress](games/msh/PROGRESS.md)).
+- **The Marvel games' engine** (`fight/marvel.h`): what X-Men vs. Street Fighter's and Marvel Super Heroes' sources
+  would write alike (the training aids' view of the players and their boxes, the ring out's movements, widescreen and
+  the walls, the model viewer) is now the toolkit's, from a description of each game. X-Men vs. Street Fighter runs on
+  it exactly as before (the same hash logs over its ladder and every mode).
+- The model viewer names a game's animation groups after Z as AA, AB... (Marvel Super Heroes has up to thirty).
+- For tests: `CPS2RECOMP_BATTLE_SEED` gives survival, the endless battle and the ring out the same choices every run,
+  and `CPS2RECOMP_WATCH_REPORTS` raises `--watch`'s limit of 2,000 reports; `battle::Description::resultNow` for a game
+  that keeps a round's result its own way.
+
 ## 0.4.0-beta.5
 
 An eleventh game, X-Men vs. Street Fighter, the first tag-team game here, with everything the other fighting games

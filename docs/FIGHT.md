@@ -44,6 +44,22 @@ Vampire Savior (and the games built from its sources), Street Fighter Alpha 2, S
 Fighter Alpha use both; moving the first two onto them changed none of their pictures, frame hashes, frame data logs or
 feature lists.
 
+## The Marvel games' engine
+
+`fight/marvel.h` (`marvel::`): Capcom's Marvel games on the board share one engine (X-Men vs. Street Fighter was made
+from Marvel Super Heroes: `tools/portmap.py` places much of the one's code in the other), with their players' records,
+cameras, boxes and animations at other places and offsets in each. What their sources would each write the same is
+here, from a description of where a game keeps it (`marvel::Engine`, filled in by the game's `src/engine.cpp`): the
+session's view of a player at its step (frame data, a hit landing) and the boxes as the game's hit tests read them,
+the ring out's own movements, widescreen and the invisible walls (the camera kept between its ends and a player kept
+inside the picture, with the wide picture's margin), and the model viewer (a round reached unseen, the second player
+out of the way, the camera after the first, the character's animations as the game keeps them, a frame copied into
+the record by the game's own layout). A game gives the places of the hooks these make as `HookAt(0x...)` in its own
+sources, so that the translator finds them. The modes' and the session's descriptions stay in the game's sources
+and name these functions. X-Men vs. Street Fighter and Marvel Super Heroes use it; moving the first onto it changed
+none of its hash logs (the ladder, training, widescreen, the walls, the model viewer, the fighting modes, attract
+mode, the stage viewer) or its feature list.
+
 ## Tag team for four people
 
 `fight/tag.h` (`tag::`): in a tag-team game, each character of a team played by a person of its own ("Co-op vs.

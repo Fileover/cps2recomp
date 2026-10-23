@@ -6,12 +6,14 @@
 #include "battle.h"
 #include "colours.h"
 #include "game.h"
+#include "marvel.h"
 #include "session.h"
 #include "tag.h"
 #include "xmvsf.h"
 
 namespace cps2recomp {
 
+void DescribeEngine(); // engine.cpp
 void RegisterCoins(); // coins.cpp
 void CoinsFrame(Machine &machine);
 void RegisterCheats(); // cheats.cpp
@@ -25,16 +27,8 @@ void RegisterModes(); // modes.cpp
 void ModesState(Archive &ar);
 void RegisterTraining(); // training.cpp
 void RegisterChoosing(); // choosing.cpp
-void RegisterModel(); // model.cpp
-void ModelBeforeFrame(Machine &machine);
-void ModelFrame(Machine &machine);
-void ModelState(Archive &ar);
-bool ModelViewer();
 void RegisterColours(); // colours.cpp
 void RegisterBattle(); // battle.cpp
-void RegisterWidescreen(); // widescreen.cpp
-void WidescreenBeforeFrame(Machine &machine);
-bool WidePlay();
 void ChoosingBeforeFrame(Machine &machine);
 void RegisterTag(); // tag.cpp
 
@@ -48,14 +42,17 @@ static void RandomNumberAsTheBoardDoes() {
 }
 
 void RegisterGame() {
+    DescribeEngine();
     RandomNumberAsTheBoardDoes();
     RegisterModes();
     RegisterTraining();
     RegisterChoosing();
-    RegisterModel();
+    // (the model viewer: the camera's way chosen at 070232; the characters are about twice as tall as the Alpha games')
+    marvel::RegisterModel(HookAt(0x070232), 80);
     RegisterColours();
     RegisterBattle();
-    RegisterWidescreen();
+    // (widescreen: the camera kept between its ends at 074488, a character kept inside the picture at 010806)
+    marvel::RegisterWidescreen(HookAt(0x074488), HookAt(0x010806));
     RegisterTag();
     RegisterCoins();
     RegisterCheats();
@@ -66,19 +63,19 @@ void RegisterGame() {
         tag::BeforeFrame(machine);
         BoardBeforeFrame(machine);
         ChoosingBeforeFrame(machine);
-        WidescreenBeforeFrame(machine);
+        marvel::WidescreenBeforeFrame(machine);
         session::BeforeFrame(machine);
         modes::BeforeFrame(machine);
         BattleBeforeFrame(machine);
         colours::BeforeFrame(machine);
-        ModelBeforeFrame(machine);
+        marvel::ModelBeforeFrame(machine);
     };
     // (the training aids see what the frame did before the cheats put things back)
     TheGame().frame = [](Machine &machine) {
         session::Frame(machine);
         modes::Frame(machine);
         BattleFrame(machine);
-        ModelFrame(machine);
+        marvel::ModelFrame(machine);
         TitleFrame(machine);
         CoinsFrame(machine);
         tag::Frame(machine);
@@ -90,13 +87,13 @@ void RegisterGame() {
         modes::State(ar);
         ModesState(ar);
         BattleState(ar);
-        ModelState(ar);
+        marvel::ModelState(ar);
     };
     // (run-ahead: not in the modes, whose workings a save state does not wholly hold)
-    TheGame().noRunAhead = [] { return modes::AttractMode() || modes::StageViewer() || BattleMode() || ModelViewer(); };
+    TheGame().noRunAhead = [] { return modes::AttractMode() || modes::StageViewer() || BattleMode() || marvel::ModelViewer(); };
     // With the arcade timing, the game's own code runs in place of the rewrites but where they carry what the port adds
     TheGame().rewritesNeeded = [] {
-        return session::InSession() || modes::AttractMode() || modes::StageViewer() || BattleMode() || ModelViewer() || WidePlay() ||
+        return session::InSession() || modes::AttractMode() || modes::StageViewer() || BattleMode() || marvel::ModelViewer() || marvel::WidePlay() ||
                FeatureOn("widescreen");
     };
     // Its own, never set for the other games by the collection's launcher: Damage level has other choices in the Alpha

@@ -39,6 +39,12 @@ The graphics are two rows of four 4 MB sockets. Six buttons a player (MAME's `cp
 - Tag-team co-op and 2 vs 2 (issue #69, 2026-10-21): the toolkit's input router (`fight/tag.h`), told by `src/tag.cpp`
   where the point character and the choosing are. Four players' controls (game.cfg `players = 4`); the board still
   reads two.
+- **The Marvel games' shared code** (2026-10-23, with Marvel Super Heroes): the training aids' view of the players and
+  their boxes, the ring out's movements, widescreen and the walls, and the model viewer are now the toolkit's
+  `fight/marvel.h`, from this game's description of itself (`src/engine.cpp`); `training.cpp`, `battle.cpp` keep only
+  what is the game's own, and `widescreen.cpp` and `model.cpp` are gone. The game's hash logs over the ladder (25,000
+  frames), training with the aids, widescreen, invisible walls, the model viewer, survival, the ring out, the endless
+  battle, attract mode and the stage viewer were the same before and after, and so was its feature list.
 - No readable rewrites: what the features change is done in hooks that run the game's own code unless a feature is
   on (the camera's clamp and the walls with widescreen, the ring out's flight), each a few lines.
 - The toolkit's fighting modules were made to take a game built otherwise than the Alpha games (all optional; the
