@@ -693,8 +693,29 @@ Marvel-style tagging in the team battle (`fight/battle.h`, "Style: Tag"; the swa
   Q-Bee on, in widescreen, and most of her and of the bars' frames were not drawn. Not made again headless: the same
   teams and stage in widescreen, two Q-Bees, supers throughout (full gauges both sides), 284 tags fuzzed, 85 tags in
   one 40,000-frame fight (no object leaked from the pools: their free counts steady). Waiting for a save state of it.
-- Not done: a tag-in that looks like one (the newcomer appears where the other stood; the outgoing one is gone in a
-  frame); the computer tags only when its bar empties; not played by hand.
+- **The movements** (2026-10-24; the toolkit's, from `offStage`, `speedX`/`speedY`, `floor`): a fighter's "camera
+  does not follow" byte (+134, bit 7) also has the picture's edges let it go (028192, KeepIn, returns for it), so it
+  can leave the picture and the camera stays on the other; the toolkit sets it, again every frame (setting a fighter
+  up clears it). Tagging out: the game's jump back (up and away held three frames), then its speed across set to 9
+  pixels a step away, and swapped once 48 beyond the picture's edge (or 50 frames on; hit on the way, the tag is
+  off). Coming in: set up, put 48 beyond that end on the floor, the game's jump towards the other player, its speed
+  across set each step to land by it (distance over 34 steps, 3 to 12 a step), HK on the way down (the game's jump
+  attack: it hits). Back in the picture's edges once inside by 32; done on landing.
+- **A bar emptied: the game's own knock-down.** Where a hit's reeling begins (0237FE, then 02383C) the game branches
+  on +54 (vsav.h called it only "FF when guarded"): 00-02 a reel on the feet, 03 thrown up, 04/05 knocked down
+  (023A00: +07 = 0C, +140 = 4), and many more. Landing (024BB8), +117 not zero lies down (02020204, 06, 08, then
+  getting up about 28 frames on); zero gets straight up (02020400). So TakeDamage, for a hit that empties the bar of a
+  fighter with a partner to come in and is not guarded, puts +54 = 04 and +117 = 1; the reeling reads them at its
+  next step. (Tried first and not enough: +59, +56, +141, the state 0202000C from the floor, a fling made at the
+  player's steps landing as 02020204.) The side's computer byte is put at "a person" while it lies (or the game's
+  play rolls it back up at once), and the next one comes in 20 frames after it lands: about a second from the hit.
+- Checks: the knock-out fuzz (one-hit knock-outs against the computer's teams of three, every character among them,
+  24 runs): no reset, no fallback, the knock-outs' swaps made while lying (but for a guarded hit's, which leaves as
+  on a tag). The matrix again: 210 clean. The 2 vs 2 tag movie recorded again (29 tags, 4 from knock-downs, a
+  knock-out at the end): check ok both ways, `--check-rewrites` 363,712 calls none differ; the knock-out style's
+  movie and the versus movie hash as before.
+- Not done: the computer tags only when its bar empties; the outgoing and incoming are one after the other, not on
+  screen together (one record a side); not played by hand.
 
 ## Board settings (2026-10-15)
 

@@ -92,7 +92,13 @@ keeps each fighter's health and ceiling while it rests (the ceiling's health com
 partner's Start, through the router: `tagButtons` is Start there) when the game says the fighter can act, swaps in the
 next when the bar on has emptied (the game's sources ask `TeamHoldsKnockOut` where health is taken, so that it stops at
 nothing while a partner is left), puts the health and the gauges' bytes back after the game's frame has set the
-newcomer up, and decides a time over by the teams' health (`TeamTimeOverResult`). How a fighter is swapped is the
+newcomer up, and decides a time over by the teams' health (`TeamTimeOverResult`). With `offStage` (and `speedX`,
+`speedY`, `floor`) a tag moves as in the Marvel games, worked by the toolkit through the side's controls and speeds:
+the one on jumps back (the game's jump) and is sped off the picture, let out of it and not followed by the camera;
+the newcomer, set up off the picture at that end, jumps in (its speed across stretched to land by the other player)
+and presses a jump attack on the way down, the game's own, which can hit. A fighter whose bar emptied is knocked down
+by the game (its sources make the hit a knock-down that lands lying) and lies a moment, the game not playing it, and
+the next one jumps in. How a fighter is swapped is the
 game's: in Vampire Savior, its own setting up of a player run again with the new character, after the objects the
 outgoing one made are given back to the game's pools (`src/livetag.cpp`).
 

@@ -13,6 +13,7 @@ namespace cps2recomp {
 bool CanTag(int player); // livetag.cpp
 void TagIn(int player, int character);
 bool TaggedIn(int player);
+void TagOffStage(int player, bool off);
 
 namespace {
     using namespace vsav;
@@ -136,6 +137,10 @@ void RegisterBattle() {
     d.canTag = CanTag;
     d.tagIn = TagIn;
     d.taggedIn = TaggedIn;
+    d.offStage = TagOffStage;
+    d.speedX = kSpeedX;
+    d.speedY = kSpeedY;
+    d.floor = kGround;
     d.meter = kStocks; // (the stocks and the gauge being filled, cleared by the setting up)
     d.meterSize = 3;
     battle::Register(d);

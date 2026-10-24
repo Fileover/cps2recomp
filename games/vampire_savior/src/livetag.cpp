@@ -91,8 +91,11 @@ namespace {
         return given;
     }
 
-    // A swap's colours still to come (once the game has set the newcomer up), by player
+    // A swap's colours still to come (once the game has set the newcomer up), by player; and players off the stage
+    // (let out of the picture, the camera not following them: +134, which setting up clears)
     bool g_colours[2] = {false, false};
+    bool g_off[2] = {false, false};
+
 } // namespace
 
 // The player's fighter can be swapped now: a round is being fought, not paused, and it can act (not held, reeling or
@@ -137,8 +140,19 @@ void TagIn(int player, int character) {
     g_colours[player] = true;
 }
 
-// Before each frame: the colours of a swap, and the tests' swaps
+// The player let out of the picture, the camera not following it, or not
+void TagOffStage(int player, bool off) {
+    g_off[player] = off;
+    SetRam8(Player(player) + kNotFollowed, off ? 0x80 : 0);
+}
+
+// Before each frame: the colours of a swap, the players off the stage, and the tests' swaps
 void LiveTagBeforeFrame(Machine &machine) {
+    for (int player = 0; player < 2; player++) {
+        if (g_off[player]) {
+            SetRam8(Player(player) + kNotFollowed, 0x80);
+        }
+    }
     for (int player = 0; player < 2; player++) {
         if (!g_colours[player] || !TaggedIn(player)) {
             continue;

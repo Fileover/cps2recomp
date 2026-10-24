@@ -138,6 +138,13 @@ struct Description {
     // ... and whether the game has set the side's newcomer up yet (it may not have run the player's code that frame)
     bool (*taggedIn)(int side) = nullptr;
     uint32_t meter = 0, meterSize = 0; // bytes of a player's record kept by the side across a swap (its gauges)
+    // The tag style's movements (offStage nullptr: a fighter is swapped where it stands): a side's fighter let out of
+    // the picture, the camera not following it (or not, again); its speeds (longs at these, 65536 a pixel a step:
+    // across, up) and the floor's height. (A hit that empties a bar with a partner left is the game's to make a
+    // knock-down of: TeamHoldsKnockOut.)
+    void (*offStage)(int side, bool off) = nullptr;
+    uint32_t speedX = 0, speedY = 0;
+    int floor = 0;
 
     // A game is being played (no: the board was reset)
     bool (*inGame)() = nullptr;

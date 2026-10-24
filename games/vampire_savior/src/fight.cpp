@@ -73,6 +73,14 @@ namespace {
         if (Mem8(c, attack + kAttackFloorLeft) & 0x80) {
             floor(kHealth);
         }
+        // (the team battle's tag style: a hit that empties the bar of a fighter with a partner to come in knocks it
+        // down, the game's own knock-down landing lying, and the partner comes in while it lies there; a guarded one
+        // does not. The reeling, read where it begins at the player's next step, is told so here.)
+        if (player >= 0 && TeamHoldsKnockOut(player) && (Ram16(victim + kHealth) & 0x8000 || Ram16(victim + kHealth) == 0) &&
+            Ram8(victim + kGuarded) != 0xFF) {
+            SetRam8(victim + kGuarded, kReactionKnockDown);
+            SetRam8(victim + kLiesDown, 1);
+        }
         // (a training session: nobody is knocked out, so health stops at nothing left; nor a fighter with a partner to
         // come in, in the team battle's tag style)
         if (TrainingMode() || TeamHoldsKnockOut(player)) {

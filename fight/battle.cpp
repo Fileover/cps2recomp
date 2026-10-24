@@ -180,6 +180,11 @@ namespace {
         int32_t cool[2] = {0, 0};
         bool startWas[2] = {false, false};
         int32_t rest = 0;                // frames counted for the health that comes back while resting
+        // A side's tag in progress (the movements): what it is doing, for how long, who comes on, from which end of
+        // the picture (-1 the left; knocked down: the frame it landed), and whether the newcomer has jumped (knocked
+        // down: been in the air), attacked, been put off the stage (knocked down: landed)
+        int32_t move[2] = {0, 0}, moveFor[2] = {0, 0}, coming[2] = {-1, -1}, from[2] = {0, 0};
+        bool jumped[2] = {false, false}, attacked[2] = {false, false}, placed[2] = {false, false};
     } g;
     Spare g_dropBack;                    // the ring out: the machine of the next match's stage
     bool g_open = false;                 // the ring out: the port's machine is running a fight with open ends
@@ -421,22 +426,168 @@ namespace {
         g.putBack[side] = true;
         g.cool[side] = kTagCool;
     }
+    // The movements of a tag (with Description::offStage): the one on jumps back and flies off the picture, or, its
+    // bar emptied, is knocked down and lies a while; then the next one, put off the picture at that end, jumps in fast
+    // with a jump attack that can hit, and is in the fight once it lands
+    enum Move : int32_t { kStill, kLeaving, kDown, kComing };
+    constexpr int kLeaveSpeed = 9;   // pixels a step, flying off
+    constexpr int kLeaveMost = 50;   // frames, at most, before the one leaving is taken off
+    constexpr int kLieFor = 20;      // frames the one knocked out is seen lying, from landing (it gets up about 28 on)
+    constexpr int kDownMost = 150;   // frames, at most, from the knock-down to the next one coming in
+    constexpr int kStillUp = 20;     // frames after which one whose bar emptied but who never left the floor leaves
+    constexpr int kOffBy = 48;       // how far beyond the picture's edge one is gone, and one coming starts
+    constexpr int kComeMost = 120;   // frames, at most, of coming in
+    constexpr int kComeSteps = 34;   // about the steps a jump in takes, for its speed across
+
+    int X(int side) {
+        return static_cast<int16_t>(Ram16(Player(side) + d.x));
+    }
+    // The picture's ends in the stage, wide or not
+    int SeenLeft() {
+        return PictureLeft() - d.wideSide();
+    }
+    int SeenRight() {
+        return SeenLeft() + PictureWidth();
+    }
+    // Which way is towards the other player (-1 the left)
+    int Toward(int side) {
+        return X(1 - side) < X(side) ? -1 : 1;
+    }
+    uint16_t Stick(int way) {
+        return way < 0 ? kLeft : kRight;
+    }
+    void SetSpeedX(int side, int pixels256) { // (in 256ths of a pixel a step)
+        SetRam32(Player(side) + d.speedX, static_cast<uint32_t>(pixels256 * 256));
+    }
+    // The next fighter on: swapped in now, and coming in from the end of the picture the last one left by
+    void BringIn(int side) {
+        g.from[side] = X(side) < (SeenLeft() + SeenRight()) / 2 ? -1 : 1;
+        Swap(side, g.coming[side]);
+        g.move[side] = kComing;
+        g.moveFor[side] = 0;
+        g.jumped[side] = g.attacked[side] = g.placed[side] = false;
+    }
     // Before the frame: a side whose fighter can act tags the next one in on Start (a person's side), or must (its
-    // fighter's bar emptied)
-    void TagBeforeFrame(uint16_t one, uint16_t two) {
-        const uint16_t held[2] = {one, two};
+    // fighter's bar emptied); the movements of a tag going on work the side's controls
+    void TagBeforeFrame(uint16_t &one, uint16_t &two) {
+        uint16_t *panels[2] = {&one, &two};
+        const bool moves = d.offStage != nullptr;
         for (int side = 0; side < 2; side++) {
-            const bool start = (held[side] & kStart) != 0;
+            uint16_t &panel = *panels[side];
+            const bool start = (panel & kStart) != 0;
             const bool pressed = start && !g.startWas[side] && !g.computer[side];
             g.startWas[side] = start;
             if (g.cool[side] > 0) {
                 g.cool[side]--;
-                continue;
             }
-            const bool emptied = static_cast<int16_t>(Ram16(Player(side) + d.health)) <= 0;
-            const int next = NextUp(side);
-            if ((pressed || emptied) && next >= 0 && !g.putBack[side] && d.canTag(side)) {
-                Swap(side, next);
+            const int toward = Toward(side);
+            switch (g.move[side]) {
+            case kStill: {
+                const bool emptied = static_cast<int16_t>(Ram16(Player(side) + d.health)) <= 0;
+                const int next = NextUp(side);
+                if (next < 0 || g.putBack[side]) {
+                    break;
+                }
+                if (emptied && moves) {
+                    // (knocked down where it is; the next one comes in a while after)
+                    g.move[side] = kDown;
+                    g.moveFor[side] = 0;
+                    g.coming[side] = next;
+                    g.jumped[side] = g.placed[side] = false;
+                } else if (((pressed && g.cool[side] == 0) || emptied) && d.canTag(side)) {
+                    if (moves) {
+                        g.move[side] = kLeaving;
+                        g.moveFor[side] = 0;
+                        g.coming[side] = next;
+                    } else {
+                        Swap(side, next);
+                    }
+                }
+                break;
+            }
+            case kLeaving: {
+                // A jump back, and once in the air, off the picture at speed
+                const int away = -toward;
+                if (g.moveFor[side] > 3 && Ram8(Player(side) + d.control) != d.controlOwn) {
+                    // (hit on the way: the tag is off, and the fighter stays)
+                    d.offStage(side, false);
+                    g.move[side] = kStill;
+                    g.cool[side] = kTagCool;
+                    break;
+                }
+                panel = g.moveFor[side]++ < 3 ? static_cast<uint16_t>(kUp | Stick(away)) : 0;
+                if (d.inAir(Player(side))) {
+                    d.offStage(side, true);
+                    SetSpeedX(side, away * kLeaveSpeed * 256);
+                }
+                const bool gone = X(side) < SeenLeft() - kOffBy || X(side) > SeenRight() + kOffBy;
+                if (gone || g.moveFor[side] > kLeaveMost) {
+                    BringIn(side);
+                }
+                break;
+            }
+            case kDown: {
+                // (thrown up by the knock-down, then lying: the next one comes in a while after it has landed)
+                panel = 0;
+                const bool air = d.inAir(Player(side));
+                if (air) {
+                    g.jumped[side] = true;
+                } else if (g.jumped[side] && !g.placed[side]) {
+                    g.placed[side] = true; // (landed)
+                    g.from[side] = g.moveFor[side];
+                }
+                g.moveFor[side]++;
+                if ((g.placed[side] && g.moveFor[side] - g.from[side] >= kLieFor) || g.moveFor[side] >= kDownMost) {
+                    BringIn(side);
+                } else if (!g.jumped[side] && g.moveFor[side] > kStillUp && d.canTag(side)) {
+                    // (not knocked down, a guarded hit's: it leaves as on a tag)
+                    g.move[side] = kLeaving;
+                    g.moveFor[side] = 0;
+                }
+                break;
+            }
+            case kComing: {
+                panel = 0;
+                if (g.putBack[side]) {
+                    break; // (the game has not set the newcomer up yet)
+                }
+                g.moveFor[side]++;
+                if (!g.placed[side]) {
+                    // Off the picture at that end, on the floor
+                    g.placed[side] = true;
+                    d.offStage(side, true);
+                    const int x = g.from[side] < 0 ? SeenLeft() - kOffBy : SeenRight() + kOffBy;
+                    SetRam32(Player(side) + d.x, static_cast<uint32_t>(x) << 16);
+                    SetRam32(Player(side) + d.y, static_cast<uint32_t>(d.floor) << 16);
+                    SetSpeedX(side, 0);
+                    break;
+                }
+                const bool air = d.inAir(Player(side));
+                if (!g.jumped[side]) {
+                    panel = static_cast<uint16_t>(kUp | Stick(toward));
+                    if (air) {
+                        g.jumped[side] = true;
+                    }
+                } else if (air && Ram8(Player(side) + d.control) == d.controlOwn) {
+                    // (across fast enough to land by the other player; the jump attack on the way down)
+                    const int distance = std::abs(X(1 - side) - X(side)) - 40;
+                    SetSpeedX(side, toward * std::clamp(distance * 256 / kComeSteps, 3 * 256, 12 * 256));
+                    if (!g.attacked[side] && static_cast<int32_t>(Ram32(Player(side) + d.speedY)) <= 0) {
+                        panel = kKick3;
+                        g.attacked[side] = true;
+                    }
+                }
+                const bool inside = X(side) > SeenLeft() + 32 && X(side) < SeenRight() - 32;
+                if (inside) {
+                    d.offStage(side, false);
+                }
+                if ((g.jumped[side] && !air) || g.moveFor[side] > kComeMost) {
+                    d.offStage(side, false);
+                    g.move[side] = kStill;
+                    g.cool[side] = kTagCool;
+                }
+                break;
+            }
             }
         }
     }
@@ -546,7 +697,9 @@ namespace {
     // Who the game plays, told to the game: the players' records say
     void SayWhoPlays(bool nobody = false) {
         for (int n = 0; n < 2; n++) {
-            SetComputer(n, g.computer[n] && !nobody);
+            // (the tag style: a fighter knocked down with its bar emptied lies still, the game not playing it)
+            const bool down = g.kind == Kind::Team && g.move[n] == kDown;
+            SetComputer(n, g.computer[n] && !nobody && !down);
         }
         BothPlay();
     }
