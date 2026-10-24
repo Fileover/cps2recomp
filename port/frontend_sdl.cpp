@@ -271,7 +271,12 @@ int RunWindowed(Port &port) {
             const bool stepOnTrigger = !PadInputBound(g_bindings, Table(), {-1, SDL_GAMEPAD_AXIS_LEFT_TRIGGER});
             for (size_t i = 0; i < gamepads.size() && static_cast<int>(i) < Players(); i++) {
                 pads[i] |= ReadGamepad(gamepads[i], static_cast<int>(i));
-                trigger = trigger || (stepOnTrigger && SDL_GetGamepadAxis(gamepads[i], SDL_GAMEPAD_AXIS_LEFT_TRIGGER) > kDead);
+                const bool left = stepOnTrigger && SDL_GetGamepadAxis(gamepads[i], SDL_GAMEPAD_AXIS_LEFT_TRIGGER) > kDead;
+                trigger = trigger || left;
+                // (while the game runs, the left trigger is its player's Tag: kTag)
+                if (left && !port.paused) {
+                    pads[i] |= kTag;
+                }
                 both = both || (SDL_GetGamepadButton(gamepads[i], SDL_GAMEPAD_BUTTON_START) &&
                                 SDL_GetGamepadButton(gamepads[i], SDL_GAMEPAD_BUTTON_BACK));
             }

@@ -309,7 +309,12 @@ constexpr uint32_t kIsThrown = 0x08;      // byte: not zero for a thing thrown (
 constexpr uint32_t kAirborne = 0x38;      // byte: not zero while off the floor
 constexpr uint32_t kHitStop = 0x5C;       // byte: frames the player stands frozen for after a hit lands
 constexpr uint32_t kCrouching = 0x121;    // byte: not zero while crouching
-constexpr uint32_t kGuarded = 0x54;       // byte: FF when the last hit was guarded
+constexpr uint32_t kGuarded = 0x54;       // byte: FF when the last hit was guarded; else how the hit is reeled from,
+                                          // read where reeling begins (02383C: 00-02 on the feet, 03 thrown up,
+                                          // 04 and 05 knocked down, and many more)
+constexpr uint8_t kReactionKnockDown = 0x04;
+constexpr uint32_t kNotHit = 0x147;       // byte: frames the player cannot be hit for (counted down each step)
+constexpr uint32_t kLiesDown = 0x117;     // byte: not zero: a knock-down lands lying (024BB8), not getting straight up
 constexpr uint32_t kUnshakeable = 0x11F;  // byte: not zero: cannot guard, and is not armoured (being thrown and the like)
 constexpr uint32_t kArmour = 0x15E;       // word: not zero while the player stands through hits (a "Dark Force" for some)
 constexpr uint32_t kArmourAlways = 0x18F, kArmourTaken = 0x161, kArmourTimer = 0x162, kArmourMost = 0x15B; // bytes

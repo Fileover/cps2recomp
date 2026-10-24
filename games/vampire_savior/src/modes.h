@@ -69,5 +69,7 @@ constexpr uint32_t kPlayerSets[2] = {0x0000FC00, 0x003F0000};
 // step (A6): true when it has made the step itself
 void RegisterBattle();
 bool RingOutStep(M68K &c);
+// The team battle's tag style: a knocked-out player left lying, at its step (livetag.cpp): true when it has made the step
+bool TagStep(M68K &c);
 
 } // namespace cps2recomp

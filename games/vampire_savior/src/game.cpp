@@ -45,6 +45,7 @@ void RegisterBattle();   // battle.cpp
 void BattleBeforeFrame(Machine &machine);
 void BattleFrame(Machine &machine);
 void BattleState(Archive &ar);
+void LiveTagBeforeFrame(Machine &machine); // livetag.cpp
 void RegisterTitle(); // title.cpp
 void TitleFrame(Machine &machine);
 void RegisterWidescreen(); // widescreen.cpp
@@ -104,6 +105,7 @@ void RegisterGame() {
         ModesBeforeFrame(machine);
         BattleBeforeFrame(machine);
         ModelBeforeFrame(machine);
+        LiveTagBeforeFrame(machine);
     };
     // (the training aids see what the frame did before the cheats put things back)
     TheGame().frame = [](Machine &machine) {

@@ -16,7 +16,9 @@
 //   Team battle     two teams of two or three, chosen on the menu: one fighter of each side at a time, the one
 //                   knocked down out and the next of that side in, with full health; the winner stays on with
 //                   the health it has left. Over when a side has nobody left. Side 2 is a person or the game; with
-//                   the tag-team modes (tag.h) each fighter of a side may be a person of its own.
+//                   the tag-team modes (tag.h) each fighter of a side may be a person of its own. Its tag style
+//                   (a game that can swap a fighter mid-fight): each fighter has a bar of its own, Tag (a gamepad's left trigger) or Start tags
+//                   the next one in whenever the fighter on can act, and a bar emptied brings the next in.
 //
 // A game's sources describe where the game keeps what these need (Description) and register it; they also
 // make the ring out's own movements of a player at its step of a fight (RingOutMove) and let a player knocked
@@ -125,9 +127,35 @@ struct Description {
     std::vector<const char *> fighterChoices, stageChoices;
     uint16_t tuneOff = 0xFF05;      // a sound asked for before another tune
     bool teams = false;             // the team battle is on the menu
+    float teamLinesY = 0.27f;       //   where the line of a team's others goes, as a part of the picture (under its bars)
     // The team battle's machines, before each of their frames, with "one health bar each" chosen: the game's own
     // setting for it put in (nullptr: no such choice)
     void (*oneBarEach)() = nullptr;
+    // ... always: fighters begin a match ready, with no entrance (nullptr: the game's entrances); and the computer's
+    // difficulty put in, 0 (the easiest) to 7 (nullptr: no such choice)
+    void (*noEntrances)() = nullptr;
+    void (*difficulty)(int level) = nullptr;
+    // The team battle's tag style (nullptr: no such style): whether a side's fighter can be swapped now (it can act),
+    // and swapping it: the game sets the side's player up again as this character, where it is when swapped (the
+    // health and the bytes of `meter` are put back by the toolkit after the game's frame)
+    bool (*canTag)(int side) = nullptr;
+    void (*tagIn)(int side, int character, int colours) = nullptr;
+    // ... and whether the game has set the side's newcomer up yet (it may not have run the player's code that frame)
+    bool (*taggedIn)(int side) = nullptr;
+    uint32_t meter = 0, meterSize = 0; // bytes of a player's record kept by the side across a swap (its gauges)
+    // The tag style's movements (offStage nullptr: a fighter is swapped where it stands): a side's fighter let out of
+    // the picture, the camera not following it (or not, again); its speeds (longs at these, 65536 a pixel a step:
+    // across, up) and the floor's height. (A hit that empties a bar with a partner left is the game's to make a
+    // knock-down of: TeamHoldsKnockOut.)
+    void (*offStage)(int side, bool off) = nullptr;
+    // ... and a fighter knocked out kept from being hit (asked every frame it lies there; nullptr: it can be)
+    void (*untouchable)(int side) = nullptr;
+    // ... its sounds (playSound's codes; 0: none): a character's call as it tags out (the next one called in), and
+    // the announcer's at each knock-out (as at a match's end)
+    uint16_t (*tagCall)(int character) = nullptr;
+    uint16_t downSound = 0;
+    uint32_t speedX = 0, speedY = 0;
+    int floor = 0;
 
     // A game is being played (no: the board was reset)
     bool (*inGame)() = nullptr;
@@ -175,6 +203,11 @@ void EndBattle();
 bool BattleNoClock();    // the round's clock stands still
 bool BattleNoKnockOut(); // nobody's health goes below nothing
 bool TeamBattle();
+// The tag style: a player's health stops at nothing, not below (a partner comes in instead of a knock-out)
+bool TeamHoldsKnockOut(int player);
+// The tag style: a time over's result by the teams' health, all their fighters' (1: team 1 has won, 2: team 2, 3:
+// neither), or 0: not the tag style (the game's own, by the two players')
+int TeamTimeOverResult();
 // Around the port's machine's frame (the game's beforeFrame and frame), and its save states
 void BattleBeforeFrame(Machine &machine);
 void BattleFrame(Machine &machine);

@@ -24,14 +24,29 @@ with X-Men vs. Street Fighter.
 - For tests: `CPS2RECOMP_BATTLE_SEED` gives survival, the endless battle and the ring out the same choices every run,
   and `CPS2RECOMP_WATCH_REPORTS` raises `--watch`'s limit of 2,000 reports; `battle::Description::resultNow` for a game
   that keeps a round's result its own way.
-- **Team battle** (`fight/battle.h`; Vampire Savior, Vampire Savior 2, Vampire Hunter 2 and Vampire Savior
+- **Tag team battle** (`fight/battle.h`; Vampire Savior, Vampire Savior 2, Vampire Hunter 2 and Vampire Savior
   Definitive): a mode on the Alternative modes page with two teams of two or three, chosen on its page. One fighter of
   each team at a time, all on one stage, each fighter on one health bar (a team of two has two between them, as one
   fighter has in a usual match; or as many as the board gives): the one knocked down is out and the next of that team
-  comes on with a full bar, and the winner stays on with the health it has left (and a little back). Team 2 is the CPU, or player 2.
+  comes on with a full bar, and the winner stays on with the health it has left (and a little back). Team 2 is the CPU
+  (with a difficulty of its own on the page), or player 2. Fighters begin a match ready, with no entrances, and the same
+  character twice or more in a match, on either team, is in a set of colours of its own.
   With "Tag team" on the same page each fighter is a person's own (co-op against the computer's team, or 2 vs 2 for
   four players): the tag-team router (`fight/tag.h`) follows whose fighter is on, and the Controllers page has four
-  players. The first step towards tagging in during a fight. Off, every game is as it was.
+  players. Off, every game is as it was.
+- **The team battle's tag style** ("Style: Tag" on its page; the same four games): Marvel-style, each fighter with a
+  bar of its own, tagged in with a gamepad's left trigger (next to HP and HK on the right) or Start whenever the
+  fighter on can act: the one on calls the next one in (a voice of
+  its own), jumps back and flies off the
+  picture, and the next jumps in from that side with a jump attack that can hit (the game's own jump and attack); a
+  bar emptied knocks its fighter down (the game's own knock-down, landing lying, the announcer's call as at a match's
+  end), where it lies two seconds and cannot
+  be hit (time for a setup), and the next jumps in; resting fighters get back the health that comes back by itself; the team's super gauges carry across a
+  tag; the others' health listed under the bars; a time over decided by the teams' health in all. In co-op and 2 vs 2
+  the partner tags in with their own left trigger. (Marvel vs. Capcom's HP+HK is a Dark Force here, as is every punch
+  and kick of one strength; two punches or two kicks make the EX moves: the left trigger is free.) The game sets a fighter up anew itself (its own setting up of a player,
+  mid-fight), after what the outgoing character made is given back; every pair of characters swapped back and forth
+  under made-up play in Vampire Savior, Vampire Savior 2 and Vampire Hunter 2 (602 pairs, 3,010 swaps) with no fault.
 
 ## 0.4.0-beta.5
 

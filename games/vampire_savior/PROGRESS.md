@@ -637,6 +637,127 @@ asks first (true: the step is made, the game's routine not run):
   ladder (20,000) movies hash as before, as do X-Men vs. Street Fighter's co-op and 2 vs 2 movies.
 - Not checked: a double knock-out (the game's result 3: both teams' next on, or a draw), by hand with four controllers.
 
+## The team battle's tag style (2026-10-23)
+
+Marvel-style tagging in the team battle (`fight/battle.h`, "Style: Tag"; the swap itself in `src/livetag.cpp`).
+
+- **The game sets a fighter up again itself.** A player's routine (0222AC, by the step at +04) has a step 0, 0222C8:
+  it clears +80 to +37F of the record (the place at +10/+14 and +380 on, the character's bytes, are kept), sets the
+  health from the gauges (022374), the armour, the palette slot and the first animation, and calls the character's
+  own setting up (a table of routines at BD0FA, by number); then the round's entrance (state 020E0000, 26244), or
+  nothing with the player's bit set at A5+102. A swap: what the outgoing character made given back (below), +3C (how
+  it is drawn: Aulbath's setting up sets his own) put at 0, Aulbath's move bits cleared for the player, the character
+  bytes (+382, +3E0), the colour set's pointer (+3A4, above what is cleared: the character's sets at kColourSets, the
+  set by +3AE), the entrance skipped, the state put at 0. The panel's name changes by itself. The palettes are put in
+  on the next frame as 02ADAC does, in C++ (calling the game's routine from beforeFrame reset the board, the CPU being
+  stopped inside a routine there). The toolkit puts the health, the ceiling and the gauges (+109-+10B) back after the
+  frame in which the game set the newcomer up.
+- **What a character leaves behind.** Its own setting up takes objects from the game's seven pools (free lists from
+  A5+7966/79BE on: FF9400 32 x 100, FFB400 8 x 80, FFB800 32 x 80, FFC800 24 x 80, FFD400 32 x 80, FFE400 16 x 40,
+  FFE800 6 x 200; given back by 017028 on, the pool's tag at +8): Q-Bee four, Victor three, Lilith four. They name
+  their player at +30 or +32 (Anakaris's three at +32 only), and the record keeps up to four links at +28-+2E
+  (01ADF6). Left running with another character in the record, they crashed the game. Every live one (+00 not zero:
+  the game takes an object without changing its +8) that names the outgoing player, and what those made, is given
+  back as the game gives one back, and every player's links to them cleared. In Vampire Savior 2 and Vampire Hunter 2
+  the free lists are 0x80 further on (their family.h, from tools/places.py).
+- **When:** only a player that can act (its own, and standing, crouching, walking, turning or guarding) and is not
+  frozen by a hit, in a round being fought. A swap while knocked about (02020202) crashed the game once.
+- **A bar emptied with a partner left:** health stops at 0 where the damage is taken and in the round's frame (as in
+  training: `TeamHoldsKnockOut`); keeping only the round's result from being decided was not enough (the player's own
+  code goes into its lost state, 0C, and the winner poses). The hit is an ordinary one, and as soon as the player can
+  act, the next one comes in. A time over: 00A3B2's result put by the teams' health (`TeamTimeOverResult`).
+- **The entrance:** played, it lasts about 110 frames and leaves the newcomer open; cut short after 2 frames it left
+  its pieces about (Q-Bee's honey pot) and sent Aulbath's drawing down a path never seen. Skipped (the game's own
+  bit), nothing of it is left and every swap was clean. (A skipped entrance once seemed to crash Q-Bee: that was
+  Lilith's objects not given back, a fault since mended.)
+- **Checks.** The matrix (`VSAV_SWAP` and `VSAV_SWAP_FREE`, test switches in livetag.cpp: a state 1,990 frames into
+  the versus movie with player 1 as each character in turn; made-up play for both players; player 1 swapped A->B->A->B
+  and player 2 to B and back, each when it can act): every pair of the fifteen, 210, twice (other swap times and
+  play), no reset, no interpreter fallback, the right character after every swap (1,050 each time); Vampire Savior 2,
+  its fifteen with Phobos, Pyron and Donovan: 210 pairs clean; Vampire Hunter 2, its fourteen: 182 clean; Definitive,
+  Demitri, Morrigan, Q-Bee and the three taken in: 30 pairs with no reset and the right character (its build falls back
+  to the interpreter without any swap too: not a sign here). Two pieces of code the explorer never reached were met:
+  an Aulbath drawing path (only with entrances cut short; the game's own, and taken in a real Aulbath fight too) and a
+  Q-Bee move at 049032 (well formed, a throw that holds both players and treats Sasquatch apart; reached by tagging in
+  and out a lot).
+- `CPS2RECOMP_BATTLE_SEED=1 make GAME=vampire_savior check FRAMES=10400 MOVIE=games/vampire_savior/movies/team_tag_two_vs_two.txt
+  ARGS="--features <the movie's first line> --keys 60:cteam_start"`: 2 vs 2 in the tag style with teams of three,
+  54 tags by both teams (the partners' Start among them, and bars emptied), a time over decided by the teams' health:
+  ok both ways; `--check-rewrites` 335,526 calls, none differ. The knock-out style's movie and the versus movie hash
+  as before. Routing in co-op traced: Morrigan's (player 1's) frames take player 1's controls, Q-Bee's (player 2's)
+  player 2's.
+- A tag waits for a round that is not paused (A5+8A), and the colours, health and gauges are put back only once the
+  game has set the newcomer up (its step off 0): the game does not run a player's code in every frame. A newcomer of
+  the same character and set as the other player takes the next set, as the game gives a second player.
+- Seen once by hand (2026-10-23): the computer's Q-Bee tagged in (after Zabel and Aulbath went down) with the owner's
+  Q-Bee on, in widescreen, and most of her and of the bars' frames were not drawn. Not made again headless: the same
+  teams and stage in widescreen, two Q-Bees, supers throughout (full gauges both sides), 284 tags fuzzed, 85 tags in
+  one 40,000-frame fight (no object leaked from the pools: their free counts steady). Waiting for a save state of it.
+- **The movements** (2026-10-24; the toolkit's, from `offStage`, `speedX`/`speedY`, `floor`): a fighter's "camera
+  does not follow" byte (+134, bit 7) also has the picture's edges let it go (028192, KeepIn, returns for it), so it
+  can leave the picture and the camera stays on the other; the toolkit sets it, again every frame (setting a fighter
+  up clears it). Tagging out: the game's jump back (up and away held three frames), then its speed across set to 9
+  pixels a step away, and swapped once 48 beyond the picture's edge (or 50 frames on; hit on the way, the tag is
+  off). Coming in: set up, put 48 beyond that end on the floor, the game's jump towards the other player, its speed
+  across set each step to land by it (distance over 34 steps, 3 to 12 a step), HK on the way down (the game's jump
+  attack: it hits). Back in the picture's edges once inside by 32; done on landing.
+- **A bar emptied: the game's own knock-down.** Where a hit's reeling begins (0237FE, then 02383C) the game branches
+  on +54 (vsav.h called it only "FF when guarded"): 00-02 a reel on the feet, 03 thrown up, 04/05 knocked down
+  (023A00: +07 = 0C, +140 = 4), and many more. Landing (024BB8), +117 not zero lies down (02020204, 06, 08, then
+  getting up about 28 frames on); zero gets straight up (02020400). So TakeDamage, for a hit that empties the bar of a
+  fighter with a partner to come in and is not guarded, puts +54 = 04 and +117 = 1; the reeling reads them at its
+  next step. (Tried first and not enough: +59, +56, +141, the state 0202000C from the floor, a fling made at the
+  player's steps landing as 02020204.) The side's computer byte is put at "a person" while it lies (or the game's
+  play rolls it back up at once), and the next one comes in 20 frames after it lands: about a second from the hit.
+- Checks: the knock-out fuzz (one-hit knock-outs against the computer's teams of three, every character among them,
+  24 runs): no reset, no fallback, the knock-outs' swaps made while lying (but for a guarded hit's, which leaves as
+  on a tag). The matrix again: 210 clean. The 2 vs 2 tag movie recorded again (29 tags, 4 from knock-downs, a
+  knock-out at the end): check ok both ways, `--check-rewrites` 363,712 calls none differ; the knock-out style's
+  movie and the versus movie hash as before.
+- From play by hand (2026-10-24): Bishamon's entrance went on into the fight, the other player free to move; now the
+  team battle's machines set both players' "no entrance" bits (A5+102) before every frame, and a match begins with
+  both standing. The same character twice in a match came back from a tag in the same colours as another: each
+  fighter of both teams now has a set of its own for the match (the nth of a character the nth set; a hidden form's
+  two), given to the first match (MatchWanted) and to every swap. "CPU difficulty" on the page: the board's byte
+  (A0) and the copy a game takes when it begins (BE), put in before every frame. The two team movies recorded again:
+  checks ok, no rewrite differs; the versus movie hashes as before.
+- From play by hand (2026-10-24, later): the one tagged out was seen standing for a frame as the next flew in: setting
+  a player up (0222C8) puts it where a round begins (x 552), in the picture, and clears +134; now its colour sets are
+  hidden (Video::hideObject) from the swap until it is put off the picture, and the ones leaving and coming are moved
+  by place (Q-Bee's jump back is a move of her own, 02001802, that her speed did not take off the picture). A tag whose
+  fighter is not in the air eight frames on (doing a move of its own) is off; the buttons pressed with Start are not
+  passed (random play's Start and punches made supers, and a super cut short by a swap left a black frame). A knocked-
+  out fighter was down too briefly: the game's lying step (02020208) lasts 8 frames before it rolls up; putting the
+  state back to it made the board reset; now, once it lies, its steps are not run at all (TagStep: it stays as it is),
+  for 120 frames from landing, and +147 (the game's time of not being hit, counted down each step, which the hit test
+  looks at with +134 and +11E) kept at 10 meanwhile: random play had kept hitting the body. Checks: the knock-out fuzz
+  (24 runs, no fault, swaps while lying), the matrix (210 clean), the tag movie recorded again (27 tags, 4 knock-downs;
+  check ok both ways, 345,756 rewrite calls none differ); the knock-out style's movie still ends as recorded.
+- From play by hand (2026-10-24, later still): a tag's call and the knock-out's announcer. Sounds queued traced (the
+  ring at FF0E0E, its end at FF1E0E): every knock-out seen is followed by F2, F3 and, 26 frames on, 0540 (the
+  announcer's, as at a match's end), played now 30 frames after a bar is emptied. Each character's call: the first
+  sound of its entrance no other character's entrance has, a voice (0x200 on) where it has one; the same numbers in
+  Vampire Savior 2 and Vampire Hunter 2 for the characters they share (TagCall, livetag.cpp). None listened to. The
+  newcomer seen standing for a frame: hiding by its colour sets missed it (an effect's palettes are elsewhere); now a
+  hook at 022354 (the setting up's own part done) puts it back where it was swapped in, off the picture, before the
+  frame is drawn. The team battle's fighters' rows and stage are the game's own (OwnFeatures): the collection's
+  launcher had been free to set them from another game's, whose numbers name other characters. The result's line
+  above the game's own big words. Fuzz, matrix (210 clean), the tag movie again (20 tags; checks ok, 291,521 rewrite
+  calls none differ); the knock-out movie as recorded.
+- From play by hand: the computer's newcomer was not drawn as it came in. The toolkit works a tag through the side's
+  controls, but the game plays a computer's fighter itself and does not read them, so its newcomer walked in instead of
+  jumping, and stayed hidden (hidden until it jumps). Now the game does not play a side's fighter while a tag of that
+  side moves (as for one lying knocked out), and a newcomer is hidden 10 frames at most before it jumps. The setting
+  of team 2's second fighter that had not been kept: watched by hand with a log of settings.ini, kept every time.
+- Tag on a gamepad's left trigger (asked for: Start is hard to reach on some pads, and HP and HK sit on the right
+  shoulder and trigger). A bit of its own, kTag (1 << 12), that the board never reads: the frontend sets it while the
+  game runs (stopped, the left trigger still steps a frame). Marvel vs. Capcom's HP+HK could not be had: a punch and a
+  kick of one strength is a Dark Force here, and two punches or two kicks are the EX moves. A movie with kTag (and one
+  with Start) at a free moment tags; the trigger itself not tried (no gamepad headless). The tag movie recorded again
+  (partners now tag with kTag, which made-up play does not press): checks ok.
+- Not done: the computer tags only when its bar empties; the outgoing and incoming are one after the other, not on
+  screen together (one record a side); not played by hand.
+
 ## Board settings (2026-10-15)
 
 `board.cpp`: the test menu's operator settings (設定: System and Game) as features on the Board page, each

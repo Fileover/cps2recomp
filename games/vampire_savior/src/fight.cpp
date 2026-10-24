@@ -11,6 +11,8 @@ namespace cps2recomp {
 void TrainingHit(int player, unsigned forGood, unsigned besides); // training.cpp
 bool TrainingMode();
 bool BattleNoClock(); // battle.cpp
+bool TeamHoldsKnockOut(int player);
+int TeamTimeOverResult();
 void TrainingContact(int victim, bool guarded, uint8_t kind);
 
 namespace {
@@ -71,8 +73,17 @@ namespace {
         if (Mem8(c, attack + kAttackFloorLeft) & 0x80) {
             floor(kHealth);
         }
-        // (a training session: nobody is knocked out, so health stops at nothing left)
-        if (TrainingMode()) {
+        // (the team battle's tag style: a hit that empties the bar of a fighter with a partner to come in knocks it
+        // down, the game's own knock-down landing lying, and the partner comes in while it lies there; a guarded one
+        // does not. The reeling, read where it begins at the player's next step, is told so here.)
+        if (player >= 0 && TeamHoldsKnockOut(player) && (Ram16(victim + kHealth) & 0x8000 || Ram16(victim + kHealth) == 0) &&
+            Ram8(victim + kGuarded) != 0xFF) {
+            SetRam8(victim + kGuarded, kReactionKnockDown);
+            SetRam8(victim + kLiesDown, 1);
+        }
+        // (a training session: nobody is knocked out, so health stops at nothing left; nor a fighter with a partner to
+        // come in, in the team battle's tag style)
+        if (TrainingMode() || TeamHoldsKnockOut(player)) {
             for (const uint32_t which : {kHealthCeiling, kHealth}) {
                 if (Ram16(victim + which) & 0x8000) {
                     SetRam16(victim + which, 0);
@@ -247,10 +258,11 @@ namespace {
         }
         Call(c, At(0x00A60A));
         const bool training = TrainingMode();
-        if (training) {
-            // (whatever else takes health off: not below nothing)
+        {
+            // (a training session, or a fighter with a partner to come in, in the team battle's tag style: whatever
+            // else takes health off, not below nothing)
             for (int n = 0; n < 2; n++) {
-                if (Ram16(Player(n) + kHealth) & 0x8000) {
+                if ((training || TeamHoldsKnockOut(n)) && (Ram16(Player(n) + kHealth) & 0x8000)) {
                     SetRam16(Player(n) + kHealth, 0);
                 }
             }
@@ -280,6 +292,10 @@ namespace {
                         SetRam8(Var(c, kRoundTimeOver), 0xFF);
                         SetRam8(Var(c, AtA5(0x14C)), 1);
                         Call(c, At(0x00A3B2));
+                        // (the team battle's tag style: by the teams' health, every fighter's)
+                        if (const int teams = TeamTimeOverResult()) {
+                            SetRam8(Var(c, kRoundResult), static_cast<uint8_t>(teams));
+                        }
                     }
                 }
             }

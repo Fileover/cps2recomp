@@ -10,6 +10,16 @@
 
 namespace cps2recomp {
 
+bool CanTag(int player); // livetag.cpp
+void TagIn(int player, int character, int colours);
+void TagNoEntrances();
+void TagDifficulty(int level);
+void TagUntouchable(int player);
+uint16_t TagCall(int character);
+bool TagSetUp(M68K &c);
+bool TaggedIn(int player);
+void TagOffStage(int player, bool off);
+
 namespace {
     using namespace vsav;
 
@@ -128,9 +138,25 @@ void RegisterBattle() {
     d.inAir = [](uint32_t player) { return Ram8(player + kAirborne) != 0; };
     d.atJumpTop = [](uint32_t player) { return Ram8(player + kAirborne) && static_cast<int32_t>(Ram32(player + kSpeedY)) <= 0; };
     d.teams = true;
+    d.teamLinesY = 0.19f; // (just under the bars' bats)
     d.oneBarEach = [] { SetRam8(At(0xFF80A4), 0); }; // (the board's damage gauges: 0 is one; board.cpp)
+    d.canTag = CanTag;
+    d.tagIn = TagIn;
+    d.noEntrances = TagNoEntrances;
+    d.difficulty = TagDifficulty;
+    d.taggedIn = TaggedIn;
+    d.offStage = TagOffStage;
+    d.untouchable = TagUntouchable;
+    d.tagCall = TagCall;
+    d.downSound = 0x0540; // (the announcer's at a knock-out: queued about 26 frames after one, every knock-out seen)
+    d.speedX = kSpeedX;
+    d.speedY = kSpeedY;
+    d.floor = kGround;
+    d.meter = kStocks; // (the stocks and the gauge being filled, cleared by the setting up)
+    d.meterSize = 3;
     battle::Register(d);
-    battle::RegisterTeamTag(0.22f);
+    AddHook(At(0x022354), "TagSetUp", TagSetUp); // (livetag.cpp: a newcomer of a swap kept where it was swapped in)
+    battle::RegisterTeamTag(0.25f);
 }
 
 } // namespace cps2recomp
