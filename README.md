@@ -58,7 +58,7 @@ Each game's page has all it does, with pictures.
 
 - **Keyboard, gamepad or arcade stick**, with every key and button changeable, for each player, once for all
   the games (the launcher's Controllers page).
-- **An in-game menu** (Esc or `F1`; on a gamepad, the left stick's click or Start and Select together): the
+- **An in-game menu** (Esc or `F1`; on a gamepad, the left stick's click or Select): the
   game's modes, save states, speed, pause and frame advance, cheats, and every feature.
 - **Pure or Enhanced.** Pure plays exactly as the board does. Enhanced (the default) adds free play and your
   own colours. Every other feature is a switch of its own, off unless you choose it.
@@ -100,7 +100,7 @@ cheats, run-ahead, the picture, training mode's displays and the dummy, and the 
 once; a feature changed in a game's own menu is set for the others too when you leave the game. The
 **Controllers** page sets the keys and buttons for all of them.
 
-While playing, Esc or `F1` (on a gamepad, the left stick's click, or Start and Select together) opens the
+While playing, Esc or `F1` (on a gamepad, the left stick's click, or Select) opens the
 in-game menu. Only the menu's "Quit game" row (or closing the window) ends the game.
 
 macOS: the app is not notarized, so the first time, right-click it and choose Open.

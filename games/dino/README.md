@@ -41,7 +41,7 @@ about a second. No key is in this repository.
   launcher, where the buttons are called what the game calls them: **Attack** and **Jump** (both together: the
   special attack). On a gamepad they start on X and Y, as the collection's other games have their first two buttons
   (in the game's own launcher: X and A).
-- An in-game menu (Esc or `F1`; on a gamepad, the left stick's click or Start and Select together) with save states,
+- An in-game menu (Esc or `F1`; on a gamepad, the left stick's click or Select) with save states,
   speed, pause and frame advance, the cheats and every feature.
 - **Pure** plays exactly as the board does. **Enhanced** (the default) adds free play. Every other feature is a
   switch of its own.
