@@ -35,14 +35,16 @@ with X-Men vs. Street Fighter.
   four players): the tag-team router (`fight/tag.h`) follows whose fighter is on, and the Controllers page has four
   players. Off, every game is as it was.
 - **The team battle's tag style** ("Style: Tag" on its page; the same four games): Marvel-style, each fighter with a
-  bar of its own, tagged in with Start whenever the fighter on can act: the one on calls the next one in (a voice of
+  bar of its own, tagged in with a gamepad's left trigger (next to HP and HK on the right) or Start whenever the
+  fighter on can act: the one on calls the next one in (a voice of
   its own), jumps back and flies off the
   picture, and the next jumps in from that side with a jump attack that can hit (the game's own jump and attack); a
   bar emptied knocks its fighter down (the game's own knock-down, landing lying, the announcer's call as at a match's
   end), where it lies two seconds and cannot
   be hit (time for a setup), and the next jumps in; resting fighters get back the health that comes back by itself; the team's super gauges carry across a
   tag; the others' health listed under the bars; a time over decided by the teams' health in all. In co-op and 2 vs 2
-  the partner tags in with their own Start. The game sets a fighter up anew itself (its own setting up of a player,
+  the partner tags in with their own left trigger. (Marvel vs. Capcom's HP+HK is a Dark Force here, as is every punch
+  and kick of one strength; two punches or two kicks make the EX moves: the left trigger is free.) The game sets a fighter up anew itself (its own setting up of a player,
   mid-fight), after what the outgoing character made is given back; every pair of characters swapped back and forth
   under made-up play in Vampire Savior, Vampire Savior 2 and Vampire Hunter 2 (602 pairs, 3,010 swaps) with no fault.
 

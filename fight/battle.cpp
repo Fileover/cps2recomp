@@ -519,7 +519,7 @@ namespace {
         const bool moves = d.offStage != nullptr;
         for (int side = 0; side < 2; side++) {
             uint16_t &panel = *panels[side];
-            const bool start = (panel & kStart) != 0;
+            const bool start = (panel & (kStart | kTag)) != 0; // (Start, or a gamepad's left trigger)
             const bool pressed = start && !g.startWas[side] && !g.computer[side];
             g.startWas[side] = start;
             if (g.cool[side] > 0) {
@@ -1566,7 +1566,7 @@ void battle::Register(const Description &description) {
     if (d.tagIn) {
         game.features.push_back({"team_style", kTeam, "Style",
                                  "Knock-out: one fighter of each team at a time, the next coming on when one is knocked out. Tag: "
-                                 "each fighter has its own health; Start tags the next one in whenever yours can act, and when a "
+                                 "each fighter has its own health; the left trigger (or Start) tags the next one in whenever yours can act, and when a "
                                  "fighter's health runs out the next comes in. Resting fighters get back the health that comes back "
                                  "by itself. The match is over when a team has nobody left.",
                                  0, {"Knock-out", "Tag"}});
@@ -1612,9 +1612,9 @@ void battle::RegisterTeamTag(float labelY) {
     // (no fighter is on outside a match; a team of three's third is its first person's again)
     t.onPoint = [](int side) { return g.kind == Kind::Team && (g.phase == Phase::Fighting || g.phase == Phase::Decided) ? g.on[side] % 2 : -1; };
     t.otherMode = [] { return g.kind != Kind::Team; };
-    // (the tag style: the partner's Start tags them in)
+    // (the tag style: the partner's left trigger tags them in)
     t.fighting = [] { return g.kind == Kind::Team && g.tag && g.phase == Phase::Fighting; };
-    t.tagButtons = kStart;
+    t.tagButtons = kTag;
     t.labelY = labelY;
     t.labelEnds = [](float &left, float &right) {
         left = BarsLeft();
@@ -1624,7 +1624,7 @@ void battle::RegisterTeamTag(float labelY) {
     t.help = "In the team battle, each fighter of a team played by a person of its own. Co-op: players 1 and 2 are one team "
              "against the computer's. 2 vs 2: players 1 and 3 against players 2 and 4. A team's panel is whoever's fighter is on "
              "(in a team of three, the third is the first person's again), and in the tag style the partner tags in with "
-             "Start. The labels under the bars say who is on.";
+             "their left trigger. The labels under the bars say who is on.";
     tag::Register(t);
 }
 

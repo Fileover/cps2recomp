@@ -749,6 +749,12 @@ Marvel-style tagging in the team battle (`fight/battle.h`, "Style: Tag"; the swa
   jumping, and stayed hidden (hidden until it jumps). Now the game does not play a side's fighter while a tag of that
   side moves (as for one lying knocked out), and a newcomer is hidden 10 frames at most before it jumps. The setting
   of team 2's second fighter that had not been kept: watched by hand with a log of settings.ini, kept every time.
+- Tag on a gamepad's left trigger (asked for: Start is hard to reach on some pads, and HP and HK sit on the right
+  shoulder and trigger). A bit of its own, kTag (1 << 12), that the board never reads: the frontend sets it while the
+  game runs (stopped, the left trigger still steps a frame). Marvel vs. Capcom's HP+HK could not be had: a punch and a
+  kick of one strength is a Dark Force here, and two punches or two kicks are the EX moves. A movie with kTag (and one
+  with Start) at a free moment tags; the trigger itself not tried (no gamepad headless). The tag movie recorded again
+  (partners now tag with kTag, which made-up play does not press): checks ok.
 - Not done: the computer tags only when its bar empties; the outgoing and incoming are one after the other, not on
   screen together (one record a side); not played by hand.
 

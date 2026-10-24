@@ -17,7 +17,7 @@
 //                   knocked down out and the next of that side in, with full health; the winner stays on with
 //                   the health it has left. Over when a side has nobody left. Side 2 is a person or the game; with
 //                   the tag-team modes (tag.h) each fighter of a side may be a person of its own. Its tag style
-//                   (a game that can swap a fighter mid-fight): each fighter has a bar of its own, Start tags
+//                   (a game that can swap a fighter mid-fight): each fighter has a bar of its own, Tag (a gamepad's left trigger) or Start tags
 //                   the next one in whenever the fighter on can act, and a bar emptied brings the next in.
 //
 // A game's sources describe where the game keeps what these need (Description) and register it; they also

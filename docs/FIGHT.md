@@ -88,8 +88,9 @@ its "damage gauges" setting at one), so that a team of two has the bars one figh
 whose fighter is on, and puts its labels beside the battle's own lines.
 
 Its tag style (`Description::canTag`, `tagIn`, `meter`) swaps a side's fighter in the middle of a match: the toolkit
-keeps each fighter's health and ceiling while it rests (the ceiling's health coming back to it), swaps on Start (or the
-partner's Start, through the router: `tagButtons` is Start there) when the game says the fighter can act, swaps in the
+keeps each fighter's health and ceiling while it rests (the ceiling's health coming back to it), swaps on Tag (`kTag`,
+a gamepad's left trigger while the game runs, never on the board's lines) or Start (or the partner's Tag, through the
+router: `tagButtons` is kTag there) when the game says the fighter can act, swaps in the
 next when the bar on has emptied (the game's sources ask `TeamHoldsKnockOut` where health is taken, so that it stops at
 nothing while a partner is left), puts the health and the gauges' bytes back after the game's frame has set the
 newcomer up, and decides a time over by the teams' health (`TeamTimeOverResult`). With `offStage` (and `speedX`,
