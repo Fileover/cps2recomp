@@ -24,7 +24,7 @@ namespace {
     battle::Description d; // the game's (battle::Register)
 
     constexpr const char *kModes = "Alternative modes", *kSurvival = "Survival", *kEndless = "Endless battle";
-    constexpr const char *kRingOut = "Ring out", *kTeam = "Team battle";
+    constexpr const char *kRingOut = "Ring out", *kTeam = "Tag team battle";
     constexpr int kTeamMost = 3;            // fighters a team has at most
 
     constexpr int kStartMost = 9000;        // frames after which getting to a round is given up
