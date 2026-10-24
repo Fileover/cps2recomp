@@ -15,6 +15,8 @@ void TagIn(int player, int character, int colours);
 void TagNoEntrances();
 void TagDifficulty(int level);
 void TagUntouchable(int player);
+uint16_t TagCall(int character);
+bool TagSetUp(M68K &c);
 bool TaggedIn(int player);
 void TagOffStage(int player, bool off);
 
@@ -145,12 +147,15 @@ void RegisterBattle() {
     d.taggedIn = TaggedIn;
     d.offStage = TagOffStage;
     d.untouchable = TagUntouchable;
+    d.tagCall = TagCall;
+    d.downSound = 0x0540; // (the announcer's at a knock-out: queued about 26 frames after one, every knock-out seen)
     d.speedX = kSpeedX;
     d.speedY = kSpeedY;
     d.floor = kGround;
     d.meter = kStocks; // (the stocks and the gauge being filled, cleared by the setting up)
     d.meterSize = 3;
     battle::Register(d);
+    AddHook(At(0x022354), "TagSetUp", TagSetUp); // (livetag.cpp: a newcomer of a swap kept where it was swapped in)
     battle::RegisterTeamTag(0.25f);
 }
 

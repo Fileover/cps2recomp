@@ -95,6 +95,10 @@ namespace {
     // (let out of the picture, the camera not following them: +134, which setting up clears)
     bool g_colours[2] = {false, false};
     bool g_off[2] = {false, false};
+    // Where a newcomer is when swapped in, kept through its setting up (which puts it where a round begins: 552 across,
+    // in the picture, for a frame), and put back where the setting up has done the rest (022354)
+    bool g_place[2] = {false, false};
+    uint32_t g_placeX[2] = {0, 0}, g_placeY[2] = {0, 0};
     // A knocked-out player that has come to lie (held there until the next comes in)
     bool g_lying[2] = {false, false};
     constexpr uint32_t kLying = 0x02020208;
@@ -158,6 +162,9 @@ void TagIn(int player, int character, int colours) {
     const uint8_t *p = Program(kColourSets + 4u * static_cast<uint32_t>(character));
     const uint32_t sets = (static_cast<uint32_t>(p[0]) << 24) | (static_cast<uint32_t>(p[1]) << 16) | (static_cast<uint32_t>(p[2]) << 8) | p[3];
     SetRam32(record + kColourSet, sets + static_cast<uint32_t>(Ram8(record + kColours)) * kColourSetSize);
+    g_place[player] = true;
+    g_placeX[player] = Ram32(record + kX);
+    g_placeY[player] = Ram32(record + kY);
     SetRam32(record + kState, 0);
     g_colours[player] = true;
     g_lying[player] = false;
@@ -179,6 +186,48 @@ void TagUntouchable(int player) {
 bool TagStep(M68K &c) {
     const uint32_t player = c.a[6] & 0xFFFFFF;
     return (player == Player(0) && g_lying[0]) || (player == Player(1) && g_lying[1]);
+}
+
+// A character's call as it tags out: a sound of its own from its entrance (a voice where it has one, 0x200 on), the
+// first that no other character's entrance has (sounds queued, traced: the ring at FF0E0E), the same numbers in
+// Vampire Savior 2 and Vampire Hunter 2 for the characters they share. Not listened to. A hidden form takes its own
+// character's; Phobos (the two games differ) and Donovan (none of his own) have none.
+uint16_t TagCall(int character) {
+    switch (character) {
+    case 0x00: return 0x021B; // Bulleta
+    case 0x01: return 0x0208; // Demitri
+    case 0x02: case 0x12: return 0x01C9; // Gallon (Dark Gallon)
+    case 0x03: return 0x0332; // Victor
+    case 0x04: return 0x0273; // Zabel
+    case 0x05: return 0x0228; // Morrigan
+    case 0x06: return 0x0349; // Anakaris
+    case 0x07: return 0x028A; // Felicia
+    case 0x08: case 0x18: return 0x02B5; // Bishamon (Oboro Bishamon)
+    case 0x09: return 0x01B8; // Aulbath
+    case 0x0A: return 0x01A4; // Sasquatch
+    case 0x0C: return 0x0308; // Q-Bee
+    case 0x0D: return 0x02CE; // Lei-Lei
+    case 0x0E: return 0x023C; // Lilith
+    case 0x0F: return 0x02E8; // Jedah
+    case 0x11: return 0x031B; // Pyron
+    default: return 0;
+    }
+}
+
+// 022354: a player's setting up has done the rest (the character's own setting up): a newcomer of a swap put back
+// where it was swapped in, and out of the picture's edges again if it is off the stage
+bool TagSetUp(M68K &c) {
+    const uint32_t player = c.a[6] & 0xFFFFFF;
+    const int n = player == Player(0) ? 0 : player == Player(1) ? 1 : -1;
+    if (n >= 0 && g_place[n]) {
+        g_place[n] = false;
+        SetRam32(player + kX, g_placeX[n]);
+        SetRam32(player + kY, g_placeY[n]);
+        if (g_off[n]) {
+            SetRam8(player + kNotFollowed, 0x80);
+        }
+    }
+    return false;
 }
 
 // The player let out of the picture, the camera not following it, or not

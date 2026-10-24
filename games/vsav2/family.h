@@ -142,6 +142,7 @@ inline constexpr Place kPlaceList[] = {
     {0x020236, 0x01EDD8}, // an instruction, 24 on alike
     {0x020B38, 0x000000}, // ChooseColours: this game's chooses other hidden characters (no rewrite) by hand
     {0x020C98, 0x000000}, // CountShadowCode: this game's is not the same (no rewrite) by hand
+    {0x022354, 0x020D08}, // an instruction, 5 on alike
     {0x02244C, 0x020E02}, // an instruction, 4 on alike
     {0x027694, 0x02686A}, // an instruction, 24 on alike
     {0x0276A6, 0x02687C}, // an instruction, 24 on alike

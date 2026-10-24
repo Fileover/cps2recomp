@@ -456,6 +456,7 @@ namespace {
     constexpr int kLeaveJump = 8;    // frames by which the one leaving is in the air
     constexpr int kLieFor = 120;     // frames the one knocked out is seen lying, from landing (left lying: the game's)
     constexpr int kDownMost = 240;   // frames, at most, from the knock-down to the next one coming in
+    constexpr int kDownSaid = 30;    // frames from the knock-down to the announcer's call (as the game makes it)
     constexpr int kStillUp = 20;     // frames after which one whose bar emptied but who never left the floor leaves
     constexpr int kOffBy = 48;       // how far beyond the picture's edge one is gone, and one coming starts
     constexpr int kComeMost = 120;   // frames, at most, of coming in
@@ -499,6 +500,12 @@ namespace {
     // The next fighter on: swapped in now, and coming in from the end of the picture the last one left by
     void BringIn(int side) {
         g.from[side] = X(side) < (SeenLeft() + SeenRight()) / 2 ? -1 : 1;
+        // (where the newcomer starts, off the picture at that end on the floor, put in first: the game's sources keep
+        // it there through setting the newcomer up, which puts a fighter where a round begins)
+        const int x = g.from[side] < 0 ? SeenLeft() - kOffBy : SeenRight() + kOffBy;
+        SetRam32(Player(side) + d.x, static_cast<uint32_t>(x) << 16);
+        SetRam32(Player(side) + d.y, static_cast<uint32_t>(d.floor) << 16);
+        d.offStage(side, true);
         Swap(side, g.coming[side]);
         g.move[side] = kComing;
         g.moveFor[side] = 0;
@@ -540,6 +547,12 @@ namespace {
                         // super move say)
                         panel = static_cast<uint16_t>(kUp | Stick(-toward));
                         g.moveFor[side]++;
+                        // (the one on calls the next one in)
+                        if (d.tagCall && d.playSound) {
+                            if (const uint16_t call = d.tagCall(g.team[side][g.on[side]])) {
+                                d.playSound(call);
+                            }
+                        }
                     } else {
                         Swap(side, next);
                     }
@@ -584,6 +597,9 @@ namespace {
                     g.from[side] = g.moveFor[side];
                 }
                 g.moveFor[side]++;
+                if (g.moveFor[side] == kDownSaid && d.downSound && d.playSound) {
+                    d.playSound(d.downSound);
+                }
                 if ((g.placed[side] && g.moveFor[side] - g.from[side] >= kLieFor) || g.moveFor[side] >= kDownMost) {
                     BringIn(side);
                 } else if (!g.jumped[side] && g.moveFor[side] > kStillUp && d.canTag(side)) {
@@ -832,7 +848,9 @@ namespace {
             TagBeforeFrame(one, two);
             g_hiddenSets = 0;
             for (int side = 0; side < 2; side++) {
-                if (g.move[side] == kComing && !g.placed[side] && d.playerSets) {
+                // (until it is in the air: before that it stands, then crouches to jump, off the picture's edge, and a
+                // wide character reaches into it)
+                if (g.move[side] == kComing && !(g.placed[side] && g.jumped[side]) && d.playerSets) {
                     g_hiddenSets |= d.playerSets(side);
                 }
             }
@@ -1302,7 +1320,7 @@ namespace {
         } else if (g.phase == Phase::Over && g.kind == Kind::Team) {
             g.since++;
             const bool people = !g.computer[1];
-            lines.push_back({0.5f, 0.36f, 0, g.winner < 0 ? "DRAW" : g.winner == 0 ? (people ? "TEAM 1 WINS" : "YOUR TEAM WINS") :
+            lines.push_back({0.5f, 0.26f, 0, g.winner < 0 ? "DRAW" : g.winner == 0 ? (people ? "TEAM 1 WINS" : "YOUR TEAM WINS") :
                                                                               (people ? "TEAM 2 WINS" : "CPU TEAM WINS")});
             if (g.since > kOverFor) {
                 End();
@@ -1580,6 +1598,9 @@ void battle::Register(const Description &description) {
             game.features.push_back({kTeamRows[side][n], kTeam, titles[side][n].c_str(), helps[side][n].c_str(), 0, d.fighterChoices});
         }
     }
+    // (the fighters' rows and the stage are this game's own, by its roster and its stages: the collection's launcher
+    // is not to set another game's from them)
+    OwnFeatures({"team_1_1", "team_1_2", "team_1_3", "team_2_1", "team_2_2", "team_2_3", "team_stage"});
 }
 
 void battle::RegisterTeamTag(float labelY) {

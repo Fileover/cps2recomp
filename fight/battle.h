@@ -136,8 +136,8 @@ struct Description {
     void (*noEntrances)() = nullptr;
     void (*difficulty)(int level) = nullptr;
     // The team battle's tag style (nullptr: no such style): whether a side's fighter can be swapped now (it can act),
-    // and swapping it: the game sets the side's player up again as this character (the health and the bytes of
-    // `meter` are put back by the toolkit after the game's frame)
+    // and swapping it: the game sets the side's player up again as this character, where it is when swapped (the
+    // health and the bytes of `meter` are put back by the toolkit after the game's frame)
     bool (*canTag)(int side) = nullptr;
     void (*tagIn)(int side, int character, int colours) = nullptr;
     // ... and whether the game has set the side's newcomer up yet (it may not have run the player's code that frame)
@@ -150,6 +150,10 @@ struct Description {
     void (*offStage)(int side, bool off) = nullptr;
     // ... and a fighter knocked out kept from being hit (asked every frame it lies there; nullptr: it can be)
     void (*untouchable)(int side) = nullptr;
+    // ... its sounds (playSound's codes; 0: none): a character's call as it tags out (the next one called in), and
+    // the announcer's at each knock-out (as at a match's end)
+    uint16_t (*tagCall)(int character) = nullptr;
+    uint16_t downSound = 0;
     uint32_t speedX = 0, speedY = 0;
     int floor = 0;
 

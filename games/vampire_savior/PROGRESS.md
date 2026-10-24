@@ -733,6 +733,17 @@ Marvel-style tagging in the team battle (`fight/battle.h`, "Style: Tag"; the swa
   looks at with +134 and +11E) kept at 10 meanwhile: random play had kept hitting the body. Checks: the knock-out fuzz
   (24 runs, no fault, swaps while lying), the matrix (210 clean), the tag movie recorded again (27 tags, 4 knock-downs;
   check ok both ways, 345,756 rewrite calls none differ); the knock-out style's movie still ends as recorded.
+- From play by hand (2026-10-24, later still): a tag's call and the knock-out's announcer. Sounds queued traced (the
+  ring at FF0E0E, its end at FF1E0E): every knock-out seen is followed by F2, F3 and, 26 frames on, 0540 (the
+  announcer's, as at a match's end), played now 30 frames after a bar is emptied. Each character's call: the first
+  sound of its entrance no other character's entrance has, a voice (0x200 on) where it has one; the same numbers in
+  Vampire Savior 2 and Vampire Hunter 2 for the characters they share (TagCall, livetag.cpp). None listened to. The
+  newcomer seen standing for a frame: hiding by its colour sets missed it (an effect's palettes are elsewhere); now a
+  hook at 022354 (the setting up's own part done) puts it back where it was swapped in, off the picture, before the
+  frame is drawn. The team battle's fighters' rows and stage are the game's own (OwnFeatures): the collection's
+  launcher had been free to set them from another game's, whose numbers name other characters. The result's line
+  above the game's own big words. Fuzz, matrix (210 clean), the tag movie again (20 tags; checks ok, 291,521 rewrite
+  calls none differ); the knock-out movie as recorded.
 - Not done: the computer tags only when its bar empties; the outgoing and incoming are one after the other, not on
   screen together (one record a side); not played by hand.
 
