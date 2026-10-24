@@ -95,6 +95,9 @@ namespace {
     // (let out of the picture, the camera not following them: +134, which setting up clears)
     bool g_colours[2] = {false, false};
     bool g_off[2] = {false, false};
+    // A knocked-out player that has come to lie (held there until the next comes in)
+    bool g_lying[2] = {false, false};
+    constexpr uint32_t kLying = 0x02020208;
 
 } // namespace
 
@@ -157,6 +160,25 @@ void TagIn(int player, int character, int colours) {
     SetRam32(record + kColourSet, sets + static_cast<uint32_t>(Ram8(record + kColours)) * kColourSetSize);
     SetRam32(record + kState, 0);
     g_colours[player] = true;
+    g_lying[player] = false;
+}
+
+// The player knocked out, every frame it is down: not hit by anything for the next few frames (+147: the game's own
+// time of not being hit, counted down each step; 02246E, and the hit test), and once it lies (the knock-down's step
+// 02020208, eight frames of the game's own before it gets up) left lying: its steps are not run (TagStep)
+void TagUntouchable(int player) {
+    const uint32_t record = Player(player);
+    SetRam8(record + kNotHit, 10);
+    if (Ram32(record + kState) == kLying) {
+        g_lying[player] = true;
+    }
+}
+
+// At a player's step (frames.cpp's PlayerStep, A6): a knocked-out player that lies is left as it is (true: the step
+// is made, by doing nothing)
+bool TagStep(M68K &c) {
+    const uint32_t player = c.a[6] & 0xFFFFFF;
+    return (player == Player(0) && g_lying[0]) || (player == Player(1) && g_lying[1]);
 }
 
 // The player let out of the picture, the camera not following it, or not

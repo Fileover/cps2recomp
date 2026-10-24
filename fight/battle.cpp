@@ -445,8 +445,9 @@ namespace {
     enum Move : int32_t { kStill, kLeaving, kDown, kComing };
     constexpr int kLeaveSpeed = 9;   // pixels a step, flying off
     constexpr int kLeaveMost = 50;   // frames, at most, before the one leaving is taken off
-    constexpr int kLieFor = 20;      // frames the one knocked out is seen lying, from landing (it gets up about 28 on)
-    constexpr int kDownMost = 150;   // frames, at most, from the knock-down to the next one coming in
+    constexpr int kLeaveJump = 8;    // frames by which the one leaving is in the air
+    constexpr int kLieFor = 120;     // frames the one knocked out is seen lying, from landing (left lying: the game's)
+    constexpr int kDownMost = 240;   // frames, at most, from the knock-down to the next one coming in
     constexpr int kStillUp = 20;     // frames after which one whose bar emptied but who never left the floor leaves
     constexpr int kOffBy = 48;       // how far beyond the picture's edge one is gone, and one coming starts
     constexpr int kComeMost = 120;   // frames, at most, of coming in
@@ -471,6 +472,21 @@ namespace {
     }
     void SetSpeedX(int side, int pixels256) { // (in 256ths of a pixel a step)
         SetRam32(Player(side) + d.speedX, static_cast<uint32_t>(pixels256 * 256));
+    }
+    // Moved across by so many 256ths of a pixel (the game's own speed left at nothing: a character's jump may be a
+    // move of its own that goes by speeds of its own)
+    void MoveX(int side, int pixels256) {
+        SetSpeedX(side, 0);
+        SetRam32(Player(side) + d.x, Ram32(Player(side) + d.x) + static_cast<uint32_t>(pixels256 * 256));
+    }
+    // A side's fighter not drawn while it is swapped for the next and put off the picture (the game sets the newcomer
+    // up where a round begins, in the picture, for a frame); its face beside the bars still is
+    uint32_t g_hiddenSets = 0;
+    bool HideTagged(uint32_t tile, uint16_t attributes) {
+        if (d.thePanel && d.thePanel(tile, attributes)) {
+            return false;
+        }
+        return (g_hiddenSets >> (attributes & 0x1F)) & 1;
     }
     // The next fighter on: swapped in now, and coming in from the end of the picture the last one left by
     void BringIn(int side) {
@@ -512,6 +528,10 @@ namespace {
                         g.move[side] = kLeaving;
                         g.moveFor[side] = 0;
                         g.coming[side] = next;
+                        // (from this frame: the buttons pressed with Start do nothing, or the game takes them, as a
+                        // super move say)
+                        panel = static_cast<uint16_t>(kUp | Stick(-toward));
+                        g.moveFor[side]++;
                     } else {
                         Swap(side, next);
                     }
@@ -521,17 +541,19 @@ namespace {
             case kLeaving: {
                 // A jump back, and once in the air, off the picture at speed
                 const int away = -toward;
-                if (g.moveFor[side] > 3 && Ram8(Player(side) + d.control) != d.controlOwn) {
-                    // (hit on the way: the tag is off, and the fighter stays)
+                if ((g.moveFor[side] > 3 && Ram8(Player(side) + d.control) != d.controlOwn) ||
+                    (g.moveFor[side] == kLeaveJump && !d.inAir(Player(side)))) {
+                    // (hit on the way, or doing a move of its own and not jumping off: the tag is off, and the
+                    // fighter stays)
                     d.offStage(side, false);
                     g.move[side] = kStill;
                     g.cool[side] = kTagCool;
                     break;
                 }
                 panel = g.moveFor[side]++ < 3 ? static_cast<uint16_t>(kUp | Stick(away)) : 0;
-                if (d.inAir(Player(side))) {
+                if (g.moveFor[side] > 3 && d.inAir(Player(side))) {
                     d.offStage(side, true);
-                    SetSpeedX(side, away * kLeaveSpeed * 256);
+                    MoveX(side, away * kLeaveSpeed * 256);
                 }
                 const bool gone = X(side) < SeenLeft() - kOffBy || X(side) > SeenRight() + kOffBy;
                 if (gone || g.moveFor[side] > kLeaveMost) {
@@ -540,8 +562,12 @@ namespace {
                 break;
             }
             case kDown: {
-                // (thrown up by the knock-down, then lying: the next one comes in a while after it has landed)
+                // (thrown up by the knock-down, then lying: the next one comes in a while after it has landed; no
+                // more hits land on it)
                 panel = 0;
+                if (d.untouchable) {
+                    d.untouchable(side);
+                }
                 const bool air = d.inAir(Player(side));
                 if (air) {
                     g.jumped[side] = true;
@@ -584,7 +610,7 @@ namespace {
                 } else if (air && Ram8(Player(side) + d.control) == d.controlOwn) {
                     // (across fast enough to land by the other player; the jump attack on the way down)
                     const int distance = std::abs(X(1 - side) - X(side)) - 40;
-                    SetSpeedX(side, toward * std::clamp(distance * 256 / kComeSteps, 3 * 256, 12 * 256));
+                    MoveX(side, toward * std::clamp(distance * 256 / kComeSteps, 3 * 256, 12 * 256));
                     if (!g.attacked[side] && static_cast<int32_t>(Ram32(Player(side) + d.speedY)) <= 0) {
                         panel = kKick3;
                         g.attacked[side] = true;
@@ -796,6 +822,15 @@ namespace {
         }
         if (g.kind == Kind::Team && g.tag && g.phase == Phase::Fighting) {
             TagBeforeFrame(one, two);
+            g_hiddenSets = 0;
+            for (int side = 0; side < 2; side++) {
+                if (g.move[side] == kComing && !g.placed[side] && d.playerSets) {
+                    g_hiddenSets |= d.playerSets(side);
+                }
+            }
+            if (g_hiddenSets) {
+                machine.video.hideObject = HideTagged;
+            }
         }
         // (a fighter the game plays hears nothing of the controls; nobody's Start or coin does anything)
         one = g.computer[0] ? 0 : one & kAnyButton;

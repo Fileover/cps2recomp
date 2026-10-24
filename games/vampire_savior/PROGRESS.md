@@ -721,6 +721,18 @@ Marvel-style tagging in the team battle (`fight/battle.h`, "Style: Tag"; the swa
   two), given to the first match (MatchWanted) and to every swap. "CPU difficulty" on the page: the board's byte
   (A0) and the copy a game takes when it begins (BE), put in before every frame. The two team movies recorded again:
   checks ok, no rewrite differs; the versus movie hashes as before.
+- From play by hand (2026-10-24, later): the one tagged out was seen standing for a frame as the next flew in: setting
+  a player up (0222C8) puts it where a round begins (x 552), in the picture, and clears +134; now its colour sets are
+  hidden (Video::hideObject) from the swap until it is put off the picture, and the ones leaving and coming are moved
+  by place (Q-Bee's jump back is a move of her own, 02001802, that her speed did not take off the picture). A tag whose
+  fighter is not in the air eight frames on (doing a move of its own) is off; the buttons pressed with Start are not
+  passed (random play's Start and punches made supers, and a super cut short by a swap left a black frame). A knocked-
+  out fighter was down too briefly: the game's lying step (02020208) lasts 8 frames before it rolls up; putting the
+  state back to it made the board reset; now, once it lies, its steps are not run at all (TagStep: it stays as it is),
+  for 120 frames from landing, and +147 (the game's time of not being hit, counted down each step, which the hit test
+  looks at with +134 and +11E) kept at 10 meanwhile: random play had kept hitting the body. Checks: the knock-out fuzz
+  (24 runs, no fault, swaps while lying), the matrix (210 clean), the tag movie recorded again (27 tags, 4 knock-downs;
+  check ok both ways, 345,756 rewrite calls none differ); the knock-out style's movie still ends as recorded.
 - Not done: the computer tags only when its bar empties; the outgoing and incoming are one after the other, not on
   screen together (one record a side); not played by hand.
 

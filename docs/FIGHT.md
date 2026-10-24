@@ -97,8 +97,10 @@ newcomer up, and decides a time over by the teams' health (`TeamTimeOverResult`)
 the one on jumps back (the game's jump) and is sped off the picture, let out of it and not followed by the camera;
 the newcomer, set up off the picture at that end, jumps in (its speed across stretched to land by the other player)
 and presses a jump attack on the way down, the game's own, which can hit. A fighter whose bar emptied is knocked down
-by the game (its sources make the hit a knock-down that lands lying) and lies a moment, the game not playing it, and
-the next one jumps in. How a fighter is swapped is the
+by the game (its sources make the hit a knock-down that lands lying) and lies two seconds, not to be hit
+(`untouchable`, asked every frame) and the game not playing it, and the next one jumps in. The one swapped is not
+drawn until it is off the picture (the game sets it up where a round begins), by its colour sets (`playerSets`), and
+the ones leaving and coming are moved by place, not by their speed (a character's jump may be a move of its own). How a fighter is swapped is the
 game's: in Vampire Savior, its own setting up of a player run again with the new character, after the objects the
 outgoing one made are given back to the game's pools (`src/livetag.cpp`).
 

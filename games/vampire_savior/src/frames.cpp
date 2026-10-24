@@ -50,7 +50,7 @@ namespace {
     // player. (Seen as the player's own routine starts on this step: its record is then as the last step left it,
     // which is what the picture showed and the hit tests tested.)
     bool PlayerStep(M68K &c) {
-        if (RingOutStep(c)) { // (the ring out's own movements: battle.cpp)
+        if (RingOutStep(c) || TagStep(c)) { // (the ring out's own movements: battle.cpp; one left lying: livetag.cpp)
             Return(c);
             return true;
         }

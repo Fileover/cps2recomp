@@ -147,6 +147,8 @@ struct Description {
     // across, up) and the floor's height. (A hit that empties a bar with a partner left is the game's to make a
     // knock-down of: TeamHoldsKnockOut.)
     void (*offStage)(int side, bool off) = nullptr;
+    // ... and a fighter knocked out kept from being hit (asked every frame it lies there; nullptr: it can be)
+    void (*untouchable)(int side) = nullptr;
     uint32_t speedX = 0, speedY = 0;
     int floor = 0;
 

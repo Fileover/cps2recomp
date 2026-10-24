@@ -14,6 +14,7 @@ bool CanTag(int player); // livetag.cpp
 void TagIn(int player, int character, int colours);
 void TagNoEntrances();
 void TagDifficulty(int level);
+void TagUntouchable(int player);
 bool TaggedIn(int player);
 void TagOffStage(int player, bool off);
 
@@ -142,6 +143,7 @@ void RegisterBattle() {
     d.difficulty = TagDifficulty;
     d.taggedIn = TaggedIn;
     d.offStage = TagOffStage;
+    d.untouchable = TagUntouchable;
     d.speedX = kSpeedX;
     d.speedY = kSpeedY;
     d.floor = kGround;
