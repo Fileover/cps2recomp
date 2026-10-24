@@ -456,6 +456,7 @@ namespace {
     constexpr int kLeaveJump = 8;    // frames by which the one leaving is in the air
     constexpr int kLieFor = 120;     // frames the one knocked out is seen lying, from landing (left lying: the game's)
     constexpr int kDownMost = 240;   // frames, at most, from the knock-down to the next one coming in
+    constexpr int kHiddenMost = 10;  // frames, at most, a newcomer put off the picture is not drawn before it jumps
     constexpr int kDownSaid = 30;    // frames from the knock-down to the announcer's call (as the game makes it)
     constexpr int kStillUp = 20;     // frames after which one whose bar emptied but who never left the floor leaves
     constexpr int kOffBy = 48;       // how far beyond the picture's edge one is gone, and one coming starts
@@ -774,9 +775,10 @@ namespace {
     // Who the game plays, told to the game: the players' records say
     void SayWhoPlays(bool nobody = false) {
         for (int n = 0; n < 2; n++) {
-            // (the tag style: a fighter knocked down with its bar emptied lies still, the game not playing it)
-            const bool down = g.kind == Kind::Team && g.move[n] == kDown;
-            SetComputer(n, g.computer[n] && !nobody && !down);
+            // (the tag style: a fighter knocked down with its bar emptied lies still, and one tagging out or in moves as
+            // the toolkit works its controls, the game not playing either)
+            const bool moving = g.kind == Kind::Team && g.move[n] != kStill;
+            SetComputer(n, g.computer[n] && !nobody && !moving);
         }
         BothPlay();
     }
@@ -850,7 +852,7 @@ namespace {
             for (int side = 0; side < 2; side++) {
                 // (until it is in the air: before that it stands, then crouches to jump, off the picture's edge, and a
                 // wide character reaches into it)
-                if (g.move[side] == kComing && !(g.placed[side] && g.jumped[side]) && d.playerSets) {
+                if (g.move[side] == kComing && !(g.placed[side] && (g.jumped[side] || g.moveFor[side] > kHiddenMost)) && d.playerSets) {
                     g_hiddenSets |= d.playerSets(side);
                 }
             }
@@ -859,8 +861,10 @@ namespace {
             }
         }
         // (a fighter the game plays hears nothing of the controls; nobody's Start or coin does anything)
-        one = g.computer[0] ? 0 : one & kAnyButton;
-        two = g.computer[1] ? 0 : two & kAnyButton;
+        // (... but a side in a tag's movements, which the toolkit works: tag style)
+        const bool moving[2] = {g.kind == Kind::Team && g.move[0] != kStill, g.kind == Kind::Team && g.move[1] != kStill};
+        one = g.computer[0] && !moving[0] ? 0 : one & kAnyButton;
+        two = g.computer[1] && !moving[1] ? 0 : two & kAnyButton;
         SayWhoPlays();
         if (g.way == kStageScroll) {
             // The floor moves under the fighters: they and what they have thrown are carried left with it,

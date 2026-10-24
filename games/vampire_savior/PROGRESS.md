@@ -744,6 +744,11 @@ Marvel-style tagging in the team battle (`fight/battle.h`, "Style: Tag"; the swa
   launcher had been free to set them from another game's, whose numbers name other characters. The result's line
   above the game's own big words. Fuzz, matrix (210 clean), the tag movie again (20 tags; checks ok, 291,521 rewrite
   calls none differ); the knock-out movie as recorded.
+- From play by hand: the computer's newcomer was not drawn as it came in. The toolkit works a tag through the side's
+  controls, but the game plays a computer's fighter itself and does not read them, so its newcomer walked in instead of
+  jumping, and stayed hidden (hidden until it jumps). Now the game does not play a side's fighter while a tag of that
+  side moves (as for one lying knocked out), and a newcomer is hidden 10 frames at most before it jumps. The setting
+  of team 2's second fighter that had not been kept: watched by hand with a log of settings.ini, kept every time.
 - Not done: the computer tags only when its bar empties; the outgoing and incoming are one after the other, not on
   screen together (one record a side); not played by hand.
 
