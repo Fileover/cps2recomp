@@ -103,7 +103,8 @@ by the game (its sources make the hit a knock-down that lands lying) and lies tw
 drawn until it is off the picture (the game sets it up where a round begins), by its colour sets (`playerSets`), and
 the ones leaving and coming are moved by place, not by their speed (a character's jump may be a move of its own). How a fighter is swapped is the
 game's: in Vampire Savior, its own setting up of a player run again with the new character, after the objects the
-outgoing one made are given back to the game's pools (`src/livetag.cpp`).
+outgoing one made are given back to the game's pools (`src/livetag.cpp`). What another game needs for it, and how Vampire Savior's
+facts were found: [TAG_TEAM.md](TAG_TEAM.md).
 
 The ring out needs two things of the game's player code, at each player's step of a fight (`RingOutMove`):
 
