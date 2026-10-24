@@ -11,7 +11,9 @@
 namespace cps2recomp {
 
 bool CanTag(int player); // livetag.cpp
-void TagIn(int player, int character);
+void TagIn(int player, int character, int colours);
+void TagNoEntrances();
+void TagDifficulty(int level);
 bool TaggedIn(int player);
 void TagOffStage(int player, bool off);
 
@@ -136,6 +138,8 @@ void RegisterBattle() {
     d.oneBarEach = [] { SetRam8(At(0xFF80A4), 0); }; // (the board's damage gauges: 0 is one; board.cpp)
     d.canTag = CanTag;
     d.tagIn = TagIn;
+    d.noEntrances = TagNoEntrances;
+    d.difficulty = TagDifficulty;
     d.taggedIn = TaggedIn;
     d.offStage = TagOffStage;
     d.speedX = kSpeedX;

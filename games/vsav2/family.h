@@ -541,6 +541,7 @@ inline constexpr Place kPlaceList[] = {
     {0xFF80B5, 0xFF80B5}, // a variable the code names so (22/22)
     {0xFF80BB, 0xFF80BB}, // a variable the code names so (10/10)
     {0xFF80BD, 0xFF80BD}, // a variable the code names so (37/37)
+    {0xFF80BE, 0xFF80BE}, // a variable the code names so (8/8)
     {0xFF80BF, 0xFF80BF}, // a variable the code names so (10/12)
     {0xFF80D0, 0xFF80D0}, // a variable the code names so (38/38)
     {0xFF80D4, 0xFF80D4}, // the random number (battle.cpp): 0xD4(a5) in this game's routine of it too (01357E) by hand

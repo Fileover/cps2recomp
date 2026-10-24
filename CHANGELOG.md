@@ -28,7 +28,9 @@ with X-Men vs. Street Fighter.
   Definitive): a mode on the Alternative modes page with two teams of two or three, chosen on its page. One fighter of
   each team at a time, all on one stage, each fighter on one health bar (a team of two has two between them, as one
   fighter has in a usual match; or as many as the board gives): the one knocked down is out and the next of that team
-  comes on with a full bar, and the winner stays on with the health it has left (and a little back). Team 2 is the CPU, or player 2.
+  comes on with a full bar, and the winner stays on with the health it has left (and a little back). Team 2 is the CPU
+  (with a difficulty of its own on the page), or player 2. Fighters begin a match ready, with no entrances, and the same
+  character twice or more in a match, on either team, is in a set of colours of its own.
   With "Tag team" on the same page each fighter is a person's own (co-op against the computer's team, or 2 vs 2 for
   four players): the tag-team router (`fight/tag.h`) follows whose fighter is on, and the Controllers page has four
   players. Off, every game is as it was.

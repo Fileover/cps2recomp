@@ -110,8 +110,21 @@ bool TaggedIn(int player) {
     return Ram8(Player(player) + kState) != 0;
 }
 
-// The player's fighter becomes `character`, set up by the game anew at its next step
-void TagIn(int player, int character) {
+// The team battle's machines, before each frame: both players begin a match ready, with no entrance (Bishamon's is
+// long enough that the other player is free to move well before him)
+void TagNoEntrances() {
+    SetRam8(kSkipEntrance, static_cast<uint8_t>(Ram8(kSkipEntrance) | 3));
+}
+
+// ... and the computer's difficulty, 0-7: the board's setting, and the copy of it a game takes when it begins (008F56)
+void TagDifficulty(int level) {
+    SetRam8(At(0xFF80A0), static_cast<uint8_t>(level));
+    SetRam8(At(0xFF80BE), static_cast<uint8_t>(level));
+}
+
+// The player's fighter becomes `character` in that set of its colours (-1: the player's), set up by the game anew
+// at its next step
+void TagIn(int player, int character, int colours) {
     const uint32_t record = Player(player);
     GiveBack(record);
     for (uint32_t at = kLinks; at < kLinks + 8; at += 2) {
@@ -126,11 +139,17 @@ void TagIn(int player, int character) {
     SetRam8(record + kCharacter, static_cast<uint8_t>(character));
     SetRam8(record + kCharacterAgain, static_cast<uint8_t>(character));
     SetRam8(kSkipEntrance, static_cast<uint8_t>(Ram8(kSkipEntrance) | (1u << number)));
-    // (the colours: the same set of the character's sets as the player chose, or, the other player being the same
-    // character in the same set, the next one, as the game gives a second player of the same character; kColourSet is
-    // above what is cleared)
+    // (the colours: the set asked for, or the one the player chose; a hidden form has two sets. Else, the other player
+    // being the same character in the same set, the next one, as the game gives a second player of the same character.
+    // kColourSet is above what is cleared.)
+    bool hidden = false;
+    for (const Character &c : family::kHidden) {
+        hidden = hidden || c.number == character;
+    }
     const uint32_t other = Player(1 - player);
-    if (Ram8(other + kCharacter) == character && Ram8(other + kColours) == Ram8(record + kColours)) {
+    if (colours >= 0) {
+        SetRam8(record + kColours, static_cast<uint8_t>(hidden ? colours & 1 : colours % kColourSetsEach));
+    } else if (Ram8(other + kCharacter) == character && Ram8(other + kColours) == Ram8(record + kColours)) {
         SetRam8(record + kColours, static_cast<uint8_t>(Ram8(record + kColours) ^ 1));
     }
     const uint8_t *p = Program(kColourSets + 4u * static_cast<uint32_t>(character));
@@ -188,7 +207,7 @@ void LiveTagBeforeFrame(Machine &machine) {
         if (free ? frame >= at && CanTag(player) : frame == at) {
             done |= 1 << index;
             fprintf(stderr, "swap at %d: player %d %02X -> %02X\n", frame, player, Ram8(Player(player) + kCharacter), character);
-            TagIn(player, character);
+            TagIn(player, character, -1);
             break;
         }
     }

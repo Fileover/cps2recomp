@@ -166,6 +166,7 @@ namespace {
         // The team battle: each side's fighters in the order they come on, how many it has, which is on now (the
         // number knocked down), and the side whose fighter stays on with what health it had left (-1: neither)
         int32_t team[2][kTeamMost] = {{-1, -1, -1}, {-1, -1, -1}};
+        int32_t teamColours[2][kTeamMost] = {}; // (each a set of its character's colours no other of it in the match has)
         int32_t teamSize = 2;
         int32_t on[2] = {0, 0};
         int32_t stays = -1;
@@ -330,6 +331,18 @@ namespace {
             }
             g.characters[side] = g.team[side][0];
         }
+        // (the same character twice or more in the match, on either team: each in a set of colours of its own)
+        for (int side = 0; side < 2; side++) {
+            for (int n = 0; n < g.teamSize; n++) {
+                int before = 0;
+                for (int s = 0; s <= side; s++) {
+                    for (int m = 0; m < (s < side ? g.teamSize : n); m++) {
+                        before += g.team[s][m] == g.team[side][n];
+                    }
+                }
+                g.teamColours[side][n] = before;
+            }
+        }
         g.computer[1] = TeamComputer();
         g.tag = d.tagIn && FeatureValue("team_style") == 1;
         const int stage = FeatureValue("team_stage");
@@ -422,7 +435,7 @@ namespace {
         }
         g.on[side] = next;
         g.characters[side] = g.team[side][next];
-        d.tagIn(side, g.team[side][next]);
+        d.tagIn(side, g.team[side][next], g.teamColours[side][next]);
         g.putBack[side] = true;
         g.cool[side] = kTagCool;
     }
@@ -676,13 +689,27 @@ namespace {
     }
 
     void Want() {
-        if (g.kind == Kind::Team && d.oneBarEach && FeatureValue("team_bars") == 0) {
-            d.oneBarEach();
+        if (g.kind == Kind::Team) {
+            if (d.oneBarEach && FeatureValue("team_bars") == 0) {
+                d.oneBarEach();
+            }
+            if (d.noEntrances) {
+                d.noEntrances();
+            }
+            const int level = FeatureValue("team_difficulty");
+            if (d.difficulty && level > 0) {
+                d.difficulty(level - 1);
+            }
         }
         Wanted().stage = g.stage;
         Wanted().characters[0] = g.characters[0];
         Wanted().characters[1] = g.characters[1];
         Wanted().colours[0] = g.colours;
+        if (g.kind == Kind::Team) {
+            for (int side = 0; side < 2; side++) {
+                Wanted().colours[side] = g.teamColours[side][std::min(g.on[side], g.teamSize - 1)];
+            }
+        }
     }
 
     // Both players stay players that are in the game (Description::plays), or the panel would count down for the
@@ -1489,6 +1516,11 @@ void battle::Register(const Description &description) {
     game.features.push_back({"team_opponent", kTeam, "Team 2",
                              "Who plays the second team: the CPU (the game), or player 2. (With \"Tag team\" below, that says who plays.)",
                              0, {"CPU", "Player 2"}});
+    if (d.difficulty) {
+        game.features.push_back({"team_difficulty", kTeam, "CPU difficulty",
+                                 "How well the CPU's team fights, 1 (easiest) to 8 (hardest), or as the board is set (the Board page).",
+                                 0, {"As the board is set", "1 (easiest)", "2", "3", "4", "5", "6", "7", "8 (hardest)"}});
+    }
     {
         // (the stages: the choices after the endless battle's two ways of changing them)
         static std::vector<const char *> stages = {"Random"};

@@ -130,11 +130,15 @@ struct Description {
     // The team battle's machines, before each of their frames, with "one health bar each" chosen: the game's own
     // setting for it put in (nullptr: no such choice)
     void (*oneBarEach)() = nullptr;
+    // ... always: fighters begin a match ready, with no entrance (nullptr: the game's entrances); and the computer's
+    // difficulty put in, 0 (the easiest) to 7 (nullptr: no such choice)
+    void (*noEntrances)() = nullptr;
+    void (*difficulty)(int level) = nullptr;
     // The team battle's tag style (nullptr: no such style): whether a side's fighter can be swapped now (it can act),
     // and swapping it: the game sets the side's player up again as this character (the health and the bytes of
     // `meter` are put back by the toolkit after the game's frame)
     bool (*canTag)(int side) = nullptr;
-    void (*tagIn)(int side, int character) = nullptr;
+    void (*tagIn)(int side, int character, int colours) = nullptr;
     // ... and whether the game has set the side's newcomer up yet (it may not have run the player's code that frame)
     bool (*taggedIn)(int side) = nullptr;
     uint32_t meter = 0, meterSize = 0; // bytes of a player's record kept by the side across a swap (its gauges)

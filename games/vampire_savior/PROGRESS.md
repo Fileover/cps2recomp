@@ -714,6 +714,13 @@ Marvel-style tagging in the team battle (`fight/battle.h`, "Style: Tag"; the swa
   on a tag). The matrix again: 210 clean. The 2 vs 2 tag movie recorded again (29 tags, 4 from knock-downs, a
   knock-out at the end): check ok both ways, `--check-rewrites` 363,712 calls none differ; the knock-out style's
   movie and the versus movie hash as before.
+- From play by hand (2026-10-24): Bishamon's entrance went on into the fight, the other player free to move; now the
+  team battle's machines set both players' "no entrance" bits (A5+102) before every frame, and a match begins with
+  both standing. The same character twice in a match came back from a tag in the same colours as another: each
+  fighter of both teams now has a set of its own for the match (the nth of a character the nth set; a hidden form's
+  two), given to the first match (MatchWanted) and to every swap. "CPU difficulty" on the page: the board's byte
+  (A0) and the copy a game takes when it begins (BE), put in before every frame. The two team movies recorded again:
+  checks ok, no rewrite differs; the versus movie hashes as before.
 - Not done: the computer tags only when its bar empties; the outgoing and incoming are one after the other, not on
   screen together (one record a side); not played by hand.
 
