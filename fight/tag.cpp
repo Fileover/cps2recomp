@@ -106,12 +106,16 @@ void Frame(Machine &) {
         return;
     }
     std::vector<HudLine> lines;
+    float left = g_d.labelLeft, right = g_d.labelRight;
+    if (g_d.labelEnds) {
+        g_d.labelEnds(left, right);
+    }
     for (int side = 0; side < 2; side++) {
         const int point = g_d.onPoint ? g_d.onPoint(side) : -1;
         const int person = point == 0 || point == 1 ? Person(side, point) : -1;
         if (person >= 0) {
             const std::string text = "P" + std::to_string(person + 1);
-            lines.push_back({side == 0 ? g_d.labelLeft : g_d.labelRight, g_d.labelY, side == 0 ? -1 : 1, text});
+            lines.push_back({side == 0 ? left : right, g_d.labelY, side == 0 ? -1 : 1, text});
         }
     }
     Label(std::move(lines));

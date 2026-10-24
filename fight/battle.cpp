@@ -376,6 +376,14 @@ namespace {
             g.characters[side] = g.team[side][g.on[side]];
         }
     }
+    // The ends of the bars' part of the picture, as parts of the picture (a wide one's bars stay in the board's middle)
+    float BarsLeft() {
+        const float width = static_cast<float>(PictureWidth());
+        return (static_cast<float>(d.wideSide()) + 0.02f * Video::kWidth) / width;
+    }
+    float BarsRight() {
+        return 1.0f - BarsLeft();
+    }
     // Under each side's bars: who of the side is still to come on (the tag style: the others, with their health)
     void TeamLines(std::vector<HudLine> &lines) {
         for (int side = 0; side < 2; side++) {
@@ -395,7 +403,7 @@ namespace {
                     text += std::string(text.empty() ? "" : "  ") + (name ? name : "?") + health;
                 }
                 if (!text.empty()) {
-                    lines.push_back({side == 0 ? 0.02f : 0.98f, 0.27f, side == 0 ? -1 : 1, text});
+                    lines.push_back({side == 0 ? BarsLeft() : BarsRight(), d.teamLinesY, side == 0 ? -1 : 1, text});
                 }
                 continue;
             }
@@ -404,7 +412,7 @@ namespace {
                 text += std::string(text.empty() ? "Next: " : ", ") + (name ? name : "?");
             }
             if (!text.empty()) {
-                lines.push_back({side == 0 ? 0.02f : 0.98f, 0.27f, side == 0 ? -1 : 1, text});
+                lines.push_back({side == 0 ? BarsLeft() : BarsRight(), d.teamLinesY, side == 0 ? -1 : 1, text});
             }
         }
     }
@@ -1583,6 +1591,10 @@ void battle::RegisterTeamTag(float labelY) {
     t.fighting = [] { return g.kind == Kind::Team && g.tag && g.phase == Phase::Fighting; };
     t.tagButtons = kStart;
     t.labelY = labelY;
+    t.labelEnds = [](float &left, float &right) {
+        left = BarsLeft();
+        right = BarsRight();
+    };
     t.page = kTeam;
     t.help = "In the team battle, each fighter of a team played by a person of its own. Co-op: players 1 and 2 are one team "
              "against the computer's. 2 vs 2: players 1 and 3 against players 2 and 4. A team's panel is whoever's fighter is on "

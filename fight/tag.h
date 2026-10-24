@@ -48,6 +48,8 @@ struct Description {
     uint16_t tagButtons = kPunch3 | kKick3;
     // Where the labels go, as parts of the picture (under each side's bars)
     float labelY = 0.2f, labelLeft = 0.02f, labelRight = 0.98f;
+    // ... or, where the picture changes width, the ends asked for each frame
+    void (*labelEnds)(float &left, float &right) = nullptr;
     // What the menu says of the modes (nullptr: as for a tag-team Vs game), and the page they are on (nullptr: the
     // Alternative modes page)
     const char *help = nullptr, *page = nullptr;
