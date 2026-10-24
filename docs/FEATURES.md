@@ -6,7 +6,7 @@ A game's own sources live in `games/<id>/src` and are compiled into the port. Wh
 ## Features
 
 A feature is a switch the player sets: in the launcher's Features page, in the in-game menu
-(`port/menu.cpp` over the shared `recomp-common/menu.cpp`: Esc, F1, a gamepad stick's click or its Select), or for one run with `--features a,b,-c`. The
+(`port/menu.cpp` over the shared `recomp-common/menu.cpp`: Esc, F1, a gamepad stick's click or its Start and Select together), or for one run with `--features a,b,-c`. The
 choices are kept in `settings.ini` (`--settings`). With every feature off the game runs exactly as
 the board does.
 

@@ -40,7 +40,7 @@ is checked against an interpreter of the same program ([how it was made](PROGRES
 
 - Plays with a keyboard, a gamepad or an arcade stick; every key and button can be changed, for each player, in
   the launcher. The game has six buttons: three punches and three kicks.
-- An in-game menu (Esc or `F1`; on a gamepad, the left stick's click or Select) with the
+- An in-game menu (Esc or `F1`; on a gamepad, the left stick's click or Start and Select together) with the
   training mode and the other modes, save states, speed, the cheats and every feature.
 - **Rapid fire** (Game page): a button held down is pressed again and again, fifteen times a second, for the first
   button or for all of them; the first press is seen at once.
@@ -177,7 +177,7 @@ Marvel Super Heroes comes with [CPS-2 Recomp](../../README.md#playing): open its
 Marvel Super Heroes. From a terminal, `cps2recomp-launcher --play msh` starts it straight away; the game's own program
 (`msh`, beside the launcher) runs by itself too: `msh --help` lists what it takes.
 
-While playing, Esc or `F1` (on a gamepad, the left stick's click, or Select) opens the in-game
+While playing, Esc or `F1` (on a gamepad, the left stick's click, or Start and Select together) opens the in-game
 menu. Only the menu's "Quit game" row (or closing the window) ends the game.
 
 ## Building from source

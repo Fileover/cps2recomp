@@ -73,9 +73,6 @@ namespace {
         uint16_t pad = 0;
         for (int action = 0; action < Table().table.count; action++) {
             const PadInput input = g_bindings.pad[player][action];
-            if (input.button == SDL_GAMEPAD_BUTTON_BACK) {
-                continue; // (Select is the menu's, whatever it is bound to)
-            }
             if ((input.button >= 0 && SDL_GetGamepadButton(gp, static_cast<SDL_GamepadButton>(input.button))) ||
                 (input.axis >= 0 && SDL_GetGamepadAxis(gp, static_cast<SDL_GamepadAxis>(input.axis)) > kDead)) {
                 pad |= Table().bits[action];
@@ -165,8 +162,8 @@ int RunWindowed(Port &port) {
     bool musicSilent = false;
 
     std::vector<SDL_Gamepad *> gamepads;
-    // The in-game menu: opened and closed by Esc, F1, a gamepad stick's click or its Select (Back) (the game is
-    // left from its "Quit game"). While it is open the game stands still and the
+    // The in-game menu: opened and closed by Esc, F1, a gamepad stick's click or its Start and Select
+    // together (the game is left from its "Quit game"). While it is open the game stands still and the
     // controls work the menu; buttons held as it closes do not reach the game until let go.
     std::vector<uint32_t> menuBase, menuPicture, shown;
     uint32_t menuWidth = 0, menuHeight = 0;
@@ -174,7 +171,7 @@ int RunWindowed(Port &port) {
     uint16_t previousPad = 0, heldAtClose = 0;
     unsigned previousMenu = 0;
     int triggerHeld = 0;
-    bool bothHeld = false; // a gamepad's Select (Back): the menu
+    bool bothHeld = false; // a gamepad's Start and Select (Back) together: the menu
     auto toggleMenu = [&]() {
         if (port.menu.IsOpen()) {
             port.menu.Close();
@@ -275,7 +272,8 @@ int RunWindowed(Port &port) {
             for (size_t i = 0; i < gamepads.size() && static_cast<int>(i) < Players(); i++) {
                 pads[i] |= ReadGamepad(gamepads[i], static_cast<int>(i));
                 trigger = trigger || (stepOnTrigger && SDL_GetGamepadAxis(gamepads[i], SDL_GAMEPAD_AXIS_LEFT_TRIGGER) > kDead);
-                both = both || SDL_GetGamepadButton(gamepads[i], SDL_GAMEPAD_BUTTON_BACK);
+                both = both || (SDL_GetGamepadButton(gamepads[i], SDL_GAMEPAD_BUTTON_START) &&
+                                SDL_GetGamepadButton(gamepads[i], SDL_GAMEPAD_BUTTON_BACK));
             }
             // The left trigger goes on by one frame (held: frame after frame, after a moment), once the game
             // has been stopped: it does not stop it, so a touch of it while playing does nothing
@@ -289,9 +287,8 @@ int RunWindowed(Port &port) {
             }
             uint16_t pressed = all & ~previousPad;
             previousPad = all;
-            // Select opens and closes the menu, whatever it is bound to, on any gamepad (alone, or with Start as it
-            // once had to be; it is never a press in the menu, and what is held with it reaches the game only once
-            // let go)
+            // Start and Select held together open and close the menu, whatever they are bound to (the second
+            // of them to go down is not also a press in the menu; neither reaches the game until let go)
             if (both && !bothHeld) {
                 toggleMenu();
                 pressed = 0;

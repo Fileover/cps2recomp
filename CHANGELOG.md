@@ -2,9 +2,6 @@
 
 ## Unreleased
 
-- **Select opens the in-game menu** on a gamepad, in every game (alone; Start and Select together still do). It no
-  longer puts a coin in: free play is on in the Enhanced preset, and the menu's "Insert coin" and the 5 key still do.
-
 A twelfth game, Marvel Super Heroes, with everything the other fighting games have, on a part of the toolkit it shares
 with X-Men vs. Street Fighter.
 

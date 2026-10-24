@@ -43,7 +43,7 @@ QSound chip, the sound CPU and its registers) is code written for this project, 
 
 - Plays with a keyboard, a gamepad or an arcade stick; every key and button can be changed, for
   each player, in the launcher.
-- An in-game menu (Esc or `F1`; on a gamepad, the left stick's click or Select)
+- An in-game menu (Esc or `F1`; on a gamepad, the left stick's click or Start and Select together)
   with the training mode and the other modes, save states, speed, the cheats and every feature.
 - The picture your way (Display page): sharp, whole pixels or smooth; 4:3, square pixels or the
   whole screen; and the window's size.
@@ -238,7 +238,7 @@ From a terminal, `cps2recomp-launcher --play vampire_savior` starts it straight 
 and anything after `--` goes to the game: `cps2recomp-launcher --play vampire_savior -- --features widescreen`. The
 game's own program (`vampire_savior`, beside the launcher) runs by itself too: `vampire_savior --help` lists what it takes.
 
-While playing, Esc or `F1` (on a gamepad, the left stick's click, or Select) opens the
+While playing, Esc or `F1` (on a gamepad, the left stick's click, or Start and Select together) opens the
 in-game menu. Only the menu's "Quit game" row (or closing the window) ends the game.
 
 ## Building from source

@@ -36,7 +36,7 @@ for this project, not an emulator.
 
 - Plays with a keyboard, a gamepad or an arcade stick; every key and button can be changed, for
   each player, in the launcher.
-- An in-game menu (Esc or `F1`; on a gamepad, the left stick's click or Select)
+- An in-game menu (Esc or `F1`; on a gamepad, the left stick's click or Start and Select together)
   with the training mode and the other modes, save states, speed, the cheats and every feature.
 - The picture your way (Display page): sharp, whole pixels or smooth; 4:3, square pixels or the
   whole screen; and the window's size.
