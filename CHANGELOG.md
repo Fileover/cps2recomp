@@ -24,6 +24,14 @@ with X-Men vs. Street Fighter.
 - For tests: `CPS2RECOMP_BATTLE_SEED` gives survival, the endless battle and the ring out the same choices every run,
   and `CPS2RECOMP_WATCH_REPORTS` raises `--watch`'s limit of 2,000 reports; `battle::Description::resultNow` for a game
   that keeps a round's result its own way.
+- **Team battle** (`fight/battle.h`; Vampire Savior, Vampire Savior 2, Vampire Hunter 2 and Vampire Savior
+  Definitive): a mode on the Alternative modes page with two teams of two or three, chosen on its page. One fighter of
+  each team at a time, all on one stage, each fighter on one health bar (a team of two has two between them, as one
+  fighter has in a usual match; or as many as the board gives): the one knocked down is out and the next of that team
+  comes on with a full bar, and the winner stays on with the health it has left (and a little back). Team 2 is the CPU, or player 2.
+  With "Tag team" on the same page each fighter is a person's own (co-op against the computer's team, or 2 vs 2 for
+  four players): the tag-team router (`fight/tag.h`) follows whose fighter is on, and the Controllers page has four
+  players. The first step towards tagging in during a fight. Off, every game is as it was.
 
 ## 0.4.0-beta.5
 

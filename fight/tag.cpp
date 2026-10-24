@@ -13,7 +13,20 @@ namespace cps2recomp::tag {
 
 namespace {
     Description g_d;
-    bool g_labelled = false; // (the labels are on the HUD)
+    std::vector<HudLine> g_labels; // (on the HUD now)
+
+    // The HUD's lines with the labels in place of the ones there
+    void Label(std::vector<HudLine> labels) {
+        std::vector<HudLine> lines;
+        for (const HudLine &line : Hud()) {
+            if (std::find(g_labels.begin(), g_labels.end(), line) == g_labels.end()) {
+                lines.push_back(line);
+            }
+        }
+        lines.insert(lines.end(), labels.begin(), labels.end());
+        g_labels = std::move(labels);
+        SetHud(std::move(lines));
+    }
 
     // Whether the controls are routed now
     bool Routing() {
@@ -77,7 +90,7 @@ void BeforeFrame(Machine &machine) {
         } else {
             const int other = person == first ? second : first;
             panel = static_cast<uint16_t>(held[person] | (held[other] & kCoin));
-            if (partner >= 0 && (held[partner] & g_d.tagButtons) == g_d.tagButtons) {
+            if (partner >= 0 && g_d.tagButtons && (held[partner] & g_d.tagButtons) == g_d.tagButtons) {
                 panel |= g_d.tagButtons;
             }
         }
@@ -87,9 +100,8 @@ void BeforeFrame(Machine &machine) {
 
 void Frame(Machine &) {
     if (!Routing()) {
-        if (g_labelled) {
-            SetHud({});
-            g_labelled = false;
+        if (!g_labels.empty()) {
+            Label({});
         }
         return;
     }
@@ -102,13 +114,13 @@ void Frame(Machine &) {
             lines.push_back({side == 0 ? g_d.labelLeft : g_d.labelRight, g_d.labelY, side == 0 ? -1 : 1, text});
         }
     }
-    g_labelled = !lines.empty();
-    SetHud(std::move(lines));
+    Label(std::move(lines));
 }
 
 void Register(const Description &description) {
     g_d = description;
-    TheGame().features.push_back({kFeature, modes::kModes, "Tag team",
+    TheGame().features.push_back({kFeature, g_d.page ? g_d.page : modes::kModes, "Tag team",
+                                  g_d.help ? g_d.help :
                                   "Each character of a team played by a person of its own. Co-op: players 1 and 2 are one team "
                                   "against the computer. 2 vs 2: players 1 and 3 against players 2 and 4. Each chooses one "
                                   "character (the first person first); in a fight the panel is whoever's character is on point, "

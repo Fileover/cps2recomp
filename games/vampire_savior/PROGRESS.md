@@ -606,6 +606,37 @@ asks first (true: the step is made, the game's routine not run):
 - Known: a "FIGHT" sign shows on the old stage a second or so after a ring out, before the winner jumps; it did
   before this change too (seen with the fling switched off). Not looked into.
 
+## Team battle (2026-10-23)
+
+- The toolkit's team battle (`fight/battle.h`, `Description::teams`): two teams of two or three from the menu's
+  rows, one stage throughout. Vampire Savior has no rounds: a match is over at the first knock-down, and the board's
+  "damage gauges" only make the health bar longer (one: 0x90, two: 0x120, four: 0x240; one knock-down still ends it,
+  traced with `--trace` over the steps at FF8004-FF800C and the result byte). So the team battle is survival on
+  both sides: each knock-down's next match is made ready on the spare machine with the loser's next fighter, and the
+  one who stays on is given its health (and ceiling) back, plus 0x30 in the proportion of a fighter's full health
+  (0x18 on one bar), as survival does.
+- Two bars are not two knock-downs: with two gauges, health runs from 0x90 into the second bar (0x7A) with no
+  knock-down and no change of step (traced), and the bar changes colour. So "Health bars: One each" (the default)
+  puts the board's gauges byte (A5+A4) at 0, one, before each frame of the team battle's machines; the game then
+  begins each fighter on 0x90 and draws one bar. The board's own setting is back after the battle (the reset
+  reads it again).
+- The tag-team router (`fight/tag.h`, through `battle::RegisterTeamTag`): with "Tag team" set, a team's panel is the
+  person whose fighter is on (a team of three's third is its first person's), no tag buttons. Run first in
+  `beforeFrame`; its P1-P4 labels (0.22 of the picture down) go with the battle's "Next:" lines (0.27).
+  `players = 4` in game.cfg (and in Vampire Savior 2's, Vampire Hunter 2's and Definitive's).
+- Checked headless (pictures every 50 frames; the characters, health and result bytes traced): a team of two
+  against the computer's, with one-hit knock-outs (the winner on with 0xBC + 0x30 = 0xEC, the next of team 2 on
+  with 0x120, the end and back to the title); teams of three in 2 vs 2 with made-up play for four players, the labels
+  P1/P2, then P4 on team 2's second, then P2 again on its third; the game's panel word for player 2 (A5+5C) is player
+  2's controls, then player 4's, then player 2's (printed beside the router's choice).
+- `CPS2RECOMP_BATTLE_SEED=1 make GAME=vampire_savior check FRAMES=16500 MOVIE=games/vampire_savior/movies/team_two_vs_two.txt
+  ARGS="--features <the movie's first line> --keys 60:cteam_start"`: translated code against the interpreter and two
+  runs alike, both ok; `--check-rewrites` over it: 626,787 calls, none differ. The movie (one bar each) has
+  knock-downs on both sides (team 1 down to its third, team 2 out). A time over was seen in the same set-up on the
+  board's two bars (the game's result byte and health decide it). With the mode off, the versus (6,000 frames) and
+  ladder (20,000) movies hash as before, as do X-Men vs. Street Fighter's co-op and 2 vs 2 movies.
+- Not checked: a double knock-out (the game's result 3: both teams' next on, or a draw), by hand with four controllers.
+
 ## Board settings (2026-10-15)
 
 `board.cpp`: the test menu's operator settings (設定: System and Game) as features on the Board page, each
