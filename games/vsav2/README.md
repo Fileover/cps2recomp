@@ -51,7 +51,7 @@ for this project, not an emulator.
   folder of music plays as a playlist (in order or shuffled), or files named for the game's songs replace those
   songs (the `songs.txt` the game writes names its 48 pieces: each stage's, each character's win, the rival, Jedah,
   the ending). [How →](../../README.md#a-custom-soundtrack)
-- Your ROM set is only ever read. Settings, save states and the board's settings memory go in your own user folder.
+- Your ROM set is only ever read. Settings, save states and the board's settings memory go in your own user folder, or beside the launcher in [portable mode](../../README.md#portable-mode).
 
 ## The characters and stages
 
@@ -127,6 +127,7 @@ the character with the button of the set you changed. It works as in Vampire Sav
 | Windows | `%APPDATA%\Vampire Savior 2\palettes` |
 | macOS | `~/Library/Application Support/Vampire Savior 2/palettes` |
 | Linux, SteamOS | `~/.local/share/Vampire Savior 2/palettes` |
+| [Portable mode](../../README.md#portable-mode) | `user/Vampire Savior 2/palettes` beside the launcher |
 
 ## What you need
 

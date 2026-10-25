@@ -204,6 +204,7 @@ set you changed** (Sakura with a punch, say), anywhere: arcade, versus, training
 | Windows | `%APPDATA%\Street Fighter Alpha 2\palettes` (paste it into Explorer's address bar; it is the `AppData\Roaming` folder in your user folder) |
 | macOS | `~/Library/Application Support/Street Fighter Alpha 2/palettes` |
 | Linux, SteamOS | `~/.local/share/Street Fighter Alpha 2/palettes` |
+| [Portable mode](../../README.md#portable-mode) | `user/Street Fighter Alpha 2/palettes` beside the launcher |
 
 You can write or share them by hand: "Write the game's colours" (on the colour editor's page of the menu) puts
 every character's own colours in `palettes/original` to start from, each set up to five lines of 16 colours

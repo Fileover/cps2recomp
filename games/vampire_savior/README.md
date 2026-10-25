@@ -64,7 +64,7 @@ QSound chip, the sound CPU and its registers) is code written for this project, 
   songs. The `songs.txt` the game writes in the soundtrack folder names all 80 pieces
   of its music (each stage's, each character's win and ending, the opening and the screens between fights). [How →](../../README.md#a-custom-soundtrack)
 - Your ROM set is only ever read. Settings, save states and the board's settings memory go in your
-  own user folder.
+  own user folder, or beside the launcher in [portable mode](../../README.md#portable-mode).
 
 | | |
 | --- | --- |
@@ -199,6 +199,7 @@ character (`Lilith.txt`) holding only the sets that are not the game's. The fold
 | Windows | `%APPDATA%\Vampire Savior\palettes` (paste it into Explorer's address bar; it is the `AppData\Roaming` folder in your user folder) |
 | macOS | `~/Library/Application Support/Vampire Savior/palettes` |
 | Linux, SteamOS | `~/.local/share/Vampire Savior/palettes` |
+| [Portable mode](../../README.md#portable-mode) | `user/Vampire Savior/palettes` beside the launcher |
 
 You can write or share them by hand: "Write the game's colours" (on the colour editor's page of
 the menu) puts every character's own colours in `palettes/original` to
