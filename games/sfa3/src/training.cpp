@@ -238,12 +238,16 @@ namespace {
             SetRam8(Player(1) + kComputer, computer ? 1 : 0);
         }
         g_computerWas = computer;
-        view.down = Ram8(Player(1) + kControl) == kControlReeling && Ram8(Player(1) + kReelKind) == kReelKnockedDown;
+        // (knocked down, or hit in the air and falling: both go through 02020202, where the quick rise is taken)
+        const uint8_t kind = Ram8(Player(1) + kReelKind);
+        view.down = Ram8(Player(1) + kControl) == kControlReeling && (kind == kReelKnockedDown || kind == kReelInAir);
     }
-    // Stunned, the dummy mashes: a new direction and a new button every frame
+    // Stunned, the dummy mashes: a new direction and a new button every frame (the stun, reel kind 0C, counts its time
+    // down at +3A by what 02B56A counts of the stick and buttons as well as by one a step: 0299FE)
     void AfterDummy(Machine &machine, const fight::DummyView &view) {
         const bool computer = FeatureOn("dummy_computer") && view.fighting;
-        if (FeatureOn("dummy_stun_mash") && view.fighting && !computer && Ram8(Player(1) + kStunned)) {
+        if (FeatureOn("dummy_stun_mash") && view.fighting && !computer && Ram8(Player(1) + kControl) == kControlReeling &&
+            Ram8(Player(1) + kReelKind) == kReelStunned) {
             static bool other = false;
             other = !other;
             machine.players[1] = other ? static_cast<uint16_t>(kLeft | kPunch1) : static_cast<uint16_t>(kRight | kKick1);
@@ -320,20 +324,23 @@ void RegisterTraining() {
                       "shows once it has tried a throw: the game tests the throw's own box only then."}};
     fight::DummyOptions &dummy = d.dummy;
     // The Alpha counter: while guarding, forward with a punch and a kick of the same strength (it costs a level of the
-    // super combo gauge and some of the guard gauge)
+    // super combo gauge and some of the guard gauge; checked: the dummy goes into it, state 02000E, and it hits)
     dummy.guardActions.push_back({"Alpha counter, punch", [](int frame, uint16_t toward, uint16_t) -> uint16_t {
                                       return (frame / 2) % 2 ? 0 : static_cast<uint16_t>(toward | kPunch2 | kKick2);
                                   }});
     dummy.guardActionsWords = "What player 2 does while guarding a hit: an Alpha counter (forward with a medium punch and a medium "
                               "kick; it costs a level of the super combo gauge, so pair it with \"Gauge refills\").";
+    // A throw's tech (029D08): within 8 steps of being thrown, back or forward with two punches or two kicks pressed at
+    // once (the throw's own command: forward and two punches) softens it (+29B; checked: 20 points of damage became 5)
     dummy.heldAction = [](int frame, uint16_t, uint16_t away) -> uint16_t {
         return static_cast<uint16_t>(away | ((frame & 1) ? (kPunch2 | kPunch3) : 0));
     };
     dummy.heldActionTitle = "Throw techs";
     dummy.heldActionWords = "Player 2 does a throw's own command while being thrown (a \"tech\", which takes less damage).";
-    // Getting up quickly from a knock-down ("ukemi": two punches as it lands)
+    // Getting up quickly from a knock-down (029884: two kicks pressed at once while falling, less than 0x50 above the
+    // floor; not in the X-ism)
     dummy.getUp.push_back({"Quick rise", [](int frame, uint16_t, uint16_t) -> uint16_t {
-                               return (frame / 2) % 2 ? 0 : static_cast<uint16_t>(kPunch1 | kPunch2);
+                               return (frame / 2) % 2 ? 0 : static_cast<uint16_t>(kKick1 | kKick2);
                            }});
     session::Register(d);
     game.features.push_back({"dummy_stun_mash", "Dummy", "Mashes out of stun",
