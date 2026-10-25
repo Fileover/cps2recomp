@@ -92,6 +92,9 @@ struct Description {
     // `controlOwn` the player itself), half its width (word)
     uint32_t character = 0, computer = 0, control = 0, halfWidth = 0;
     uint8_t controlOwn = 0;
+    // ... or, for a game that keeps no such byte, whether the player is its own master, worked out from its memory
+    // (nullptr: the byte)
+    bool (*ownMaster)(uint32_t player) = nullptr;
     // The computer byte is 0 for the game playing it, 1 for a person (not the other way round)
     bool computerIsZero = false;
     // A tag-team game's: how far after a player's record its partner's is (0: none), told the same of who plays it

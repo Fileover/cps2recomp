@@ -9,6 +9,7 @@ the build tells you which one is missing or different.
 
 | Game | `GAME=` | ROM set |
 | --- | --- | --- |
+| [Super Street Fighter II Turbo](../games/ssf2t/README.md) | `ssf2t` | `ssf2xjr1` (Japan 940223) |
 | [Street Fighter Alpha](../games/sfa/README.md) | `sfa` | `sfa` (Europe 950727) |
 | [Street Fighter Alpha 2](../games/sfa2/README.md) | `sfa2` | `sfa2u` (USA 960430) |
 | [Vampire Savior](../games/vampire_savior/README.md) | `vampire_savior` | `vsavj` (Japan 970519) |
