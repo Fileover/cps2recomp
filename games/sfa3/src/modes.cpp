@@ -69,9 +69,10 @@ namespace {
     }
 } // namespace
 
-bool ThePanel(uint32_t, uint16_t attributes) {
+bool ThePanel(uint32_t tile, uint16_t attributes) {
     const unsigned set = attributes & 0x1F;
-    return (set >= 0x15 && set <= 0x18) || (set >= 0x1A && set <= 0x1F);
+    // (and the faces beside the bars, in the players' own colour sets: tiles 16C00-177FF, which no fighter's picture uses)
+    return (set >= 0x15 && set <= 0x18) || (set >= 0x1A && set <= 0x1F) || (tile >= 0x16C00 && tile < 0x17800);
 }
 bool IsStagePiece(uint16_t attributes) {
     const unsigned set = attributes & 0x1F;
