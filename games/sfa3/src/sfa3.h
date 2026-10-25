@@ -145,7 +145,9 @@ constexpr uint32_t kGuardedHit = 0x55; // byte: FF when the last hit was guarded
 constexpr uint32_t kSide = 0x59;       // byte: which side it is on (a player's own things share it)
 constexpr uint32_t kHitStop = 0x5F;    // byte: frames the player stands frozen for while a hit lands (both players)
 constexpr uint32_t kCharacter = 0x102; // byte: who the player is (kCharacterNames; 027C54 sets the character up by it)
-constexpr uint32_t kSpecialGauge = 0x11E; // word: the super combo gauge (0x30 a level: the A-ism's and X-ism's levels)
+constexpr uint32_t kSpecialGauge = 0x11E; // word: the super combo gauge (0x90 full in every ism: 02EFDC; the A-ism's levels
+                                          // 0x30 each)
+constexpr uint16_t kSpecialGaugeFull = 0x90;
 constexpr uint32_t kColourChoice = 0x128; // byte: the colours, 0 when the ism was chosen with a punch, 1 with a kick
 constexpr uint32_t kComputer = 0x125;  // byte: 1 while the game plays this player (027C94 takes the computer's way for it;
                                        // found 1 for the opponent in a one-player game, 0 in a two-player one)

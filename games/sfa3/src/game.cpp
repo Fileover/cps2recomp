@@ -23,6 +23,7 @@ void BoardBeforeFrame(Machine &machine);
 void BoardState(Archive &ar);
 void RegisterMusic();    // music.cpp
 void RegisterCheats();   // cheats.cpp
+void CheatsFrame(Machine &machine);
 void RegisterModes();    // modes.cpp
 void RegisterTraining(); // training.cpp
 void RegisterBattle();   // battle.cpp
@@ -75,6 +76,7 @@ void RegisterGame() {
         ModelFrame(machine);
         TitleFrame(machine);
         CoinsFrame(machine);
+        CheatsFrame(machine);
     };
     // (run-ahead: not in the modes, whose workings a save state does not wholly hold)
     TheGame().noRunAhead = [] { return modes::AttractMode() || modes::StageViewer() || BattleMode() || ModelViewer(); };
@@ -95,6 +97,8 @@ void RegisterGame() {
     };
     // Its own, never set for the other games by the collection's launcher: Damage level has Super Puzzle Fighter II
     // Turbo's choices (Low, Normal, High, Maximum), where it means the counter gems an attack sends
+    // The training aids of this game's own work only in a training session (the toolkit's own are so already)
+    TrainingAids({"stun_readout", "custom_combo_readout", "throw_range", "fixed_damage", "dummy_stun_mash", "dummy_computer"});
     OwnFeatures({"board_damage", "survival_best", "ringout_best", "model_animation", "colours_animation"});
 }
 

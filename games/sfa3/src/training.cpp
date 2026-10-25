@@ -132,9 +132,36 @@ namespace {
         }
     }
 
-    // The throw's reach (the zone in front of a thrower in which the other's push box must be): found by the throw
-    // test, throws.cpp
-    void ThrowRanges(Machine &machine, std::vector<fight::StageBox> &boxes);
+    // The throw's reach. The throw test (02E3FE) takes a box of the thrower's attack table (D0, its number: each
+    // character's own code gives its throw's, Ryu's 4D) and tests it against the other's push box as the hit test
+    // tests boxes (024936; 4 wider against a player in the X-ism). The box a character's throw was last tested with is
+    // kept, by character, and drawn in front of each player who could throw (on the floor and free to act).
+    uint8_t g_throwBox[kCharacters] = {};
+    bool ThrowTested(M68K &c) {
+        const uint32_t player = c.a[6] & 0xFFFFFF;
+        if (PlayerOf(player) >= 0) {
+            const uint8_t who = Ram8(player + kCharacter);
+            if (who < kCharacters) {
+                g_throwBox[who] = static_cast<uint8_t>(c.d[0]);
+            }
+        }
+        return false;
+    }
+    void ThrowRanges(Machine &machine, std::vector<fight::StageBox> &boxes) {
+        M68K &c = machine.cpu;
+        for (int n = 0; n < 2; n++) {
+            const uint32_t player = Player(n);
+            const uint8_t who = Ram8(player + kCharacter);
+            if (who >= kCharacters || !g_throwBox[who] || Ram8(player + kInAir) || !CanAct(player)) {
+                continue;
+            }
+            const uint32_t box = Ram32(player + kAttackBoxes) + g_throwBox[who] * kAttackBoxSize;
+            const int across = static_cast<int16_t>(Mem16(c, box + kBoxX)), up = static_cast<int16_t>(Mem16(c, box + kBoxY));
+            const int x = static_cast<int16_t>(Ram16(player + kX)) + (Ram8(player + kFacesRight) ? -across : across);
+            boxes.push_back({fight::BoxKind::ThrowRange, x, static_cast<int16_t>(Ram16(player + kY)) + up, Mem16(c, box + kBoxHalfWidth),
+                             Mem16(c, box + kBoxHalfHeight), false});
+        }
+    }
 
     std::vector<fight::StageBox> Boxes(Machine &machine) {
         M68K &c = machine.cpu;
@@ -232,6 +259,7 @@ void StartTraining(Machine &machine) {
 void RegisterTraining() {
     Game &game = TheGame();
     AddHook(HookAt(kPlayerDispatch), "PlayerStep", PlayerStep);
+    AddHook(HookAt(0x02E3FE), "ThrowTested", ThrowTested);
     session::Description d;
     d.player1 = kPlayer1;
     d.playerSize = kPlayerSize;
@@ -287,8 +315,9 @@ void RegisterTraining() {
                          {"custom_combo_readout", "Training mode", "Custom combo time",
                           "While a player's V-ism custom combo goes on, how much of its time is left, under that player's bar."}};
     d.boxFeatures = {{"throw_range", "Training mode", "Throw range",
-                      "With hit boxes on: the zone in front of each player that the other's push box edge (the yellow line) has to be "
-                      "in for a throw, as the game tests it (both on the floor and free to act)."}};
+                      "With hit boxes on: the box in front of each player that the other's push box (green) has to touch for a "
+                      "throw, as the game tests it, while the player could throw (on the floor and free to act). Each character's "
+                      "shows once it has tried a throw: the game tests the throw's own box only then."}};
     fight::DummyOptions &dummy = d.dummy;
     // The Alpha counter: while guarding, forward with a punch and a kick of the same strength (it costs a level of the
     // super combo gauge and some of the guard gauge)
@@ -314,9 +343,5 @@ void RegisterTraining() {
                              "setting).",
                              kFeatureExclusive});
 }
-
-namespace {
-    void ThrowRanges(Machine &, std::vector<fight::StageBox> &) {}
-} // namespace
 
 } // namespace cps2recomp

@@ -48,7 +48,46 @@ namespace {
         }
         return false;
     }
+    // 023C4C: `add.b d0,0x2CC(a1)`, a hit's stun added to what has built up in the player at A1 (stunned when it reaches
+    // +2CD). With no stun nothing is added.
+    bool StunAdded(M68K &c) {
+        const int player = PlayerOf(c.a[1]);
+        if (player >= 0 && FeatureOn(player == 0 ? "no_stun" : "no_stun_2")) {
+            SetLow8(c.d[0], 0);
+        }
+        return false;
+    }
+
+    // 024146: `add.b d0,d2`, the random part of a hit's damage added: a byte of a row of 32 (A0: the table at 0C4B3A, the
+    // row by the attack's +18) picked by the game's random number (024138). With fixed damage the row's average is
+    // added in its place (the random number still drawn, so the game goes on as it would): a combo always does the
+    // same damage.
+    bool RandomPart(M68K &c) {
+        if (!FeatureOn("fixed_damage")) {
+            return false;
+        }
+        int sum = 0;
+        for (uint32_t n = 0; n < 32; n++) {
+            sum += static_cast<int8_t>(Mem8(c, (c.a[0] & 0xFFFFFF) + n));
+        }
+        const int average = sum >= 0 ? (sum + 16) / 32 : -((-sum + 16) / 32);
+        SetLow8(c.d[0], static_cast<uint8_t>(average));
+        return false;
+    }
 } // namespace
+
+// After every frame: the gauges kept full (in a fight only: the records hold other things outside one)
+void CheatsFrame(Machine &) {
+    if (Ram16(kMode) != 2 || Ram16(kGameStep) != kGameMatch) {
+        return;
+    }
+    static const char *const kFullGauge[2] = {"full_gauge", "full_gauge_2"};
+    for (int n = 0; n < 2; n++) {
+        if (FeatureOn(kFullGauge[n]) && Ram8(Player(n) + kState) == 2 && Ram16(Player(n) + kSpecialGauge) < kSpecialGaugeFull) {
+            SetRam16(Player(n) + kSpecialGauge, kSpecialGaugeFull);
+        }
+    }
+}
 
 void RegisterCheats() {
     AddHook(HookAt(kTakeDamage), "TakeDamage", TakeDamage);
@@ -60,11 +99,19 @@ void RegisterCheats() {
         }
         return false;
     });
+    AddHook(HookAt(0x023C4C), "StunAdded", StunAdded);
+    AddHook(HookAt(0x024146), "RandomPart", RandomPart);
     Game &game = TheGame();
     game.features.push_back({"no_damage", "Cheats", "No damage", "Player 1's health does not go down."});
     game.features.push_back({"no_damage_2", "Cheats", "No damage, player 2", "Player 2's health does not go down (the opponent's, in a one-player game)."});
     game.features.push_back({"one_hit", "Cheats", "One-hit knockouts", "Player 2 (the opponent, in a one-player game) goes down with the first hit."});
+    game.features.push_back({"full_gauge", "Cheats", "Full gauge", "Player 1's super combo gauge is always full."});
+    game.features.push_back({"full_gauge_2", "Cheats", "Full gauge, player 2", "Player 2's super combo gauge is always full."});
     game.features.push_back({"infinite_time", "Cheats", "Infinite time", "The round's clock stands still."});
+    game.features.push_back({"no_stun", "Cheats", "No stun", "Player 1 is never stunned (no stun builds up)."});
+    game.features.push_back({"no_stun_2", "Cheats", "No stun, player 2", "Player 2 is never stunned (no stun builds up)."});
+    game.features.push_back({"fixed_damage", "Training mode", "Fixed damage",
+                             "No random part in a hit's damage (the average in its place), so a combo always does the same."});
 }
 
 } // namespace cps2recomp
