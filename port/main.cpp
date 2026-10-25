@@ -468,6 +468,10 @@ void Port::Key(char key, unsigned n) {
 }
 
 bool Port::Tick() {
+    if (ProgramEnded() >= 0) {
+        quit = true; // (the game's sources are done: runtime/game.h, EndProgram)
+        return false;
+    }
     // (tests: --keys TICK:KEY,...: keys pressed at those ticks; a digit after 'k' is the command key's number)
     for (size_t at = 0; at < opt.keys.size();) {
         const size_t colon = opt.keys.find(':', at);
@@ -1101,6 +1105,8 @@ void Usage() {
             "  --features A,B         switch optional features on (--list-features lists them; -NAME: off; given\n"
             "                         more than once, all of them in order)\n"
             "  --settings FILE        settings.ini with the player's feature choices\n"
+            "  --multi MODE:CHOICES   played as one of the launcher's Multi game page's games (endless:scroll:1,\n"
+            "                         endless:shuffle:60); exit code 3 when it is the next game's turn\n"
             "  --soundtrack DIR       the custom soundtrack's folder (its songs.txt names the files)\n"
             "  --soundtrack-dump FILE (with --headless) write what the custom soundtrack plays to a WAV file\n"
             "  --poke A=B,...         write byte B at RAM address A after every frame (hex)\n"
@@ -1214,6 +1220,8 @@ bool ParseArgs(int argc, char **argv, port::Options &o) {
             o.soundtrack = next();
         } else if (a == "--soundtrack-dump") {
             o.soundtrackDump = next();
+        } else if (a == "--multi") {
+            SetMultiGame(next());
         } else if (a == "--features") {
             // (given more than once, all of them, in order: what the launcher says, then what follows it)
             const std::string more = next();
@@ -1459,5 +1467,5 @@ int main(int argc, char **argv) {
     if (p.opt.checkRewrites && !ReportRewrites()) {
         return 4;
     }
-    return result;
+    return ProgramEnded() >= 0 ? ProgramEnded() : result;
 }

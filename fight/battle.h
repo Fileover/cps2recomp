@@ -10,6 +10,10 @@
 //                   before; over at the first knock-down, with the count of opponents beaten.
 //   Endless battle  two fighters the game plays, with no panel; the one knocked down is replaced. A person
 //                   takes a fighter over by touching the controls, and gives it back by leaving them alone.
+//                   Started by the launcher's Multi game page (--multi endless:shuffle:SECONDS or
+//                   endless:scroll:SPEED; runtime/game.h, MultiGame), it is begun at once and shows every stage
+//                   once (shuffled and faded into one another, or scrolling by in order), then fades out and ends
+//                   the program with kNextGame, for the next game's turn.
 //   Ring out        the player against one opponent after another, with no health: a stage's ends are open,
 //                   and whoever is knocked over one is thrown out and falls through the floor. The winner jumps
 //                   off, and the camera follows it down onto the next stage.
