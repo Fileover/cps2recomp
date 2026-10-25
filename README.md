@@ -78,7 +78,7 @@ Each game's page has all it does, with pictures.
 - **A custom soundtrack**: your own music files (an arranged soundtrack from a console version, say) in place of
   the board's music, song by song, with the board's sound effects and voices. [How →](#a-custom-soundtrack)
 - **Your ROM sets are only ever read.** Settings, save states and each board's settings memory go in your own
-  user folder.
+  user folder, or with the launcher, on a drive you carry, in [portable mode](#portable-mode).
 - **Updates in the launcher**: new games and fixes come to the copy you have. When a new version is out the
   launcher says so at the top of its Games page, and **Update** downloads the new version, checks it, puts
   what changed in place and starts the new launcher. [More →](#updates)
@@ -129,6 +129,33 @@ The launcher needs to be able to write to its own folder: on macOS, move `CPS-2 
 anywhere of your own) before opening it the first time, not run it from the downloaded zip's folder. A copy built
 from source is told of a new version but not changed.
 
+### Portable mode
+
+To keep everything with the launcher (on a USB stick or an external drive you take from one computer to another),
+put an empty file named `portable.txt` beside it:
+
+| System | Where `portable.txt` goes | Where your things then are |
+| --- | --- | --- |
+| Windows, Linux, Steam Deck | in the `CPS2Recomp` folder, beside `cps2recomp-launcher` | `CPS2Recomp/user/` |
+| macOS | in the folder `CPS-2 Recomp.app` is in (not inside the app) | `user/` in that folder |
+
+Settings, save states, each board's settings memory, custom colours, the score attack records, a soundtrack in
+the game's own folder and the logs then go in `user/`, a folder for the launcher and one for each game, laid out
+as in your user folder. The launcher's Games page shows where they are under **Your files** (**Show** opens the
+folder).
+
+- **The first time**, if your user folder already has the games' things, the launcher asks whether to copy them
+  to `user/`. Copying never takes anything from your user folder and never writes over a file.
+- **To stop**, take `portable.txt` away: the launcher uses your user folder again, as it was when you started
+  portable mode. Nothing is moved either way; to carry things back, copy the folders in `user/` to your user
+  folder yourself (with the launcher closed).
+- **Updates** keep `portable.txt` and `user/`: they change only the release's own files.
+- **The folder has to be one you can write to.** If it is not (a read-only drive, or Windows' Program Files), the
+  launcher says so and stops rather than keep your things somewhere else.
+- ROM sets are still only read, wherever they are. A ROM folder chosen on a drive letter (Windows) or a mount
+  point (`/Volumes/...`, `/media/...`) is remembered as that path: on another computer, choose it again if the
+  drive is somewhere else. A Steam shortcut (**Add to Steam**) is for the computer it was added on.
+
 ### From a terminal
 
 ```sh
@@ -153,7 +180,8 @@ effects and voices stay the board's.
 2. On a game's page, under Sound, **Choose…** the folder your music files are in (`.ogg`, `.flac`, `.mp3` or
    `.wav`). With none chosen, the game uses the `soundtrack` folder in its own settings folder
    (`~/Library/Application Support/<Game>/` on macOS, `~/.local/share/<Game>/` on Linux and Steam Deck,
-   `%APPDATA%\<Game>\` on Windows), which it makes.
+   `%APPDATA%\<Game>\` on Windows, `user/<Game>/` beside the launcher in [portable mode](#portable-mode)), which
+   it makes.
 
 That is all it takes: **a folder of music plays as a playlist**, in place of all the game's music, one file after
 another in their names' order (`2 ...` before `10 ...`), and from the first again after the last. Choose **On,

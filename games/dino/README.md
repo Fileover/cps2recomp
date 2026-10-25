@@ -66,7 +66,7 @@ about a second. No key is in this repository.
 - **Straight to the title**: at a start or a reset, the board's start, its version and its warning run unseen.
 - The picture your way (Display page): sharp, whole pixels or smooth; 4:3, square pixels or the whole screen; and
   the window's size. Run-ahead takes a frame or two of input lag away.
-- Your ROM set is only ever read. Settings, save states and the board's settings memory go in your own user folder.
+- Your ROM set is only ever read. Settings, save states and the board's settings memory go in your own user folder, or beside the launcher in [portable mode](../../README.md#portable-mode).
 
 ![Inside the mansion, stage 1](../../docs/screenshots/dino/mansion.png)
 

@@ -66,7 +66,7 @@ block is checked against an interpreter of the same program ([how it was made](P
   introduction, player select, versus, the winner's, a new challenger, continue, every ending, the staff rolls, game
   over and the ranking.
   [How →](../../README.md#a-custom-soundtrack)
-- Your ROM set is only ever read. Settings, save states and the board's settings memory go in your own user folder.
+- Your ROM set is only ever read. Settings, save states and the board's settings memory go in your own user folder, or beside the launcher in [portable mode](../../README.md#portable-mode).
 
 ## Training mode
 

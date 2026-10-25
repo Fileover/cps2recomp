@@ -86,7 +86,8 @@ menu. Its **Quit game** row ends the game.
 
 The launcher checks for a new version when it opens and offers it at the top of the **Games** page: **Update**
 downloads it, checks it and starts the new version. Or download this release and put it in place of the old app
-or folder. Your settings, save states and ROM sets are kept either way: they are in your own user folder.
+or folder. Your settings, save states and ROM sets are kept either way: they are in your own user folder (or
+in \`user/\` beside the launcher, with \`portable.txt\`: portable mode).
 
 ## What's new in $VERSION
 

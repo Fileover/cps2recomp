@@ -25,6 +25,14 @@
   `attackComing`; `RingOutMayWalkBack`); with neither mode on, every movie plays exactly as before. For tests:
   `CPS2RECOMP_BATTLE_CPU=1` (both sides the game's, the mode begun again when over), `CPS2RECOMP_COACH`,
   `CPS2RECOMP_COACH_PARTS` and `CPS2RECOMP_BATTLE_LOG`; the numbers are in each game's PROGRESS.
+- **Portable mode** (issue #65): an empty `portable.txt` beside the launcher (on macOS, beside the app) keeps
+  every game's settings, save states, board memory and logs in `user/` there instead of your user folder, so the
+  collection can live on a drive you carry. The first time, the launcher offers to copy what your user folder
+  has (copying only: nothing is moved or written over); taking `portable.txt` away goes back to your user folder
+  as it was. Updates keep `portable.txt` and `user/`, and a folder that cannot be written to is said, not
+  worked around. The Games page's new **Your files** card shows where everything is kept and opens the folder. A
+  game's own program, opened by itself, finds the launcher's settings in the same place. (recomp-common
+  `src/folders.h`.)
 
 ## 0.4.0-beta.6
 

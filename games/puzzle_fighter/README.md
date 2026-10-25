@@ -74,7 +74,7 @@ the settings memory) is code written for this project, not an emulator
   songs. The `songs.txt` the game writes in the soundtrack folder names all 24 pieces
   of its music (each character's theme, the title, the dojo, the intermission and the screens between matches). [How →](../../README.md#a-custom-soundtrack)
 - Your ROM set is only ever read. Settings, save states and the board's settings memory go in your
-  own user folder.
+  own user folder, or beside the launcher in [portable mode](../../README.md#portable-mode).
 
 | | |
 | --- | --- |
@@ -196,6 +196,7 @@ the set you changed**, anywhere: arcade, versus, training. Your gem colours are 
 | Windows | `%APPDATA%\Super Puzzle Fighter II Turbo\palettes` (paste it into Explorer's address bar; it is the `AppData\Roaming` folder in your user folder) |
 | macOS | `~/Library/Application Support/Super Puzzle Fighter II Turbo/palettes` |
 | Linux, SteamOS | `~/.local/share/Super Puzzle Fighter II Turbo/palettes` |
+| [Portable mode](../../README.md#portable-mode) | `user/Super Puzzle Fighter II Turbo/palettes` beside the launcher |
 
 You can write or share them by hand: "Write the game's colours" (on the colour editor's page of the
 menu) puts every character's own colours and the gems' in `palettes/original` to start from, each set

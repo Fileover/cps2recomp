@@ -59,7 +59,7 @@ program; what the program expects of the board is code written for this project,
 - **Straight to the title**: at a start or a reset, the board's start, the notices and the story run unseen.
 - The picture your way (Display page): sharp, whole pixels or smooth; 4:3, square pixels or the whole screen; and
   the window's size. Run-ahead takes a frame or two of input lag away.
-- Your ROM set is only ever read. Settings, save states and the board's settings memory go in your own user folder.
+- Your ROM set is only ever read. Settings, save states and the board's settings memory go in your own user folder, or beside the launcher in [portable mode](../../README.md#portable-mode).
 
 ![Round 2, War in the Underpass](../../docs/screenshots/avsp/underpass.png)
 

@@ -66,7 +66,7 @@ program ([how it was made](PROGRESS.md)).
   songs. The `songs.txt` the game writes in the soundtrack folder names the music: each stage's, player select,
   versus, the winner's, the story, the ending, the staff roll, the rankings and the notices.
   [How →](../../README.md#a-custom-soundtrack)
-- Your ROM set is only ever read. Settings, save states and the board's settings memory go in your own user folder.
+- Your ROM set is only ever read. Settings, save states and the board's settings memory go in your own user folder, or beside the launcher in [portable mode](../../README.md#portable-mode).
 
 ## Training mode
 
