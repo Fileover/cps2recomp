@@ -103,6 +103,16 @@ once; a feature changed in a game's own menu is set for the others too when you 
 **Controllers** page sets the keys and buttons for all of them; its Layout for chooses a game, and Its own layout
 gives that game keys and buttons apart from the others', under the game's own names for its buttons.
 
+**Multi game** (the page after Controllers) plays several games one after another, for as long as you like. Its
+**Endless battle** goes through every stage of a fighting game with the game playing both fighters, then on to the
+next game's stages, and round again after the last: choose the games (every fighting game, or only some), their order
+(the sidebar's, or shuffled), how the stages change (**Shuffle**, each fading into the next after the time you choose,
+or **Scroll**, going by in order at the speed you choose) and full screen or as each game is set, then **Start**. Touch
+the controls to take a fighter over. Quitting a game (its menu's Quit game, or closing its window) ends the run, as
+does **Stop after this game**.
+
+![The Multi game page: the endless battle through every stage of each game you choose](docs/screenshots/launcher-multi.png)
+
 The games are in your order: drag a game's row in the sidebar up or down to keep the ones you play most at the top
 (with a gamepad or the keyboard, **Move up** and **Move down** on its page, under Play). The Games page lists them
 the same way. On a small screen, or with large text, the launcher closes up to fit: a narrower sidebar whose list

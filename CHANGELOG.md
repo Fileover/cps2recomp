@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- **Multi game**: a new page of the launcher's, for modes that play several games one after another. Its first,
+  **Multi-game endless battle**, goes through every stage of a fighting game with the game playing both fighters,
+  then does the same in the next game, and round again: the player chooses which games (any of the ten fighting
+  games), their order (the sidebar's or shuffled), the stages' way (Shuffle: in turn at random, each fading into the
+  next after 30 seconds to 5 minutes; Scroll: going by in order, slow, medium or fast) and full screen. A game is
+  started with `--multi endless:...` and ends with exit code 3 when its last stage is done (`runtime/game.h`,
+  `MultiGame`, `EndProgram`); quitting it stops the run. (recomp-common: `Collection::multi`.)
 - **Another game: Super Street Fighter II Turbo** (`games/ssf2t`; ROM set `ssf2xjr1`, *Super Street Fighter II X:
   Grand Master Challenge*, Japan 940223, the revision tournaments and Fightcade play; issue #88). The game as the board
   plays it, translated whole (its 68000 program, the characters' code past the first megabyte too, and its sound
