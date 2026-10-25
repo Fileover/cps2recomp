@@ -21,6 +21,19 @@ namespace {
     using namespace sfa3;
 
     enum : uint16_t { kLoopStart = 0x0C, kIntro = 0x10, kFirstFight = 0x14, kSecondFight = 0x2A, kLoopEnd = 0x32 };
+    // The loop's own counts: a byte stepped by two at the end of each half of the loop (0043EC: after the first fight's
+    // rankings, 1A, and at the loop's end), whose bit 1 sends the loop back to its start, and beside it another stepped
+    // with it (back to 0 past 0A), which picks a page of the show (025886). Found as the only bytes stepping alike
+    // between RAM dumps before each fight of three loops; --watch for their writer. The demonstration fights' fighters
+    // are drawn at random (004B3A: never the same as the last), so no count picks them.
+    constexpr uint32_t kHalves = 0xFF0E76, kAttractPage = 0xFF0E77;
+
+    // A half of the loop left out: its end's stepping done as the game does it, so the loop's counts are the board's
+    void HalfDone() {
+        SetRam8(kHalves, static_cast<uint8_t>(Ram8(kHalves) + 2));
+        const uint8_t page = static_cast<uint8_t>(Ram8(kAttractPage) + 2);
+        SetRam8(kAttractPage, page > 0x0A ? 0 : page);
+    }
 
     // The parts of the loop left out for what is to be shown
     bool AttractStep(int show) {
@@ -35,8 +48,10 @@ namespace {
         } else if (part < kFirstFight) {
             modes::GoTo(kFirstFight);
         } else if (part > kFirstFight + 2 && part < kSecondFight) {
+            HalfDone();
             modes::GoTo(kSecondFight);
         } else if (part > kSecondFight + 2) {
+            HalfDone();
             modes::GoTo(kFirstFight);
         }
         return false;
@@ -64,6 +79,16 @@ namespace {
         const int stage = session::WantedStage();
         if (stage >= 1 && stage <= kStages) {
             SetRam16(kStageNext, static_cast<uint16_t>(kStageNumbers[stage - 1] * 2));
+        }
+        return false;
+    }
+
+    // 003AB2: the fight's tune has been taken (D1), a character's theme (003A30). The game has no tune of a stage's own:
+    // in the stage viewer the stage's own is its character's (sfa3.h, kStageTunes), whoever stands on it unseen.
+    bool FightTune(M68K &c) {
+        const int stage = session::WantedStage();
+        if (modes::StageViewer() && stage >= 1 && stage <= kStages) {
+            SetLow8(c.d[1], static_cast<uint8_t>(kStageTunes[stage - 1]));
         }
         return false;
     }
@@ -122,6 +147,7 @@ void RegisterModes() {
     modes::Register(d);
     AddHook(HookAt(0x00B7EE), "MatchMade", MatchMade);
     AddHook(HookAt(0x0090B8), "StageTaken", StageTaken);
+    AddHook(HookAt(0x003AB2), "FightTune", FightTune);
 }
 
 } // namespace cps2recomp

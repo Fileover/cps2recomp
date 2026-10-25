@@ -92,9 +92,12 @@ inline int StageOfNumber(int number) {
 // the oldest, from A5+6E82, to the sound CPU); FF05 asks for the music to stop before another
 constexpr uint32_t kSoundQueue = 0xFFDE80, kSoundQueueEnd = 0xFFEE80;
 constexpr uint16_t kTuneOff = 0xFF05;
-// Each stage's tune (kStageNames' order), and the character choice's and the versus screen's
-inline constexpr uint16_t kStageTunes[26] = {};
-constexpr uint16_t kTuneChoose = 0, kTuneVersus = 0;
+// Each stage's tune (kStageNames' order): a fight's tune is a character's theme (003A30, the table at 003ABA), so a
+// stage's is its character's, and the final stage's the final fight's (music.cpp); and the character choice's and the
+// one before a match (the character's introduction, which is this game's versus screen)
+inline constexpr uint16_t kStageTunes[26] = {0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F, 0x10, 0x11, 0x12, 0x20, 0x14, 0x15,
+                                             0x16, 0x17, 0x18, 0x19, 0x1A, 0x13, 0x1F, 0x21, 0x22, 0x23, 0x24, 0x25, 0x26};
+constexpr uint16_t kTuneChoose = 0x02, kTuneVersus = 0x08;
 
 // The camera: the picture's left edge in the stage and its bottom (the stage's own scroll screen's record, FF8280),
 // with every place the game keeps it across (found moving together in RAM dumps), as Alpha 2's. 256 to 640 across;
