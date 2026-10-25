@@ -52,6 +52,39 @@ namespace {
     constexpr int kBlend = 150;                 //   and frames the fade takes
     constexpr int32_t kScrollSpeeds[] = {64, 128, 256}; // the scrolling stage's speed, in 256ths of a pixel a frame: slow, medium, fast
     constexpr size_t kSoundAhead = 16;          // samples of another machine's sound kept in hand
+    // The launcher's Multi game page's endless battle (--multi endless:shuffle:SECONDS, endless:scroll:SPEED): every
+    // stage once (shuffled, faded one into another; or scrolling by in order), then the game ends for the next one's turn
+    constexpr int kTourMost = 64;               // stages a game has at most
+    constexpr int kTourOut = 90;                // frames the picture and sound fade out for at the end
+    struct Tour {
+        bool on = false;
+        int way = 0;                            // kStageShuffle or kStageScroll
+        int seconds = 60;                       // shuffle: on each stage
+        int speed = 0;                          // scroll: of kScrollSpeeds
+        bool started = false;                   // (the endless battle has been begun for it)
+    } g_tour;
+    void ReadTour() {
+        static bool read = false;
+        if (read) {
+            return;
+        }
+        read = true;
+        const std::string &spec = MultiGame();
+        if (spec.rfind("endless:", 0) != 0) {
+            return;
+        }
+        const std::string rest = spec.substr(8);
+        const size_t colon = rest.find(':');
+        const std::string way = rest.substr(0, colon);
+        const int n = colon == std::string::npos ? -1 : atoi(rest.c_str() + colon + 1);
+        g_tour.on = true;
+        g_tour.way = way == "scroll" ? kStageScroll : kStageShuffle;
+        if (g_tour.way == kStageScroll) {
+            g_tour.speed = std::clamp(n < 0 ? 1 : n, 0, static_cast<int>(std::size(kScrollSpeeds)) - 1);
+        } else {
+            g_tour.seconds = std::clamp(n < 0 ? 60 : n, 10, 3600);
+        }
+    }
     constexpr uint16_t kAnyButton = kLeft | kRight | kUp | kDown | kPunch1 | kPunch2 | kPunch3 | kKick1 | kKick2 | kKick3;
 
     uint32_t Player(int n) {
@@ -125,9 +158,15 @@ namespace {
     enum class Phase : int32_t { Starting, Fighting, Decided, Over, Falling, Dropping };
     // (the menu's choices can be changed while the battle goes on: read each frame)
     int ShuffleAfter() {
+        if (g_tour.on) {
+            return g_tour.seconds * 60;
+        }
         return kShuffleMinutes[std::clamp(FeatureValue("endless_shuffle"), 0, static_cast<int>(std::size(kShuffleMinutes)) - 1)] * 60 * 60;
     }
     int32_t ScrollBy() {
+        if (g_tour.on) {
+            return kScrollSpeeds[g_tour.speed];
+        }
         return kScrollSpeeds[std::clamp(FeatureValue("endless_scroll"), 0, static_cast<int>(std::size(kScrollSpeeds)) - 1)];
     }
 
@@ -153,6 +192,10 @@ namespace {
         int32_t blend = 0;               // shuffle: how far the fade to the next has got (of kBlend)
         int32_t backCamera = 0;          // scroll: where its picture's left edge is, in 256ths of a pixel
         int32_t slide = 0;               //   and how far the next stage has come in
+        // The Multi game page's endless battle: the stages in the order they come, how many, which is shown, and frames
+        // of fading out at the end (0: not yet)
+        int32_t tourOrder[kTourMost] = {};
+        int32_t tourStages = 0, tourAt = 0, tourOut = 0;
         // The ring out
         int32_t out = -1;                // who is out and falling (0, 1)
         int32_t outSide = 0;             //   over which end (-1 the left, 1 the right)
@@ -317,6 +360,27 @@ namespace {
     }
     bool Layered() {
         return g.way != kStageOne;
+    }
+    // The stage that comes after the one shown (0: none, the Multi game page's last)
+    int NextStage() {
+        if (g.tourStages) {
+            return g.tourAt + 1 < g.tourStages ? g.tourOrder[g.tourAt + 1] : 0;
+        }
+        return AnyStage(g.back);
+    }
+    // Every stage once, for the Multi game page: in order to scroll by, shuffled to fade one into another
+    void PlanTour() {
+        g.tourStages = std::min(d.stages, kTourMost);
+        for (int n = 0; n < g.tourStages; n++) {
+            g.tourOrder[n] = n + 1;
+        }
+        if (g_tour.way == kStageShuffle) {
+            for (int n = g.tourStages - 1; n > 0; n--) {
+                std::swap(g.tourOrder[n], g.tourOrder[Random() % static_cast<uint32_t>(n + 1)]);
+            }
+        }
+        g.tourAt = 0;
+        g.tourOut = 0;
     }
 
     // --- the team battle ---
@@ -498,7 +562,15 @@ namespace {
         return way < 0 ? kLeft : kRight;
     }
     void SetSpeedX(int side, int pixels256) { // (in 256ths of a pixel a step)
-        SetRam32(Player(side) + d.speedX, static_cast<uint32_t>(pixels256 * 256));
+        if (d.speedWords) {
+            SetRam16(Player(side) + d.speedX, static_cast<uint16_t>(pixels256));
+        } else {
+            SetRam32(Player(side) + d.speedX, static_cast<uint32_t>(pixels256 * 256));
+        }
+    }
+    // Going up no more (the speed up nothing or below)
+    bool Falling(int side) {
+        return d.speedWords ? static_cast<int16_t>(Ram16(Player(side) + d.speedY)) <= 0 : static_cast<int32_t>(Ram32(Player(side) + d.speedY)) <= 0;
     }
     // Moved across by so many 256ths of a pixel (the game's own speed left at nothing: a character's jump may be a
     // move of its own that goes by speeds of its own)
@@ -907,7 +979,7 @@ namespace {
                     // (across fast enough to land by the other player; the jump attack on the way down)
                     const int distance = std::abs(X(1 - side) - X(side)) - 40;
                     MoveX(side, toward * std::clamp(distance * 256 / kComeSteps, 3 * 256, 12 * 256));
-                    if (!g.attacked[side] && static_cast<int32_t>(Ram32(Player(side) + d.speedY)) <= 0) {
+                    if (!g.attacked[side] && Falling(side)) {
                         panel = kKick3;
                         g.attacked[side] = true;
                     }
@@ -1057,7 +1129,12 @@ namespace {
         for (int n = 0; n < 2; n++) {
             // (the tag style: a fighter knocked down with its bar emptied lies still, and one tagging out or in moves as
             // the toolkit works its controls, the game not playing either; nor one the coach has a plan for)
-            SetComputer(n, g.computer[n] && !nobody && !Steered(n));
+            const bool computer = g.computer[n] && !nobody && !Steered(n);
+            const bool now = (Ram8(Player(n) + d.computer) != 0) != d.computerIsZero;
+            if (computer != now && d.handOver && !d.handOver(Player(n))) {
+                continue; // (not yet: once the move under way is over)
+            }
+            SetComputer(n, computer);
         }
         BothPlay();
     }
@@ -1096,6 +1173,9 @@ namespace {
                     Begin(g_dropBack); // (the stage behind has been to the character choice by now)
                 }
             } else if (g.frames > kStartMost && !choosing) {
+                if (g.tourStages) {
+                    EndProgram(kNextGame); // (the Multi game page's: on to the next game)
+                }
                 End();
             }
             return;
@@ -1231,9 +1311,11 @@ namespace {
         // The stage after this one: wanted when this one has been fought on long enough (shuffle), or as
         // soon as this one is the one shown (scroll)
         if (fighting && !g.backNext && (g.way == kStageScroll || (g.way == kStageShuffle && g.backFor >= ShuffleAfter()))) {
-            g.backNext = AnyStage(g.back);
-            Begin(g_backNext);
-            g_backNextSound.Start();
+            g.backNext = NextStage();
+            if (g.backNext) {
+                Begin(g_backNext);
+                g_backNextSound.Start();
+            }
         }
         RunStage(machine, g_back, g.back, cameraX, cameraY, &back);
         if (!g_back.ready) {
@@ -1318,6 +1400,7 @@ namespace {
             g_backSound = g_backNextSound;
             g.back = g.backNext;
             g.backNext = 0;
+            g.tourAt += g.tourStages ? 1 : 0;
             g.backFor = 0;
             g.blend = 0;
             g.slide = 0;
@@ -1333,6 +1416,26 @@ namespace {
         for (int i = 0; i < machine.PictureWidth() * Video::kHeight; i++) {
             const uint32_t p = picture[i];
             picture[i] = ((((p & 0xFF00FF) * static_cast<uint32_t>(keep)) >> 8) & 0xFF00FF) | ((((p & 0x00FF00) * static_cast<uint32_t>(keep)) >> 8) & 0x00FF00);
+        }
+    }
+
+    // The Multi game page's endless battle: when the last stage has been shown (fought on for its time, or scrolled
+    // across), the picture and sound fade out, and the game ends for the next game's turn
+    void TourEnd(Machine &machine) {
+        const bool last = g.tourAt >= g.tourStages - 1 && !g.backNext;
+        if (!g.tourOut && last && ((g.way == kStageShuffle && g.backFor >= ShuffleAfter()) || (g.way == kStageScroll && g.backCamera >= RightEnd()))) {
+            g.tourOut = 1;
+        }
+        if (!g.tourOut) {
+            return;
+        }
+        const int part = std::min(g.tourOut, kTourOut) * 256 / kTourOut;
+        Darken(machine, part);
+        for (int16_t &sample : machine.audio) {
+            sample = static_cast<int16_t>(sample * (256 - part) / 256);
+        }
+        if (++g.tourOut > kTourOut) {
+            EndProgram(kNextGame);
         }
     }
 
@@ -1639,6 +1742,9 @@ namespace {
                 g.since = 0;
                 g.fadeIn = kFade;
             } else if (g_next.frames > kStartMost) {
+                if (g.tourStages) {
+                    EndProgram(kNextGame);
+                }
                 End();
                 return;
             }
@@ -1682,6 +1788,9 @@ namespace {
             }
         } else if (dark) {
             Darken(machine, dark);
+        }
+        if (g.tourStages && g.phase != Phase::Starting) {
+            TourEnd(machine);
         }
         if (g.kind == Kind::Survival && g.phase != Phase::Starting && g.phase != Phase::Over) {
             char text[32];
@@ -1742,6 +1851,17 @@ bool TeamHoldsKnockOut(int player) {
 void BattleBeforeFrame(Machine &machine) {
     g_portFrame = true;
     g_frame++;
+    // Started by the launcher's Multi game page: its endless battle, every stage once
+    ReadTour();
+    if (g_tour.on && !g_tour.started && d.stages > 0) {
+        g_tour.started = true;
+        Start(machine, Kind::Endless);
+        g.way = g_tour.way;
+        PlanTour();
+        g.stage = g.back = g.tourOrder[0];
+        g.backCamera = LeftEnd();
+        g_backSound.Start();
+    }
     if (g.kind != Kind::None) {
         BeforeFrame(machine);
     }

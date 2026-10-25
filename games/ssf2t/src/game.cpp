@@ -31,6 +31,8 @@ void RegisterColours();  // colours.cpp
 void RegisterChoosing(); // choosing.cpp
 void ChoosingState(Archive &ar);
 void RegisterComputer(); // computer.cpp
+void RegisterLiveTag();  // livetag.cpp
+void LiveTagBeforeFrame(Machine &machine);
 void RegisterWidescreen(); // widescreen.cpp
 void WidescreenBeforeFrame(Machine &machine);
 bool WidePlay();
@@ -43,6 +45,7 @@ void RegisterGame() {
     RegisterColours();
     RegisterChoosing();
     RegisterComputer();
+    RegisterLiveTag();
     RegisterWidescreen();
     RegisterCoins();
     RegisterCheats();
@@ -55,6 +58,7 @@ void RegisterGame() {
         session::BeforeFrame(machine);
         modes::BeforeFrame(machine);
         BattleBeforeFrame(machine);
+        LiveTagBeforeFrame(machine);
         colours::BeforeFrame(machine);
         ModelBeforeFrame(machine);
     };

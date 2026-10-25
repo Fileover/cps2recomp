@@ -32,7 +32,7 @@ their owners, used here only to say what the programs work with.
 
 | Game | ROM set | What it adds |
 | --- | --- | --- |
-| [**Super Street Fighter II Turbo**](games/ssf2t/README.md) (1994, *Super Street Fighter II X* in Japan) | `ssf2xjr1` (Japan 940223, the tournament revision) | A full training mode (hit boxes, frame data and a frame meter, input display, combo and stun readouts, a dummy that records, replays and guards), widescreen, survival, ring out, endless battle, the stage and model viewers, Akuma and the old characters with no code, custom colours |
+| [**Super Street Fighter II Turbo**](games/ssf2t/README.md) (1994, *Super Street Fighter II X* in Japan) | `ssf2xjr1` (Japan 940223, the tournament revision) | A full training mode (hit boxes, frame data and a frame meter, input display, combo and stun readouts, a dummy that records, replays and guards), widescreen, survival, ring out, endless battle, a tag team battle (the CPU tagging as a person would), the stage and model viewers, Akuma and the old characters with no code, custom colours |
 | [**Street Fighter Alpha**](games/sfa/README.md) (1995) | `sfa` (Europe 950727) | A full training mode (hit boxes, frame data and a frame meter, input display, combo and stun readouts, a dummy that records, replays and guards), widescreen, survival, ring out, endless battle, the stage and model viewers, the hidden characters with no code, custom colours |
 | [**Street Fighter Alpha 2**](games/sfa2/README.md) (1996) | `sfa2u` (USA 960430) | A full training mode (hit and throw boxes, frame data and a frame meter, combo, stun and Custom Combo readouts, input display, a dummy that records, replays, guards and answers), widescreen, survival, ring out, endless battle, a team battle, knock-out or Marvel-style tag (2 vs 2 for four players), the CPU tagging and playing a ring out for the ring, the stage and model viewers, the hidden characters, custom colours |
 | [**Street Fighter Alpha 3**](games/sfa3/README.md) (1998) | `sfa3u` (USA 980904, the tournament revision) | A full training mode (hit and throw boxes, frame data and a frame meter, combo, stun and custom combo readouts, fixed damage, input display, a dummy that guards high or low, Alpha counters, techs throws, rises quickly and mashes out of stun), widescreen, survival, ring out, endless battle, a team battle, knock-out or Marvel-style tag (2 vs 2 for four players), the stage and model viewers, Balrog, Juni and Juli with no code, custom colours |
@@ -103,6 +103,16 @@ cheats, run-ahead, the picture, training mode's displays and the dummy, and the 
 once; a feature changed in a game's own menu is set for the others too when you leave the game. The
 **Controllers** page sets the keys and buttons for all of them; its Layout for chooses a game, and Its own layout
 gives that game keys and buttons apart from the others', under the game's own names for its buttons.
+
+**Multi game** (the page after Controllers) plays several games one after another, for as long as you like. Its
+**Endless battle** goes through every stage of a fighting game with the game playing both fighters, then on to the
+next game's stages, and round again after the last: choose the games (every fighting game, or only some), their order
+(the sidebar's, or shuffled), how the stages change (**Shuffle**, each fading into the next after the time you choose,
+or **Scroll**, going by in order at the speed you choose) and full screen or as each game is set, then **Start**. Touch
+the controls to take a fighter over. Quitting a game (its menu's Quit game, or closing its window) ends the run, as
+does **Stop after this game**.
+
+![The Multi game page: the endless battle through every stage of each game you choose](docs/screenshots/launcher-multi.png)
 
 The games are in your order: drag a game's row in the sidebar up or down to keep the ones you play most at the top
 (with a gamepad or the keyboard, **Move up** and **Move down** on its page, under Play). The Games page lists them

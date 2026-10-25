@@ -20,6 +20,13 @@
 - The custom soundtrack takes `musicBelow` for a sound program whose songs do not say which are music (driver 1.71's).
 - Widescreen's holes (where no plane is painted) are filled from the stage alone, before the objects are drawn: a
   fighter or the panel beside one is no longer mirrored into it.
+- **Multi game**: a new page of the launcher's, for modes that play several games one after another. Its first,
+  **Multi-game endless battle**, goes through every stage of a fighting game with the game playing both fighters,
+  then does the same in the next game, and round again: the player chooses which games (any of the eleven fighting
+  games), their order (the sidebar's or shuffled), the stages' way (Shuffle: in turn at random, each fading into the
+  next after 30 seconds to 5 minutes; Scroll: going by in order, slow, medium or fast) and full screen. A game is
+  started with `--multi endless:...` and ends with exit code 3 when its last stage is done (`runtime/game.h`,
+  `MultiGame`, `EndProgram`); quitting it stops the run. (recomp-common: `Collection::multi`.)
 - **Another game: Super Street Fighter II Turbo** (`games/ssf2t`; ROM set `ssf2xjr1`, *Super Street Fighter II X:
   Grand Master Challenge*, Japan 940223, the revision tournaments and Fightcade play; issue #88). The game as the board
   plays it, translated whole (its 68000 program, the characters' code past the first megabyte too, and its sound
@@ -32,6 +39,14 @@
   version), and the features every game has: free play (the game's own), straight to the title, the board's settings
   (the Board page: difficulty, game speed, continue, demo sound), cheats, save states, run-ahead, arcade timing and a
   custom soundtrack (its music named) ([its progress](games/ssf2t/PROGRESS.md)).
+- **Super Street Fighter II Turbo: the tag team battle**, as Street Fighter Alpha 2 and Vampire Savior have it (the
+  tag style and the knock-out style, teams of two or three, against the CPU, co-op or 2 vs 2), and the **CPU that
+  plays the tag style and the ring out as a person would**: it tags its fighters in, and in a ring out walks its
+  opponent to an end and knocks it over, keeping off its own. The input display's directions were mirrored (the
+  game's facing byte was read the wrong way round); they are the player's own now.
+- The fighting modes (`fight/battle.h`) take `handOver`, for a game whose computer and person work a move under way by
+  bytes of their own (Super Street Fighter II Turbo: a fighter changes hands only standing or crouching), and
+  `speedWords`, for speeds kept in words rather than longs.
 - The fighting modes (`fight/battle.h`) take `ownMaster` for a game that keeps no one byte saying a player is its own
   master (Super Street Fighter II Turbo: several of its states, and guarding only before a hit lands).
 - **Your games in your order**: drag a game's row in the launcher's sidebar up or down (or, with a gamepad or the

@@ -25,6 +25,8 @@
 
 namespace cps2recomp {
 
+bool TagIsOff(uint32_t player); // livetag.cpp
+
 namespace {
     using namespace ssf2t;
 
@@ -61,11 +63,12 @@ namespace {
     // player's place while the other holds it (its flag), and its reach while it reaches out (forward from where it
     // faces), which goes into `reach` (all of it: moveq)
     void SeenAt(M68K &c, int at, int reach, uint32_t player, uint32_t other) {
-        SetLow16(c.d[at], Ram16((Ram8(player + kSeenAsOther) ? other : player) + kX));
+        // (the team battle's tag style: a player off the stage is not followed, the other's place taken for it)
+        SetLow16(c.d[at], Ram16((Ram8(player + kSeenAsOther) || TagIsOff(player) ? other : player) + kX));
         c.d[reach] = 0;
         if (Ram8(player + kReaching)) {
             SetLow16(c.d[reach], Ram16(player + kReach));
-            if (!Ram8(player + kFacesLeft)) {
+            if (!Ram8(player + kFacesRight)) {
                 SetLow16(c.d[reach], static_cast<uint16_t>(0u - Low(c.d[reach])));
             }
             SetLow16(c.d[at], static_cast<uint16_t>(Low(c.d[at]) + Low(c.d[reach])));
@@ -231,8 +234,8 @@ namespace {
         if (Ram8(player + kSeenAsOther)) {
             return;
         }
-        // (the ring out: a player knocked about at an end of the stage goes over it)
-        if (RingOutLetsOut(player)) {
+        // (the ring out: a player knocked about at an end of the stage goes over it; the tag style's off the stage)
+        if (RingOutLetsOut(player) || TagIsOff(player)) {
             return;
         }
         const uint16_t shown = static_cast<uint16_t>(Ram16(kVarCamera) - Margin());
@@ -243,7 +246,7 @@ namespace {
         c.d[3] = 0; // (moveq)
         if (Ram8(player + kReaching)) {
             reach = Ram16(player + kReach);
-            if (!Ram8(player + kFacesLeft)) {
+            if (!Ram8(player + kFacesRight)) {
                 reach = static_cast<uint16_t>(0u - reach);
             }
             SetLow16(c.d[3], reach);

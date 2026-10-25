@@ -10,6 +10,10 @@
 //                   before; over at the first knock-down, with the count of opponents beaten.
 //   Endless battle  two fighters the game plays, with no panel; the one knocked down is replaced. A person
 //                   takes a fighter over by touching the controls, and gives it back by leaving them alone.
+//                   Started by the launcher's Multi game page (--multi endless:shuffle:SECONDS or
+//                   endless:scroll:SPEED; runtime/game.h, MultiGame), it is begun at once and shows every stage
+//                   once (shuffled and faded into one another, or scrolling by in order), then fades out and ends
+//                   the program with kNextGame, for the next game's turn.
 //   Ring out        the player against one opponent after another, with no health: a stage's ends are open,
 //                   and whoever is knocked over one is thrown out and falls through the floor. The winner jumps
 //                   off, and the camera follows it down onto the next stage.
@@ -95,6 +99,9 @@ struct Description {
     // ... or, for a game that keeps no such byte, whether the player is its own master, worked out from its memory
     // (nullptr: the byte)
     bool (*ownMaster)(uint32_t player) = nullptr;
+    // Whether who plays the player (the computer byte) may change now (nullptr: at any time): for a game whose computer
+    // and person work a move under way by bytes of their own, so that the one that began it ends it
+    bool (*handOver)(uint32_t player) = nullptr;
     // The computer byte is 0 for the game playing it, 1 for a person (not the other way round)
     bool computerIsZero = false;
     // A tag-team game's: how far after a player's record its partner's is (0: none), told the same of who plays it
@@ -159,6 +166,8 @@ struct Description {
     uint16_t downSound = 0;
     uint32_t speedX = 0, speedY = 0;
     int floor = 0;
+    // ... the speeds as words of 256ths of a pixel a step, not longs (Super Street Fighter II Turbo's)
+    bool speedWords = false;
     // The computer's play of the tag style and the ring out (a side the game plays coached in them, as a person would
     // play them: battle.cpp): whether a side's fighter can act now, on the floor or in the air (nullptr: canTag; neither:
     // no coaching), and the difficulty the game plays at now, 0 (the easiest) to 7 (nullptr: the middle)

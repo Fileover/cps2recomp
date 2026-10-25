@@ -136,6 +136,16 @@ of it; for tests, `CPS2RECOMP_BATTLE_CPU=1` has the game play side 1 too (and be
 `CPS2RECOMP_COACH` and `CPS2RECOMP_COACH_PARTS` choose what is coached, and `CPS2RECOMP_BATTLE_LOG` writes each tag,
 plan and ring out to stderr.
 
+**The Multi game page's endless battle.** The collection's launcher has a page that plays several games one after
+another (recomp-common's `Collection::multi`; `launcher/src/description.cpp` makes its Endless battle from the games
+whose `game.cfg` says `multi = endless`). It starts each game with `--multi endless:shuffle:SECONDS` or
+`endless:scroll:SPEED` (`runtime/game.h`, `MultiGame`): the battle begins the endless battle at the game's first frame,
+on stages that fade or scroll, with every stage in turn (shuffled for the fade, in order for the scroll) and none
+twice; once the last has been fought on for its time, or scrolled across, the picture and sound fade out and the
+game ends the program with exit code 3 (`kNextGame`, `EndProgram`), which the launcher takes as the next game's
+turn. A start or a next match that never comes to its round ends it the same way, so that one game's trouble does not
+stop the run. The fighters are as the game's own Endless battle page has them.
+
 Every match and stage machine after the first is begun from a machine kept at the character choice with both players
 in (the first spare that came there), so the next one is ready in about 500 frames, not 2,000 from switching on.
 

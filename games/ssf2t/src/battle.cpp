@@ -8,9 +8,18 @@
 #include "battle.h"
 #include "ssf2t.h"
 
+#include <cstdlib>
 #include <iterator>
 
 namespace cps2recomp {
+
+bool CanTag(int player); // livetag.cpp
+void TagIn(int player, int character, int colours);
+bool TaggedIn(int player);
+void TagDifficulty(int level);
+int TagDifficultyNow();
+void TagOffStage(int player, bool off);
+void TagUntouchable(int player);
 
 namespace {
     using namespace ssf2t;
@@ -35,11 +44,40 @@ namespace {
         return ThePanel(tile, attributes) || IsStagePiece(attributes);
     }
 
+    // An attack is coming at the player of `side`, as the game's guard test has it (07AF3A, its first part, and 07AFBA):
+    // the thing the other player last threw (its records' word +1D4, or +2AE) within 0xE0 across coming this way or
+    // 0x70 going the other, or the other player attacking within 0xE0 (the player's word +182, how far apart they are)
+    bool AttackComing(int side) {
+        const uint32_t player = Player(side), other = Player(1 - side);
+        uint16_t thrown = Ram16(other + 0x1D4);
+        if (!thrown) {
+            thrown = Ram16(other + 0x2AE);
+        }
+        if (thrown) {
+            const uint32_t record = 0xFF0000 | thrown;
+            const int16_t apart = static_cast<int16_t>(Ram16(record + kX) - Ram16(player + kX));
+            const bool coming = apart >= 0 ? Ram8(record + kFacesRight) == 0 : Ram8(record + kFacesRight) != 0;
+            if (std::abs(apart) <= (coming ? 0xE0 : 0x70)) {
+                return true;
+            }
+        }
+        return Ram8(other + kAttacking) && Ram16(player + 0x182) <= 0xE0;
+    }
+
     // The player is its own master: in charge of itself (not reeling, guarding a hit, knocked down or thrown)
     bool OwnMaster(uint32_t player) {
         const uint8_t state = Ram8(player + kState);
         return state == kStand || state == kCrouch || state == kJump || state == kNormal || state == kSpecial ||
                (state == kGuard && !Ram8(player + kGuarded));
+    }
+
+    // Who plays the player may change: not while it fights a move or a jump (the computer's moves and a person's keep
+    // where they are in bytes of their own, +180-+188 and the step +04, and the other's routine for the move went into
+    // the middle of its tables: Fei Long's at 095C90, Ken's at 08031C), only standing or crouching, or before the fight
+    bool HandOver(uint32_t player) {
+        const uint8_t state = Ram8(player + kState);
+        return Ram8(player + kFighting) != 2 ||
+               ((state == kStand || state == kCrouch) && !Ram8(player + kAttacking) && !Ram8(player + kInAir));
     }
 } // namespace
 
@@ -110,6 +148,7 @@ void RegisterBattle() {
     d.computerIsZero = true;
     d.control = kState;
     d.ownMaster = OwnMaster;
+    d.handOver = HandOver;
     d.halfWidth = 0x1C2;
     d.health = kHealth;
     d.healthCeiling = kHealthBefore;
@@ -140,7 +179,28 @@ void RegisterBattle() {
     d.playerSets = [](int n) { return kPlayerSets[n]; };
     d.inAir = [](uint32_t player) { return Ram8(player + kInAir) != 0; };
     d.atJumpTop = [](uint32_t player) { return Ram8(player + kInAir) && static_cast<int16_t>(Ram16(player + kSpeedY)) <= 0; };
+    // The team battle, both styles (livetag.cpp: the tag style's swap; one health bar is all the game has, and it has
+    // no entrances)
+    d.teams = true;
+    d.teamLinesY = 0.19f; // (under the bars and the names)
+    d.difficulty = TagDifficulty;
+    d.difficultyNow = TagDifficultyNow;
+    d.canAct = [](int side) { return CanAct(Player(side)); };
+    d.attackComing = [](Machine &, int side) { return AttackComing(side); };
+    d.canTag = CanTag;
+    d.tagIn = TagIn;
+    d.taggedIn = TaggedIn;
+    d.offStage = TagOffStage;
+    d.untouchable = TagUntouchable;
+    d.downSound = 0; // (not found yet)
+    d.speedX = kSpeedX;
+    d.speedY = kSpeedY;
+    d.speedWords = true;
+    d.floor = kGround;
+    d.meter = kSuperGauge; // (the super combo gauge, which the setting up leaves as it was)
+    d.meterSize = 1;
     battle::Register(d);
+    battle::RegisterTeamTag(0.25f);
 }
 
 } // namespace cps2recomp
