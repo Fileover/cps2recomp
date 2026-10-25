@@ -93,7 +93,7 @@ Each game's page has all it does, with pictures.
    the folder you keep your ROM sets in: it finds each game's by the set's name (`sfa.zip`, `sfa2u.zip`,
    `sgemf.zip`, `msh.zip`, `xmvsf.zip`, `spf2t.zip`, `vsavj.zip`, `vsav2.zip`, `vhunt2.zip`, `avspu.zip`, `dino.zip`, or a folder of the set's files). Or drop a set, or the folder, on the window, or choose each
    game's set on its own. They stay where they are.
-3. Press **Play** beside a game. Several games can run at once, each in its own window.
+3. Press **Play** beside a game (the first of its two buttons, where a gamepad's ring lands). Several games can run at once, each in its own window.
 
 Each game you have a ROM set for gets a page of its own in the sidebar: its Display switches (full screen,
 widescreen), Play, and the features only it has. The **Features** page has what the games share (free play,
@@ -101,6 +101,11 @@ cheats, run-ahead, the picture, training mode's displays and the dummy, and the 
 once; a feature changed in a game's own menu is set for the others too when you leave the game. The
 **Controllers** page sets the keys and buttons for all of them; its Layout for chooses a game, and Its own layout
 gives that game keys and buttons apart from the others', under the game's own names for its buttons.
+
+The games are in your order: drag a game's row in the sidebar up or down to keep the ones you play most at the top
+(with a gamepad or the keyboard, **Move up** and **Move down** on its page, under Play). The Games page lists them
+the same way. On a small screen, or with large text, the launcher closes up to fit: a narrower sidebar whose list
+scrolls, and each row's buttons under its words.
 
 While playing, Esc or `F1` (on a gamepad, the left stick's click, or Start and Select together) opens the
 in-game menu. Only the menu's "Quit game" row (or closing the window) ends the game.
@@ -112,8 +117,8 @@ at that game's page (or straight into the game once its ROM set has been chosen)
 
 ### Updates
 
-When the launcher opens it asks GitHub for this project's releases (the Games page's Updates card has a switch to
-stop that, and **Check now**). When there is a newer version it shows at the top of the Games page: **What's new**
+When the launcher opens it asks GitHub for this project's releases (the Updates card, at the top of the Games
+page, has a switch to stop that, and **Check now**). When there is a newer version it shows at the top of the Games page: **What's new**
 opens its notes, and **Update** downloads the new version's download for your system (the same file as on the
 releases page), checks it and every file that changed against the release's list, and only then
 puts them all in place; if anything goes wrong nothing is changed. The launcher then starts again as the new
