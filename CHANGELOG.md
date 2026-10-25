@@ -2,9 +2,27 @@
 
 ## Unreleased
 
+- **Another game: Street Fighter Alpha 3** (`games/sfa3`; ROM set `sfa3u`, USA 980904, the last revision and the one
+  tournaments and Fightcade play; issue #89). The game as the board plays it, translated whole (its 68000 program and
+  its sound program, Capcom's driver 1.71) and checked, with everything Street Fighter Alpha 2's port has: a **training
+  mode** (hit boxes and the throw range, frame data, its meter and log, input display, combo, stun and custom combo
+  readouts, fixed damage, health refills, a dummy that records, replays, guards high or low as each attack needs, Alpha
+  counters, techs throws, rises quickly, mashes out of stun or is played by the game's own computer player, start over,
+  any of the 26 stages), the **alternative modes** (attract mode three ways, the stage viewer and its infinite stage,
+  the model viewer, the colour editor, survival, endless battle, ring out, the **tag team battle** in the knock-out and
+  the Marvel-style tag style, co-op and 2 vs 2), **widescreen** and invisible walls, **custom colours** (files, PalMod's
+  sz3.09c, the editor, a set for each ism and button), the **hidden characters** with no code (Start held as you choose
+  M. Bison, Cammy or Rose: Balrog, Juni, Juli), and the features every game has: free play (the game's own), straight
+  to the title, the board's settings (the Board page: difficulty, damage, timer and game speed, the rounds for one and
+  two players, event, join-in, continue, demo sound), cheats (no damage, full gauge and no stun for each player,
+  one-hit knockouts, infinite time), save states, run-ahead, arcade timing and a custom soundtrack (its music named)
+  ([its progress](games/sfa3/PROGRESS.md)).
+- The custom soundtrack takes `musicBelow` for a sound program whose songs do not say which are music (driver 1.71's).
+- Widescreen's holes (where no plane is painted) are filled from the stage alone, before the objects are drawn: a
+  fighter or the panel beside one is no longer mirrored into it.
 - **Multi game**: a new page of the launcher's, for modes that play several games one after another. Its first,
   **Multi-game endless battle**, goes through every stage of a fighting game with the game playing both fighters,
-  then does the same in the next game, and round again: the player chooses which games (any of the ten fighting
+  then does the same in the next game, and round again: the player chooses which games (any of the eleven fighting
   games), their order (the sidebar's or shuffled), the stages' way (Shuffle: in turn at random, each fading into the
   next after 30 seconds to 5 minutes; Scroll: going by in order, slow, medium or fast) and full screen. A game is
   started with `--multi endless:...` and ends with exit code 3 when its last stage is done (`runtime/game.h`,
