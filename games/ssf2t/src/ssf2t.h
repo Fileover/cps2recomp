@@ -126,7 +126,8 @@ enum : uint8_t { kStand = 0x00, kCrouch = 0x02, kJump = 0x04, kGettingUp = 0x06,
 // script reads the words). The hit test 0BF5AE takes them so.
 constexpr uint32_t kX = 0x06, kY = 0x0A;
 constexpr uint16_t kGround = 0x28;
-constexpr uint32_t kFacesLeft = 0x12; // byte: not zero when facing left (a box's offset across is turned about then: 0BF5C0)
+constexpr uint32_t kFacesRight = 0x12; // byte: not zero when facing right (player 1 at a round's start: 004FC4); a box's offset across is
+                                       // turned about then (0BF5C0)
 // The animation frame being shown (a long, in the ROM) and the record's box tables (a long): the hit tests (0BF534,
 // 0BF558-0BF588) take a box's number from the frame (bytes: three it can be hit in, its attack, its push box) and the
 // box from the table named by the word at that box kind's place in the tables (+0, +2, +4, +6, +8: offsets from the
@@ -218,6 +219,10 @@ inline bool NotTheStage(uint32_t, uint16_t attributes) {
 constexpr uint32_t kPlayerSets[2] = {0x3Eu, 0x1Fu << 16};
 
 // --- for hooks ---
+
+inline uint16_t Mem16(M68K &c, uint32_t address) { // (anything, the ROM's tables too: the data view)
+    return static_cast<uint16_t>(c.Read(address, 1));
+}
 
 inline void SetLow16(uint32_t &reg, uint32_t value) {
     reg = (reg & 0xFFFF0000) | (value & 0xFFFF);

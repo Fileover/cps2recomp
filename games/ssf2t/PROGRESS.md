@@ -14,8 +14,10 @@ Capcom's 1.04 (`sfx.01`), run translated.
   (0CC4E4) and up (0CC630), and keeping a player inside the picture (0043F4).
 - **Features**: free play (the game's own), straight to the title, the Board page, cheats, the custom soundtrack's
   names, the training session and its aids, the Alternative modes page (attract mode, the stage viewer, the model
-  viewer, survival, endless battle, ring out), custom colours and the colour editor, widescreen and invisible walls,
-  the hidden characters (Akuma and the old versions) with no code.
+  viewer, survival, endless battle, ring out, the tag team battle in both styles), custom colours and the colour
+  editor, widescreen and invisible walls, the hidden characters (Akuma and the old versions) with no code. The CPU's
+  side is coached in the tag style and the ring out (`fight/battle.cpp`), with the game's own guard test for an attack
+  coming.
 
 ## What was found, and how
 
@@ -43,7 +45,7 @@ this set (peon2/fbneo-training-mode, `games/ssf2t`) named some of them first; ea
 - **Players**: records at FF844E and FF884E, 0x400 apart (cleared at 003616). Health +2A (0x90 full) and before the
   last hit +2C. +03 who is in charge (00 standing or walking, 02 crouching, 04 jumping, 06 getting up, 08 guarding, 0A
   a normal or a throw, 0C a special, 0E reeling, 14 down), from a trace of a scripted fight against a player who stood,
-  guarded, was hit and thrown. +06 and +0A place (longs, 16 bits of fraction; the floor 0x28), +12 facing left, +1A
+  guarded, was hit and thrown. +06 and +0A place (longs, 16 bits of fraction; the floor 0x28), +12 facing right, +1A
   the frame, +34 the box tables, +3C/+3E speeds and +40/+42 their pulls (words, 002F50), +47 hit stop, +49 guarded,
   +181 in the air, +18B attacking, +1C2 half width, +284 chosen, +2B4 super gauge (0x30), +381 side, +38E a person,
   +391 the character, +39E the opponent, +3B1 the colours, +3B6 old, +3BD Akuma.
@@ -73,6 +75,30 @@ this set (peon2/fbneo-training-mode, `games/ssf2t`) named some of them first; ea
 - **Music**: the table at 0x9006 of `sfx.01`, 0x1FF entries, 68 of them music. Named from the soundtrack log over a
   fight on each stage, the ladder, a two-player game and attract mode.
 - **Random number** FF82D0 (a shift register: 002E96).
+- **A swap in the tag style** (`src/livetag.cpp`): the record from +0E to +37F cleared but for what a round's start
+  alone puts in (facing, health, bar, the place's copies, the super combo gauge), the character (+391, Akuma +3BD and
+  old +3B6 off), the other's copy of it (+3A2, 00386E: T. Hawk's moves against M. Bison read it), the half width from
+  00502A, the routine's step +02 to 0; the game sets the newcomer up as at a round's start. The thrown things it owns
+  are given back to the pool (FFA9A2, 60 of 0xC0; its list FF9580, count FF954C), as 003794 gives them. Less than the
+  whole record left a character's own state behind: each character's reading of the controls for its moves keeps it in
+  +80-+DF (T. Hawk's went off into the ROM's data on what M. Bison's left there) and the computer's plan its step in
+  +200 (07BC22). A swap is made where the player's routine begins (078030), never at a frame's edge: the game's frames
+  fill the processor, so an edge can come while it is drawing the player (its frame pointer +1A cleared under it, the
+  drawing went round for ever at 0C71B4). The panel's faces and names are made again by sending the game through 0104B2
+  and 0102F2 from there. Every pair of the sixteen characters swapped seven times in a fight, twice with other times and
+  input: no fault, nothing in the interpreter.
+- **The computer and a person**: their moves keep where they are in bytes of their own (+180-+188 and the step +04;
+  the computer's own moves count in +80, Cammy's at 0B4B2C), so a fighter changes hands only standing or crouching
+  (`HandOver`, `fight/battle.h`'s `handOver`): Fei Long's and Ken's routines went into the middle of their tables
+  (095C90, 08031C) when the other took a move over. One the computer played has its reading of the controls cleared as
+  a person takes it (`src/computer.cpp`, 078270: Cammy's reading at 08DCBC took the computer's count for its own), and
+  one given to the computer mid-round gets the computer's set-up (07D6F4, 07E36E, 07BB82, the words from 24EAE8) but
+  not the standing animation that set-up starts.
+- **Facing**: +12 is not zero when the player faces right (it was named the other way, which mirrored the input
+  display's directions).
+- **The guard test** (07AF3A and 07AFBA): a thing thrown (the other's word +1D4, or +2AE) within 0xE0 across coming
+  this way or 0x70 going away, or the other attacking (+18B) within 0xE0 (+182, how far apart): the coach's "attack
+  coming".
 
 ## Checks
 
@@ -90,6 +116,12 @@ Run on 2026-10-25, macOS (Apple silicon), each alone:
   the game's memory with invisible walls the board's at every 4,000 frames of the ladder, and the ladder in widescreen
   with nothing in the interpreter.
 - `make check`: the audit, the no-game build and the launchers.
+- **The tag team battle and the coach**: `CPS2RECOMP_BATTLE_SEED=1 make GAME=ssf2t check` over
+  `movies/team_tag_computer.txt` (9,000 frames; the CPU tags), `team_tag_two_vs_two.txt` (9,000) and
+  `ringout_computer.txt` (12,000; two ring outs), with the options in each movie's header: translated code as the
+  interpreter, two runs alike, nothing in the interpreter. Made-up play for 12,000 frames each, 24 seeds of each kind
+  (tag style with teams of two and of three against the CPU, knock-out style, player 2's team), 48 of the ring out
+  against the CPU: nothing in the interpreter, no fault.
 - **No interpreter fallback**: 0 instructions in the interpreter over the ladder movie, the versus movie, made-up
   one-player ladders (seeds 41, 42, 90) and two-player games (43, 44, 91), 40,000 frames of attract mode, the test menu
   with made-up input, every character's old version and Akuma, training, survival, ring out, the stage and model

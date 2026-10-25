@@ -562,7 +562,15 @@ namespace {
         return way < 0 ? kLeft : kRight;
     }
     void SetSpeedX(int side, int pixels256) { // (in 256ths of a pixel a step)
-        SetRam32(Player(side) + d.speedX, static_cast<uint32_t>(pixels256 * 256));
+        if (d.speedWords) {
+            SetRam16(Player(side) + d.speedX, static_cast<uint16_t>(pixels256));
+        } else {
+            SetRam32(Player(side) + d.speedX, static_cast<uint32_t>(pixels256 * 256));
+        }
+    }
+    // Going up no more (the speed up nothing or below)
+    bool Falling(int side) {
+        return d.speedWords ? static_cast<int16_t>(Ram16(Player(side) + d.speedY)) <= 0 : static_cast<int32_t>(Ram32(Player(side) + d.speedY)) <= 0;
     }
     // Moved across by so many 256ths of a pixel (the game's own speed left at nothing: a character's jump may be a
     // move of its own that goes by speeds of its own)
@@ -971,7 +979,7 @@ namespace {
                     // (across fast enough to land by the other player; the jump attack on the way down)
                     const int distance = std::abs(X(1 - side) - X(side)) - 40;
                     MoveX(side, toward * std::clamp(distance * 256 / kComeSteps, 3 * 256, 12 * 256));
-                    if (!g.attacked[side] && static_cast<int32_t>(Ram32(Player(side) + d.speedY)) <= 0) {
+                    if (!g.attacked[side] && Falling(side)) {
                         panel = kKick3;
                         g.attacked[side] = true;
                     }
@@ -1121,7 +1129,12 @@ namespace {
         for (int n = 0; n < 2; n++) {
             // (the tag style: a fighter knocked down with its bar emptied lies still, and one tagging out or in moves as
             // the toolkit works its controls, the game not playing either; nor one the coach has a plan for)
-            SetComputer(n, g.computer[n] && !nobody && !Steered(n));
+            const bool computer = g.computer[n] && !nobody && !Steered(n);
+            const bool now = (Ram8(Player(n) + d.computer) != 0) != d.computerIsZero;
+            if (computer != now && d.handOver && !d.handOver(Player(n))) {
+                continue; // (not yet: once the move under way is over)
+            }
+            SetComputer(n, computer);
         }
         BothPlay();
     }
