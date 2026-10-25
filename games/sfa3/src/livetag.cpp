@@ -16,6 +16,9 @@ void TagIn(int, int, int) {}
 void TagDifficulty(int) {}
 void TagOffStage(int, bool) {}
 void TagUntouchable(int) {}
+bool TagIsOff(uint32_t) {
+    return false;
+}
 uint16_t TagCall(int) {
     return 0;
 }
