@@ -452,10 +452,10 @@ void WideForPort(Machine &) {
 
 void RegisterWidescreen() {
     TheGame().widestPicture = [] { return Video::kWidth + (FeatureOn("widescreen") ? 2 * kWideSide : 0); };
-    AddRewrite(0x017E7E, "CameraAcross", CameraAcross, kFreeFlags, 100);
-    AddRewrite(0x017EFC, "CameraUp", CameraUp, kFreeFlags, 78);
-    AddRewrite(0x02ADA2, "KeepIn", KeepIn, kFreeFlags, 135);
-    AddRewrite(0x02AE4C, "KeepBothIn", KeepBothIn, kFreeFlags);
+    AddRewrite(0x017E7E, "CameraAcross", CameraAcross, kFreeFlags, 195);
+    AddRewrite(0x017EFC, "CameraUp", CameraUp, kFreeFlags, 178);
+    AddRewrite(0x02ADA2, "KeepIn", KeepIn, kFreeFlags, 235);
+    AddRewrite(0x02AE4C, "KeepBothIn", KeepBothIn, kFreeFlags, 240);
     // (not in the Enhanced preset: it shows more of the stage than the board does, and a player who wants the game as it
     // is played in competition must not get that without asking)
     TheGame().features.push_back({"widescreen", "Display", "Widescreen",

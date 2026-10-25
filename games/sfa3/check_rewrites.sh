@@ -4,8 +4,8 @@
 #
 # Checks the game's rewritten routines (src/) against the code they replace: every call of each, over the game's
 # movies, run both ways and compared (docs/READABLE.md). The rewrites (the camera's place, keeping the players inside
-# the picture: widescreen.cpp) do not call one another through the game's code, so each movie is run once. Run from the
-# repository's top.
+# the picture: widescreen.cpp) do not call one another through the game's code, so each movie is run once (and again
+# without the camera's place across, as Alpha 1's script does). Run from the repository's top.
 GAME=sfa3
 port=${B:-build/$GAME}/$GAME
 movies=games/$GAME/movies
@@ -28,6 +28,9 @@ for skip in "" "CameraAcross"; do
     # (two players, made up: they walk into each other, jump and throw)
     run versus 20000 free_play "$skip" "--auto 7:1400"
     run versus 20000 free_play "$skip" "--auto 13:1400"
+    # (training: a string of attacks, and throws in the corner: the players kept in together)
+    run training_attacks 4400 free_play "$skip" "--keys 5:ctraining_start"
+    run throws 3200 free_play "$skip" "--keys 5:ctraining_start"
 done
 at_once_wait || status=1
 [ $status -eq 0 ] && echo "ok: every rewrite does what the game's code does" || echo "FAILED"
