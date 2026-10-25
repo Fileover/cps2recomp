@@ -1,0 +1,84 @@
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (C) 2026 Tommy McLeroy
+//
+// Street Fighter Alpha 3: what the game's own sources add to the port (see PROGRESS.md).
+#include "alternative.h"
+#include "battle.h"
+#include "game.h"
+#include "machine.h"
+#include "session.h"
+
+#include <cstdlib>
+
+namespace cps2recomp {
+
+void RegisterCoins(); // coins.cpp
+void CoinsFrame(Machine &machine);
+void CoinsState(Archive &ar);
+void RegisterTitle(); // title.cpp
+void TitleFrame(Machine &machine);
+void RegisterBoard(); // board.cpp
+void BoardBeforeFrame(Machine &machine);
+void BoardState(Archive &ar);
+void RegisterMusic();    // music.cpp
+void RegisterCheats();   // cheats.cpp
+void RegisterModes();    // modes.cpp
+void RegisterTraining(); // training.cpp
+void RegisterBattle();   // battle.cpp
+void RegisterWidescreen(); // widescreen.cpp
+void WidescreenBeforeFrame(Machine &machine);
+bool WidePlay();
+
+void RegisterGame() {
+    RegisterModes();
+    RegisterTraining();
+    RegisterBattle();
+    RegisterWidescreen();
+    RegisterCoins();
+    RegisterTitle();
+    RegisterBoard();
+    RegisterMusic();
+    RegisterCheats();
+    TheGame().beforeFrame = [](Machine &machine) {
+        BoardBeforeFrame(machine);
+        WidescreenBeforeFrame(machine);
+        session::BeforeFrame(machine);
+        modes::BeforeFrame(machine);
+        BattleBeforeFrame(machine);
+        // (for finding what the objects are, SFA3_HIDE_SETS=MASK: the objects of those colour sets not drawn)
+        static const char *hide = getenv("SFA3_HIDE_SETS");
+        if (hide) {
+            static const uint32_t mask = static_cast<uint32_t>(strtoul(hide, nullptr, 0));
+            machine.video.hideObject = [](uint32_t, uint16_t attributes) { return ((mask >> (attributes & 0x1F)) & 1) != 0; };
+        }
+    };
+    // (the training aids see what the frame did before the cheats put things back)
+    TheGame().frame = [](Machine &machine) {
+        session::Frame(machine);
+        modes::Frame(machine);
+        BattleFrame(machine);
+        TitleFrame(machine);
+        CoinsFrame(machine);
+    };
+    // (run-ahead: not in the modes, whose workings a save state does not wholly hold)
+    TheGame().noRunAhead = [] { return modes::AttractMode() || modes::StageViewer() || BattleMode(); };
+    // (what the sources keep between frames, with save states and run-ahead's frames taken back)
+    TheGame().state = [](Archive &ar) {
+        CoinsState(ar);
+        BoardState(ar);
+        session::State(ar);
+        modes::State(ar);
+        BattleState(ar);
+    };
+    // With the arcade timing, the game's own code runs in place of the rewrites but where they carry what the port adds
+    // (game.h, rewritesNeeded): the modes, widescreen
+    TheGame().rewritesNeeded = [] {
+        return session::InSession() || modes::AttractMode() || modes::StageViewer() || BattleMode() || WidePlay() ||
+               FeatureOn("widescreen");
+    };
+    // Its own, never set for the other games by the collection's launcher: Damage level has Super Puzzle Fighter II
+    // Turbo's choices (Low, Normal, High, Maximum), where it means the counter gems an attack sends
+    OwnFeatures({"board_damage", "survival_best", "ringout_best"});
+}
+
+} // namespace cps2recomp

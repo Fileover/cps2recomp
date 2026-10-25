@@ -288,7 +288,7 @@ bool Port::Init(std::string &error) {
     }
     autoState = opt.autoSeed * 0x9E3779B97F4A7C15ull + 0x1234567ull;
     if (TheGame().songCount) {
-        machine->soundtrack.FindMusic(roms.soundProgram, TheGame().songTable, TheGame().songCount);
+        machine->soundtrack.FindMusic(roms.soundProgram, TheGame().songTable, TheGame().songCount, TheGame().musicBelow);
     }
     SoundtrackFollow();
     machine->SetBoardTiming(FeatureOn("arcade_timing"));
