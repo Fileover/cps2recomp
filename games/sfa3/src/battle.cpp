@@ -141,7 +141,23 @@ void RegisterBattle() {
     d.attackComing = [](Machine &machine, int side) { return AttackInRange(machine.cpu, Player(side)); };
     d.difficultyNow = [] { return static_cast<int>(Ram8(0xFF80BE)); }; // (the game's copy of the board's, taken as a game begins)
     d.canAct = [](int side) { return CanAct(Player(side)); };
+    d.teams = true;
+    d.teamLinesY = 0.19f; // (under the bars and the names)
+    // (no entrances: a team battle's fighters begin ready, livetag.cpp's TagEntrance)
+    d.difficulty = TagDifficulty;
+    d.canTag = CanTag;
+    d.tagIn = TagIn;
+    d.taggedIn = TaggedIn;
+    d.offStage = TagOffStage;
+    d.untouchable = TagUntouchable;
+    d.tagCall = TagCall;
+    d.speedX = kSpeedX;
+    d.speedY = kSpeedY;
+    d.floor = kGround;
+    d.meter = kSpecialGauge; // (the super combo gauge, which the setting up leaves as it was)
+    d.meterSize = 2;
     battle::Register(d);
+    battle::RegisterTeamTag(0.25f);
 }
 
 } // namespace cps2recomp

@@ -134,8 +134,12 @@ constexpr uint32_t kJumpWay = 0x3C;    // byte: a jump's way (1 forward, FF back
 // Longs, 16 bits of fraction: the speeds across and up, and what is taken off them each step (traced through a jump:
 // up 0x70000 as it leaves the floor, less 0x5000 a step; 01B0C4 flies by them)
 constexpr uint32_t kSpeedX = 0x40, kSpeedY = 0x44, kPullX = 0x48, kPullY = 0x4C;
-constexpr uint32_t kReelKind = 0x54;   // byte: how a hit has it reel (4 knocked into the air: 028F02)
-constexpr uint8_t kReelKnockedDown = 4;
+// byte: how a hit has it reel, by the hit's reaction kReaction (028BE6); 8 a knock-down (the table at 0292A0: its steps,
+// +07, 2 flying, 6 landing, 8 lying while +DF counts down, 0A getting up), 4 hit in the air (028F02)
+constexpr uint32_t kReelKind = 0x54;
+constexpr uint8_t kReelKnockedDown = 8;
+constexpr uint32_t kReaction = 0x55;   // byte: the last hit's reaction, read as the reeling begins (028BE6; FF guarded, 0D a sweep's
+                                       // knock-down, 12 knocked down into the air, as a knock-out is)
 constexpr uint32_t kHalfWidth = 0xA6;  // word: half the player's width (what the picture's edges keep in: 02ADC4)
 constexpr uint32_t kGuardedHit = 0x55; // byte: FF when the last hit was guarded (02336C)
 constexpr uint32_t kSide = 0x59;       // byte: which side it is on (a player's own things share it)

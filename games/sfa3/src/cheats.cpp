@@ -3,6 +3,7 @@
 //
 // Street Fighter Alpha 3: cheats (optional features: the launcher's Features page and the in-game menu switch them).
 // Made-up play needs them to go up the ladder to its end ('make explore', game.cfg's explore features).
+#include "battle.h"
 #include "session.h"
 #include "sfa3.h"
 
@@ -35,6 +36,15 @@ namespace {
         const int16_t health = static_cast<int16_t>(Ram16(Player(player) + kHealth));
         if (session::NoKnockOut() && static_cast<int16_t>(damage & 0xFFFF) > health) {
             SetLow16(damage, static_cast<uint32_t>(health > 0 ? health : 0));
+        }
+        // (the team battle's tag style: a hit that empties the bar of a fighter with a partner to come in leaves it at
+        // nothing, not knocked out (below nothing: 023F1C), and, not guarded, knocks it down as a knock-out's would
+        // (reaction 12, read as the reeling begins at its next step); the partner comes in while it lies there)
+        if (static_cast<int16_t>(damage & 0xFFFF) >= health && TeamHoldsKnockOut(player)) {
+            SetLow16(damage, static_cast<uint32_t>(health > 0 ? health : 0));
+            if (Ram8(Player(player) + kReaction) != 0xFF) {
+                SetRam8(Player(player) + kReaction, 0x12);
+            }
         }
         return false;
     }

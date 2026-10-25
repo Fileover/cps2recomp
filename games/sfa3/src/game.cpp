@@ -35,11 +35,14 @@ void ModelFrame(Machine &machine);
 void ModelState(Archive &ar);
 bool ModelViewer();
 void RegisterColours(); // colours.cpp
+void RegisterLiveTag(); // livetag.cpp
+void LiveTagBeforeFrame(Machine &machine);
 
 void RegisterGame() {
     RegisterModes();
     RegisterTraining();
     RegisterBattle();
+    RegisterLiveTag();
     RegisterModel();
     RegisterColours();
     RegisterWidescreen();
@@ -54,6 +57,7 @@ void RegisterGame() {
         session::BeforeFrame(machine);
         modes::BeforeFrame(machine);
         BattleBeforeFrame(machine);
+        LiveTagBeforeFrame(machine);
         colours::BeforeFrame(machine);
         ModelBeforeFrame(machine);
         // (for finding what the objects are, SFA3_HIDE_SETS=MASK: the objects of those colour sets not drawn)

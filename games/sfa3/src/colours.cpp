@@ -74,6 +74,12 @@ namespace {
     }
 } // namespace
 
+// Where a character's set of colours is in the ROM (set: (ism + 1) * 2 + choice), for the tag style's newcomer
+// (livetag.cpp)
+uint32_t CharacterColourSet(int number, int set) {
+    return SetAddress(number, set);
+}
+
 void RegisterColours() {
     colours::Description d;
     for (const uint8_t n : kFighterNumbers) {
