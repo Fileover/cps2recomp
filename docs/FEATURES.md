@@ -42,7 +42,11 @@ a fighting game, what it calls its buttons (`buttons = Attack | Jump | Shoot`). 
 has; the window reads a gamepad and keys for each of the game's players; the launcher's Controllers page has a button
 for each player and, in a game's own launcher, only the game's buttons, under its names, laid out on a gamepad as a
 beat-'em-up's are (`port/bindings.h`). In the collection every game shares one table: a fighting game's six buttons,
-each with the other games' names for it, for as many players as the game with the most.
+each with the other games' names for it, for as many players as the game with the most. A game can be given a layout
+of its own there (the Controllers page's Layout for and Its own layout; kept in the collection's `launcher.ini`), laid
+out with its own launcher's table; the shared buttons its table has not got are `none` in its `settings.ini`, and the
+game, which reads the shared table, has only its own. A fighting game's table (and the shared one) has two more:
+`ppp` and `kkk`, all three punches and all three kicks at once, with no key or button until they are given one.
 
 **Rapid fire** is the port's own (`rapid_fire`, Game page, every game): a held button is the game's pressed for two
 frames and let go for two, for the first button or for all of them, from the frame it goes down. Movies keep what the

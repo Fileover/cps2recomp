@@ -34,8 +34,9 @@ here where this game has them, with this game's own rules where they differ, and
 game's own code on every call ([how it works](PROGRESS.md)). What the program expects of the board is code written
 for this project, not an emulator.
 
-- Plays with a keyboard, a gamepad or an arcade stick; every key and button can be changed, for
-  each player, in the launcher.
+- Plays with a keyboard, a gamepad or an arcade stick; every key and button can be changed, for each player, in the
+  launcher. Two more can be given a key or a button: all three punches at once, and all three kicks. In the collection
+  it can have a layout of its own, apart from the other games'.
 - An in-game menu (Esc or `F1`; on a gamepad, the left stick's click or Start and Select together)
   with the training mode and the other modes, save states, speed, the cheats and every feature.
 - The picture your way (Display page): sharp, whole pixels or smooth; 4:3, square pixels or the

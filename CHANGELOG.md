@@ -53,6 +53,13 @@ switch on the launcher's first page for every game that has widescreen.
   under made-up play in Vampire Savior, Vampire Savior 2 and Vampire Hunter 2 (602 pairs, 3,010 swaps) with no fault.
 - The team battle's **tag style is the default** in every game that has it (its page's Style row: Tag first, then
   Knock-out). A Style chosen before this reads the other way once.
+- **Controls for each game** (issue #61; `port/bindings.h`, recomp-common's launcher): the collection's Controllers
+  page has Layout for, every game or one of them, and Its own layout gives that game keys and buttons of its own,
+  with its own names for its buttons (Attack, Jump, Shoot), starting as every game's are; switched off, it has every
+  game's again. Every other game keeps the shared layout.
+- **All three punches, all three kicks**: two more actions on the Controllers page for every fighting game (and the
+  collection's shared layout), each pressing three buttons at once, for the moves and the supers that take them. No key
+  or button has them until one is given (`ppp` and `kkk` in `settings.ini`).
 - **Tag team battle in Street Fighter Alpha 2**, both styles, as the Vampire Savior games have it: teams of two or three
   on one stage, the knock-out style and the tag style (the left trigger or Start tags; the one on calls the next one in,
   where its character has a call of its own, jumps back and flies off, and the next jumps in with a jump attack; a bar

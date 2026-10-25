@@ -36,7 +36,8 @@ namespace {
 
     static_assert(kBoundActions[0].bit == kUp && kBoundActions[1].bit == kDown && kBoundActions[2].bit == kLeft &&
                   kBoundActions[3].bit == kRight && kBoundActions[4].bit == kPunch1 && kBoundActions[9].bit == kKick3 &&
-                  kBoundActions[10].bit == kStart && kBoundActions[11].bit == kCoin);
+                  kBoundActions[10].bit == kStart && kBoundActions[11].bit == kCoin &&
+                  kBoundActions[12].bit == (kPunch1 | kPunch2 | kPunch3) && kBoundActions[13].bit == (kKick1 | kKick2 | kKick3));
 
     constexpr int kDead = 16000; // how far a stick or a trigger must go to count
 
