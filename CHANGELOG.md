@@ -2,8 +2,12 @@
 
 ## Unreleased
 
+## 0.4.0-beta.6
+
 A twelfth game, Marvel Super Heroes, with everything the other fighting games have, on a part of the toolkit it shares
-with X-Men vs. Street Fighter.
+with X-Men vs. Street Fighter. A tag team battle for the Vampire Savior games and Street Fighter Alpha 2: teams of two
+or three, tagged in Marvel-style or one knock-out at a time, against the computer, in co-op or 2 vs 2. And widescreen's
+switch on the launcher's first page for every game that has widescreen.
 
 - **Another game: Marvel Super Heroes** (`games/msh`; ROM set `msh`, *Marvel Super Heroes*, Europe 951024, the parent
   set and the one competitive play uses). The game as the board plays it, translated whole (its 68000 program, and its
