@@ -142,6 +142,11 @@ inline constexpr Place kPlaceList[] = {
     {0x020C98, 0x000000}, // CountShadowCode: this game's is not the same (no rewrite) by hand
     {0x022354, 0x020D36}, // an instruction, 5 on alike
     {0x02244C, 0x020E30}, // an instruction, 4 on alike
+    {0x0228B8, 0x0212CA}, // an instruction, 24 on alike
+    {0x022966, 0x021378}, // an instruction, 5 on alike
+    {0x02297A, 0x02138C}, // an instruction, 2 on alike
+    {0x0229F2, 0x021404}, // an instruction, 5 on alike
+    {0x022A06, 0x021418}, // an instruction, 2 on alike
     {0x027694, 0x026898}, // an instruction, 24 on alike
     {0x0276A6, 0x0268AA}, // an instruction, 24 on alike
     {0x027EC0, 0x027142}, // the reelings' animation set (battle.cpp), found by its instructions: the second of three tables, then 0x382(a6) by hand

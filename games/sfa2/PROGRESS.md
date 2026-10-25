@@ -306,6 +306,37 @@ movie with each of the 18 characters (Akuma, M. Bison and Dan, who are not on th
 held: `--poke 8482=02`), attract mode and a lost game; `--music-test 5400` for the 13 that end of themselves.
 Not seen: where 1A (a 4.4 s fanfare) plays. Not heard by a person: a real arranged soundtrack in a window.
 
+## The computer's play of the tag style and the ring out (2026-10-25)
+
+The CPU knew nothing of either: it tagged only when its bar emptied, and played a ring out as a fight for damage. Now a
+side the game plays is coached by the toolkit (`fight/battle.cpp`, docs/FIGHT.md "The computer's play of the modes"):
+when to tag and whom (the partner with the most health), and in a ring out short plans worked through its controls
+(walk in, jump over, sweep, throw), the game's own play the rest of the time. Alpha 2's own parts:
+
+- `RingOutMayWalkBack` in the Walking rewrite (021A3E, the computer's walk): a coached computer with its back near its
+  end walks forward where its computer wanted back (the way at `+214`). Only in a ring out; everywhere else the
+  rewrite is as it was.
+- `difficultyNow`: A5+BE (the game's copy of the board's difficulty); `attackComing`: AttackInRange (guard.cpp, the
+  training dummy's guard test), so that the coach never walks or jumps into an attack coming.
+- Found by counting (CPU against CPU, `CPS2RECOMP_BATTLE_CPU=1`, `CPS2RECOMP_BATTLE_LOG=1`):
+  - Where the ones knocked out of a ring were the last time they were their own masters: half within 30 pixels of
+    their end, seven in ten within 72, nine in ten within 145 (126 ring outs). At the end a guarded hit sends a
+    fighter over as a hit does, so the coach gets out from 150 pixels, not once cornered.
+  - A throw with the stick held away keeps the other on its side and sends it on, further away; held towards, it
+    often goes over the thrower's head, behind (73 throws). The coach throws away with the other's back to its end,
+    towards with its own back to its end.
+  - The first coach, which walked in without guarding, lost more than the game's own play (its walks hit 22% of the
+    time). With the guard test: walks hit 1%.
+- Numbers, 16 runs of 40,000 frames each way (the side 2 bias of the ring out's structure shows in the first line):
+  ring outs a minute 4.95 and side 2 winning 56% with nobody coached; side 1 coached winning 56% (from 44%), side 2
+  coached 50% (from 56%), so against the game's own play about even; the coached side cornered half as long as the
+  other. The tag style, both teams coached (8 runs of 40,000 frames, 48 matches): 205 tags, 3.1 a minute of fighting,
+  at a median health of 35% with the partner at 100%, 37% of them with the other down and 78% at a distance; none
+  called off by a hit on the way out.
+- Checked: every movie hashes as before over 12,000 frames (against main), check_rewrites.sh with no difference, and
+  two new movies (`ringout_computer.txt`, `team_tag_computer.txt`) with make check both ways. Only headless: nobody
+  has played against it yet.
+
 ## Readable code
 
 Rewrites (`cps2recomp/docs/READABLE.md`), each run beside the game's own code on every call by `make
@@ -429,7 +460,9 @@ a button at times after: medium and heavy ones soften the throw inside the windo
 stunned; player 2 taps down all along and mashes buttons after some series), `wall_jump.txt` (player 1, poked to be Chun-Li, jumps back into
 the left edge and presses right at times through the jump), `custom_combo.txt` (player 1 starts Custom Combos
 and presses buttons through them; with `full_gauge`), `air_guard.txt` (each in turn jumps holding away from jump-ins,
-fireballs and anti-airs; the players swap sides partway, so the later part is less scripted than it looks).
+fireballs and anti-airs; the players swap sides partway, so the later part is less scripted than it looks),
+`ringout_computer.txt` and `team_tag_computer.txt` (made-up play for player 1 against the coached CPU: a ring out, and
+a tag team battle against the CPU's team of three; the run's options in each first line).
 
 - Attract loop (`FF8000` with no coin): `04` notices, `10` introduction, `14` score ranking, `16`-`1A` a
   demonstration fight, `1C`-`2A` advisory, title and versus ranking, `2C`-`30` another fight, then `00` again.

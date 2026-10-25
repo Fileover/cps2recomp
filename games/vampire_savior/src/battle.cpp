@@ -10,6 +10,7 @@
 
 namespace cps2recomp {
 
+bool AttackInRange(M68K &c, uint32_t player); // fight.cpp
 bool CanTag(int player); // livetag.cpp
 void TagIn(int player, int character, int colours);
 void TagNoEntrances();
@@ -35,6 +36,28 @@ namespace {
     // The part of a player's record that is how it moves and is drawn (its steps, its frame, its speeds, its
     // boxes): taken from its record on the old stage when it comes down onto the next, but for its place
     constexpr uint32_t kMovingFrom = 0x04, kMovingTo = 0x100;
+
+    // The walk's (kAction kActionWalk, 02289E): the way it goes (1 back), and the way the computer wants it to go
+    constexpr uint32_t kWalkingBack = 0x0A, kComputerWalksBack = 0x20B;
+    constexpr uint32_t kWalkBegins = At(0x0228B8); // the walk's animation and speed, by kWalkingBack
+    // 022966 (the walk's first step) and 0229F2 (its steps after): the computer's walk takes the way the computer wants,
+    // and that the other way than the walk's, the walk begins again that way (else it goes on, at `kSame`). The ring
+    // out's line: not back towards the end it is near, coached (battle.h); else the game's code as it is.
+    template <uint32_t kSame>
+    bool ComputerWalkWay(M68K &c) {
+        const uint32_t player = c.a[6] & 0xFFFFFF;
+        if (!Ram8(player + kComputerWalksBack) || RingOutMayWalkBack(player)) {
+            return false;
+        }
+        SetLow8(c.d[0], 0); // (forward)
+        if (Ram8(player + kWalkingBack)) {
+            SetRam8(player + kWalkingBack, 0);
+            c.pc = kWalkBegins;
+        } else {
+            c.pc = kSame;
+        }
+        return true;
+    }
 } // namespace
 
 // The ring out's own movements (fight/battle.h, RingOutMove) at a player's step (A6): true when it has made the
@@ -144,6 +167,8 @@ void RegisterBattle() {
     d.tagIn = TagIn;
     d.noEntrances = TagNoEntrances;
     d.difficulty = TagDifficulty;
+    d.attackComing = [](Machine &machine, int side) { return AttackInRange(machine.cpu, Player(side)); };
+    d.difficultyNow = [] { return static_cast<int>(Ram8(At(0xFF80BE))); }; // (the game's copy of the board's, taken as a game begins)
     d.taggedIn = TaggedIn;
     d.offStage = TagOffStage;
     d.untouchable = TagUntouchable;
@@ -156,6 +181,8 @@ void RegisterBattle() {
     d.meterSize = 3;
     battle::Register(d);
     AddHook(At(0x022354), "TagSetUp", TagSetUp); // (livetag.cpp: a newcomer of a swap kept where it was swapped in)
+    AddHook(At(0x022966), "ComputerWalkWay", ComputerWalkWay<At(0x02297A)>);
+    AddHook(At(0x0229F2), "ComputerWalkWayOn", ComputerWalkWay<At(0x022A06)>);
     battle::RegisterTeamTag(0.25f);
 }
 

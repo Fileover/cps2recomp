@@ -156,6 +156,14 @@ struct Description {
     uint16_t downSound = 0;
     uint32_t speedX = 0, speedY = 0;
     int floor = 0;
+    // The computer's play of the tag style and the ring out (a side the game plays coached in them, as a person would
+    // play them: battle.cpp): whether a side's fighter can act now, on the floor or in the air (nullptr: canTag; neither:
+    // no coaching), and the difficulty the game plays at now, 0 (the easiest) to 7 (nullptr: the middle)
+    bool (*canAct)(int side) = nullptr;
+    int (*difficultyNow)() = nullptr;
+    // ... and whether something of the other's is near enough for the side's fighter to guard (the game's own test, as
+    // the training dummy's guard asks it; nullptr: never), when the coach lets the game's play guard it
+    bool (*attackComing)(Machine &machine, int side) = nullptr;
 
     // A game is being played (no: the board was reset)
     bool (*inGame)() = nullptr;
@@ -216,5 +224,8 @@ void BattleState(Archive &ar);
 // about at an end of the stage is not to be kept in there (it goes over the end)
 RingOut RingOutMove(uint32_t player);
 bool RingOutLetsOut(uint32_t player);
+// The ring out: whether a player the game plays may walk back now, as its computer wants to (not with its back near its
+// end, coached: battle.cpp); the game's sources ask where the computer's walk takes its way
+bool RingOutMayWalkBack(uint32_t player);
 
 } // namespace cps2recomp

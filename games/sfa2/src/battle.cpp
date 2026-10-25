@@ -10,6 +10,7 @@
 
 namespace cps2recomp {
 
+bool AttackInRange(M68K &c, uint32_t player); // guard.cpp
 bool CanTag(int player); // livetag.cpp
 void TagIn(int player, int character, int colours);
 bool TaggedIn(int player);
@@ -92,6 +93,8 @@ void RegisterBattle() {
     d.teamLinesY = 0.19f; // (under the bars and the names)
     // (no entrances: a team battle's fighters begin ready, livetag.cpp's TagEntrance; one health bar is all the game has)
     d.difficulty = TagDifficulty;
+    d.attackComing = [](Machine &machine, int side) { return AttackInRange(machine.cpu, Player(side)); };
+    d.difficultyNow = [] { return static_cast<int>(Ram8(0xFF80BE)); }; // (the game's copy of the board's, taken as a game begins)
     d.canTag = CanTag;
     d.tagIn = TagIn;
     d.taggedIn = TaggedIn;
