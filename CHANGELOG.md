@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+- **Your games in your order**: drag a game's row in the launcher's sidebar up or down (or, with a gamepad or the
+  keyboard, **Move up** and **Move down** on its page, under Play) to keep the ones you play most at the top. The
+  Games page lists them in the same order; it is kept in `launcher.ini` (issue #91).
+- **The launcher fits a small window** (issue #73): on a small screen, or with large text, it no longer opens
+  bigger than the screen or leaves its rows' words under their buttons. A narrow window has a narrower sidebar
+  (long names cut short with "…") and less room round the page, and a row's buttons go under its words when there
+  is too little room beside them. The sidebar's list of games scrolls when it is longer than the window (twelve
+  games already were at the usual size). The window can be made as small as 600×400.
+- The launcher's Games page: the Updates card is at the top, above the games, and each game's **Play** is before its
+  **Choose…**, so that a gamepad's ring coming into the row is on Play.
+
 ## 0.4.0-beta.6
 
 A twelfth game, Marvel Super Heroes, with everything the other fighting games have, on a part of the toolkit it shares
