@@ -38,8 +38,10 @@ CPU's (Capcom's sound driver 1.05). What the program expects of the board (its v
 and its registers, the settings memory) is code written for this project, not an emulator. Every translated block
 is checked against an interpreter of the same program ([how it was made](PROGRESS.md)).
 
-- Plays with a keyboard, a gamepad or an arcade stick; every key and button can be changed, for each player, in
-  the launcher. The game has six buttons: three punches and three kicks.
+- Plays with a keyboard, a gamepad or an arcade stick; every key and button can be changed, for each player, in the
+  launcher. The game has six buttons: three punches and three kicks. Two more can be given a key or a button: all
+  three punches at once, and all three kicks. In the collection it can have a layout of its own, apart from the other
+  games'.
 - An in-game menu (Esc or `F1`; on a gamepad, the left stick's click or Start and Select together) with the
   training mode and the other modes, save states, speed, the cheats and every feature.
 - **Rapid fire** (Game page): a button held down is pressed again and again, fifteen times a second, for the first

@@ -44,8 +44,9 @@ own code. What the program expects of the board (its video, the QSound chip, the
 the settings memory) is code written for this project, not an emulator
 ([how it works](docs/PORT.md)).
 
-- Plays with a keyboard, a gamepad or an arcade stick; every key and button can be changed, for
-  each player, in the launcher.
+- Plays with a keyboard, a gamepad or an arcade stick; every key and button can be changed, for each player, in the
+  launcher. Two more can be given a key or a button: all three punches at once, and all three kicks. In the collection
+  it can have a layout of its own, apart from the other games'.
 - An in-game menu (Esc or `F1`; on a gamepad, the left stick's click or Start and Select together)
   with the training mode, save states, speed, the cheats and every feature.
 - **Rapid fire** (Game page): a button held down is pressed again and again, fifteen times a second, for the first

@@ -38,9 +38,10 @@ about a second. No key is in this repository.
 - **Three players at once**, each with a keyboard layout or a gamepad of their own (the board as it left the factory
   takes three, each with a coin chute).
 - Plays with a keyboard, a gamepad or an arcade stick; every key and button can be changed, for each player, in the
-  launcher, where the buttons are called what the game calls them: **Attack** and **Jump** (both together: the
-  special attack). On a gamepad they start on X and Y, as the collection's other games have their first two buttons
-  (in the game's own launcher: X and A).
+  launcher, where the buttons are called what the game calls them: **Attack** and **Jump** (both together: the special
+  attack). On a gamepad they start on X and Y, as the collection's other games have their first two buttons (in the
+  game's own launcher: X and A). In the collection it can have a layout of its own, apart from the other games', with
+  its buttons under these names.
 - An in-game menu (Esc or `F1`; on a gamepad, the left stick's click or Start and Select together) with save states,
   speed, pause and frame advance, the cheats and every feature.
 - **Pure** plays exactly as the board does. **Enhanced** (the default) adds free play. Every other feature is a

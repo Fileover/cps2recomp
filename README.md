@@ -57,7 +57,8 @@ Each game's page has all it does, with pictures.
 ## Every game has
 
 - **Keyboard, gamepad or arcade stick**, with every key and button changeable, for each player, once for all
-  the games (the launcher's Controllers page).
+  the games or for one game on its own (the launcher's Controllers page: Layout for). A fighting game's controls
+  also have all three punches at once and all three kicks, for a key or a button of their own.
 - **An in-game menu** (Esc or `F1`; on a gamepad, the left stick's click or Start and Select together): the
   game's modes, save states, speed, pause and frame advance, cheats, and every feature.
 - **Pure or Enhanced.** Pure plays exactly as the board does. Enhanced (the default) adds free play and your
@@ -98,7 +99,8 @@ Each game you have a ROM set for gets a page of its own in the sidebar: its Disp
 widescreen), Play, and the features only it has. The **Features** page has what the games share (free play,
 cheats, run-ahead, the picture, training mode's displays and the dummy, and the rest), set for every game at
 once; a feature changed in a game's own menu is set for the others too when you leave the game. The
-**Controllers** page sets the keys and buttons for all of them.
+**Controllers** page sets the keys and buttons for all of them; its Layout for chooses a game, and Its own layout
+gives that game keys and buttons apart from the others', under the game's own names for its buttons.
 
 While playing, Esc or `F1` (on a gamepad, the left stick's click, or Start and Select together) opens the
 in-game menu. Only the menu's "Quit game" row (or closing the window) ends the game.
