@@ -515,11 +515,13 @@ void Video::RenderLineAs(int line, uint32_t *out) {
             DrawScroll<kWide>(static_cast<int>(order[n]) - 1, rasterLine, pens, priority, static_cast<uint8_t>(1u << n));
         }
     }
-    if (layerMask & 1) {
-        DrawObjects<kWide>(rasterLine, pens, priority, masks);
-    }
+    // (the holes filled from the scroll screens alone, before the objects: a fighter or the panel beside a hole is not
+    // mirrored into it, and the objects are drawn over what fills it as over the stage)
     if (kWide && wide.fillHoles && wide.side > 0) {
         FillHoles(pens, width);
+    }
+    if (layerMask & 1) {
+        DrawObjects<kWide>(rasterLine, pens, priority, masks);
     }
     for (int x = 0; x < width; x++) {
         out[x] = m_palette[pens[x]];

@@ -21,6 +21,7 @@
 #include "sfa3.h"
 
 #include <algorithm>
+#include <cstdlib>
 
 namespace cps2recomp {
 
@@ -314,6 +315,52 @@ namespace {
         return CameraRightEnd() >= CameraLeftEnd() + 2 * kWideSide && camera >= CameraLeftEnd() && camera <= CameraRightEnd();
     }
 
+    // The two other scroll screens' places across (their records' +10) with the camera at each of its ends, by stage
+    // (kStageNames' order; measured with a training session walked to both ends of each stage with invisible walls: the
+    // right end reached, the left worked out from the place at 376, as the planes move in proportion to the camera). A
+    // plane is painted for what the board shows of it at those places and the 384 columns from them; in the wide
+    // picture, near a stage's end, more of it would show than that. So each is drawn moved by as much as its wide view
+    // would reach past its painting (a picture-only change: nothing the game works out is touched), as Alpha 2's are.
+    // Sagat's planes (the Buddha's too) and Dhalsim's back plane are left as they are ({0, 0}): the back ones are fixed
+    // maps of 512 pixels that barely move (38 to 90, 54 to 90), and the columns of these three beyond the board's view
+    // were never drawn, so a moved view shows holes in the middle of them; the holes at their ends are filled instead
+    // (Video::wide.fillHoles).
+    struct PlaneEnds {
+        int16_t back[2], far[2]; // the 8-pixel and the 32-pixel scroll screens
+    };
+    constexpr PlaneEnds kPlaneEnds[kStages] = {
+        {{24, 103}, {330, 566}},  {{309, 587}, {289, 606}}, {{25, 102}, {371, 524}},  {{336, 561}, {318, 577}},
+        {{364, 531}, {299, 596}}, {{256, 640}, {280, 616}}, {{256, 640}, {256, 640}}, {{280, 616}, {304, 592}},
+        {{298, 599}, {383, 512}}, {{273, 622}, {200, 375}}, {{265, 630}, {265, 630}}, {{0, 0}, {0, 0}},
+        {{296, 601}, {382, 513}}, {{267, 628}, {312, 583}}, {{486, 652}, {280, 616}}, {{0, 0}, {339, 556}},
+        {{289, 605}, {289, 605}}, {{270, 625}, {315, 581}}, {{265, 630}, {265, 630}}, {{16, 112}, {352, 544}},
+        {{263, 632}, {288, 611}}, {{401, 494}, {355, 540}}, {{314, 582}, {333, 563}}, {{263, 632}, {286, 609}},
+        {{283, 612}, {256, 384}}, {{267, 628}, {312, 583}}};
+    constexpr uint32_t kPlanes[2] = {0xFF8200, 0xFF8300};
+    int g_planeBefore[2] = {0, 0};
+
+    // How far to draw a plane moved so that its wide view stays inside its painting
+    int PlaneShift(const int16_t ends[2], int place) {
+        const int lo = ends[0], hi = ends[1];
+        if (hi <= lo) {
+            return 0; // (going the other way, or round: as it is)
+        }
+        const int from = place - kWideSide, to = place + Video::kWidth + kWideSide; // (the wide view of it)
+        const int painted = hi - lo + Video::kWidth, wide = Video::kWidth + 2 * kWideSide;
+        if (painted < wide) {
+            // (painted narrower than the wide picture: the shortfall split between its two sides, wherever the camera
+            // is; such a plane is far off and moves little)
+            return from - (lo - (wide - painted) / 2);
+        }
+        if (from < lo) {
+            return from - lo;
+        }
+        if (to > hi + Video::kWidth) {
+            return to - (hi + Video::kWidth);
+        }
+        return 0;
+    }
+
     // An object's place: the panel's stay in the middle, the stage's and the fighters' go with the view
     int MoveObject(uint32_t tile, uint16_t attributes, int) {
         return ThePanel(tile, attributes) ? 0 : g_shift;
@@ -321,7 +368,7 @@ namespace {
 
     // The wide picture's switches for the frame about to run (the port's, or a spare's): the camera's place now and
     // where it was for the picture being made (a frame behind)
-    void SetWide(Machine &machine, int camera, int shown) {
+    void SetWide(Machine &machine, int camera, int shown, const int planesShown[2]) {
         g_side = g_shift = 0;
         if (g_shown && OnStage(camera) && OnStage(shown)) {
             g_side = kWideSide;
@@ -334,9 +381,20 @@ namespace {
         wide.side = g_side;
         // (the panel is objects: every scroll screen is the stage's and goes with the view)
         wide.scroll[0] = wide.scroll[1] = wide.scroll[2] = g_shift;
+        // (the planes behind, kept inside their painting; each a frame behind, as the picture is)
+        const int stage = StageOfNumber(Ram16(kStage) / 2) - 1;
+        for (int n = 0; n < 2; n++) {
+            if (g_side && stage >= 0) {
+                const PlaneEnds &ends = kPlaneEnds[stage];
+                // (from where the view of it already is: near a stage's end, with invisible walls, the whole view is
+                // drawn moved by g_shift)
+                wide.scroll[n == 0 ? 0 : 2] += PlaneShift(n == 0 ? ends.back : ends.far, planesShown[n] - g_shift);
+            }
+        }
         wide.object = g_side ? MoveObject : nullptr;
         wide.tile = nullptr;
-        wide.fillHoles = g_side != 0;
+        // (what is left unpainted, mirrored from the line's own picture; SFA3_NO_FILL for tests, to see what is left)
+        wide.fillHoles = g_side != 0 && !getenv("SFA3_NO_FILL");
     }
 
     struct Kept {
@@ -360,10 +418,15 @@ int WideStage() {
 void WidescreenBeforeFrame(Machine &machine) {
     const int camera = static_cast<int16_t>(Ram16(kCameraX)), shown = g_cameraBefore;
     g_cameraBefore = camera;
+    int planesShown[2];
+    for (int n = 0; n < 2; n++) {
+        planesShown[n] = g_planeBefore[n];
+        g_planeBefore[n] = static_cast<int16_t>(Ram16(kPlanes[n] + kX));
+    }
     // (fights only; the stage viewer and the modes that lay one machine's picture over another's keep the board's)
     g_shown = FeatureOn("widescreen") && InFight() && !modes::StageViewer() && !BattleMode();
     g_play = g_shown && !FeatureOn("widescreen_walls");
-    SetWide(machine, camera, shown);
+    SetWide(machine, camera, shown, planesShown);
 }
 
 // A spare machine's frame (the modes' other machines) is drawn as wide as the port's picture is, so that the two can be
@@ -371,7 +434,8 @@ void WidescreenBeforeFrame(Machine &machine) {
 void WideForSpare(Machine &machine) {
     g_kept = {g_side, g_shift};
     const int camera = static_cast<int16_t>(Ram16(kCameraX));
-    SetWide(machine, camera, camera);
+    const int planes[2] = {static_cast<int16_t>(Ram16(kPlanes[0] + kX)), static_cast<int16_t>(Ram16(kPlanes[1] + kX))};
+    SetWide(machine, camera, camera, planes);
     // (exactly as wide as the port's picture, even where the spare is not on its stage yet)
     if (g_side != g_kept.side) {
         Video::Wide &wide = machine.video.wide;
