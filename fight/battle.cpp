@@ -344,7 +344,7 @@ namespace {
             }
         }
         g.computer[1] = TeamComputer();
-        g.tag = d.tagIn && FeatureValue("team_style") == 1;
+        g.tag = d.tagIn && FeatureValue("team_style") == 0; // (the tag style first: what a team battle is unless chosen)
         const int stage = FeatureValue("team_stage");
         g.stage = stage >= 1 && stage <= d.stages ? stage : AnyStage(0);
     }
@@ -1565,11 +1565,11 @@ void battle::Register(const Description &description) {
                              StartTeam});
     if (d.tagIn) {
         game.features.push_back({"team_style", kTeam, "Style",
-                                 "Knock-out: one fighter of each team at a time, the next coming on when one is knocked out. Tag: "
-                                 "each fighter has its own health; the left trigger (or Start) tags the next one in whenever yours can act, and when a "
-                                 "fighter's health runs out the next comes in. Resting fighters get back the health that comes back "
-                                 "by itself. The match is over when a team has nobody left.",
-                                 0, {"Knock-out", "Tag"}});
+                                 "Tag: each fighter has its own health; the left trigger (or Start) tags the next one in whenever "
+                                 "yours can act, and when a fighter's health runs out the next comes in. Resting fighters get back the "
+                                 "health that comes back by itself. The match is over when a team has nobody left. Knock-out: one "
+                                 "fighter of each team at a time, the next coming on when one is knocked out.",
+                                 0, {"Tag", "Knock-out"}});
     }
     game.features.push_back({"team_size", kTeam, "Fighters", "How many fighters each team has.", 0, {"2", "3"}});
     if (d.oneBarEach) {

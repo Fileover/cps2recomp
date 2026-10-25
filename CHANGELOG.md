@@ -47,6 +47,8 @@ with X-Men vs. Street Fighter.
   and kick of one strength; two punches or two kicks make the EX moves: the left trigger is free.) The game sets a fighter up anew itself (its own setting up of a player,
   mid-fight), after what the outgoing character made is given back; every pair of characters swapped back and forth
   under made-up play in Vampire Savior, Vampire Savior 2 and Vampire Hunter 2 (602 pairs, 3,010 swaps) with no fault.
+- The team battle's **tag style is the default** in every game that has it (its page's Style row: Tag first, then
+  Knock-out). A Style chosen before this reads the other way once.
 - **Tag team battle in Street Fighter Alpha 2**, both styles, as the Vampire Savior games have it: teams of two or three
   on one stage, the knock-out style and the tag style (the left trigger or Start tags; the one on calls the next one in,
   where its character has a call of its own, jumps back and flies off, and the next jumps in with a jump attack; a bar
