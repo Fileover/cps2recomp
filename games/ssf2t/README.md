@@ -11,7 +11,7 @@ and online.
 
 It has everything the other fighting games here have: a full **training mode** (hit boxes, frame data and a frame
 meter, input display, combo and stun readouts, a dummy that records, replays and guards), the **alternative modes**
-(attract mode, the stage and model viewers, survival, endless battle, ring out), **widescreen**, **custom colours**
+(attract mode, the stage and model viewers, survival, endless battle, ring out, a tag team battle), **widescreen**, **custom colours**
 with a colour editor, the **hidden characters** with no code (Akuma and the old versions), and the features every
 game shares: free play, straight to the title, the board's operator settings, cheats, save states, run-ahead, arcade
 timing, a custom soundtrack.
@@ -105,7 +105,8 @@ have. Each has a page with a Start row and its own choices, and runs until anoth
 | Colour editor | Change a character's colours while you watch: [custom colours](#custom-colours) |
 | Survival | One computer opponent after another on the health you have left. How many can you beat? |
 | Endless battle | Two fighters the game plays, for as long as you like, with no clock, on one stage, on stages that fade one into another, or on a floor that scrolls through them all. Touch the controls to take a fighter over |
-| Ring out | No knock-outs. Knock your opponent over the end of the stage (it is flung into the air and falls through the floor), then jump down after it and land on the next stage |
+| Ring out | No knock-outs. Knock your opponent over the end of the stage (it is flung into the air and falls through the floor), then jump down after it and land on the next stage. The CPU plays it as a ring out, not for damage: it walks you towards an end, knocks you over it when your back is to it, and keeps off its own end, getting out of a corner with a jump over you |
+| Tag team battle | Two teams of two or three, chosen on its page, all on one stage. Team 2 is the CPU (its difficulty chosen on the page), or player 2; with "Tag team" on the same page each fighter is a person's own: co-op (players 1 and 2 against the CPU's team) or 2 vs 2 for four players, a label under the bars saying who is on. **Tag style**, the default: each fighter keeps a bar of its own and you tag the next one in with a gamepad's left trigger (or Start) whenever yours can act: yours flies off the screen, and the next one jumps in from that side with a jump attack that can hit. When a bar empties, that fighter is knocked down and lies there for two seconds, not to be hit, and the next one jumps in; resting fighters get back some health, the super combo gauge carries over, the others' health is listed under the bars, one round decides it, and a time over goes to the team with more health in all. The CPU's team tags too, as a person would: when the one on is low and a partner has more (or has rested), best while you are down or far off, never in the middle of your combo. "Style: Knock-out" plays one fighter of each team at a time instead: the one knocked out is out and the next of that team comes on with a full bar, the winner staying on with the health it has left |
 
 ## Widescreen
 

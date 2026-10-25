@@ -99,7 +99,7 @@ namespace {
         const uint8_t who = Ram8(player + kCharacter);
         fight::MoveLog::Start start;
         start.character = Ram8(player + kAkuma) ? "Akuma" : who < kCharacters ? kCharacterNames[who] : "?";
-        start.input = fight::Notation(PanelHeld(n), Ram8(player + kFacesLeft) != 0);
+        start.input = fight::Notation(PanelHeld(n), Ram8(player + kFacesRight) == 0);
         start.air = Ram8(player + kState) == kJump || Ram8(player + kInAir) != 0;
         start.id = Ram32(player + kFrame); // (the move's first animation frame)
         return start;
@@ -116,7 +116,7 @@ namespace {
         if (kind == fight::BoxKind::Attack && (c.Read(box + 5, 0) & 0x80)) {
             across = -static_cast<int>(c.Read(box + 5, 0)); // (a long reach: 0BF5B6)
         }
-        const int x = static_cast<int16_t>(Ram16(record + kX)) + (Ram8(record + kFacesLeft) ? -across : across);
+        const int x = static_cast<int16_t>(Ram16(record + kX)) + (Ram8(record + kFacesRight) ? -across : across);
         const int y = static_cast<int16_t>(Ram16(record + kY)) + up;
         boxes.push_back({kind, x, y, halfWidth, halfHeight, thrown});
     }
@@ -219,7 +219,7 @@ void RegisterTraining() {
     d.mayRefill = [](int n) { return CanAct(Player(n)); };
     d.chosen = [](int n) { return Ram8(Player(n) + kChosen) != 0; };
     d.panelHeld = PanelHeld;
-    d.facingLeft = [](int n) { return Ram8(Player(n) + kFacesLeft) != 0; };
+    d.facingLeft = [](int n) { return Ram8(Player(n) + kFacesRight) == 0; };
     d.moveStart = MoveStart;
     d.boxes = Boxes;
     d.dummyView = DummyView;

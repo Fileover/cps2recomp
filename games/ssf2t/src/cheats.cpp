@@ -3,10 +3,13 @@
 //
 // Super Street Fighter II Turbo: cheats (optional features: the launcher's Features page and the in-game menu switch
 // them). Made-up play needs them to go up the ladder to its end ('make explore', game.cfg's explore features).
+#include "battle.h"
 #include "session.h"
 #include "ssf2t.h"
 
 namespace cps2recomp {
+
+void TagKnockDown(uint32_t player); // livetag.cpp
 
 namespace {
     using namespace ssf2t;
@@ -35,8 +38,12 @@ namespace {
             SetLow16(damage, kHealthFull + 1);
         }
         const int16_t health = static_cast<int16_t>(Ram16(Player(player) + kHealth));
-        if (session::NoKnockOut() && static_cast<int16_t>(damage & 0xFFFF) > health) {
+        if ((session::NoKnockOut() || TeamHoldsKnockOut(player)) && static_cast<int16_t>(damage & 0xFFFF) > health) {
             SetLow16(damage, static_cast<uint32_t>(health > 0 ? health : 0));
+        }
+        // (the team battle's tag style: a bar emptied with a partner left is a knock-down, not a knock-out)
+        if (TeamHoldsKnockOut(player) && static_cast<int16_t>(damage & 0xFFFF) >= health && !Ram8(Player(player) + kGuarded)) {
+            TagKnockDown(Player(player));
         }
         return false;
     }

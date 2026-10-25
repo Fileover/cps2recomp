@@ -21,6 +21,14 @@
   version), and the features every game has: free play (the game's own), straight to the title, the board's settings
   (the Board page: difficulty, game speed, continue, demo sound), cheats, save states, run-ahead, arcade timing and a
   custom soundtrack (its music named) ([its progress](games/ssf2t/PROGRESS.md)).
+- **Super Street Fighter II Turbo: the tag team battle**, as Street Fighter Alpha 2 and Vampire Savior have it (the
+  tag style and the knock-out style, teams of two or three, against the CPU, co-op or 2 vs 2), and the **CPU that
+  plays the tag style and the ring out as a person would**: it tags its fighters in, and in a ring out walks its
+  opponent to an end and knocks it over, keeping off its own. The input display's directions were mirrored (the
+  game's facing byte was read the wrong way round); they are the player's own now.
+- The fighting modes (`fight/battle.h`) take `handOver`, for a game whose computer and person work a move under way by
+  bytes of their own (Super Street Fighter II Turbo: a fighter changes hands only standing or crouching), and
+  `speedWords`, for speeds kept in words rather than longs.
 - The fighting modes (`fight/battle.h`) take `ownMaster` for a game that keeps no one byte saying a player is its own
   master (Super Street Fighter II Turbo: several of its states, and guarding only before a hit lands).
 - **Your games in your order**: drag a game's row in the launcher's sidebar up or down (or, with a gamepad or the
