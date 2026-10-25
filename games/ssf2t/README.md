@@ -30,7 +30,7 @@ Capcom Co., Ltd.
 
 ![Ryu's fireball against Ken, at the harbour](../../docs/screenshots/ssf2t/fight.png)
 
-![Training mode: hit boxes, frame data and the frame meter, the input display, the combo readout](../../docs/screenshots/ssf2t/training.png)
+![Training mode: hit boxes, frame data and the frame meter, the input display, the combo and stun readouts](../../docs/screenshots/ssf2t/training.png)
 
 ## What it is
 
@@ -108,6 +108,8 @@ have. Each has a page with a Start row and its own choices, and runs until anoth
 | Ring out | No knock-outs. Knock your opponent over the end of the stage (it is flung into the air and falls through the floor), then jump down after it and land on the next stage |
 
 ## Widescreen
+
+![Widescreen: Ryu and Ken in Las Vegas (Balrog's stage), more of the stage on each side](../../docs/screenshots/ssf2t/widescreen.png)
 
 A switch on the launcher's first page, under "Full screen" (and on the in-game menu's Display page). Fights are shown
 and played in 16:9: the picture is 512 columns wide where the board's is 384, at the same height and with everything

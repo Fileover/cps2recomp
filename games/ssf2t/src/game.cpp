@@ -31,7 +31,6 @@ void RegisterColours();  // colours.cpp
 void RegisterChoosing(); // choosing.cpp
 void ChoosingState(Archive &ar);
 void RegisterComputer(); // computer.cpp
-void ComputerState(Archive &ar);
 void RegisterWidescreen(); // widescreen.cpp
 void WidescreenBeforeFrame(Machine &machine);
 bool WidePlay();
@@ -74,7 +73,6 @@ void RegisterGame() {
     TheGame().state = [](Archive &ar) {
         BoardState(ar);
         ChoosingState(ar);
-        ComputerState(ar);
         session::State(ar);
         modes::State(ar);
         BattleState(ar);

@@ -76,10 +76,44 @@ this set (peon2/fbneo-training-mode, `games/ssf2t`) named some of them first; ea
 
 ## Checks
 
-To be filled in with the numbers of `make GAME=ssf2t check`, `check-blocks`, `check-release`, `check-rewrites`,
-`check-widescreen` and the hand-run checks (docs/VERIFYING.md).
+Run on 2026-10-25, macOS (Apple silicon), each alone:
+
+- `make GAME=ssf2t check FRAMES=40000 MOVIE=games/ssf2t/movies/ladder.txt ARGS="--features free_play,no_damage,one_hit"`:
+  translated code does what the interpreter does, two runs alike. The ladder movie reaches Ryu's ending, the staff roll
+  (about frame 35,000), game over and the show again (39,000).
+- `make GAME=ssf2t check FRAMES=12000 MOVIE=games/ssf2t/movies/versus.txt ARGS="--features free_play"`: the same.
+- `make GAME=ssf2t check-blocks` over the ladder: 317,827,857 translated blocks and 165,810,752 of the sound driver's
+  checked against the interpreter, no difference.
+- `make GAME=ssf2t check-rewrites`: CameraAcross, CameraUp and KeepIn over the versus, ladder and two made-up
+  two-player movies (13,000 to 61,000 calls each), none differing; their cycles are their originals' averages.
+- `make GAME=ssf2t check-widescreen`: all sixteen stages painted to both ends in the wide picture (no unpainted column),
+  the game's memory with invisible walls the board's at every 4,000 frames of the ladder, and the ladder in widescreen
+  with nothing in the interpreter.
+- `make check`: the audit, the no-game build and the launchers.
+- **No interpreter fallback**: 0 instructions in the interpreter over the ladder movie, the versus movie, made-up
+  one-player ladders (seeds 41, 42, 90) and two-player games (43, 44, 91), 40,000 frames of attract mode, the test menu
+  with made-up input, every character's old version and Akuma, training, survival, ring out, the stage and model
+  viewers and widescreen. One endless battle on shuffled stages (20,000 frames) still had 19.
+- **Features off = no sources**: `--cpu interp --no-rewrites --features -free_play` over 8,000 frames of the versus
+  movie, and the same with `src/` moved aside: byte-identical hash logs.
+- **Save state**: made-up play saved at 3,000 and loaded with the same input after it: frames 3,001-6,000 alike.
+- **Run-ahead**: 1 and 2 frames give the hash log of 0, over the versus movie and a training session.
+- **Board**: every choice of the four read back from its variable at frame 299; with choices made the test menu shows
+  the board's own values, and the settings memory is the same as with none.
+- **Launcher**: its three pages drawn with no window.
+- **`make GAME=ssf2t check-release` fails** its second part: the build with no translated code (the interpreter, as CI
+  builds it) makes the same pictures twice, and plays the whole ladder to the ending and the show, but its pictures part
+  from the translated build's in the first fight and do not meet again (36,444 of 40,000). The game is timed to the
+  instruction by its interrupts: its tasks wait on counters the vblank interrupt steps, and its frames fill the
+  processor (above all at the turbo speeds), so where the interrupt is taken (the interpreter between instructions,
+  translated code between blocks) changes when a task gives way, small words of RAM first (frame 874, then 1,480, the
+  objects' budget) and the random number from frame 2,691 on, and from there the computer's choices. Neither Turbo 1,
+  free select, arcade timing nor a processor twice as fast changes that. It is not a fault of the translation (`check`
+  and `check-blocks`, which take interrupts as translated code does, agree exactly); the other games' frames are not
+  full enough for it to show.
 
 ## Not yet
 
 - The other characters' endings in the music's names, and continue and game over.
+- `check-release`'s comparison (above): the interpreter would have to take interrupts between translated blocks too.
 - Nobody has played it by hand, heard its sound, or seen it in a window.

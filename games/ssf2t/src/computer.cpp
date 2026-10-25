@@ -9,11 +9,10 @@
 // step (07BB34) sets up what the computer plays by (its tables for the character and the plan it follows: 07D6F4,
 // 07E36E, 07BB82, the two words from 24EAE8), which a person's never does; a player handed over at 2 goes straight to
 // the computer's fight step with none of it, and the computer's code reads its plan from nowhere (the game stops). So
-// where the computer's step is about to run (07804A) for a player whose last step was a person's, that set-up is made
+// where the computer's step is about to run (07804A) for a player with no plan in its record (the long kPlan: the
+// record is cleared as a match begins, 003616, and only the computer's set-up writes it, 07E3A8), that set-up is made
 // first, as 07BB34 makes it. In the game itself a player only changes hands between rounds, at 0: this never runs.
 #include "ssf2t.h"
-
-#include "state.h"
 
 #include <algorithm>
 #include <iterator>
@@ -23,35 +22,20 @@ namespace cps2recomp {
 namespace {
     using namespace ssf2t;
 
-    constexpr uint32_t kPersonStep = 0x078036, kComputerStep = 0x07804A, kComputerStart = 0x07BB34;
+    constexpr uint32_t kComputerStep = 0x07804A;
     constexpr uint32_t kCharacterTables = 0x07D6F4, kPlan = 0x07E36E, kPlanRound = 0x07BB82;
     constexpr uint32_t kPlanWords = 0x24EAE8; // (two words a character, to +23A and +23C)
-    bool g_computerReady[2] = {false, false}; // the computer's set-up is in the player's record (kept with the game's state)
+    constexpr uint32_t kPlanTable = 0x1E0;    // a player's long: the computer's plan for the character (07E3A8)
 
     int PlayerOf(uint32_t record) {
         record &= 0xFFFFFF;
         return record == Player(0) ? 0 : record == Player(1) ? 1 : -1;
     }
 
-    // 07BB34 (the computer's first step of a round), 078036 (a person's step) and 07804A (the computer's, to come)
-    bool ComputerStart(M68K &c) {
-        const int n = PlayerOf(c.a[6]);
-        if (n >= 0) {
-            g_computerReady[n] = true;
-        }
-        return false;
-    }
-    bool PersonStep(M68K &c) {
-        const int n = PlayerOf(c.a[6]);
-        if (n >= 0) {
-            g_computerReady[n] = false;
-        }
-        return false;
-    }
+    // 07804A: the computer's step is to come for the player at A6
     bool ComputerStep(M68K &c) {
         const uint32_t player = c.a[6] & 0xFFFFFF;
-        const int n = PlayerOf(player);
-        if (n < 0 || g_computerReady[n] || Ram8(player + kFighting) != 2) {
+        if (PlayerOf(player) < 0 || Ram32(player + kPlanTable) != 0 || Ram8(player + kFighting) != 2) {
             return false;
         }
         // (07BB40-07BB4A, 07BB58 and 07BB5C-07BB74, the animation it starts left out: the player is in the middle of
@@ -68,19 +52,11 @@ namespace {
         SetRam16(player + 0x23C, static_cast<uint16_t>(c.Read(words + 2, 1)));
         std::copy(std::begin(d), std::end(d), c.d);
         std::copy(std::begin(a), std::end(a), c.a);
-        g_computerReady[n] = true;
         return false;
     }
 } // namespace
 
-void ComputerState(Archive &ar) {
-    ar.Mark(0x434F4D50); // COMP
-    ar.Pod(g_computerReady);
-}
-
 void RegisterComputer() {
-    AddHook(HookAt(kComputerStart), "ComputerStart", ComputerStart);
-    AddHook(HookAt(kPersonStep), "PersonStep", PersonStep);
     AddHook(HookAt(kComputerStep), "ComputerStep", ComputerStep);
 }
 
