@@ -27,6 +27,8 @@ void CheatsFrame(Machine &machine);
 void RegisterModes();    // modes.cpp
 void RegisterTraining(); // training.cpp
 void RegisterBattle();   // battle.cpp
+void RegisterChoosing(); // choosing.cpp
+void ChoosingBeforeFrame(Machine &machine);
 void RegisterWidescreen(); // widescreen.cpp
 void WidescreenBeforeFrame(Machine &machine);
 bool WidePlay();
@@ -46,6 +48,7 @@ void RegisterGame() {
     RegisterLiveTag();
     RegisterModel();
     RegisterColours();
+    RegisterChoosing();
     RegisterWidescreen();
     RegisterCoins();
     RegisterTitle();
@@ -54,6 +57,7 @@ void RegisterGame() {
     RegisterCheats();
     TheGame().beforeFrame = [](Machine &machine) {
         BoardBeforeFrame(machine);
+        ChoosingBeforeFrame(machine);
         WidescreenBeforeFrame(machine);
         session::BeforeFrame(machine);
         modes::BeforeFrame(machine);
