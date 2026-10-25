@@ -4,6 +4,7 @@
 // Street Fighter Alpha 3: what the game's own sources add to the port (see PROGRESS.md).
 #include "alternative.h"
 #include "battle.h"
+#include "colours.h"
 #include "game.h"
 #include "machine.h"
 #include "session.h"
@@ -28,11 +29,19 @@ void RegisterBattle();   // battle.cpp
 void RegisterWidescreen(); // widescreen.cpp
 void WidescreenBeforeFrame(Machine &machine);
 bool WidePlay();
+void RegisterModel(); // model.cpp
+void ModelBeforeFrame(Machine &machine);
+void ModelFrame(Machine &machine);
+void ModelState(Archive &ar);
+bool ModelViewer();
+void RegisterColours(); // colours.cpp
 
 void RegisterGame() {
     RegisterModes();
     RegisterTraining();
     RegisterBattle();
+    RegisterModel();
+    RegisterColours();
     RegisterWidescreen();
     RegisterCoins();
     RegisterTitle();
@@ -45,6 +54,8 @@ void RegisterGame() {
         session::BeforeFrame(machine);
         modes::BeforeFrame(machine);
         BattleBeforeFrame(machine);
+        colours::BeforeFrame(machine);
+        ModelBeforeFrame(machine);
         // (for finding what the objects are, SFA3_HIDE_SETS=MASK: the objects of those colour sets not drawn)
         static const char *hide = getenv("SFA3_HIDE_SETS");
         if (hide) {
@@ -57,11 +68,12 @@ void RegisterGame() {
         session::Frame(machine);
         modes::Frame(machine);
         BattleFrame(machine);
+        ModelFrame(machine);
         TitleFrame(machine);
         CoinsFrame(machine);
     };
     // (run-ahead: not in the modes, whose workings a save state does not wholly hold)
-    TheGame().noRunAhead = [] { return modes::AttractMode() || modes::StageViewer() || BattleMode(); };
+    TheGame().noRunAhead = [] { return modes::AttractMode() || modes::StageViewer() || BattleMode() || ModelViewer(); };
     // (what the sources keep between frames, with save states and run-ahead's frames taken back)
     TheGame().state = [](Archive &ar) {
         CoinsState(ar);
@@ -69,16 +81,17 @@ void RegisterGame() {
         session::State(ar);
         modes::State(ar);
         BattleState(ar);
+        ModelState(ar);
     };
     // With the arcade timing, the game's own code runs in place of the rewrites but where they carry what the port adds
     // (game.h, rewritesNeeded): the modes, widescreen
     TheGame().rewritesNeeded = [] {
-        return session::InSession() || modes::AttractMode() || modes::StageViewer() || BattleMode() || WidePlay() ||
+        return session::InSession() || modes::AttractMode() || modes::StageViewer() || BattleMode() || ModelViewer() || WidePlay() ||
                FeatureOn("widescreen");
     };
     // Its own, never set for the other games by the collection's launcher: Damage level has Super Puzzle Fighter II
     // Turbo's choices (Low, Normal, High, Maximum), where it means the counter gems an attack sends
-    OwnFeatures({"board_damage", "survival_best", "ringout_best"});
+    OwnFeatures({"board_damage", "survival_best", "ringout_best", "model_animation", "colours_animation"});
 }
 
 } // namespace cps2recomp
