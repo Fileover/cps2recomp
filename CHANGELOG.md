@@ -33,6 +33,10 @@
   worked around. The Games page's new **Your files** card shows where everything is kept and opens the folder. A
   game's own program, opened by itself, finds the launcher's settings in the same place. (recomp-common
   `src/folders.h`.)
+- The release's checks (`tools/release/checks.sh`) stop at once if a game's code has not been found yet (no
+  `work/<id>/entries.txt`), where they ran every step before and failed `check` and `check-blocks` for that alone.
+  `tools/seed_entries.sh <another tree>` gives a fresh tree the code another found, so that it needs no
+  `make explore`.
 
 ## 0.4.0-beta.6
 

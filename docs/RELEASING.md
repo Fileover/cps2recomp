@@ -48,10 +48,13 @@ code is not part of that source: it is made from the player's own ROM sets by th
 
 1. In a pull request: set `VERSION`, move the "Unreleased" lines of `CHANGELOG.md` under a heading for the
    version, and begin the section with a paragraph saying what is in the release (the release's page opens with it).
-   On a Mac with every ROM set in `rom/<id>/`, `tools/release/checks.sh` passes (a few hours): for every game its
-   build, `check`, `check-blocks`, `check-release` over its ladder movie (40,000 frames; Puzzle Fighter's 66,000),
-   `check-rewrites` and `check-widescreen` where it has them, then `make check`. Put its lines in the pull request.
-   Merge it.
+   On a Mac with every ROM set in `rom/<id>/` and every game's code found (`make GAME=<id> explore` once in the
+   tree, about seven minutes a game; or `tools/seed_entries.sh <another tree>`, which takes what that tree found),
+   `tools/release/checks.sh` passes (about 45 minutes): for every game its build, `check`, `check-blocks`,
+   `check-release` over its ladder movie (40,000 frames; Puzzle Fighter's 66,000), `check-rewrites` and
+   `check-widescreen` where it has them, then `make check`. It stops at once if a game's code has not been
+   found: a tree that has not, translating from guesses, fails `check` and `check-blocks` for that alone. Put
+   its lines in the pull request. Merge it.
 2. On `main`: `git tag -a vX.Y.Z -m "X.Y.Z"` and `git push origin vX.Y.Z`.
 3. `.github/workflows/release.yml` runs on tags `v*`: the audit, and the builds of `ci.yml` on GitHub's macOS,
    Linux and Windows machines (every game's program with no translated code and the launcher, each started with
