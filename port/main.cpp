@@ -15,6 +15,7 @@
 #include "present.h"
 #include "../runtime/spare.h"
 #include "port.h"
+#include "../recomp-common/folders.h"
 #include "../recomp-common/settings.h"
 #include "../recomp-common/text.h"
 
@@ -1271,10 +1272,18 @@ bool StartLauncher() {
         }
     }
     bool setUp = false;
-    // (the launcher's own folder and file; the collection's keeps each game's file in a section of its own)
-    if (char *folder = SDL_GetPrefPath("", collection ? "CPS-2 Recomp" : GAME_NAME)) {
-        recomp::Ini prefs(std::filesystem::path(folder) / "launcher.ini");
-        SDL_free(folder);
+    // (the launcher's own folder and file; the collection's keeps each game's file in a section of its own. In
+    // portable mode the folder is in user/ beside the launcher, as the launcher has it: recomp-common/folders.h)
+    const char *name = collection ? "CPS-2 Recomp" : GAME_NAME;
+    std::filesystem::path folder = recomp::PortableFolder(base);
+    if (!folder.empty()) {
+        folder /= std::filesystem::u8path(name);
+    } else if (char *pref = SDL_GetPrefPath("", name)) {
+        folder = pref;
+        SDL_free(pref);
+    }
+    if (!folder.empty()) {
+        recomp::Ini prefs(folder / "launcher.ini");
         prefs.load();
         setUp = !prefs.get(collection ? "game." GAME_ID : "game", "rom").empty();
     }

@@ -16,6 +16,41 @@
   custom soundtrack (its music named) ([its progress](games/ssf2t/PROGRESS.md)).
 - The fighting modes (`fight/battle.h`) take `ownMaster` for a game that keeps no one byte saying a player is its own
   master (Super Street Fighter II Turbo: several of its states, and guarding only before a hit lands).
+- **Your games in your order**: drag a game's row in the launcher's sidebar up or down (or, with a gamepad or the
+  keyboard, **Move up** and **Move down** on its page, under Play) to keep the ones you play most at the top. The
+  Games page lists them in the same order; it is kept in `launcher.ini` (issue #91).
+- **The launcher fits a small window** (issue #73): on a small screen, or with large text, it no longer opens
+  bigger than the screen or leaves its rows' words under their buttons. A narrow window has a narrower sidebar
+  (long names cut short with "…") and less room round the page, and a row's buttons go under its words when there
+  is too little room beside them. The sidebar's list of games scrolls when it is longer than the window (twelve
+  games already were at the usual size). The window can be made as small as 600×400.
+- The launcher's Games page: the Updates card is at the top, above the games, and each game's **Play** is before its
+  **Choose…**, so that a gamepad's ring coming into the row is on Play.
+- **The CPU plays the tag style and the ring out as a person would** (Street Fighter Alpha 2 and the Vampire Savior
+  games). The game's computer player knew nothing of either: it tagged only when its bar emptied, and fought a ring out
+  for damage. Now a side the game plays is coached by the toolkit (`fight/battle.cpp`). In the tag style it tags when
+  the one on is low and a partner has more (or has rested), best while the other fighter is down or far off, never just
+  out of a hit and not straight after its last tag, and tags in the partner with the most health. In a ring out it
+  walks the other towards an end and throws or sweeps it there (a throw held away sends the other on, towards its end),
+  and keeps off its own end: it gets out from near it with a jump over the other or a throw that swaps sides, never into
+  an attack coming (the game's own guard test; the game's play guards it), and the game's own walk does not take it back
+  towards that end (a line in Alpha 2's Walking rewrite, a hook on Vampire Savior's walk). How soon it sees a chance and
+  how often it takes one go by the difficulty. Additive in the toolkit (`battle::Description::canAct`, `difficultyNow`,
+  `attackComing`; `RingOutMayWalkBack`); with neither mode on, every movie plays exactly as before. For tests:
+  `CPS2RECOMP_BATTLE_CPU=1` (both sides the game's, the mode begun again when over), `CPS2RECOMP_COACH`,
+  `CPS2RECOMP_COACH_PARTS` and `CPS2RECOMP_BATTLE_LOG`; the numbers are in each game's PROGRESS.
+- **Portable mode** (issue #65): an empty `portable.txt` beside the launcher (on macOS, beside the app) keeps
+  every game's settings, save states, board memory and logs in `user/` there instead of your user folder, so the
+  collection can live on a drive you carry. The first time, the launcher offers to copy what your user folder
+  has (copying only: nothing is moved or written over); taking `portable.txt` away goes back to your user folder
+  as it was. Updates keep `portable.txt` and `user/`, and a folder that cannot be written to is said, not
+  worked around. The Games page's new **Your files** card shows where everything is kept and opens the folder. A
+  game's own program, opened by itself, finds the launcher's settings in the same place. (recomp-common
+  `src/folders.h`.)
+- The release's checks (`tools/release/checks.sh`) stop at once if a game's code has not been found yet (no
+  `work/<id>/entries.txt`), where they ran every step before and failed `check` and `check-blocks` for that alone.
+  `tools/seed_entries.sh <another tree>` gives a fresh tree the code another found, so that it needs no
+  `make explore`.
 
 ## 0.4.0-beta.6
 

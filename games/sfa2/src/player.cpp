@@ -411,7 +411,10 @@ namespace {
                     WalkBegins(c, player);
                     continue;
                 }
-                const uint8_t way = Ram8(player + kComputerWalksBack);
+                uint8_t way = Ram8(player + kComputerWalksBack);
+                if (way && !RingOutMayWalkBack(player)) {
+                    way = 0; // (the ring out: not back towards the end it is near; battle.h)
+                }
                 SetLow8(c.d[0], way);
                 if (way != Ram8(player + kWalkingBack)) {
                     SetRam8(player + kWalkingBack, way);

@@ -190,6 +190,17 @@ namespace {
         // down: been in the air), attacked, been put off the stage (knocked down: landed)
         int32_t move[2] = {0, 0}, moveFor[2] = {0, 0}, coming[2] = {-1, -1}, from[2] = {0, 0};
         bool jumped[2] = {false, false}, attacked[2] = {false, false}, placed[2] = {false, false};
+        // The computer's play (the coach): its own numbers at random (not the battle's, which choose the matches), the
+        // frames of fighting, each fighter's frames its own master and not, since the side's last tag, and of the side
+        // wanting to tag; a ring out's plan of the side's, for how long, how long it may go on, and frames to the next
+        // look at the fight; in the air on the way (a jump's)
+        uint32_t coachRandom = 1;
+        int32_t clock = 0;
+        int32_t free[2] = {0, 0}, busy[2] = {0, 0}, sinceTag[2] = {0, 0}, want[2] = {0, 0};
+        int32_t plan[2] = {0, 0}, planFor[2] = {0, 0}, planMost[2] = {0, 0}, think[2] = {0, 0};
+        bool planAir[2] = {false, false};
+        int32_t planWay[2] = {0, 0}; // (a throw's: 1 the stick towards the other, -1 away)
+        int32_t lastFree[2] = {0, 0}; // (a ring out's: how far from its end each was when last its own master)
     } g;
     Spare g_dropBack;                    // the ring out: the machine of the next match's stage
     bool g_open = false;                 // the ring out: the port's machine is running a fight with open ends
@@ -242,6 +253,7 @@ namespace {
     } g_backSound, g_backNextSound, g_dropSound, g_dropBackSound;
     bool g_fast = false;
     size_t g_soundBefore = 0;
+    int64_t g_frame = 0; // (the port's frames, for the tests' log)
 
     void Fast(bool on) {
         if (on != g_fast) {
@@ -450,6 +462,7 @@ namespace {
         d.tagIn(side, g.team[side][next], g.teamColours[side][next]);
         g.putBack[side] = true;
         g.cool[side] = kTagCool;
+        g.sinceTag[side] = 0;
     }
     // The movements of a tag (with Description::offStage): the one on jumps back and flies off the picture, or, its
     // bar emptied, is knocked down and lies a while; then the next one, put off the picture at that end, jumps in fast
@@ -493,6 +506,250 @@ namespace {
         SetSpeedX(side, 0);
         SetRam32(Player(side) + d.x, Ram32(Player(side) + d.x) + static_cast<uint32_t>(pixels256 * 256));
     }
+
+    // --- the computer's play of the modes (the coach) ---
+    //
+    // The game's computer player fights every fight as a fight: it knows nothing of a tag (the toolkit's, not the game's),
+    // nor that in a ring out only the stage's ends count. A side the game plays is coached in these, as a person would
+    // play them. In the tag style the coach says when the side tags and whom it tags in; in a ring out it takes the
+    // side's controls for a moment, the game's play of it off (as the endless battle's person does), to walk the other
+    // fighter towards an end, jump out of a corner, or knock the other over the end it is near, and gives them back once
+    // the fighter can act again. The rest of the time the game plays it. The difficulty says how soon it sees a chance
+    // and how often it takes one.
+    constexpr int kDownFrames = 20;  // frames of reeling after which the other fighter is taken to be down (or dizzy)
+    constexpr int kOutOfHit = 8;     // frames a fighter is its own master again before it tags (not inside a combo)
+
+    // (for tests, CPS2RECOMP_BATTLE_LOG: each tag, coached move and ring out, on stderr)
+    FILE *Log() {
+        static FILE *log = getenv("CPS2RECOMP_BATTLE_LOG") ? stderr : nullptr;
+        return log;
+    }
+    // (for tests, CPS2RECOMP_COACH=MASK: the sides the game plays that are coached, 3 both; 0: the game's play alone)
+    bool Coached(int side) {
+        static const char *mask = getenv("CPS2RECOMP_COACH");
+        return g.computer[side] && (d.canAct || d.canTag) && ((mask ? strtoul(mask, nullptr, 10) : 3) >> side & 1);
+    }
+    // (for tests, CPS2RECOMP_COACH_PARTS=MASK: the ring out's parts used, 15 all: 1 getting out from near one's end, 2
+    // knocking the other over its end, 4 walking and jumping to the better side, 8 not walking back to one's end)
+    bool Part(int part) {
+        static const char *mask = getenv("CPS2RECOMP_COACH_PARTS");
+        return ((mask ? strtoul(mask, nullptr, 10) : 15) & static_cast<unsigned long>(part)) != 0;
+    }
+    bool CanAct(int side) {
+        return d.canAct ? d.canAct(side) : d.canTag(side);
+    }
+    bool OwnMaster(int side) {
+        return Ram8(Player(side) + d.control) == d.controlOwn;
+    }
+    // The difficulty, of 1000: the menu's in the team battle, or the game's
+    int Skill() {
+        const int chosen = g.kind == Kind::Team ? FeatureValue("team_difficulty") : 0;
+        const int level = chosen > 0 ? chosen - 1 : d.difficultyNow ? std::clamp(d.difficultyNow(), 0, 7) : 3;
+        return level * 1000 / 7;
+    }
+    // A number between the easiest's and the hardest's, by the difficulty
+    int Between(int easiest, int hardest) {
+        return easiest + (hardest - easiest) * Skill() / 1000;
+    }
+    bool Chance(int perMille) {
+        g.coachRandom ^= g.coachRandom << 13;
+        g.coachRandom ^= g.coachRandom >> 17;
+        g.coachRandom ^= g.coachRandom << 5;
+        return static_cast<int>(g.coachRandom % 1000) < perMille;
+    }
+    int Distance() {
+        return std::abs(X(0) - X(1));
+    }
+    int Back(int side);
+    // Each frame of fighting: how long each fighter has been its own master, or not
+    void Watch() {
+        g.clock++;
+        for (int side = 0; side < 2; side++) {
+            const bool own = OwnMaster(side);
+            g.free[side] = own ? g.free[side] + 1 : 0;
+            g.busy[side] = own ? 0 : g.busy[side] + 1;
+            g.sinceTag[side]++;
+            if (own && g.kind == Kind::RingOut) {
+                g.lastFree[side] = Back(side);
+            }
+        }
+    }
+
+    // The tag style. Whom a side the game plays tags in: the partner with the most health (-1: none left)
+    int Healthiest(int side) {
+        int best = -1;
+        for (int n = 0; n < g.teamSize; n++) {
+            if (n != g.on[side] && g.kept[side][n] > 0 && (best < 0 || g.kept[side][n] > g.kept[side][best])) {
+                best = n;
+            }
+        }
+        return best;
+    }
+    // Whether it tags now (its fighter can act; asked each such frame): when the one on is low and a partner has more,
+    // or a partner who has rested has much more; best while the other fighter is down, far off or in a tag of its own;
+    // not soon after the last tag, nor just out of a hit. Waiting long for a chance, it tags anyway, if not in the other's
+    // face.
+    bool ComputerTags(int side) {
+        const int next = Healthiest(side);
+        const int full = std::max<int>(g.full, 1);
+        const int on = std::max<int>(static_cast<int16_t>(Ram16(Player(side) + d.health)), 0) * 1000 / full;
+        const int partner = next >= 0 ? g.kept[side][next] * 1000 / full : 0;
+        const bool low = on < Between(250, 400) && partner >= on + 150;
+        const bool rested = partner >= on + 450 && g.sinceTag[side] > Between(1800, 1200);
+        if (next < 0 || g.sinceTag[side] < Between(720, 360) || !(low || rested)) {
+            g.want[side] = 0;
+            return false;
+        }
+        g.want[side]++;
+        if (g.free[side] < kOutOfHit) {
+            return false;
+        }
+        const int other = 1 - side;
+        const bool opening = g.busy[other] >= kDownFrames || g.move[other] != kStill || Distance() > 170;
+        if (opening) {
+            return Chance(Between(80, 400)); // (seen at once by the hardest, a few frames on by the easiest)
+        }
+        return g.want[side] > Between(120, 300) && Distance() > 90 && Chance(Between(40, 20));
+    }
+
+    // The ring out. Where each fighter's back is from the end of the stage behind it (pixels; the end a fighter goes
+    // out by: LookForOut's), and how wide the stage is between its ends
+    int Back(int side) {
+        const int left = CameraLeft() + d.pictureLeft, right = CameraRight() + d.pictureLeft + Video::kWidth;
+        const int half = HalfWidth(Player(side));
+        return Toward(side) > 0 ? X(side) - half - left : right - (X(side) + half);
+    }
+    int StageWidth() {
+        return CameraRight() - CameraLeft() + Video::kWidth;
+    }
+    // A side's plan, its controls the coach's until it is done: walk towards the other (pushing it to its end, or out of
+    // one's own end's way), jump over it (out of a corner, or round to the side away from one's own end), a low sweep (a
+    // knock-down: with the other's back to its end, it goes over), or a throw. Which way a throw sends the other is the
+    // stick's: held away, the other goes on away (with its back to its end, over it); held towards, most often over one's
+    // head, behind (with one's own back to one's end: over that). Counted in Street Fighter Alpha 2's ring outs.
+    enum Plan : int32_t { kPlay, kWalk, kJumpOver, kSweep, kThrow };
+    constexpr const char *kPlanNames[] = {"play", "walk", "jump over", "sweep", "throw"};
+    // (where the ones knocked out were the last time they were their own masters, Alpha 2's: half within 30 pixels of
+    // their end, nine in ten within 145: a guarded hit pushes a fighter on, a knock-down carries it, and at the end a hit
+    // or a guard sends it over)
+    constexpr int kNearEnd = 150;    // pixels from one's own end at which a fighter is to get out
+    constexpr int kAtTheEnd = 100;   // pixels from the other's end at which that one can be knocked over it
+    constexpr int kClose = 50;       // pixels between the two at which a throw reaches
+    constexpr int kOver = 110;       //   and over which a jump is too short to go over the other
+    constexpr int kPlanMost = 120;   // frames, at most, of a plan
+    Machine *g_machine = nullptr;    // (the port's, for the game's guard test)
+    bool AttackComing(int side) {
+        return d.attackComing && g_machine && d.attackComing(*g_machine, side);
+    }
+    void SetPlan(int side, Plan plan, int most, int way = 1) {
+        g.planWay[side] = way;
+        g.plan[side] = plan;
+        g.planFor[side] = 0;
+        g.planMost[side] = most;
+        g.planAir[side] = false;
+        if (Log()) {
+            fprintf(Log(), "coach %d side=%d %s back=%d other=%d distance=%d x=%d,%d frame=%lld\n", g.clock, side, kPlanNames[plan], Back(side),
+                    Back(1 - side), Distance(), X(side), X(1 - side), static_cast<long long>(g_frame));
+        }
+    }
+    // A look at the fight, every so often while the side's fighter can act on the floor (more often near its end): a plan,
+    // or the game's play. Never into an attack coming (the game's play guards it, or answers it); a jump or a throw while
+    // the other is in no state to answer: down, in the end of a move of its own, or (less often) standing.
+    void Think(int side) {
+        if (--g.think[side] > 0 || !CanAct(side) || d.inAir(Player(side))) {
+            return;
+        }
+        const int other = 1 - side;
+        const int mine = Back(side), theirs = Back(other), distance = Distance();
+        const bool near = mine < kNearEnd && mine < theirs;
+        g.think[side] = near ? Between(10, 3) + static_cast<int>(g.coachRandom % 3) : Between(24, 8) + static_cast<int>(g.coachRandom % 8);
+        if (AttackComing(side)) {
+            return;
+        }
+        const bool down = g.busy[other] >= kDownFrames;
+        const bool recovering = OwnMaster(other) && !CanAct(other) && !d.inAir(Player(other));
+        const bool standing = CanAct(other);
+        const int opening = down || recovering ? Between(400, 900) : standing ? Between(100, 300) : 0;
+        if (near && Part(1)) {
+            // (out: a throw over one's head, a jump over, or a walk out of the end's way)
+            if (distance < kClose && !down && Chance(opening)) {
+                SetPlan(side, kThrow, kPlanMost, 1);
+            } else if (distance < kOver && Chance(opening)) {
+                SetPlan(side, kJumpOver, kPlanMost);
+            } else if (distance >= kOver && Chance(Between(300, 700))) {
+                SetPlan(side, kWalk, 24);
+            }
+        } else if (near) {
+        } else if (Part(2) && theirs < kAtTheEnd && distance < kClose && !down && Chance(opening)) {
+            SetPlan(side, kThrow, kPlanMost, -1);
+        } else if (Part(2) && theirs < kAtTheEnd && distance < 100 && recovering && Chance(opening)) {
+            SetPlan(side, kSweep, kPlanMost);
+        } else if (Part(4) && theirs < mine && distance > 90 && !down && Chance(Between(250, 600))) {
+            SetPlan(side, kWalk, 16 + static_cast<int>(g.coachRandom % 16));
+        } else if (Part(4) && mine < theirs && mine < StageWidth() / 3 && distance < kOver && Chance(opening / 2)) {
+            SetPlan(side, kJumpOver, kPlanMost);
+        }
+    }
+    // A frame of the side's plan: its controls. Over when done, and the fighter can act again (a move begun by a person's
+    // controls is not left to the game's computer to finish); when it is hit; and a walk when an attack is coming (the
+    // game's play guards it)
+    uint16_t Follow(int side) {
+        const int f = g.planFor[side]++;
+        const uint16_t toward = Stick(Toward(side));
+        const bool air = d.inAir(Player(side));
+        g.planAir[side] = g.planAir[side] || air;
+        bool done = f >= g.planMost[side] || (f > 3 && !OwnMaster(side));
+        uint16_t panel = 0;
+        switch (g.plan[side]) {
+        case kWalk:
+            panel = toward;
+            done = done || Distance() < 70 || AttackComing(side);
+            break;
+        case kJumpOver:
+            panel = f < 3 ? static_cast<uint16_t>(kUp | toward) : 0;
+            done = done || (g.planAir[side] && !air && CanAct(side)) || (f > 8 && !g.planAir[side]);
+            break;
+        case kSweep:
+            // (the stick's down: the tag's kDown is a move)
+            panel = f == 2 ? static_cast<uint16_t>(cps2recomp::kDown | kKick3) : f < 10 ? static_cast<uint16_t>(cps2recomp::kDown) : 0;
+            done = done || (f > 12 && CanAct(side));
+            break;
+        case kThrow: {
+            const uint16_t way = g.planWay[side] > 0 ? toward : Stick(-Toward(side));
+            panel = f == 1 ? static_cast<uint16_t>(way | kPunch3) : f < 1 ? way : 0;
+            done = done || (f > 6 && CanAct(side));
+            break;
+        }
+        }
+        if (done && Log()) {
+            fprintf(Log(), "done %d side=%d %s back=%d other=%d distance=%d hit=%d x=%d,%d way=%d\n", g.clock, side, kPlanNames[g.plan[side]],
+                    Back(side), Back(1 - side), Distance(), !OwnMaster(side), X(side), X(1 - side), g.planWay[side]);
+        }
+        if (done) {
+            g.plan[side] = kPlay;
+            g.think[side] = Between(24, 8);
+        }
+        return panel;
+    }
+    // Before the frame, in a ring out's fight: the coached sides' plans
+    void RingOutCoach(uint16_t &one, uint16_t &two) {
+        uint16_t *panels[2] = {&one, &two};
+        for (int side = 0; side < 2; side++) {
+            if (!Coached(side)) {
+                continue;
+            }
+            if (g.plan[side] == kPlay) {
+                Think(side);
+            }
+            if (g.plan[side] != kPlay) {
+                *panels[side] = Follow(side);
+            }
+        }
+    }
+    // A side's controls are the toolkit's this frame, not the game's play (a tag's movements, or the coach's plan)
+    bool Steered(int side) {
+        return (g.kind == Kind::Team && g.move[side] != kStill) || (g.kind == Kind::RingOut && g.plan[side] != kPlay);
+    }
     // A side's fighter not drawn while it is swapped for the next and put off the picture (the game sets the newcomer
     // up where a round begins, in the picture, for a frame); its face beside the bars still is
     uint32_t g_hiddenSets = 0;
@@ -516,8 +773,8 @@ namespace {
         g.moveFor[side] = 0;
         g.jumped[side] = g.attacked[side] = g.placed[side] = false;
     }
-    // Before the frame: a side whose fighter can act tags the next one in on Start (a person's side), or must (its
-    // fighter's bar emptied); the movements of a tag going on work the side's controls
+    // Before the frame: a side whose fighter can act tags the next one in on Start (a person's side) or when the coach
+    // says (the game's), or must (its fighter's bar emptied); the movements of a tag going on work the side's controls
     void TagBeforeFrame(uint16_t &one, uint16_t &two) {
         uint16_t *panels[2] = {&one, &two};
         const bool moves = d.offStage != nullptr;
@@ -533,9 +790,16 @@ namespace {
             switch (g.move[side]) {
             case kStill: {
                 const bool emptied = static_cast<int16_t>(Ram16(Player(side) + d.health)) <= 0;
-                const int next = NextUp(side);
+                const int next = Coached(side) ? Healthiest(side) : NextUp(side);
                 if (next < 0 || g.putBack[side]) {
                     break;
+                }
+                const bool computerTags = Coached(side) && !emptied && g.cool[side] == 0 && d.canTag(side) && ComputerTags(side);
+                if (computerTags && Log()) {
+                    const int full = std::max<int>(g.full, 1);
+                    fprintf(Log(), "tag %d side=%d health=%d partner=%d other_down=%d distance=%d\n", g.clock, side,
+                            static_cast<int16_t>(Ram16(Player(side) + d.health)) * 100 / full, g.kept[side][next] * 100 / full,
+                            g.busy[1 - side] >= kDownFrames, Distance());
                 }
                 if (emptied && moves) {
                     // (knocked down where it is; the next one comes in a while after)
@@ -543,7 +807,7 @@ namespace {
                     g.moveFor[side] = 0;
                     g.coming[side] = next;
                     g.jumped[side] = g.placed[side] = false;
-                } else if (((pressed && g.cool[side] == 0) || emptied) && d.canTag(side)) {
+                } else if (((pressed && g.cool[side] == 0) || computerTags || emptied) && d.canTag(side)) {
                     if (moves) {
                         g.move[side] = kLeaving;
                         g.moveFor[side] = 0;
@@ -571,6 +835,9 @@ namespace {
                     (g.moveFor[side] == kLeaveJump && !d.inAir(Player(side)))) {
                     // (hit on the way, or doing a move of its own and not jumping off: the tag is off, and the
                     // fighter stays)
+                    if (Log()) {
+                        fprintf(Log(), "tag off %d side=%d\n", g.clock, side);
+                    }
                     d.offStage(side, false);
                     g.move[side] = kStill;
                     g.cool[side] = kTagCool;
@@ -693,6 +960,7 @@ namespace {
         // (for tests, CPS2RECOMP_BATTLE_SEED=N: the same choices at random every time, so that a movie plays back)
         static const char *seed = getenv("CPS2RECOMP_BATTLE_SEED");
         g.random = (seed ? static_cast<uint32_t>(strtoul(seed, nullptr, 10)) : std::random_device()()) | 1;
+        g.coachRandom = g.random * 2654435761u | 1;
         if (kind == Kind::Team) {
             StartTeams();
         } else if (kind != Kind::Endless) {
@@ -725,6 +993,14 @@ namespace {
                 g_backSound.Start();
             }
         }
+        // (for tests, CPS2RECOMP_BATTLE_CPU=1: player 1's side the game's too, its fighter at random, chosen by nobody)
+        static const bool computerOnly = getenv("CPS2RECOMP_BATTLE_CPU") != nullptr;
+        if (computerOnly && kind != Kind::Endless) {
+            g.computer[0] = true;
+            if (g.characters[0] < 0) {
+                g.characters[0] = AnyCharacter(g.characters[1]);
+            }
+        }
         machine.Reset();
     }
     void StartTeam(Machine &machine) {
@@ -740,7 +1016,7 @@ namespace {
         Start(machine, Kind::RingOut);
     }
     bool Chooses() {
-        return g.kind == Kind::Survival || g.kind == Kind::RingOut; // (the player chooses a character)
+        return (g.kind == Kind::Survival || g.kind == Kind::RingOut) && !g.computer[0]; // (the player chooses a character)
     }
 
     void Want() {
@@ -780,15 +1056,15 @@ namespace {
     void SayWhoPlays(bool nobody = false) {
         for (int n = 0; n < 2; n++) {
             // (the tag style: a fighter knocked down with its bar emptied lies still, and one tagging out or in moves as
-            // the toolkit works its controls, the game not playing either)
-            const bool moving = g.kind == Kind::Team && g.move[n] != kStill;
-            SetComputer(n, g.computer[n] && !nobody && !moving);
+            // the toolkit works its controls, the game not playing either; nor one the coach has a plan for)
+            SetComputer(n, g.computer[n] && !nobody && !Steered(n));
         }
         BothPlay();
     }
 
     void BeforeFrame(Machine &machine) {
         g_soundBefore = machine.audio.size();
+        g_machine = &machine;
         Want();
         uint16_t &one = machine.players[0], &two = machine.players[1];
         if (g.phase == Phase::Starting) {
@@ -850,6 +1126,12 @@ namespace {
                 }
             }
         }
+        if ((g.kind == Kind::Team || g.kind == Kind::RingOut) && g.phase == Phase::Fighting) {
+            Watch();
+        }
+        if (g.kind == Kind::RingOut && g.phase == Phase::Fighting) {
+            RingOutCoach(one, two);
+        }
         if (g.kind == Kind::Team && g.tag && g.phase == Phase::Fighting) {
             TagBeforeFrame(one, two);
             g_hiddenSets = 0;
@@ -865,10 +1147,9 @@ namespace {
             }
         }
         // (a fighter the game plays hears nothing of the controls; nobody's Start or coin does anything)
-        // (... but a side in a tag's movements, which the toolkit works: tag style)
-        const bool moving[2] = {g.kind == Kind::Team && g.move[0] != kStill, g.kind == Kind::Team && g.move[1] != kStill};
-        one = g.computer[0] && !moving[0] ? 0 : one & kAnyButton;
-        two = g.computer[1] && !moving[1] ? 0 : two & kAnyButton;
+        // (... but a side the toolkit steers: in a tag's movements, or the coach's plan)
+        one = g.computer[0] && !Steered(0) ? 0 : one & kAnyButton;
+        two = g.computer[1] && !Steered(1) ? 0 : two & kAnyButton;
         SayWhoPlays();
         if (g.way == kStageScroll) {
             // The floor moves under the fighters: they and what they have thrown are carried left with it,
@@ -1080,6 +1361,11 @@ namespace {
             const int side = camera <= CameraLeft() + margin && x - half < edge - margin ? -1 :
                              camera >= CameraRight() - margin && x + half > edge + Video::kWidth + margin ? 1 : 0;
             if (side) {
+                if (Log()) {
+                    fprintf(Log(), "out %d side=%d end=%d computer=%d plan=%s free_at=%d\n", g.clock, n, side, g.computer[n],
+                            kPlanNames[g.plan[1 - n]], g.lastFree[n]);
+                }
+                g.plan[0] = g.plan[1] = kPlay;
                 g.out = n;
                 g.outSide = side;
                 g.phase = Phase::Falling;
@@ -1211,12 +1497,40 @@ namespace {
         g.dropStage = AnyStage(g.back);
         g.characters[1] = AnyCharacter(Ram8(Player(1) + d.character));
         g.out = -1;
+        g.plan[0] = g.plan[1] = kPlay;
         g.flung = false;
         g.handing = false;
         g.dropped = false;
         g.landed = false;
         g.phase = Phase::Fighting;
         g.since = 0;
+    }
+
+    // A mode over: back to the title; or, for tests (CPS2RECOMP_BATTLE_CPU), begun again on its own numbers at random,
+    // for the next series of matches
+    void Again(Machine &machine) {
+        const uint32_t random = g.random, coach = g.coachRandom;
+        const int32_t clock = g.clock;
+        const Kind kind = g.kind;
+        End();
+        if (!getenv("CPS2RECOMP_BATTLE_CPU")) {
+            machine.Reset();
+            return;
+        }
+        Start(machine, kind);
+        g.random = random;
+        g.coachRandom = coach;
+        g.clock = clock;
+        if (kind == Kind::Team) {
+            StartTeams(); // (new teams, by the new numbers)
+            g.computer[0] = true;
+        } else if (kind == Kind::RingOut) {
+            g.characters[1] = AnyCharacter();
+            g.characters[0] = AnyCharacter(g.characters[1]);
+        }
+        if (Log()) {
+            fprintf(Log(), "series %d\n", g.clock);
+        }
     }
 
     void Frame(Machine &machine) {
@@ -1266,6 +1580,9 @@ namespace {
                     // (the tag style: the last fighter of a side knocked out, as only the last one can be)
                     g.phase = Phase::Over;
                     g.winner = result == 3 ? -1 : result == 2 ? 1 : 0;
+                    if (Log()) {
+                        fprintf(Log(), "over %d winner=%d\n", g.clock, g.winner);
+                    }
                 } else if (g.kind == Kind::Team) {
                     TeamDecided(result);
                 } else if (g.kind == Kind::Survival) {
@@ -1331,8 +1648,7 @@ namespace {
             lines.push_back({0.5f, 0.26f, 0, g.winner < 0 ? "DRAW" : g.winner == 0 ? (people ? "TEAM 1 WINS" : "YOUR TEAM WINS") :
                                                                               (people ? "TEAM 2 WINS" : "CPU TEAM WINS")});
             if (g.since > kOverFor) {
-                End();
-                machine.Reset();
+                Again(machine);
                 return;
             }
         } else if (g.phase == Phase::Over) {
@@ -1345,8 +1661,7 @@ namespace {
             snprintf(text, sizeof(text), "Best: %d", std::max(g.score, FeatureValue(ring ? "ringout_best" : "survival_best")));
             lines.push_back({0.5f, 0.54f, 0, text});
             if (g.since > kOverFor) {
-                End();
-                machine.Reset();
+                Again(machine);
                 return;
             }
         }
@@ -1426,6 +1741,7 @@ bool TeamHoldsKnockOut(int player) {
 
 void BattleBeforeFrame(Machine &machine) {
     g_portFrame = true;
+    g_frame++;
     if (g.kind != Kind::None) {
         BeforeFrame(machine);
     }
@@ -1490,6 +1806,14 @@ RingOut RingOutMove(uint32_t player) {
         g.flung = true;
     }
     return ringOut;
+}
+
+bool RingOutMayWalkBack(uint32_t player) {
+    const int side = player == Player(0) ? 0 : player == Player(1) ? 1 : -1;
+    if (g.kind != Kind::RingOut || g.phase != Phase::Fighting || side < 0 || !Coached(side)) {
+        return true;
+    }
+    return !Part(8) || Back(side) >= Between(100, 200);
 }
 
 // In a ring out fight a player that is not its own master (reeling from a hit, guarding one, thrown) is not

@@ -118,6 +118,24 @@ The ring out needs two things of the game's player code, at each player's step o
   (`CameraWanted::beyondEnds`) and comes down as the winner falls, the old stage's picture going up and the next
   one's coming in below it, the fighters over both, until the game's own jump lands it.
 
+**The computer's play of the modes.** The game's computer player fights every fight as a fight: it knows nothing of a
+tag (the toolkit's, not the game's), nor that in a ring out only the stage's ends count. A side the game plays is
+coached in these, as a person would play them (`battle.cpp`, the coach). In the tag style the coach says when the side
+tags and whom it tags in: when the one on is low and a partner has more, or a partner who has rested has much more;
+best while the other fighter is down (reeling 20 frames or more), far off or in a tag of its own; not soon after its
+last tag, and never just out of a hit. In a ring out it takes the side's controls for a moment, the game's play of it
+off (as the endless battle's person does), and gives them back once the fighter can act again: out from near its own
+end (the losers' last free moment, in Alpha 2's: half within 30 pixels of their end, nine in ten within 145) with a
+throw over its head or a jump over the other, a walk out of the end's way; with the other's back to its end, a throw
+that sends it on or a sweep; and walks and jumps to the better side. Never into an attack coming (the game's own guard
+test, `Description::attackComing`): the game's play guards it. And a game's sources ask `RingOutMayWalkBack` where the
+computer takes the way it walks (Alpha 2's Walking rewrite, Vampire Savior's hook on its walk), so that a coached
+fighter does not walk back towards the end it is near. The difficulty (the team battle's own, or the game's:
+`difficultyNow`) says how soon it sees a chance and how often it takes one. A game gives `canAct` (or `canTag`) for any
+of it; for tests, `CPS2RECOMP_BATTLE_CPU=1` has the game play side 1 too (and begins a mode again when it is over),
+`CPS2RECOMP_COACH` and `CPS2RECOMP_COACH_PARTS` choose what is coached, and `CPS2RECOMP_BATTLE_LOG` writes each tag,
+plan and ring out to stderr.
+
 Every match and stage machine after the first is begun from a machine kept at the character choice with both players
 in (the first spare that came there), so the next one is ready in about 500 frames, not 2,000 from switching on.
 

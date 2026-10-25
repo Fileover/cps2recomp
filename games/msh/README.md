@@ -68,7 +68,7 @@ is checked against an interpreter of the same program ([how it was made](PROGRES
   plays the theme of the character whose stage it is), the opening, player select, the next opponent, the screen
   before each fight, the winner's, the one before Thanos, the ending, game over, the rankings and the notices.
   [How →](../../README.md#a-custom-soundtrack)
-- Your ROM set is only ever read. Settings, save states and the board's settings memory go in your own user folder.
+- Your ROM set is only ever read. Settings, save states and the board's settings memory go in your own user folder, or beside the launcher in [portable mode](../../README.md#portable-mode).
 
 ## Training mode
 

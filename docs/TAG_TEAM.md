@@ -129,5 +129,6 @@ And three things outside the description:
 
 ## Not done
 
-- The CPU tags only when its bar empties. A later goal: teach its play the tag.
+- The CPU's tags are the toolkit's coach's (`fight/battle.cpp`, below FIGHT.md's "The computer's play of the modes"),
+  from the game's health and the fighters' states, not a decision in the game's own computer player.
 - The one leaving and the one coming are one after the other, not on screen together (one record a side).

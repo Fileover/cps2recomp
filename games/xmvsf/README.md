@@ -66,7 +66,7 @@ is checked against an interpreter of the same program ([how it was made](PROGRES
   songs. The `songs.txt` the game writes in the soundtrack folder names the music: each character's theme (a round
   plays player 2's), player select, the screen before each stage, the winner's, the warning before Apocalypse, the
   ending, the staff roll, game over and the notices. [How →](../../README.md#a-custom-soundtrack)
-- Your ROM set is only ever read. Settings, save states and the board's settings memory go in your own user folder.
+- Your ROM set is only ever read. Settings, save states and the board's settings memory go in your own user folder, or beside the launcher in [portable mode](../../README.md#portable-mode).
 
 ## Training mode
 

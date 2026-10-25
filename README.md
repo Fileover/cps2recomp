@@ -34,12 +34,12 @@ their owners, used here only to say what the programs work with.
 | --- | --- | --- |
 | [**Super Street Fighter II Turbo**](games/ssf2t/README.md) (1994, *Super Street Fighter II X* in Japan) | `ssf2xjr1` (Japan 940223, the tournament revision) | A full training mode (hit boxes, frame data and a frame meter, input display, combo and stun readouts, a dummy that records, replays and guards), widescreen, survival, ring out, endless battle, the stage and model viewers, Akuma and the old characters with no code, custom colours |
 | [**Street Fighter Alpha**](games/sfa/README.md) (1995) | `sfa` (Europe 950727) | A full training mode (hit boxes, frame data and a frame meter, input display, combo and stun readouts, a dummy that records, replays and guards), widescreen, survival, ring out, endless battle, the stage and model viewers, the hidden characters with no code, custom colours |
-| [**Street Fighter Alpha 2**](games/sfa2/README.md) (1996) | `sfa2u` (USA 960430) | A full training mode (hit and throw boxes, frame data and a frame meter, combo, stun and Custom Combo readouts, input display, a dummy that records, replays, guards and answers), widescreen, survival, ring out, endless battle, a team battle, knock-out or Marvel-style tag (2 vs 2 for four players), the stage and model viewers, the hidden characters, custom colours |
+| [**Street Fighter Alpha 2**](games/sfa2/README.md) (1996) | `sfa2u` (USA 960430) | A full training mode (hit and throw boxes, frame data and a frame meter, combo, stun and Custom Combo readouts, input display, a dummy that records, replays, guards and answers), widescreen, survival, ring out, endless battle, a team battle, knock-out or Marvel-style tag (2 vs 2 for four players), the CPU tagging and playing a ring out for the ring, the stage and model viewers, the hidden characters, custom colours |
 | [**Super Gem Fighter Mini Mix**](games/pocket_fighter/README.md) (1997, *Pocket Fighter*) | `sgemf` (USA 970904) | A full training mode (hit boxes, frame data and a frame meter, input display, combo and stun readouts, a dummy that records, replays and guards), widescreen, survival, ring out, endless battle, the stage and model viewers, the hidden characters with no code, custom colours |
 | [**Marvel Super Heroes**](games/msh/README.md) (1995) | `msh` (Europe 951024) | One-on-one with the Infinity Gems; a full training mode (hit boxes, frame data and a frame meter, input display, combo readout, a dummy that records, replays and guards, every gem at hand), widescreen, survival, ring out, endless battle, the stage and model viewers, Dr. Doom and Thanos with no code, custom colours |
 | [**X-Men vs. Street Fighter**](games/xmvsf/README.md) (1996) | `xmvsf` (Europe 961004) | The first tag-team game here, with tag-team co-op against the computer and 2 vs 2 for four players; a full training mode (hit boxes, frame data and a frame meter, input display, combo readout, a dummy that records, replays and guards), widescreen, survival, ring out, endless battle, the stage and model viewers, the hidden character with no code, custom colours |
 | [**Super Puzzle Fighter II Turbo**](games/puzzle_fighter/README.md) (1996) | `spf2t` (Europe 960529) | A training mode (attack readout, landing guide, input display, a dummy that sends counter gems to cancel, crash gems as you choose), CPU battle, the hidden characters at a kick, custom colours for the characters and the gems |
-| [**Vampire Savior: The Lord of Vampire**](games/vampire_savior/README.md) (1997) | `vsavj` (Japan 970519) | A full training mode (hit boxes, frame data and a frame meter, input display, a dummy that records, replays and guards), widescreen, survival, ring out, endless battle, a tag team battle, knock-out or Marvel-style (the left trigger tags; 2 vs 2 for four players), the stage and model viewers, the hidden characters, custom colours |
+| [**Vampire Savior: The Lord of Vampire**](games/vampire_savior/README.md) (1997) | `vsavj` (Japan 970519) | A full training mode (hit boxes, frame data and a frame meter, input display, a dummy that records, replays and guards), widescreen, survival, ring out, endless battle, a tag team battle, knock-out or Marvel-style (the left trigger tags; 2 vs 2 for four players), the CPU tagging and playing a ring out for the ring, the stage and model viewers, the hidden characters, custom colours |
 | [**Vampire Savior 2: The Lord of Vampire**](games/vsav2/README.md) (1997) | `vsav2` (Japan 970913) | Donovan, Phobos and Pyron back, and Donovan's stage; everything Vampire Savior's port has (its sources, checked against this game's code) |
 | [**Vampire Savior Definitive**](games/vsav_definitive/README.md) (beta) | `vsavj` and `vsav2` | Vampire Savior with Donovan, Phobos and Pyron taken from Vampire Savior 2, all eighteen by Vampire Savior's rules, the three with places of their own at the character choice; everything Vampire Savior's port has |
 | [**Vampire Hunter 2: Darkstalkers Revenge**](games/vhunt2/README.md) (1997) | `vhunt2` (Japan 970929) | Night Warriors' cast on Vampire Savior's engine, each fighter's own theme; everything Vampire Savior's port has, and Dark Gallon among the hidden characters |
@@ -79,7 +79,7 @@ Each game's page has all it does, with pictures.
 - **A custom soundtrack**: your own music files (an arranged soundtrack from a console version, say) in place of
   the board's music, song by song, with the board's sound effects and voices. [How →](#a-custom-soundtrack)
 - **Your ROM sets are only ever read.** Settings, save states and each board's settings memory go in your own
-  user folder.
+  user folder, or with the launcher, on a drive you carry, in [portable mode](#portable-mode).
 - **Updates in the launcher**: new games and fixes come to the copy you have. When a new version is out the
   launcher says so at the top of its Games page, and **Update** downloads the new version, checks it, puts
   what changed in place and starts the new launcher. [More →](#updates)
@@ -94,7 +94,7 @@ Each game's page has all it does, with pictures.
    the folder you keep your ROM sets in: it finds each game's by the set's name (`ssf2xjr1.zip`, `sfa.zip`, `sfa2u.zip`,
    `sgemf.zip`, `msh.zip`, `xmvsf.zip`, `spf2t.zip`, `vsavj.zip`, `vsav2.zip`, `vhunt2.zip`, `avspu.zip`, `dino.zip`, or a folder of the set's files). Or drop a set, or the folder, on the window, or choose each
    game's set on its own. They stay where they are.
-3. Press **Play** beside a game. Several games can run at once, each in its own window.
+3. Press **Play** beside a game (the first of its two buttons, where a gamepad's ring lands). Several games can run at once, each in its own window.
 
 Each game you have a ROM set for gets a page of its own in the sidebar: its Display switches (full screen,
 widescreen), Play, and the features only it has. The **Features** page has what the games share (free play,
@@ -102,6 +102,11 @@ cheats, run-ahead, the picture, training mode's displays and the dummy, and the 
 once; a feature changed in a game's own menu is set for the others too when you leave the game. The
 **Controllers** page sets the keys and buttons for all of them; its Layout for chooses a game, and Its own layout
 gives that game keys and buttons apart from the others', under the game's own names for its buttons.
+
+The games are in your order: drag a game's row in the sidebar up or down to keep the ones you play most at the top
+(with a gamepad or the keyboard, **Move up** and **Move down** on its page, under Play). The Games page lists them
+the same way. On a small screen, or with large text, the launcher closes up to fit: a narrower sidebar whose list
+scrolls, and each row's buttons under its words.
 
 While playing, Esc or `F1` (on a gamepad, the left stick's click, or Start and Select together) opens the
 in-game menu. Only the menu's "Quit game" row (or closing the window) ends the game.
@@ -113,8 +118,8 @@ at that game's page (or straight into the game once its ROM set has been chosen)
 
 ### Updates
 
-When the launcher opens it asks GitHub for this project's releases (the Games page's Updates card has a switch to
-stop that, and **Check now**). When there is a newer version it shows at the top of the Games page: **What's new**
+When the launcher opens it asks GitHub for this project's releases (the Updates card, at the top of the Games
+page, has a switch to stop that, and **Check now**). When there is a newer version it shows at the top of the Games page: **What's new**
 opens its notes, and **Update** downloads the new version's download for your system (the same file as on the
 releases page), checks it and every file that changed against the release's list, and only then
 puts them all in place; if anything goes wrong nothing is changed. The launcher then starts again as the new
@@ -124,6 +129,33 @@ running. A beta is offered only to a beta.
 The launcher needs to be able to write to its own folder: on macOS, move `CPS-2 Recomp.app` to Applications (or
 anywhere of your own) before opening it the first time, not run it from the downloaded zip's folder. A copy built
 from source is told of a new version but not changed.
+
+### Portable mode
+
+To keep everything with the launcher (on a USB stick or an external drive you take from one computer to another),
+put an empty file named `portable.txt` beside it:
+
+| System | Where `portable.txt` goes | Where your things then are |
+| --- | --- | --- |
+| Windows, Linux, Steam Deck | in the `CPS2Recomp` folder, beside `cps2recomp-launcher` | `CPS2Recomp/user/` |
+| macOS | in the folder `CPS-2 Recomp.app` is in (not inside the app) | `user/` in that folder |
+
+Settings, save states, each board's settings memory, custom colours, the score attack records, a soundtrack in
+the game's own folder and the logs then go in `user/`, a folder for the launcher and one for each game, laid out
+as in your user folder. The launcher's Games page shows where they are under **Your files** (**Show** opens the
+folder).
+
+- **The first time**, if your user folder already has the games' things, the launcher asks whether to copy them
+  to `user/`. Copying never takes anything from your user folder and never writes over a file.
+- **To stop**, take `portable.txt` away: the launcher uses your user folder again, as it was when you started
+  portable mode. Nothing is moved either way; to carry things back, copy the folders in `user/` to your user
+  folder yourself (with the launcher closed).
+- **Updates** keep `portable.txt` and `user/`: they change only the release's own files.
+- **The folder has to be one you can write to.** If it is not (a read-only drive, or Windows' Program Files), the
+  launcher says so and stops rather than keep your things somewhere else.
+- ROM sets are still only read, wherever they are. A ROM folder chosen on a drive letter (Windows) or a mount
+  point (`/Volumes/...`, `/media/...`) is remembered as that path: on another computer, choose it again if the
+  drive is somewhere else. A Steam shortcut (**Add to Steam**) is for the computer it was added on.
 
 ### From a terminal
 
@@ -149,7 +181,8 @@ effects and voices stay the board's.
 2. On a game's page, under Sound, **Choose…** the folder your music files are in (`.ogg`, `.flac`, `.mp3` or
    `.wav`). With none chosen, the game uses the `soundtrack` folder in its own settings folder
    (`~/Library/Application Support/<Game>/` on macOS, `~/.local/share/<Game>/` on Linux and Steam Deck,
-   `%APPDATA%\<Game>\` on Windows), which it makes.
+   `%APPDATA%\<Game>\` on Windows, `user/<Game>/` beside the launcher in [portable mode](#portable-mode)), which
+   it makes.
 
 That is all it takes: **a folder of music plays as a playlist**, in place of all the game's music, one file after
 another in their names' order (`2 ...` before `10 ...`), and from the first again after the last. Choose **On,

@@ -755,8 +755,30 @@ Marvel-style tagging in the team battle (`fight/battle.h`, "Style: Tag"; the swa
   kick of one strength is a Dark Force here, and two punches or two kicks are the EX moves. A movie with kTag (and one
   with Start) at a free moment tags; the trigger itself not tried (no gamepad headless). The tag movie recorded again
   (partners now tag with kTag, which made-up play does not press): checks ok.
-- Not done: the computer tags only when its bar empties; the outgoing and incoming are one after the other, not on
-  screen together (one record a side); not played by hand.
+- Not done: the outgoing and incoming are one after the other, not on screen together (one record a side); not played
+  by hand. (The computer's own tags: the section below.)
+
+## The computer's play of the tag style and the ring out (2026-10-25)
+
+The toolkit's coach (`fight/battle.cpp`; Street Fighter Alpha 2's PROGRESS has how it was found and tuned) plays a side
+the game plays in the tag style (when to tag, whom) and the ring out (short plans through its controls). This game's
+own parts:
+
+- The computer's walk (kAction 4, 02289E): at 022966 (its first step) and 0229F2 (the steps after) it takes the way the
+  computer wants (`+20B`, 1 back) against the walk's (`+0A`) and begins the walk again if they differ (0228B8), else
+  goes on (02297A, 022A06). Hooks there (`ComputerWalkWay`, `src/battle.cpp`) ask `RingOutMayWalkBack`: a coached
+  computer with its back near its end walks forward instead; otherwise the game's own code runs. Vampire Savior 2 and
+  Vampire Hunter 2 have the same code (their family.h, by tools/places.py, checked against their listings).
+- `difficultyNow`: A5+BE; `attackComing`: AttackInRange (fight.cpp).
+- Numbers, CPU against CPU (12 runs of 40,000 frames each way): nobody coached, side 2 winning 59% of 229 ring outs
+  (3.3 a minute); side 1 coached winning 52% (from 41%), side 2 coached 63% (from 59%); the coached side cornered 4.2%
+  of the time against the other's 8.3%; its walks never hit. The tag style, both teams coached (8 runs, 27 matches):
+  191 tags, 2.5 a minute, at a median health of 22% with the partner at 100%, 36% with the other down, 74% at a
+  distance, none called off.
+- Checked: every movie hashes as before (against main), check_rewrites.sh with no difference, two new movies
+  (`ringout_computer.txt`, `team_tag_computer.txt`) with make check both ways; Vampire Savior 2, Vampire Hunter 2 and
+  Definitive built and a coached ring out run in each with nothing left to the interpreter but Definitive's own (as on
+  main). Only headless.
 
 ## Board settings (2026-10-15)
 
