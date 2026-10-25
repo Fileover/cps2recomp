@@ -1,5 +1,5 @@
 # cps2recomp input movie: frame player1 player2 player3 player4 (pressed bits, hex)
-# team battle, knock-out style, 2 vs 2, teams of three on one health bar each, no entrances (made-up play for four players from 1300): four knock-outs on both sides, decided at 12436. Run with CPS2RECOMP_BATTLE_SEED=1 and --features free_play,board_attack=4,board_timer=4,team_size=1,tag_team=2,team_stage=4,team_1_1=6,team_1_2=8,team_1_3=2,team_2_1=14,team_2_2=3,team_2_3=12 --keys 60:cteam_start
+# team battle, knock-out style, 2 vs 2, teams of three on one health bar each, no entrances (made-up play for four players from 1300): four knock-outs on both sides, decided at 12436. Run with CPS2RECOMP_BATTLE_SEED=1 and --features free_play,team_style=1,board_attack=4,board_timer=4,team_size=1,tag_team=2,team_stage=4,team_1_1=6,team_1_2=8,team_1_3=2,team_2_1=14,team_2_2=3,team_2_3=12 --keys 60:cteam_start
 0 0000 0000 0000 0000
 1300 0280 0045 0000 0000
 1302 0280 0029 0000 0000
