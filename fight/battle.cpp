@@ -85,6 +85,10 @@ namespace {
     int HalfWidth(uint32_t player) {
         return d.halfWidth ? Ram16(player + d.halfWidth) : d.fixedHalfWidth;
     }
+    // The player is its own master (not knocked about by the other)
+    bool OwnMaster(uint32_t player) {
+        return d.ownMaster ? d.ownMaster(player) : Ram8(player + d.control) == d.controlOwn;
+    }
     // Who plays a player, told to the game (and to its partner's record, in a tag-team game)
     void SetComputer(int n, bool computer) {
         const uint8_t value = static_cast<uint8_t>(computer != d.computerIsZero ? 1 : 0);
@@ -563,7 +567,7 @@ namespace {
             case kLeaving: {
                 // A jump back, and once in the air, off the picture at speed
                 const int away = -toward;
-                if ((g.moveFor[side] > 3 && Ram8(Player(side) + d.control) != d.controlOwn) ||
+                if ((g.moveFor[side] > 3 && !OwnMaster(Player(side))) ||
                     (g.moveFor[side] == kLeaveJump && !d.inAir(Player(side)))) {
                     // (hit on the way, or doing a move of its own and not jumping off: the tag is off, and the
                     // fighter stays)
@@ -632,7 +636,7 @@ namespace {
                     if (air) {
                         g.jumped[side] = true;
                     }
-                } else if (air && Ram8(Player(side) + d.control) == d.controlOwn) {
+                } else if (air && OwnMaster(Player(side))) {
                     // (across fast enough to land by the other player; the jump attack on the way down)
                     const int distance = std::abs(X(1 - side) - X(side)) - 40;
                     MoveX(side, toward * std::clamp(distance * 256 / kComeSteps, 3 * 256, 12 * 256));
@@ -1068,7 +1072,7 @@ namespace {
     void LookForOut() {
         const int camera = CameraX(), edge = PictureLeft();
         for (int n = 0; n < 2 && g.out < 0; n++) {
-            if (Ram8(Player(n) + d.control) == d.controlOwn) {
+            if (OwnMaster(Player(n))) {
                 continue;
             }
             const int x = static_cast<int16_t>(Ram16(Player(n) + d.x)), half = HalfWidth(Player(n));
@@ -1492,7 +1496,7 @@ RingOut RingOutMove(uint32_t player) {
 // kept in at a side where the picture is at the stage's end: it goes over the end (the game's sources ask where the
 // game keeps the players in).
 bool RingOutLetsOut(uint32_t player) {
-    if (!g_open || (player != Player(0) && player != Player(1)) || Ram8(player + d.control) == d.controlOwn) {
+    if (!g_open || (player != Player(0) && player != Player(1)) || OwnMaster(player)) {
         return false;
     }
     const int x = static_cast<int16_t>(Ram16(player + d.x)), half = HalfWidth(player);

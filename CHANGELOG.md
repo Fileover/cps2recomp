@@ -2,6 +2,21 @@
 
 ## Unreleased
 
+- **Another game: Super Street Fighter II Turbo** (`games/ssf2t`; ROM set `ssf2xjr1`, *Super Street Fighter II X:
+  Grand Master Challenge*, Japan 940223, the revision tournaments and Fightcade play; issue #88). The game as the board
+  plays it, translated whole (its 68000 program, the characters' code past the first megabyte too, and its sound
+  program, Capcom's driver 1.04) and checked, with everything the other fighting games have: a **training mode** (hit
+  boxes, frame data, its meter and log, input display, combo and stun readouts, health and gauge refills, a dummy that
+  records, replays and guards, start over, any of the sixteen stages), the **alternative modes** (attract mode three
+  ways, the stage viewer and its infinite stage, the model viewer, the colour editor, survival, endless battle, ring
+  out), **widescreen** and invisible walls, **custom colours** (files, PalMod's sfxj.04a, the editor), the **hidden
+  characters** with no code (the three punches at once as a character is chosen: Akuma; any two buttons: its old
+  version), and the features every game has: free play (the game's own), straight to the title, the board's settings
+  (the Board page: difficulty, game speed, continue, demo sound), cheats, save states, run-ahead, arcade timing and a
+  custom soundtrack (its music named) ([its progress](games/ssf2t/PROGRESS.md)).
+- The fighting modes (`fight/battle.h`) take `ownMaster` for a game that keeps no one byte saying a player is its own
+  master (Super Street Fighter II Turbo: several of its states, and guarding only before a hit lands).
+
 ## 0.4.0-beta.6
 
 A twelfth game, Marvel Super Heroes, with everything the other fighting games have, on a part of the toolkit it shares
