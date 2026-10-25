@@ -59,6 +59,10 @@ with X-Men vs. Street Fighter.
   outgoing character made is given back and with its name under the bar put right; every pair of the eighteen
   characters (and to each hidden form) swapped back and forth under made-up play, 756 pairs and 5,292 swaps, with no
   fault.
+- Fixed: **widescreen's switch on the launcher's first page** (under "Full screen") in Street Fighter Alpha, X-Men vs.
+  Street Fighter, Super Gem Fighter Mini Mix and Marvel Super Heroes. Their widescreen was only on the in-game menu's
+  Display page; every game with widescreen now has it in both places, as its page says
+  ([#84](https://github.com/tmcleroy/cps2recomp/issues/84)).
 
 ## 0.4.0-beta.5
 
