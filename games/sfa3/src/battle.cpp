@@ -112,8 +112,9 @@ void RegisterBattle() {
     d.ceilingShown = true;
     d.stages = kStages;
     d.stageToRound = 2000; // (about 1,800 from switching on, and a few)
-    d.characterSpan = kFighters;
-    d.choosable = [](int) { return true; };
+    d.characterSpan = kCharacters;
+    // (the slots that are not characters of this version, and Gen's other stance, are never picked)
+    d.choosable = [](int n) { return n >= 0 && n < kCharacters && kCharacterNames[n] && n != 0x13; };
     d.rosterNumber = [](int choice) { return choice >= 1 && choice <= kFighters ? static_cast<int>(kFighterNumbers[choice - 1]) : -1; };
     d.fighterChoices = {"Random"};
     for (const uint8_t number : kFighterNumbers) {
