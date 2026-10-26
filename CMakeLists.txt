@@ -70,6 +70,12 @@ set(PORT_SOURCES port/main.cpp port/frontend_sdl.cpp port/present.cpp port/menu.
 # (the sound files' decoders, third_party/, are other projects' code, compiled as they are)
 set_source_files_properties(port/decoders.cpp PROPERTIES COMPILE_OPTIONS "-w")
 
+# (macOS: handing the front to the launcher, port/front_macos.mm)
+if (APPLE)
+    enable_language(OBJCXX)
+    list(APPEND PORT_SOURCES port/front_macos.mm)
+endif ()
+
 # The game, on cps2recomp's own machine (machine/). No emulator is compiled or linked into it.
 add_executable(${GAME} ${PORT_SOURCES} ${MACHINE_SOURCES} ${GEN_SOURCES} ${GEN_Z80_SOURCES})
 # The check build ('make check-blocks'): the same, with every translated block run beside the interpreter
@@ -84,6 +90,9 @@ endif ()
 foreach (target ${GAME} ${GAME}-check)
     target_include_directories(${target} PRIVATE runtime port machine fight beat model "${WORK_DIR}/gen" "${GAME_DIR}" ${GAME_INCLUDES})
     target_link_libraries(${target} PRIVATE SDL3::SDL3 ZLIB::ZLIB)
+    if (APPLE)
+        target_link_libraries(${target} PRIVATE "-framework AppKit")
+    endif ()
     target_compile_options(${target} PRIVATE -Wall -Wextra -Wno-unused-parameter -Wno-unused-label -Wno-unused-variable -Wno-parentheses-equality)
     # (a char is signed, as on x86 and Apple's ARM, also on Linux ARM64, whose own is unsigned: every build does the
     # same sums)

@@ -20,6 +20,10 @@ using namespace cps2recomp;
 
 namespace port {
 
+#ifdef __APPLE__
+void HandFrontToLauncher(); // (front_macos.mm)
+#endif
+
 namespace {
 
     // What each player's keys and gamepad buttons do: the player's choices (bindings.h; the launcher's
@@ -114,6 +118,11 @@ int RunWindowed(Port &port) {
     SDL_Window *window = SDL_CreateWindow(title, static_cast<int>(std::lround(Video::kHeight * scale * windowShape(columns))), Video::kHeight * scale,
                                           SDL_WINDOW_RESIZABLE | (port.opt.fullscreen ? SDL_WINDOW_FULLSCREEN : 0) |
                                               (getenv("CPS2RECOMP_HIDDEN_WINDOW") ? SDL_WINDOW_HIDDEN : 0)); // (hidden: for tests)
+    // (in front: on macOS a program started by one that is not, as the launcher is behind a Multi game run's
+    // last game, opens behind the other windows)
+    if (window && !getenv("CPS2RECOMP_HIDDEN_WINDOW")) {
+        SDL_RaiseWindow(window);
+    }
     // The picture goes to the window through SDL's GPU API, or through SDL's renderer where there is no
     // device for that (and the dummy video driver of the tests has none) or when asked: --renderer sdl
     Presenter presenter;
@@ -479,6 +488,12 @@ int RunWindowed(Port &port) {
     if (music) {
         SDL_DestroyAudioStream(music);
     }
+#ifdef __APPLE__
+    // (on to a Multi game run's next game: the launcher starts it, and must be in front for it to come forward)
+    if (ProgramEnded() == kNextGame && !MultiGame().empty()) {
+        HandFrontToLauncher();
+    }
+#endif
     presenter.Close();
     SDL_DestroyWindow(window);
     SDL_Quit();

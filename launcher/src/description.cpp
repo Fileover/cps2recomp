@@ -293,8 +293,10 @@ const launcher::Collection& launcher::describe_collection() {
             {"time", "Each stage for", "Shuffle: how long they fight on a stage before it fades into the next.",
              {"30 seconds", "1 minute", "2 minutes", "3 minutes", "5 minutes"}, 1, "stages", 0},
             {"speed", "Scroll speed", "Scroll: how fast the stages go by.", {"Slow", "Medium", "Fast"}, 1, "stages", 1},
-            {"screen", "Screen", "Full screen for every game, or each game in a window or full screen as its own Display switch has it.",
-             {"Full screen", "As each game is set"}},
+            {"screen", "Screen", "Every game full screen, or every game in a window, or each as its own Full screen switch has it. For this run only.",
+             {"Full screen", "Window", "As each game is set"}},
+            {"picture", "Picture", "Every game in widescreen, or every game 4:3, or each as its own Widescreen switch has it. For this run only.",
+             {"Widescreen", "4:3", "As each game is set"}},
         };
         // (port/frontend_sdl.cpp: in a Multi game run; each unless the player has given it to the game)
         endless.buttons = {
@@ -305,8 +307,15 @@ const launcher::Collection& launcher::describe_collection() {
             static const int kSeconds[] = {30, 60, 120, 180, 300};
             std::vector<std::string> args = {"--multi", values[0] == 1 ? "endless:scroll:" + std::to_string(values[2])
                                                                        : "endless:shuffle:" + std::to_string(kSeconds[std::clamp(values[1], 0, 4)])};
+            // (after the game's own arguments, so these win; nothing is kept in its settings)
             if (values[3] == 0) {
                 args.push_back("--fullscreen");
+            } else if (values[3] == 1) {
+                args.push_back("--window");
+            }
+            if (values[4] != 2) {
+                args.push_back("--features");
+                args.push_back(values[4] == 0 ? "widescreen" : "-widescreen");
             }
             return args;
         };
