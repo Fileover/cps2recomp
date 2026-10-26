@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- **Zoom** is gentler: the size eases more slowly and never faster than about 0.5x a second going in (1.2x coming
+  out), and the camera keeping both fighters in the picture goes closer only when it could go 0.15x closer and eases
+  its aim between them, so a fight's every step does not move it (it felt nauseating). A fighter can leave the picture
+  for a moment on a quick jump away while it catches up.
 - **Multi game**: the rest of the Display page every game has, for the whole run: **Invisible walls**, **Scaling**,
   **Picture shape** and **Window size**, each also "As each game is set" (the default), given after the game's own
   settings as Screen and Picture are, and kept nowhere. In a window, the next game opens where the one before was and
