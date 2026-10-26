@@ -50,6 +50,7 @@ private:
     float m_shown = 1.0f, m_x = 0, m_y = 0; // as shown now
     float m_offX = 0, m_offY = 0;           // (the camera's way off its fighter, after it changed fighter)
     float m_panX = 0, m_panY = 0;           // (... and where the player has moved it from its fighter)
+    float m_bothSize = 1.0f;                // (keeping both in the picture: the size it is going to)
     int m_followed = 0;
     bool m_wasSeen = false;
     bool m_settled = false;                 // (the place is known: eased to from here on)

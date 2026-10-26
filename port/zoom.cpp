@@ -13,9 +13,14 @@
 namespace port {
 
 namespace {
-    // How much of the way to what is wanted each picture goes: the size (most of the way in about a third of a
-    // second), and the place looked at when it changes fighter (the camera is on its fighter otherwise)
-    constexpr float kSizeEase = 0.15f, kPlaceEase = 0.2f;
+    // How much of the way to what is wanted each picture goes: the size, and the place looked at when it changes
+    // fighter (the camera is on its fighter otherwise). The size changes by at most so much a picture, less going in
+    // than coming out (1x to 2x in about two seconds; out in under one), so that it never lurches.
+    constexpr float kSizeEase = 0.05f, kPlaceEase = 0.2f;
+    constexpr float kMostIn = 0.008f, kMostOut = 0.02f;
+    // Keeping both in the picture: the place between them eased to (not jumped to each picture), and the camera goes
+    // closer only when it could go this much closer (out at once): a fight's every step does not move it
+    constexpr float kBothPlaceEase = 0.1f, kBothCloser = 0.15f;
     constexpr int kLabelTicks = 150; // (two and a half seconds)
     constexpr float kPanStep = 2.0f;  // the picture's pixels a step of Pan moves the camera (a step a picture)
     constexpr float kPanMost = 160.0f;
@@ -66,6 +71,7 @@ void Zoom::Both() {
     } else {
         m_player = kBoth;
         m_size = std::max(m_size, 1);
+        m_bothSize = m_shown; // (from where it is: closer only as the fighters allow)
     }
     m_panX = m_panY = 0;
     Said();
@@ -105,7 +111,11 @@ void Zoom::Follow(int width, int height) {
             const float below = static_cast<float>(game.focusLift) + kRoomFeet;
             const float left = std::min(x, x2) - across, right = std::max(x, x2) + across;
             const float top = std::min(y, y2) - above, bottom = std::max(y, y2) + below;
-            wanted = std::clamp(std::min(width / (right - left), height / (bottom - top)), 1.0f, kSizes[kSizeCount - 1]);
+            const float fits = std::clamp(std::min(width / (right - left), height / (bottom - top)), 1.0f, kSizes[kSizeCount - 1]);
+            if (fits < m_bothSize || fits > m_bothSize + kBothCloser || fits == kSizes[kSizeCount - 1]) {
+                m_bothSize = fits;
+            }
+            wanted = m_bothSize;
             wantedX = (left + right) / 2 + m_panX;
             wantedY = (top + bottom) / 2 + m_panY;
         }
@@ -120,6 +130,8 @@ void Zoom::Follow(int width, int height) {
     if (m_jump || !m_settled) {
         // (from nothing, the place is where the size starts from, and the size eases; asked for, both are there)
         m_offX = m_offY = 0;
+        m_x = wantedX;
+        m_y = wantedY;
         m_settled = seen;
         m_wasSeen = seen;
         m_followed = m_player;
@@ -128,7 +140,7 @@ void Zoom::Follow(int width, int height) {
             m_jump = false;
         }
     }
-    m_shown += (wanted - m_shown) * kSizeEase;
+    m_shown += std::clamp((wanted - m_shown) * kSizeEase, -kMostOut, kMostIn);
     if (std::fabs(wanted - m_shown) < 0.002f) {
         m_shown = wanted;
     }
@@ -142,8 +154,13 @@ void Zoom::Follow(int width, int height) {
     m_followed = m_player;
     m_offX *= 1 - kPlaceEase;
     m_offY *= 1 - kPlaceEase;
-    m_x = wantedX + m_offX;
-    m_y = wantedY + m_offY;
+    if (m_player == kBoth && seen) {
+        m_x += (wantedX + m_offX - m_x) * kBothPlaceEase;
+        m_y += (wantedY + m_offY - m_y) * kBothPlaceEase;
+    } else {
+        m_x = wantedX + m_offX;
+        m_y = wantedY + m_offY;
+    }
     if (m_shown == 1.0f && !seen) {
         m_settled = false; // (out again: the next zoom starts at its fighter)
     }
