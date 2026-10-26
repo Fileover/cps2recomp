@@ -176,8 +176,10 @@ def move(w):
         text = "special %d %s" % ((w & 0x1E) >> 1, STRENGTH.get((w >> 4) & 6, "?"))
         variant = (w >> 8) & 0xF
     else:
+        # (as the game unpacks it, 02CE44: the stance, punch or kick, the strength, in twos from bit 1)
         stance = {0: "standing", 2: "crouching", 4: "jumping", 6: "stance 6"}[w & 6]
-        text = "%s %s %s" % (stance, STRENGTH[(w >> 5) & 6], "kick" if (w >> 3) & 2 else "punch")
+        button = {0: "punch", 2: "kick"}.get((w >> 2) & 6, "button %d" % ((w >> 2) & 6))
+        text = "%s %s %s" % (stance, STRENGTH[(w >> 4) & 6], button)
         held = (w >> 8) & 0xF
         if held:
             text += " holding %X" % held

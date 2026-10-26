@@ -758,7 +758,42 @@ Marvel-style tagging in the team battle (`fight/battle.h`, "Style: Tag"; the swa
 - Not done: the outgoing and incoming are one after the other, not on screen together (one record a side); not played
   by hand. (The computer's own tags: the section below.)
 
-## The computer's play of the tag style and the ring out (2026-10-25)
+## The computer plays the tag style and the ring out itself (2026-10-26)
+
+The coach below took a computer side's controls in a ring out, which cost it its guard, and tagged for it. Now the
+game's computer (`src/computer.cpp`, the interpreter as C++) plays the modes itself, and the coach stands aside for
+this family (`battle::Description::computerPlaysModes`). The port has tactics of its own, written in the scripts'
+instructions with one more operation and three more tests, kept at addresses of their own (`kModeScripts`, 80000000
+up: nothing of the board's is read there):
+
+- Operation 1C: asks the toolkit for a tag (`ComputerAsksTag`), taken in the next 20 frames once the fighter can tag.
+  Tests 44 and 46: in a ring out, the computer's back (46: the other's) nearer its end than so many pixels; test 48:
+  in the tag style, the computer's fighter wants to go off (`ComputerTagWanted`: the coach's rule, low with a partner
+  who has more, or rested; not soon after a tag nor just out of a hit).
+- Three tactics. Out of the corner (its back within 150 of its end, nearer it than the other is to its own): within 40
+  a throw held 1 (the other goes behind), within 90 a jump forward with a heavy kick, else a walk forward. Knock over
+  (the other within 100 of its end): within 40 a throw held 2 or a sweep, one or the other at random, else a walk
+  forward to 36 and a sweep. Tag out: the other lying down, or a gap of 160 or more: tag; else walk back to 160 (50
+  frames at most) and tag. Each begins with "guard if an attack is coming" and ends back in the plan.
+- When: a tactic is chosen as the game chooses its own (ChooseTactic), one of these in its place when the fight calls
+  for it, from four times in ten to nine in ten by the difficulty (`ComputerSkill`: the team battle's CPU difficulty, or
+  the game's); a plan that would not go to a tactic goes anyway then; and a wait or a walk of a plan's or of the game's
+  tactic is broken off for it on about one frame in twelve (as often as the difficulty says, of those). The rest of the
+  time, and in a reaction, the game's own play.
+- Numbers (CPU against CPU, 12 runs of 40,000 frames, the same seeds each way): the ring out with nobody playing it,
+  side 1 winning 49% of 237 outs; the computer playing it itself on side 1, 66% of 312; on side 2, 64% of 219; the old
+  coach on the same seeds 50% and 49% (no gain). The throw held 1 to get out of a corner counted more than twice the
+  jump and the walk alone (with a throw held 2 there: 57% and 57%). After a knock over the other went out next 88% of
+  the time. The tag style (24 runs, about 87 matches each way): with nobody tagging side 1 won 64%; the computer
+  tagging, side 1 60%, side 2 47% (from 36%); the coach 53% and 58%: a few points either way, within the noise. It
+  tagged 265 and 294 times, never called off (the coach 5), at a median of 25% health, more often at a distance and
+  less often with the other down than the coach.
+- Checked: with no side playing the modes (CPS2RECOMP_COACH=0) ComputerPlays is the game's in their movies, 0 calls
+  differing (check_rewrites.sh runs them so, with each movie's own options); outside the modes nothing is asked. Vampire
+  Savior 2: a ring out, side 1 playing it, won 15 of 20 outs (nobody: 8 of 15).
+- `CPS2RECOMP_BATTLE_LOG` prints each of the modes' tactics chosen (`tactic side=N ...`) and each tag asked.
+
+## The computer's play of the tag style and the ring out (2026-10-25, the coach, for the record)
 
 The toolkit's coach (`fight/battle.cpp`; Street Fighter Alpha 2's PROGRESS has how it was found and tuned) plays a side
 the game plays in the tag style (when to tag, whom) and the ring out (short plans through its controls). This game's
