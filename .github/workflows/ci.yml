@@ -53,7 +53,12 @@ jobs:
           ls "$RUNNER_TEMP"/page*.png
 
   linux:
-    runs-on: ubuntu-24.04
+    strategy:
+      matrix:
+        include:
+          - { system: linux-x86_64, runner: ubuntu-24.04 }
+          - { system: linux-arm64, runner: ubuntu-24.04-arm }
+    runs-on: ${{ matrix.runner }}
     steps:
       - uses: actions/checkout@v4
       - run: sudo apt-get update -qq && sudo apt-get install -y -qq --no-install-recommends $LINUX_PACKAGES
@@ -61,7 +66,7 @@ jobs:
         run: tools/release/linux.sh
       - name: Start the programs with no display
         run: |
-          tar -xzf build/release/CPS2Recomp-linux-x86_64.tar.gz -C "$RUNNER_TEMP"
+          tar -xzf build/release/CPS2Recomp-${{ matrix.system }}.tar.gz -C "$RUNNER_TEMP"
           for game in $(cd games && ls); do
             "$RUNNER_TEMP/CPS2Recomp/$game" --list-features | grep -q free_play
           done
@@ -71,7 +76,7 @@ jobs:
           ls "$RUNNER_TEMP"/page*.png
       - name: The stand-in game (the toolkit with no game) built and started
         run: |
-          export CMAKE_PREFIX_PATH="$PWD/build/deps/sdl-linux"
+          export CMAKE_PREFIX_PATH="$PWD/build/deps/sdl-${{ matrix.system }}"
           make example
           tools/ci_smoke.sh
 

@@ -85,4 +85,7 @@ foreach (target ${GAME} ${GAME}-check)
     target_include_directories(${target} PRIVATE runtime port machine fight beat model "${WORK_DIR}/gen" "${GAME_DIR}" ${GAME_INCLUDES})
     target_link_libraries(${target} PRIVATE SDL3::SDL3 ZLIB::ZLIB)
     target_compile_options(${target} PRIVATE -Wall -Wextra -Wno-unused-parameter -Wno-unused-label -Wno-unused-variable -Wno-parentheses-equality)
+    # (a char is signed, as on x86 and Apple's ARM, also on Linux ARM64, whose own is unsigned: every build does the
+    # same sums)
+    target_compile_options(${target} PRIVATE -fsigned-char)
 endforeach ()

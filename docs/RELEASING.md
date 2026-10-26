@@ -6,16 +6,17 @@ every platform by hand.
 
 ## What a release is
 
-Three archives, their checksums and the launcher's three manifests, as a GitHub release of a tag. Nothing else:
-a player sees the three downloads.
+Four archives, their checksums and the launcher's four manifests, as a GitHub release of a tag. Nothing else:
+a player sees the four downloads.
 
 | File | For |
 | --- | --- |
 | `CPS2Recomp-macOS.zip` | macOS 13 or later, Apple silicon and Intel (one app, "CPS-2 Recomp"; signed ad hoc, not notarized) |
 | `CPS2Recomp-linux-x86_64.tar.gz` | Linux x86_64, Steam Deck, Steam Machine |
+| `CPS2Recomp-linux-arm64.tar.gz` | Linux ARM64 (aarch64) |
 | `CPS2Recomp-windows-x64.zip` | Windows 10 and 11, 64-bit |
 | `SHA256SUMS.txt` | |
-| `update-macos.txt`, `update-linux-x86_64.txt`, `update-windows-x64.txt` | The launcher's updates: each system's manifest |
+| `update-macos.txt`, `update-linux-x86_64.txt`, `update-linux-arm64.txt`, `update-windows-x64.txt` | The launcher's updates: each system's manifest |
 
 The release's text is `tools/release/notes.sh`'s. At the top, the paragraph the version's section of `CHANGELOG.md`
 begins with: a few sentences on what is in the release, before the section's list (the script stops if there is
@@ -61,13 +62,14 @@ code is not part of that source: it is made from the player's own ROM sets by th
    no display: the proof the tag compiles everywhere). It then makes a **draft** release whose notes are the
    version's section of the changelog, with no files. A tag with `-beta` or `-rc` is marked pre-release.
 4. On a Mac with Docker and every ROM set, at the tag (the same source as the merged pull request, so its
-   checks stand): `tools/release/all.sh`, which writes the three archives and `SHA256SUMS.txt` in `build/release/`.
+   checks stand): `tools/release/all.sh`, which writes the four archives and `SHA256SUMS.txt` in `build/release/`.
 5. Each archive's game programs are run over their ladder movies with `--hash-picture` on their systems (macOS
-   both halves, Linux in a container, Windows under Wine): the same picture hashes as the Mac's build. A person
+   both halves, Linux x86_64 and ARM64 in
+   containers, Windows under Wine): the same picture hashes as the Mac's build. A person
    plays each archive on its system (picture, sound, a gamepad, the launcher's pages, a save state, training
    mode).
 6. `gh release upload vX.Y.Z build/release/CPS2Recomp-* build/release/SHA256SUMS.txt build/release/update-*.txt`
-   (seven files), then publish the draft. A published release's files are never replaced: a fix is a new
+   (nine files), then publish the draft. A published release's files are never replaced: a fix is a new
    version. Publishing is what offers it to every launcher that checks, so the archives are played (step 5)
    first.
 

@@ -5,7 +5,7 @@
 [![License: GPL-3.0](https://img.shields.io/badge/license-GPL--3.0-blue)](LICENSE)
 
 **Unofficial native PC ports of Capcom's CPS-2 arcade games (and CPS-1 ones), for macOS, Linux (Steam Deck
-included) and Windows, in one download with one launcher.** Each game's program is translated ahead of time into C++
+and ARM64 included) and Windows, in one download with one launcher.** Each game's program is translated ahead of time into C++
 and runs on a machine written for this project, not an emulator. Each fighting game has a training mode, which no release of these games has ever had; the beat-'em-ups take three players at once, with
 free play, a stage to start at, a score attack and viewers for their stages and characters.
 
@@ -262,7 +262,8 @@ top), to open the in-game menu; its "Quit game" row ends the game.
   or a folder of the set's files. The launcher checks every file by checksum and tells you which is missing or
   different. Sets of other regions and revisions are refused: each port is made from that one version's
   program, and its features use addresses found in it.
-- One of: macOS 13 or later (Apple silicon or Intel); Linux x86_64 or SteamOS; Windows 10 or 11, 64-bit.
+- One of: macOS 13 or later (Apple silicon or Intel); Linux x86_64 or SteamOS; Linux ARM64 (aarch64); Windows 10 or
+  11, 64-bit.
 - A gamepad or stick (six buttons for the fighting games) is recommended; for three players in the beat-'em-ups, three
   gamepads (or keys chosen for each player).
 
