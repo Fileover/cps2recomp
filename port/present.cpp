@@ -33,7 +33,7 @@ namespace {
     }
 
     struct Sizes {
-        float size[2], scale[2], view[4];
+        float size[2], scale[2], view[4], shown[2], spare[2];
     };
 } // namespace
 
@@ -271,7 +271,8 @@ void Presenter::Draw(SDL_GPUCommandBuffer *commands, SDL_GPUTexture *target, con
         const bool smooth = m_scaling == Scaling::Smooth;
         const Sizes sizes = {{width, tall},
                              {smooth ? 1.0f : std::floor(where.w / view.w + 0.999f), smooth ? 1.0f : std::floor(where.h / view.h + 0.999f)},
-                             {view.x / width, view.y / tall, view.w / width, view.h / tall}};
+                             {view.x / width, view.y / tall, view.w / width, view.h / tall},
+                             {width, view.y >= height ? tall : height}, {0, 0}};
         SDL_PushGPUFragmentUniformData(commands, 0, &sizes, sizeof(sizes));
         SDL_DrawGPUPrimitives(pass, 3, 1, 0, 0);
     };
@@ -323,8 +324,15 @@ void Presenter::Show(const uint32_t *pixels, int width, int height, const SDL_FR
     auto draw = [&](SDL_Texture *texture, float by) {
         const SDL_FRect whole = {0, 0, static_cast<float>(width), static_cast<float>(height)};
         const SDL_FRect &view = zoomed ? zoomed->view : whole;
-        const SDL_FRect from = {view.x * by, view.y * by, view.w * by, view.h * by};
-        SDL_RenderTexture(m_renderer, texture, &from, &where);
+        // (of the view, only what is on the picture: past its edges is black)
+        const float left = std::max(view.x, 0.0f), top = std::max(view.y, 0.0f);
+        const float right = std::min(view.x + view.w, whole.w), bottom = std::min(view.y + view.h, whole.h);
+        if (right > left && bottom > top) {
+            const SDL_FRect from = {left * by, top * by, (right - left) * by, (bottom - top) * by};
+            const float across = where.w / view.w, down = where.h / view.h;
+            const SDL_FRect to = {where.x + (left - view.x) * across, where.y + (top - view.y) * down, (right - left) * across, (bottom - top) * down};
+            SDL_RenderTexture(m_renderer, texture, &from, &to);
+        }
         if (zoomed) {
             const float across = where.w / width, down = where.h / height;
             for (const SDL_Rect &keep : zoomed->keep) {

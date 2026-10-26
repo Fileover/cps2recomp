@@ -48,13 +48,15 @@ QSound chip, the sound CPU and its registers) is code written for this project, 
   with the training mode and the other modes, save states, speed, the cheats and every feature.
 - The picture your way (Display page): sharp, whole pixels or smooth; 4:3, square pixels or the
   whole screen; and the window's size.
-- **Zoom** (a gamepad): hold the left stick's click and press the left shoulder to zoom in on player 1's fighter, the
-  right shoulder for player 2's. Each press for the same player goes a size up, 1.25x, 1.5x, 1.75x and 2x (the model
-  viewer's sizes: at 2x the top of a tall fighter is off the screen), then back to the whole picture; a press for
-  the other player looks at that one instead. The camera goes there smoothly and follows the fighter about, the
-  size is said at the bottom for a few seconds, and outside a fight the picture is whole again. The game's own
-  health bars are zoomed with it; the port's own text (a mode's score, the training display) is not. The left
-  stick's click alone still opens the menu, when it is let go.
+- **Zoom**: hold the left stick's click and press the left shoulder to zoom in on player 1's fighter, the right
+  shoulder for player 2's (keyboard: hold Left Shift and press Q or E). Each press for the same player goes a size
+  up, 1.25x, 1.5x, 1.75x and 2x (the model viewer's sizes: at 2x the top of a tall fighter is off the screen), then
+  back to the whole picture; a press for the other player looks at that one instead. The fighter is kept in the
+  middle all the while (past the stage's ends is black); with the click (or Left Shift) still held, the d-pad or
+  the stick (the arrows) moves the camera to frame it as you like, until the zoom is off or looks at the other fighter. The size eases from one
+  to the next, it is said at the bottom for a few seconds, and outside a fight the picture is whole again. The
+  game's own health bars are zoomed with it; the port's own text (a mode's score, the training display) is not.
+  The left stick's click alone still opens the menu, when it is let go.
 - **Rapid fire** (Game page): a button held down is pressed again and again, fifteen times a second, for the first
   button or for all of them; the first press is seen at once.
 - **Pure** plays exactly as the board does. **Enhanced** (the default) adds free play and your own

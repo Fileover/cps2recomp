@@ -172,9 +172,10 @@ namespace {
     }
 
     // Where the window's zoom looks to see a player's fighter (runtime/game.h, Game::focus): where it stands in the
-    // picture, and as far up from its feet as the model viewer centres its larger sizes. Only in a round (the
-    // records hold other things outside one), and not in the model viewer, which has sizes of its own.
-    constexpr int kFocusLift = 56;
+    // picture, and up from its feet a little less than the model viewer centres its larger sizes (at 2x the feet
+    // and the shadow under them are then in the picture). Only in a round (the records hold other things outside
+    // one), and not in the model viewer, which has sizes of its own.
+    constexpr int kFocusLift = 44;
     bool Focus(int player, int &x, int &y) {
         if (model::On()) {
             return false;

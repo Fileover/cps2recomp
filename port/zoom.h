@@ -4,7 +4,8 @@
 // The camera's zoom: the picture shown larger about one player's fighter, following it, at the sizes the model
 // viewer draws a character at from its own to twice it (twice: the top of a tall one goes off the screen). A
 // press for a player steps its size up, from 2x back to none; a press for the other player looks at that one
-// instead, at the same size. The size and the place looked at go smoothly from one to the next, and what was
+// instead, at the same size. The fighter is always in the middle (past the picture's edges is black); the size,
+// and the place looked at when it changes fighter, go smoothly from one to the next, and what was
 // chosen is said on the picture for a few seconds. Only where the game's sources say where a fighter is
 // (runtime/game.h, Game::focus), and only while there is one: elsewhere the picture goes back to its own size.
 // It is the window's alone: the game, its save states and its screenshots know nothing of it.
@@ -23,6 +24,9 @@ public:
 
     // A press for player `player` (0 or 1)
     void Press(int player);
+    // The camera moved off its fighter by so many steps across and down (the d-pad or the arrows, while zooming), to
+    // frame it as the player wants; kept until the zoom is off or looks at the other fighter
+    void Pan(int across, int down);
     // Straight to a size (0: none) about a player, with no easing (--zoom)
     void Set(int size, int player);
     // Each picture shown, `width` x `height`: the size and the place looked at a step nearer what is wanted
@@ -38,6 +42,10 @@ private:
     void Said();
     int m_size = 0, m_player = 0;
     float m_shown = 1.0f, m_x = 0, m_y = 0; // as shown now
+    float m_offX = 0, m_offY = 0;           // (the camera's way off its fighter, after it changed fighter)
+    float m_panX = 0, m_panY = 0;           // (... and where the player has moved it from its fighter)
+    int m_followed = 0;
+    bool m_wasSeen = false;
     bool m_settled = false;                 // (the place is known: eased to from here on)
     bool m_jump = false;                    // (the next Follow goes straight there)
     int m_labelTicks = 0;

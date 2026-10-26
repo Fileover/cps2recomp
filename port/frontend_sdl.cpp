@@ -59,10 +59,35 @@ namespace {
         return PadInputBound(g_bindings, Table(), {button, -1});
     }
 
+    // The camera's zoom (zoom.h) is the left stick's click held and a shoulder pressed: left for player 1, right for
+    // player 2; the d-pad (or the stick) moves the camera. While the click is held (and is not the game's), the
+    // shoulders and the directions are not the game's. On the keyboard, Left Shift held, Q and E, and the arrows.
+    bool ZoomHeld(SDL_Gamepad *gp) {
+        return Zoom::Possible() && gp && !ButtonBound(SDL_GAMEPAD_BUTTON_LEFT_STICK) && SDL_GetGamepadButton(gp, SDL_GAMEPAD_BUTTON_LEFT_STICK);
+    }
+    bool Shoulder(int button) {
+        return button == SDL_GAMEPAD_BUTTON_LEFT_SHOULDER || button == SDL_GAMEPAD_BUTTON_RIGHT_SHOULDER;
+    }
+    bool DPad(int button) {
+        return button == SDL_GAMEPAD_BUTTON_DPAD_UP || button == SDL_GAMEPAD_BUTTON_DPAD_DOWN || button == SDL_GAMEPAD_BUTTON_DPAD_LEFT ||
+               button == SDL_GAMEPAD_BUTTON_DPAD_RIGHT;
+    }
+    bool KeyZoomHeld(const bool *keys) {
+        return Zoom::Possible() && keys[SDL_SCANCODE_LSHIFT] && !KeyBound(SDL_SCANCODE_LSHIFT);
+    }
+    bool KeyZoom(SDL_Scancode key) {
+        return key == SDL_SCANCODE_Q || key == SDL_SCANCODE_E || key == SDL_SCANCODE_UP || key == SDL_SCANCODE_DOWN ||
+               key == SDL_SCANCODE_LEFT || key == SDL_SCANCODE_RIGHT;
+    }
+
     uint16_t ReadKeyboard(const bool *keys, int player) {
         uint16_t pad = 0;
+        const bool zoomHeld = KeyZoomHeld(keys);
         for (int action = 0; action < Table().table.count; action++) {
             const SDL_Scancode key = g_bindings.key[player][action];
+            if (zoomHeld && KeyZoom(key)) {
+                continue;
+            }
             if (key != SDL_SCANCODE_UNKNOWN && keys[key]) {
                 pad |= Table().bits[action];
             }
@@ -74,21 +99,12 @@ namespace {
         return pad;
     }
 
-    // The camera's zoom (zoom.h) is the left stick's click held and a shoulder pressed: left for player 1, right for
-    // player 2. While the click is held (and is not the game's), the shoulders are not the game's either.
-    bool ZoomHeld(SDL_Gamepad *gp) {
-        return Zoom::Possible() && gp && !ButtonBound(SDL_GAMEPAD_BUTTON_LEFT_STICK) && SDL_GetGamepadButton(gp, SDL_GAMEPAD_BUTTON_LEFT_STICK);
-    }
-    bool Shoulder(int button) {
-        return button == SDL_GAMEPAD_BUTTON_LEFT_SHOULDER || button == SDL_GAMEPAD_BUTTON_RIGHT_SHOULDER;
-    }
-
     uint16_t ReadGamepad(SDL_Gamepad *gp, int player) {
         uint16_t pad = 0;
         const bool zoomHeld = ZoomHeld(gp);
         for (int action = 0; action < Table().table.count; action++) {
             const PadInput input = g_bindings.pad[player][action];
-            if (zoomHeld && Shoulder(input.button)) {
+            if (zoomHeld && (Shoulder(input.button) || DPad(input.button))) {
                 continue;
             }
             if ((input.button >= 0 && SDL_GetGamepadButton(gp, static_cast<SDL_GamepadButton>(input.button))) ||
@@ -96,8 +112,8 @@ namespace {
                 pad |= Table().bits[action];
             }
         }
-        const int x = SDL_GetGamepadAxis(gp, SDL_GAMEPAD_AXIS_LEFTX);
-        const int y = SDL_GetGamepadAxis(gp, SDL_GAMEPAD_AXIS_LEFTY);
+        const int x = zoomHeld ? 0 : SDL_GetGamepadAxis(gp, SDL_GAMEPAD_AXIS_LEFTX);
+        const int y = zoomHeld ? 0 : SDL_GetGamepadAxis(gp, SDL_GAMEPAD_AXIS_LEFTY);
         if (x < -kDead) pad |= kLeft;
         if (x > kDead) pad |= kRight;
         if (y < -kDead) pad |= kUp;
@@ -226,7 +242,10 @@ int RunWindowed(Port &port) {
             switch (ev.type) {
             case SDL_EVENT_QUIT: running = false; break;
             case SDL_EVENT_KEY_DOWN:
-                if (ev.key.scancode == SDL_SCANCODE_ESCAPE || ev.key.scancode == SDL_SCANCODE_F1 || (ev.key.scancode == SDL_SCANCODE_TAB && !KeyBound(SDL_SCANCODE_TAB))) {
+                if (!port.menu.IsOpen() && !ev.key.repeat && (ev.key.scancode == SDL_SCANCODE_Q || ev.key.scancode == SDL_SCANCODE_E) &&
+                    KeyZoomHeld(SDL_GetKeyboardState(nullptr))) {
+                    port.zoom.Press(ev.key.scancode == SDL_SCANCODE_E ? 1 : 0);
+                } else if (ev.key.scancode == SDL_SCANCODE_ESCAPE || ev.key.scancode == SDL_SCANCODE_F1 || (ev.key.scancode == SDL_SCANCODE_TAB && !KeyBound(SDL_SCANCODE_TAB))) {
                     toggleMenu();
                 } else if (KeyBound(ev.key.scancode)) {
                     // (a key the player has given to the game does only that)
@@ -312,6 +331,30 @@ int RunWindowed(Port &port) {
                 port.service = keys[SDL_SCANCODE_9] && !KeyBound(SDL_SCANCODE_9);
             }
             bool hurry = multi && keys[SDL_SCANCODE_F] && !KeyBound(SDL_SCANCODE_F);
+            // (the camera moved by the arrows with Left Shift held, and by each gamepad's d-pad or stick with its click held)
+            if (!port.menu.IsOpen()) {
+                int across = 0, down = 0;
+                if (KeyZoomHeld(keys) && !(SDL_GetModState() & SDL_KMOD_ALT)) {
+                    across += keys[SDL_SCANCODE_RIGHT] - keys[SDL_SCANCODE_LEFT];
+                    down += keys[SDL_SCANCODE_DOWN] - keys[SDL_SCANCODE_UP];
+                }
+                for (SDL_Gamepad *gp : gamepads) {
+                    if (ZoomHeld(gp)) {
+                        const int x = SDL_GetGamepadAxis(gp, SDL_GAMEPAD_AXIS_LEFTX), y = SDL_GetGamepadAxis(gp, SDL_GAMEPAD_AXIS_LEFTY);
+                        const int right = SDL_GetGamepadButton(gp, SDL_GAMEPAD_BUTTON_DPAD_RIGHT) || x > kDead;
+                        const int left = SDL_GetGamepadButton(gp, SDL_GAMEPAD_BUTTON_DPAD_LEFT) || x < -kDead;
+                        const int lower = SDL_GetGamepadButton(gp, SDL_GAMEPAD_BUTTON_DPAD_DOWN) || y > kDead;
+                        const int higher = SDL_GetGamepadButton(gp, SDL_GAMEPAD_BUTTON_DPAD_UP) || y < -kDead;
+                        across += right - left;
+                        down += lower - higher;
+                        // (the click was the camera's, not the menu's, once it has been moved with it)
+                        if (right || left || lower || higher) {
+                            stickWaiting = false;
+                        }
+                    }
+                }
+                port.zoom.Pan(std::clamp(across, -1, 1), std::clamp(down, -1, 1));
+            }
             bool trigger = false, both = false;
             const bool stepOnTrigger = !PadInputBound(g_bindings, Table(), {-1, SDL_GAMEPAD_AXIS_LEFT_TRIGGER});
             for (size_t i = 0; i < gamepads.size() && static_cast<int>(i) < Players(); i++) {
