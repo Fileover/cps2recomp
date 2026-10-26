@@ -297,6 +297,19 @@ const launcher::Collection& launcher::describe_collection() {
              {"Full screen", "Window", "As each game is set"}},
             {"picture", "Picture", "Every game in widescreen, or every game 4:3, or each as its own Widescreen switch has it. For this run only.",
              {"Widescreen", "4:3", "As each game is set"}},
+            // (the Display page's own, port/main.cpp: every game has them, and every endless battle invisible walls)
+            {"walls", "Invisible walls", "With widescreen: every game played exactly as on the board, behind walls that are not seen, or every game "
+             "to the wide picture's edges, or each as its own Display page has it. For this run only.",
+             {"On", "Off", "As each game is set"}, 2},
+            {"scaling", "Scaling", "Sharp: each pixel a crisp block. Whole pixels: every pixel the same whole number of the screen's pixels tall. "
+             "Smooth: softened all over. Or each as its own Display page has it. For this run only.",
+             {"Sharp", "Whole pixels", "Smooth", "As each game is set"}, 3},
+            {"shape", "Picture shape", "4:3 as the arcade's monitor, square pixels, or filling the window or screen, or each as its own Display "
+             "page has it. For this run only.",
+             {"4:3", "Square pixels", "Fill", "As each game is set"}, 3},
+            {"size", "Window size", "How large the first game's window opens, in times the board's 224 lines, or as its own Display page has it. "
+             "Each game after it opens where the one before was, as large.",
+             {"2x", "3x", "4x", "5x", "6x", "As each game is set"}, 5},
         };
         // (port/frontend_sdl.cpp: in a Multi game run; each unless the player has given it to the game)
         endless.buttons = {
@@ -316,6 +329,26 @@ const launcher::Collection& launcher::describe_collection() {
             if (values[4] != 2) {
                 args.push_back("--features");
                 args.push_back(values[4] == 0 ? "widescreen" : "-widescreen");
+            }
+            // (the features' own values: display_scaling and display_shape as listed, window_size 3x first)
+            static const int kSizes[] = {1, 0, 2, 3, 4};
+            std::string display;
+            auto give = [&](const std::string& one) { display += (display.empty() ? "" : ",") + one; };
+            if (values[5] != 2) {
+                give(values[5] == 0 ? "widescreen_walls" : "-widescreen_walls");
+            }
+            if (values[6] != 3) {
+                give("display_scaling=" + std::to_string(values[6]));
+            }
+            if (values[7] != 3) {
+                give("display_shape=" + std::to_string(values[7]));
+            }
+            if (values[8] != 5) {
+                give("window_size=" + std::to_string(kSizes[std::clamp(values[8], 0, 4)]));
+            }
+            if (!display.empty()) {
+                args.push_back("--features");
+                args.push_back(display);
             }
             return args;
         };

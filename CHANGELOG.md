@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- **Multi game**: the rest of the Display page every game has, for the whole run: **Invisible walls**, **Scaling**,
+  **Picture shape** and **Window size**, each also "As each game is set" (the default), given after the game's own
+  settings as Screen and Picture are, and kept nowhere. In a window, the next game opens where the one before was and
+  as tall (the game ending for the next writes its window's place to a file in the temporary folder, which the next
+  reads within the minute and removes); it opened where the system puts a new window, so a window moved stayed behind.
 - **Zoom**: the camera keeps its fighter in the middle at every size, past the stage's ends too (black there); it
   was kept inside the picture, so near an end the fighter was off to the side, and it trailed a dash. It eases only
   when it changes fighter or size. With the left stick's click held, the d-pad or the stick moves it to frame the

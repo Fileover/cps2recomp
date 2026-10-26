@@ -13,8 +13,11 @@
 #include <SDL3/SDL.h>
 
 #include <algorithm>
+#include <chrono>
 #include <cmath>
 #include <cstring>
+#include <filesystem>
+#include <fstream>
 
 using namespace cps2recomp;
 
@@ -121,6 +124,46 @@ namespace {
         return pad;
     }
 
+    // A Multi game run's window: where the game before left it (each game is a program of its own, and its window
+    // would open where the system puts a new one). The game ending for the next writes it down; the next game reads
+    // it, if it was written moments ago (not a run before), and opens its window there, as tall.
+    struct Placement {
+        int x = 0, y = 0, height = 0;
+        bool maximized = false;
+    };
+    std::filesystem::path PlacementFile() {
+        std::error_code error;
+        const std::filesystem::path folder = std::filesystem::temp_directory_path(error);
+        return error ? std::filesystem::path() : folder / "cps2recomp-multi-window.txt";
+    }
+    void KeepPlacement(SDL_Window *window) {
+        const std::filesystem::path file = PlacementFile();
+        if (file.empty() || (SDL_GetWindowFlags(window) & SDL_WINDOW_FULLSCREEN)) {
+            return;
+        }
+        Placement at;
+        int width = 0;
+        SDL_GetWindowPosition(window, &at.x, &at.y);
+        SDL_GetWindowSize(window, &width, &at.height);
+        at.maximized = SDL_GetWindowFlags(window) & SDL_WINDOW_MAXIMIZED;
+        std::ofstream(file) << at.x << ' ' << at.y << ' ' << at.height << ' ' << at.maximized << '\n';
+    }
+    bool TakePlacement(Placement &at) {
+        const std::filesystem::path file = PlacementFile();
+        std::error_code error;
+        if (file.empty() || !std::filesystem::exists(file, error)) {
+            return false;
+        }
+        const auto age = std::filesystem::file_time_type::clock::now() - std::filesystem::last_write_time(file, error);
+        bool fresh = !error && age < std::chrono::minutes(1);
+        {
+            std::ifstream in(file);
+            fresh = fresh && (in >> at.x >> at.y >> at.height >> at.maximized) && at.height > 0;
+        }
+        std::filesystem::remove(file, error);
+        return fresh;
+    }
+
 } // namespace
 
 int RunWindowed(Port &port) {
@@ -144,9 +187,23 @@ int RunWindowed(Port &port) {
     // much wider as the widest picture the game's sources may ask for; 4:3 for a picture that fills it)
     const int columns = TheGame().widestPicture ? std::clamp(TheGame().widestPicture(), +Video::kWidth, +Video::kMaxWidth) : Video::kWidth;
     auto windowShape = [](int across) { return PictureShape(across, Video::kHeight, DisplayShape(), 4.0f / 3.0f * across / Video::kWidth); };
-    SDL_Window *window = SDL_CreateWindow(title, static_cast<int>(std::lround(Video::kHeight * scale * windowShape(columns))), Video::kHeight * scale,
-                                          SDL_WINDOW_RESIZABLE | (port.opt.fullscreen ? SDL_WINDOW_FULLSCREEN : 0) |
-                                              (getenv("CPS2RECOMP_HIDDEN_WINDOW") ? SDL_WINDOW_HIDDEN : 0)); // (hidden: for tests)
+    // (in a Multi game run, a window where the game before's was: a full screen one is full screen as asked)
+    Placement placed;
+    const bool carried = !MultiGame().empty() && TakePlacement(placed) && !port.opt.fullscreen;
+    const int windowHeight = carried ? placed.height : Video::kHeight * scale;
+    const SDL_PropertiesID properties = SDL_CreateProperties();
+    SDL_SetStringProperty(properties, SDL_PROP_WINDOW_CREATE_TITLE_STRING, title);
+    SDL_SetNumberProperty(properties, SDL_PROP_WINDOW_CREATE_WIDTH_NUMBER, std::lround(windowHeight * windowShape(columns)));
+    SDL_SetNumberProperty(properties, SDL_PROP_WINDOW_CREATE_HEIGHT_NUMBER, windowHeight);
+    if (carried) {
+        SDL_SetNumberProperty(properties, SDL_PROP_WINDOW_CREATE_X_NUMBER, placed.x);
+        SDL_SetNumberProperty(properties, SDL_PROP_WINDOW_CREATE_Y_NUMBER, placed.y);
+    }
+    SDL_SetNumberProperty(properties, SDL_PROP_WINDOW_CREATE_FLAGS_NUMBER,
+                          SDL_WINDOW_RESIZABLE | (port.opt.fullscreen ? SDL_WINDOW_FULLSCREEN : 0) | (carried && placed.maximized ? SDL_WINDOW_MAXIMIZED : 0) |
+                              (getenv("CPS2RECOMP_HIDDEN_WINDOW") ? SDL_WINDOW_HIDDEN : 0)); // (hidden: for tests)
+    SDL_Window *window = SDL_CreateWindowWithProperties(properties);
+    SDL_DestroyProperties(properties);
     // (in front: on macOS a program started by one that is not, as the launcher is behind a Multi game run's
     // last game, opens behind the other windows)
     if (window && !getenv("CPS2RECOMP_HIDDEN_WINDOW")) {
@@ -562,12 +619,14 @@ int RunWindowed(Port &port) {
     if (music) {
         SDL_DestroyAudioStream(music);
     }
-#ifdef __APPLE__
-    // (on to a Multi game run's next game: the launcher starts it, and must be in front for it to come forward)
+    // (on to a Multi game run's next game: its window where this one is; on macOS the launcher starts it, and must
+    // be in front for it to come forward)
     if (ProgramEnded() == kNextGame && !MultiGame().empty()) {
+        KeepPlacement(window);
+#ifdef __APPLE__
         HandFrontToLauncher();
-    }
 #endif
+    }
     presenter.Close();
     SDL_DestroyWindow(window);
     SDL_Quit();
