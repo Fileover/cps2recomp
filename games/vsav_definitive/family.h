@@ -167,6 +167,19 @@ inline constexpr uint32_t kGuardsAnything = 0;
 inline constexpr uint16_t kGuardNear = 0x80;
 inline constexpr uint32_t kAtEdgeToo = 0;
 
+// How the computer player differs from game to game (src/computer.cpp; as Vampire Savior's here):
+// - the stocks a wait for a stock move (kind 22) needs, and a byte of the player's record that, set, keeps it from one
+// - one more character whose jump's move waits while its +1BC is set (-1: none)
+// - how near (across) the end of the other's attack has to be for it to be coming, and whether the numbers of its
+//   attack's boxes are read unsigned
+// - whether the guarding pose crouches for the other's low attacks too
+inline constexpr uint8_t kStockMoveStocks = 1;
+inline constexpr uint32_t kNoStockMove = 0x111;
+inline constexpr int kJumpMoveWaitsToo = -1;
+inline constexpr uint16_t kComingNear = 0x80;
+inline constexpr bool kComingBoxesUnsigned = false;
+inline constexpr bool kGuardsLowAttacks = false;
+
 // Tiles of the objects the port tells apart (src/machines.cpp, src/widescreen.cpp), from one to one less than the
 // other: the shadows (colour set 22), the panel's faces beside the bars (drawn in the players' own colours), the red
 // curtain between a match's screens (set 3)

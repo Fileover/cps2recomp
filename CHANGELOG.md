@@ -8,6 +8,13 @@
   playing (recomp-common: `MultiButton`). (`port/frontend_sdl.cpp`, `Port::hurry`, `runtime/game.h` `AskNextGame`.)
 - The ring out shows its score (Ring outs: N) at the top all the while it plays, as survival does, not only when it
   is over.
+- **The Vampire Savior games' computer player is readable C++** (`games/vampire_savior/src/computer.cpp`): the
+  interpreter of its scripts (choosing a plan, a tactic, a reaction; the instructions and the if's tests; each
+  instruction looked at frame by frame until it is over) and fourteen routines the fighters' own code calls in it,
+  about 1,900 instructions of the game's. Each is checked call by call against the game's own code, in Vampire
+  Savior, Definitive, Vampire Savior 2 and Vampire Hunter 2 (the last two's code differs in four places, which their
+  `family.h` names), over the computer's movies, the attract mode's fights and ladders at levels from lowest to
+  highest. Nothing plays differently: it is the ground for a computer that plays the alternative modes itself.
 - **Another game: Street Fighter Alpha 3** (`games/sfa3`; ROM set `sfa3u`, USA 980904, the last revision and the one
   tournaments and Fightcade play; issue #89). The game as the board plays it, translated whole (its 68000 program and
   its sound program, Capcom's driver 1.71) and checked, with everything Street Fighter Alpha 2's port has: a **training
