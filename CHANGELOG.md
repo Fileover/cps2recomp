@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- **Multi game**: the **Picture** of every game in a run (widescreen, 4:3, or as each game is set) and a **Window**
+  beside Full screen, so a run looks the same from game to game. For that run only: each game's own switches are
+  left as they were (`--features` and the games' new `--window` after the launcher's own).
+- **Multi game** on macOS: the next game comes to the front. It opened behind the other windows, since macOS brings
+  forward only a program started by the one in front; the game ending for the next one hands the front to the
+  launcher first (`port/front_macos.mm`), and every game raises its window as it opens.
 - **Linux ARM64**: a download for 64-bit ARM Linux (aarch64: ARM handhelds, single-board computers, ARM
   Chromebooks' Linux), `CPS2Recomp-linux-arm64.tar.gz`, beside the x86_64 one, and its launcher updates itself from
   `update-linux-arm64.txt` (issue #99). CI builds and starts it on an ARM64 runner. (`tools/release/linux.sh` builds

@@ -1108,7 +1108,7 @@ void Usage() {
             "  --sound-test SEED[:N]  every N frames (30) a command to the sound side: each song in turn, placed\n"
             "                         some made-up way, and the other commands (with --sound check)\n"
             "  --scale N              window size, times 224 lines (else the Display page's)\n"
-            "  --fullscreen  --mute  --unthrottled\n"
+            "  --fullscreen  --window (a window, after --fullscreen)  --mute  --unthrottled\n"
             "  --headless             no window, no sound, as fast as it goes\n"
             "  --frames N             stop after N frames\n"
             "  --shot-every N:PFX     write PFX<frame>.png every N frames\n"
@@ -1177,6 +1177,8 @@ bool ParseArgs(int argc, char **argv, port::Options &o) {
             o.scale = atoi(next());
         } else if (a == "--fullscreen") {
             o.fullscreen = true;
+        } else if (a == "--window") {
+            o.fullscreen = false; // (the Multi game page's, after what the game's own Play says)
         } else if (a == "--mute") {
             o.mute = true;
         } else if (a == "--unthrottled") {
