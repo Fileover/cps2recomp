@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+- **Street Fighter Alpha 2's CPU plays the tag style and the ring out itself**, as the Vampire Savior games' does: its
+  own scripts, run by its interpreter (`games/sfa2/src/computer.cpp`), have three tactics of the port's: out of a
+  corner (a throw, a jump over you, a walk out), knocking you over your end (a throw or a sweep), and in the tag
+  style backing off and tagging; its own guard on all the while, which the toolkit's coach (now Super Turbo's alone)
+  cost it by taking its controls. CPU against CPU it won 64% and 59% of ring outs against the game's own play (53%
+  and 47% with nobody playing the mode; the coach 56% and 59%). `ComputerModeOf` says no mode for a game whose
+  computer does not play the modes itself. `tools/aiscripts.py` names Alpha 2's jumps' ways as its jump reads them
+  (1 forward, 0 straight up, FF back), and the tests of the other's jump with them.
+
 - **Zoom**: the camera keeps its fighter in the middle at every size, past the stage's ends too (black there); it
   was kept inside the picture, so near an end the fighter was off to the side, and it trailed a dash. It eases only
   when it changes fighter or size. With the left stick's click held, the d-pad or the stick moves it to frame the
