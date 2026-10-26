@@ -125,6 +125,10 @@ CameraWanted &CameraAt();
 
 // A round of a match is being fought
 bool RoundFought();
+// The window's zoom on a fighter (runtime/game.h, Game::focus; port/zoom.h), for a game's sources: `place` gives where
+// player `player`'s fighter stands in the picture (the middle of its feet, widescreen's columns counted), and the zoom
+// looks `lift` lines above that. Only while a round is fought, and not in the model viewer, which has sizes of its own.
+void Focus(void (*place)(int player, int &x, int &y), int lift);
 // Players are choosing their characters, both in
 bool Choosing();
 // The controls of a machine on its way from switching on to a round of a two-player game: credits kept, both Starts

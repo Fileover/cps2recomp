@@ -19,6 +19,7 @@
 // The rules the wide picture changes are written again here as readable C++ (rewrites: lift.h), each with the
 // margin as a line in it: the camera's place across (its ends 64 nearer the middle), and keeping the players
 // inside the picture (64 further out on each side).
+#include "alternative.h"
 #include "modes.h"
 #include "sfa2.h"
 
@@ -528,7 +529,18 @@ int WideStage() {
     return g_side + g_shift;
 }
 
+namespace {
+    using namespace sfa2;
+    // Where a player's fighter stands in the picture, for the window's zoom (fight/alternative.h, modes::Focus): the
+    // middle of its feet, the wide picture's columns counted
+    void FocusPlace(int player, int &x, int &y) {
+        x = static_cast<int16_t>(Ram16(Player(player) + kX)) - static_cast<int16_t>(Ram16(0xFF8290)) + WideStage();
+        y = 239 - (static_cast<int16_t>(Ram16(Player(player) + kY)) - static_cast<int16_t>(Ram16(0xFF8294)));
+    }
+} // namespace
+
 void RegisterWidescreen() {
+    modes::Focus(FocusPlace, 44);
     TheGame().widestPicture = [] { return Video::kWidth + (FeatureOn("widescreen") ? 2 * kSide : 0); };
     AddRewrite(0x01B662, "CameraAcross", CameraAcross, kFreeFlags, 253);
     AddRewrite(0x01B6DA, "CameraUp", CameraUp, kFreeFlags, 218);

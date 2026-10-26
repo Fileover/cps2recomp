@@ -663,6 +663,15 @@ void RegisterModel(uint32_t cameraWayAt, int largeLift) {
     d.spareFrame = [](Machine &) { SetRam8(e.clock, 0x99); };
     model::Register(d);
     AddHook(cameraWayAt, "CameraWay", CameraWay);
+    // The window's zoom (modes::Focus): where the fighter stands in the picture as the boxes are put there (AddBox),
+    // heights growing downwards; a tag-team game's point characters are the first two records
+    modes::Focus(
+        [](int player, int &x, int &y) {
+            const uint32_t camera = e.cameraRecord();
+            x = Word(Player(player) + e.x) - Word(camera + e.cameraX) - e.pictureLeft + WideStage();
+            y = Word(Player(player) + e.y) - Word(camera + e.cameraY) - 0x0F;
+        },
+        40);
 }
 
 } // namespace cps2recomp::marvel
