@@ -784,8 +784,8 @@ own parts:
 
 The game's computer player is a small interpreter running scripts from the ROM, a set of them for each character.
 `tools/aiscripts.py` prints every character's scripts as text, from a build's work/ (nothing of the game's in the
-repository); `--check` decodes everything, `--against` checks a run against it (below). The interpreter is not yet
-readable code. Offsets from the player (A6):
+repository); `--check` decodes everything, `--against` checks a run against it (below). The interpreter is readable
+code, `src/computer.cpp` (below, "As C++"). Offsets from the player (A6):
 
 - Entered from the player's routine (022552, at 0225BC: `jsr 02B7FA`) for a computer's fighter. 02B7FA runs the bank
   the mode `+204` names (0, 2, 4, 6); each bank's scripts are found from a table of the characters' (by `+382`,
@@ -846,8 +846,33 @@ readable code. Offsets from the player (A6):
   game's ladder (Vampire Savior 2 2,217, Vampire Hunter 2 2,001, Super Gem Fighter 550). About half the even places
   in 100000-113000 are instructions, so a place found by chance would fail one time in two.
 - Not sure of: what a jump's kinds 0 and 2 do with their move, 04 02's second word, the operations 0A and 14 by
-  name (two of the gauge moves), test 3C (`+39`). Next: the interpreter as readable code (02B7FA-02D800, about
-  1,900 instructions), checked with --check-rewrites against the movies with a computer in them.
+  name (two of the gauge moves), test 3C (`+39`), what Reactions' answer 1 is (the computer reeling, `+4` 02020400,
+  is taken out of it at once by 026058, which clears a hit's bytes, and `+143` set to 5).
+- As C++ (2026-10-26, `src/computer.cpp`): ComputerPlays (02B7FA: the banks, the interpreter, the instructions and
+  tests, the waits frame by frame) and the fourteen routines of 02B7FA-02D642 the fighters' code calls (AnswerNow,
+  BrokenOff, Reactions, Chance, AttackComing, UnpackMove, UnpackChainMove, JumpMoveNow, SecondMoveNow, GuardPose,
+  SetGuardsWithMove, AtEdgeJump, GuardAnyway, NextChainMove). D0, D1 and the flags are free for the three that run
+  the interpreter (02B7FA's caller sets them before it reads them); the rest give back every register and flag, the
+  extend flag too. The scripts are read with the 68000's data reads (Mem16), the tables lea'd from the program too.
+  - Checked with `--check-rewrites` (check_rewrites.sh, and check_family.sh for the other two games): every call as
+    the game's own code, about 2.3 million calls of ComputerPlays in Vampire Savior (the computer
+    movies; the attract mode; four ladders of made-up play at levels 0, 10, 20 and 31; Endless battle with the
+    characters chosen, at each tier, some bytes held to reach a script's rarer branches), 330,000 in Definitive (two
+    ladders, and Endless battle with Phobos against Pyron; one with Donovan stops under the check with these rewrites
+    left out too, at 01B6A7, so it is not theirs: not yet looked into) and 12,000 each in Vampire Savior 2 and Vampire Hunter 2
+    (the attract mode). No call has differed. In Vampire Savior 2 and Vampire Hunter 2 the code differs in four places, which
+    their `family.h` names (`kStockMoveStocks`, `kNoStockMove`, `kJumpMoveWaitsToo`, `kComingNear`,
+    `kComingBoxesUnsigned`, `kGuardsLowAttacks`); Definitive is Vampire Savior's.
+  - The level is held for a run by `--poke` on the players' `+3B3` (FF87B3, FF8BB3; A5+12E, which the game copies
+    there in a match, is not copied in the attract mode, whose fights are at level 16 and tier 40); player 1's health
+    held full (FF8450-FF8453) takes made-up play through the ladder (the check's runs cannot use No damage: the
+    game's own code is what goes on).
+  - The scripts of all three games use 45 of the 50 kinds of instruction and 22 of the 34 tests (aiscripts.py). The
+    rest are in no script and have never run: waits 06, 0C and 1E, 0E 00 (a tactic gone to always), 12 02 (answers
+    kept out), 1A, and the tests 12, 14, 22-34, 3A and 40. They are written from the code. Of those the scripts have, all have run in the check but test 3C (`+39` set: two
+    of Q-Bee's and Lei-Lei's tactics, after a jump back).
+  - Time: each rewrite is charged about the game's own time on average (a frame's play takes from under 300 cycles
+    to some thousands, when a script is chosen and many instructions are done at once).
 
 ## Board settings (2026-10-15)
 
