@@ -131,8 +131,8 @@ It is **off unless you switch it on**, in every preset, because it changes how t
 - The players can go to the wide picture's edges, so they can stand further apart than on the board. The
   stage's own ends are where they were.
 - The camera stops 64 short of where it did, so that the picture ends where the stage does.
-- The bars, the clock and the gauges stay in the middle. Survival, the endless battle, the stage and model
-  viewers and everything that is not a fight keep the board's 4:3.
+- The bars, the clock and the gauges stay in the middle. Survival, the endless battle, the ring out and the team
+  battle are wide too; the stage and model viewers and everything that is not a fight keep the board's 4:3.
 
 With it off the game is exactly the board's. Nothing here stretches the picture: the extra columns are the
 game's own stage art, which the board already holds and never showed, and on all eighteen stages they are

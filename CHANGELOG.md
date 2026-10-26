@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Street Fighter Alpha 3's widescreen is on in the alternative modes' fights too (survival, the endless battle, the
+  ring out, the tag team battle), as in Alpha and Alpha 2; only arcade, versus and training had it (issue #109).
+  Alpha 2's README said its modes were 4:3; they were already wide.
 - **Multi game**: in its endless battle, **N** (or a gamepad's left shoulder) fades out to the next game, and **F** (or
   the left trigger) held runs the game four times as fast, without sound ("FAST FORWARD x4" at the bottom); each only
   when the player has not given it to the game. The Multi game page lists them under While it plays, and in Now
