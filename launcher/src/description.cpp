@@ -296,6 +296,11 @@ const launcher::Collection& launcher::describe_collection() {
             {"screen", "Screen", "Full screen for every game, or each game in a window or full screen as its own Display switch has it.",
              {"Full screen", "As each game is set"}},
         };
+        // (port/frontend_sdl.cpp: in a Multi game run; each unless the player has given it to the game)
+        endless.buttons = {
+            {"Next game", "Fades out of this game and on to the next.", {"N", "Left shoulder"}},
+            {"Fast forward", "Held: the game runs four times as fast, without sound.", {"F", "Left trigger"}},
+        };
         endless.arguments = [](const std::vector<int>& values) {
             static const int kSeconds[] = {30, 60, 120, 180, 300};
             std::vector<std::string> args = {"--multi", values[0] == 1 ? "endless:scroll:" + std::to_string(values[2])

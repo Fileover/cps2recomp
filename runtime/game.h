@@ -160,6 +160,11 @@ const std::string &MultiGame();
 // The game's sources end the program, with this exit code: the window closes after the frame
 void EndProgram(int code);
 int ProgramEnded(); // (-1: not asked)
+// In a Multi game run the player can ask for the next game (N, a gamepad's left shoulder): the game's sources
+// end it their own way (the endless battle fades out); if they have not within a couple of seconds, the port
+// ends it. (-1: not asked; else the port's tick it was asked on)
+void AskNextGame(int64_t tick);
+int64_t NextGameAsked();
 
 // The readout: lines of text the game's sources want shown over the picture while it plays (a training
 // display and the like). The port draws each as a small panel.

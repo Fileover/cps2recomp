@@ -187,6 +187,14 @@ struct MultiChoice {
     int shown_value = 0;
 };
 
+// A key or button that does something while a multi-game mode's games play (the next game, say): a row on its card,
+// with keycaps for `keys` (a key, a gamepad's button: either does it).
+struct MultiButton {
+    const char *title;
+    const char *detail;
+    std::vector<const char *> keys;
+};
+
 // A mode that plays several of a collection's games one after another, on its own page (Multi game). The player
 // chooses which of the games that have it are played, in the sidebar's order or shuffled, and the mode's choices;
 // Start starts the first with what its Play starts it with and the mode's arguments after that. A game that ends with
@@ -198,6 +206,7 @@ struct MultiMode {
     const char *detail;              // what it is
     std::vector<const char *> games; // the ids of the games that have it
     std::vector<MultiChoice> choices;
+    std::vector<MultiButton> buttons; // what works while it plays (shown under its choices, and while it plays)
     // The arguments for it, by the choices' values (in the order of `choices`)
     std::function<std::vector<std::string>(const std::vector<int> &values)> arguments;
     int next_code = 3;

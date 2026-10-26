@@ -109,8 +109,10 @@ gives that game keys and buttons apart from the others', under the game's own na
 next game's stages, and round again after the last: choose the games (every fighting game, or only some), their order
 (the sidebar's, or shuffled), how the stages change (**Shuffle**, each fading into the next after the time you choose,
 or **Scroll**, going by in order at the speed you choose) and full screen or as each game is set, then **Start**. Touch
-the controls to take a fighter over. Quitting a game (its menu's Quit game, or closing its window) ends the run, as
-does **Stop after this game**.
+the controls to take a fighter over. While it plays, **N** (or a gamepad's left shoulder) fades out to the next game
+and **F** (or the left trigger) held fast-forwards at four times the speed; the page lists them under **While it
+plays**. Quitting a game (its menu's Quit game, or closing its window) ends the run, as does **Stop after this
+game**.
 
 ![The Multi game page: the endless battle through every stage of each game you choose](docs/screenshots/launcher-multi.png)
 
