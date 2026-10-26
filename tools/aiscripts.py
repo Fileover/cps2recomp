@@ -1,30 +1,36 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: GPL-3.0-only
 # Copyright (C) 2026 Tommy McLeroy. Part of cps2recomp.
-"""Prints the computer player's scripts as text: the Vampire Savior games' and Super Gem Fighter's computer is an
-interpreter running scripts from the ROM, a set for each character (games/vampire_savior/PROGRESS.md, "The
-computer player"). Read from a build's work/<id>/ (program.lst, program.bin, program.bin.data), run from the
-repository's top.
+"""Prints the computer player's scripts as text: the Vampire Savior games', Super Gem Fighter's and Street Fighter
+Alpha 2's computer is an interpreter running scripts from the ROM, a set for each character
+(games/vampire_savior/PROGRESS.md, "The computer player"; games/sfa2/PROGRESS.md, "The computer player: scripts").
+Read from a build's work/<id>/ (program.lst, program.bin, program.bin.data), run from the repository's top.
 
   aiscripts.py [GAME]                     every character's scripts (GAME: vampire_savior)
   aiscripts.py GAME --character NAME|N    one character's
   aiscripts.py GAME --check               decode everything and say what did not fit; prints nothing else
-  aiscripts.py GAME --against FILE        check a run's --watch of a computer's script pointer (+220, a long)
-                                          against the instructions found: every place the game's interpreter
-                                          kept there must be one of theirs, and every step from one to the next
-                                          one the scripts allow (CPS2RECOMP_WATCH_REPORTS=N for more than the
-                                          first 2,000 writes)
+  aiscripts.py GAME --against FILE        check a run's --watch of a computer's script pointer (Vampire Savior
+                                          +220, Alpha 2 +230: a long) against the instructions found: every
+                                          place the game's interpreter kept there must be one of theirs, and
+                                          every step from one to the next one the scripts allow
+                                          (CPS2RECOMP_WATCH_REPORTS=N for more than the first 2,000 writes)
 
 The instructions' lengths are the game's own: its routine that skips over instructions (an "if" whose test
-fails) has a table of them, read here from the program. Where the instructions are the ones this was written
-from (Vampire Savior's), they are named; an instruction of another kind is printed as its words.
+fails) has a table of them, read here from the program. The instructions are named by the interpreter they
+were read from, told apart by where it keeps the computer's part of a player's record: Vampire Savior's (the
+banks' places from +210) or Alpha 2's (from +220, its record's fields 10h on from Vampire Savior's; fewer
+operations, a second "if" with "else if" and a break out of it, the Alpha counter). An instruction of another
+kind is printed as its words.
 
 Each character has four banks of scripts: 0 its plans (one chosen by the game), 1 its tactics (one at random
 from 32 slots for its plan, in the row of its tier: 0, 20 or 40 by the difficulty), 2 its reactions to an attack or a
 projectile (likewise at random), 3 more reactions (one chosen by the game). A script is a word (what happens
 when it is broken off) and instructions, two bytes each (an operation and a kind of it) and words after, to
-the end (FF). Distances are the gap between the two fighters (+130); a move is a word: a normal (bit 0
-clear: stance, punch or kick, strength, direction, variant) or a special (bit 0 set: its number, strength).
+the end (FF). Distances are the gap between the two fighters (Vampire Savior +130, Alpha 2 +218). A move is a
+word, bit 0 clear for a normal and set for a special. Vampire Savior's: a normal's stance, punch or kick,
+strength, the directions held and a variant, or a special's number and strength. Alpha 2's: three bits held
+for a character's command normals (+212, +213, +214), then a normal's stance, punch or kick and strength, a
+nibble each, or a special's number, punch or kick and strength.
 """
 import argparse
 import os
@@ -115,37 +121,44 @@ def skip_lengths(p):
                 lengths[(op, 2 * k)] = n
         elif p.cuw(h + 2) == 0x323B and p.cuw(h + 6) == 0x4EFB:  # "if": its kinds by a jmp table
             t = h + 4 + p.cuw(h + 4)
-            kinds = [t + p.cw(t + 2 * k) for k in range(3)]
-            lengths[(op, 0)] = lengths[(op, 2)] = lengths[(op, 4)] = 0  # (the test's own word: below)
-            ifs = kinds[0]  # addq.b #1,nesting / move.w (a0)+,d0 / move.w T(pc,d0.w),d1 / jsr
-            tt = ifs + 8 + p.cuw(ifs + 8)
-            for k, n in enumerate(sub_table(tt, kinds[1])):
-                tests[2 * k] = n
-            lengths["if"] = op
+            kinds = []
+            while t + 2 * len(kinds) < t + p.cw(t) and len(kinds) < 8:  # (up to the first kind's code)
+                kinds.append(t + p.cw(t + 2 * len(kinds)))
+            for k in range(len(kinds)):
+                lengths[(op, 2 * k)] = 0  # (the test's own word: below)
+            # [addq.b #1,nesting] / move.w (a0)+,d0 / move.w T(pc,d0.w),d1 / jsr (Alpha 2's first "if" skips without
+            # counting the nesting: it has a skipping routine of its own)
+            ifs = kinds[0]
+            tt = ifs + 4 + p.cuw(ifs + 4) if p.cuw(ifs) == 0x3018 else ifs + 8 + p.cuw(ifs + 8)
+            tests[op] = {}
+            for k, n in enumerate(sub_table(tt, kinds[1] if kinds[1] > tt else tt + 0x80)):
+                tests[op][2 * k] = n
+            lengths.setdefault("ifs", {})[op] = len(kinds)
     return lengths, tests
 
 
 # --- the banks of scripts: the routines that start one ---
 
 def bank_tables(p):
-    """The four tables of the characters' scripts (by +382), from the routines that start a script of each bank:
-    movea.l #TABLE,a0 ... move.l a0,0x210(a6) (0x214, 0x218, 0x21C)."""
-    banks = {}
+    """The four tables of the characters' scripts (by the character), from the routines that start a script of
+    each bank: movea.l #TABLE,a0 ... move.l a0,0x210(a6) (0x214, 0x218, 0x21C; Alpha 2's from 0x220). Also where
+    the banks' places start in the record (0x210 or 0x220)."""
+    found = {}
     for i, (a, ins) in enumerate(p.lines):
-        m = re.match(r"move\.l a0,0x(21[048C])\(a6\)$", ins)
+        m = re.match(r"move\.l a0,0x(2[12][048C])\(a6\)$", ins)
         if not m:
             continue
         for back in range(1, 24):
             mm = re.match(r"movea\.l #\$([0-9A-F]+),a0$", p.lines[i - back][1])
             if mm:
-                bank = (int(m.group(1), 16) - 0x210) // 4
-                banks.setdefault(bank, int(mm.group(1), 16))
+                found.setdefault(int(m.group(1), 16), int(mm.group(1), 16))
                 break
             if p.lines[i - back][1].startswith("rts"):
                 break
-    if sorted(banks) != [0, 1, 2, 3]:
-        sys.exit("aiscripts: the banks' tables were not all found (%s)" % banks)
-    return banks
+    for base in (0x210, 0x220):
+        if all(base + 4 * b in found for b in range(4)):
+            return {b: found[base + 4 * b] for b in range(4)}, base
+    sys.exit("aiscripts: the banks' tables were not all found (%s)" % found)
 
 
 def character_names(game):
@@ -279,12 +292,112 @@ def name(op, kind, args, names):
 ENDS = {0x00: "end: a tactic (bank 1) at random", 0x02: "end: back to the plan", 0x04: "end: a tactic, or back to the plan, by the table 0BB480's chance"}
 
 
+# --- naming (Alpha 2's instructions: its interpreter at 0280D4) ---
+
+def alpha_move(w):
+    """As the game unpacks it (029BE4): bits 1 to 3 held for a command normal (+212, +213, and +214, which is
+    also the way a jump or walk goes), then a normal's stance, punch or kick and strength (+100, +101, +102), a
+    nibble each, or a special's number (+133, in the character's own list) and strength"""
+    held = "".join(" +%X" % (0x212 + b) for b in range(3) if w & (2 << b))
+    if w & 1:  # (the character's own code knows a special's button: the nibble is 0)
+        text = "special %d %s" % ((w >> 4) & 0xF, STRENGTH.get((w >> 12) & 0xF, "strength %d" % ((w >> 12) & 0xF)))
+        if (w >> 8) & 0xF:
+            text += " (+101 %d)" % ((w >> 8) & 0xF)
+    else:
+        text = "%s %s %s" % ({0: "standing", 2: "crouching", 4: "jumping"}.get((w >> 4) & 0xF, "stance %d" % ((w >> 4) & 0xF)),
+                             STRENGTH.get((w >> 12) & 0xF, "strength %d" % ((w >> 12) & 0xF)),
+                             {0: "punch", 2: "kick"}.get((w >> 8) & 0xF, "button %d" % ((w >> 8) & 0xF)))
+    return text + (", held" + held if held else "")
+
+
+def alpha_with_move(w, m, frames):
+    """A jump's move, by the way word's low byte (as Vampire Savior's: 4 starts the move after so many frames)"""
+    kind = w & 0xFF
+    if kind & 0xFE == 4:
+        return ": %s after %d frames" % (alpha_move(m), frames)
+    return "" if not m and not frames else " (kind %d: %s, %d)" % (kind, alpha_move(m), frames)
+
+
+ALPHA_TESTS = dict(TESTS)
+ALPHA_TESTS.update({
+    0x06: "super gauge >= {0}", 0x0C: "the other knocked down",
+    0x0E: "the other's projectile out", 0x10: "the other's projectile within {0}",
+    0x12: "no projectile of the other's within {0}", 0x14: "an attack coming",
+    0x30: "no projectile of the other's out, or one of class 0 or 4 (table 028BCE)",
+    0x32: "the other's projectile out, of class 3 or more (table 028BCE)", 0x3C: "+5B set",
+})
+for _t in (0x3E, 0x40, 0x42):
+    del ALPHA_TESTS[_t]
+
+
+def alpha_name(op, kind, args, names):
+    a = args + [0] * 5
+    n = {
+        (0x00, 0x00): "stand %d frames" % a[0],
+        (0x00, 0x02): "crouch",
+        (0x00, 0x04): "stand up",
+        (0x00, 0x06): "wait while the other is in the air",
+        (0x00, 0x08): "wait while the other is in the air, above %d" % a[0],
+        (0x00, 0x0A): "if the other is attacking: a normal at its attack (by where it reaches, 027038)",
+        (0x00, 0x0C): "stand %d frames, or a normal at the other's attack (027038)" % a[0],
+        (0x00, 0x0E): "wait while the other's projectile is out, farther than %d" % a[0],
+        (0x00, 0x10): "think (a time by level and character)",
+        (0x00, 0x12): "wait while my projectile is out",
+        (0x00, 0x14): "wait until the other is open",
+        (0x00, 0x16): "think (a time by level and character), not broken off",
+        (0x00, 0x18): "wait a frame",
+        (0x00, 0x1A): "wait %d frames, not broken off" % a[0],
+        (0x00, 0x1C): "wait until gap <= %d, at most %d frames" % (a[0], a[1]),
+        (0x00, 0x1E): "wait until gap >= %d, at most %d frames" % (a[0], a[1]),
+        (0x00, 0x20): "wait until the other is open (not thrown)",
+        (0x00, 0x22): "a normal by the gap and the height between (table 026F1A), if it has one",
+        (0x00, 0x24): "stand",
+        (0x02, 0x00): "walk forward until gap <= %d" % a[0],
+        (0x02, 0x02): "walk back until gap >= %d" % a[0],
+        (0x02, 0x04): "walk to gap %d" % a[0],
+        (0x02, 0x06): "walk forward %d frames" % a[0],
+        (0x02, 0x08): "walk back %d frames" % a[0],
+        (0x02, 0x0A): "walk forward until gap <= %d, at most %d frames" % (a[0], a[1]),
+        (0x02, 0x0C): "walk back until gap >= %d, at most %d frames" % (a[0], a[1]),
+        (0x02, 0x0E): "walk to gap %d, at most %d frames" % (a[0], a[1]),
+        (0x04, 0x00): "jump %s%s" % (way(a[1]), alpha_with_move(a[1], a[0], a[2])),
+        (0x04, 0x02): "special 3 (a jump of its own) %s, as %s%s" % (way(a[1]), alpha_move(a[0]), alpha_with_move(a[1], a[0], a[2])),
+        (0x06, 0x00): "attack: %s" % alpha_move(a[0]),
+        (0x06, 0x02): "attack, held: %s" % alpha_move(a[0]),
+        (0x08, 0x00): "special move: %s" % alpha_move(a[0]),
+        (0x0A, 0x00): "super combo: %s" % alpha_move(a[0]),
+        (0x0E, 0x00): "go to a tactic (bank 1), then back here",
+        (0x0E, 0x02): "go to a tactic (bank 1) by the table 09BE44's chance, then back here",
+        (0x10, 0x00): "guard if an attack is coming",
+        (0x10, 0x02): "guard if an attack is coming, with an Alpha counter (a level of gauge, the character's chance 09B044)",
+        (0x12, 0x00): "above level %d: let the reactions %04X break in" % (a[0], a[1]),
+        (0x12, 0x02): "above level %d: keep the reactions %04X out" % (a[0], a[1]),
+        (0x12, 0x04): "can be broken off",
+        (0x12, 0x06): "cannot be broken off",
+    }.get((op, kind))
+    if n is None:
+        n = "op %02X kind %02X %s" % (op, kind, " ".join("%04X" % x for x in args))
+    return n
+
+
+ALPHA_ENDS = dict(ENDS)
+ALPHA_ENDS[0x04] = "end: a tactic, or back to the plan, by the table 09AF44's chance"
+
+
 # --- reading the scripts ---
 
+# The instructions' names by interpreter (bank_tables: where the banks' places start in the record)
+STYLES = {
+    0x210: (name, TESTS, ENDS),
+    0x220: (alpha_name, ALPHA_TESTS, ALPHA_ENDS),
+}
+
+
 class Decoder:
-    def __init__(self, p, lengths, tests, names):
+    def __init__(self, p, lengths, tests, names, style=0x210):
         self.p, self.lengths, self.tests, self.names = p, lengths, tests, names
-        self.ifop = lengths.get("if")
+        self.ifs = lengths.get("ifs", {})  # the "if" operations: how many kinds each has
+        self.name, self.test_names, self.end_names = STYLES[style]
         self.problems = []
         self.boundaries = set()
         self.ends = set()
@@ -321,33 +434,44 @@ class Decoder:
                 self.plans.add(a)
             op, kind = p.data[a], p.data[a + 1]
             if op == 0xFF:
-                lines.append("    %06X  [FF %02X] %s%s" % (a, kind, "  " * depth, ENDS.get(kind, "end, kind %02X" % kind)))
+                lines.append("    %06X  [FF %02X] %s%s" % (a, kind, "  " * depth, self.end_names.get(kind, "end, kind %02X" % kind)))
                 self.ends.add(a)
                 if depth:
                     self.problems.append("%s: ends inside an if (%06X)" % (label, a))
                 return lines, a + 2
-            if op == self.ifop:
-                if kind == 0:
+            if op in self.ifs:
+                # An "if" of three kinds: 0 if, 2 else, 4 endif. Of five (Alpha 2's second): 0 if, 2 else if (a
+                # test, the same nesting), 4 else, 6 a break out to its endif (a branch done), 8 endif.
+                five = self.ifs[op] == 5
+                if kind == 0 or (five and kind == 2):
                     test = p.dw(a + 2)
-                    n = self.tests.get(test)
+                    n = self.tests[op].get(test)
                     if n is None:
                         self.problems.append("%s: an if of an unknown test %02X (%06X)" % (label, test, a))
                         return lines, a
                     args = [p.dw(a + 4 + 2 * i) for i in range(n)]
-                    text = TESTS.get(test, "test %02X" % test).format(*args) if n else TESTS.get(test, "test %02X" % test)
+                    text = self.test_names.get(test, "test %02X" % test)
+                    text = text.format(*args) if n else text
                     if test in (0x38, 0x3A) and args:
                         text = text.replace("character %d" % args[0], self.names.get(args[0], "character %d" % args[0]))
-                    lines.append("    %06X  [%02X %02X] %sif %s" % (a, op, test, "  " * depth, text))
-                    depth += 1
+                    if kind == 0:
+                        lines.append("    %06X  [%02X %02X] %sif %s" % (a, op, test, "  " * depth, text))
+                        depth += 1
+                    else:
+                        lines.append("    %06X  [%02X %02X] %selse if %s" % (a, op, test, "  " * max(depth - 1, 0), text))
                     a += 4 + 2 * n
                     continue
-                if kind == 2:
-                    lines.append("    %06X  [%02X 02] %selse" % (a, op, "  " * max(depth - 1, 0)))
+                if kind == (4 if five else 2):
+                    lines.append("    %06X  [%02X %02X] %selse" % (a, op, kind, "  " * max(depth - 1, 0)))
                     a += 2
                     continue
-                if kind == 4:
+                if five and kind == 6:
+                    lines.append("    %06X  [%02X 06] %s(out to the endif)" % (a, op, "  " * depth))
+                    a += 2
+                    continue
+                if kind == (8 if five else 4):
                     depth = max(depth - 1, 0)
-                    lines.append("    %06X  [%02X 04] %sendif" % (a, op, "  " * depth))
+                    lines.append("    %06X  [%02X %02X] %sendif" % (a, op, kind, "  " * depth))
                     a += 2
                     continue
             n = self.instruction_length(op, kind)
@@ -355,7 +479,7 @@ class Decoder:
                 self.problems.append("%s: an instruction not in the game's table, %02X %02X (%06X)" % (label, op, kind, a))
                 return lines, a
             args = [p.dw(a + 2 + 2 * i) for i in range(n)]
-            lines.append("    %06X  [%02X %02X] %s%s" % (a, op, kind, "  " * depth, name(op, kind, args, self.names)))
+            lines.append("    %06X  [%02X %02X] %s%s" % (a, op, kind, "  " * depth, self.name(op, kind, args, self.names)))
             a += 2 + 2 * n
         self.problems.append("%s: runs past its bank's data (%06X)" % (label, a))
         return lines, a
@@ -419,9 +543,9 @@ def main():
     args = ap.parse_args()
     p = Program(args.game)
     lengths, tests = skip_lengths(p)
-    banks = bank_tables(p)
+    banks, style = bank_tables(p)
     names = character_names(args.game)
-    d = Decoder(p, lengths, tests, names)
+    d = Decoder(p, lengths, tests, names, style)
     who = None
     if args.character:
         if re.match(r"^(0x)?[0-9A-Fa-f]+$", args.character):
@@ -443,7 +567,7 @@ def main():
         seen.add(table)
         character(p, d, banks, n, out)
     if args.against:
-        # The interpreter keeps in +220 the next instruction's place (after one is done) or the place just after
+        # The interpreter keeps in +220 (Alpha 2: +230) the next instruction's place (after one is done) or the place just after
         # an instruction's first word (as it starts one); after an end, just past it. From one kept place to the
         # next it goes on to the following instruction, forward in the same script (an if or else skipping), to
         # the start of a script, or back into the plan where it was (the plan's place is kept as it runs).
@@ -455,7 +579,7 @@ def main():
         previous = None
         for line in open(args.against):
             m = re.match(r"watch: ([0-9A-F]{6}) writes ([0-9A-F]{8}) to ([0-9A-F]{6})", line)
-            if not m or int(m.group(3), 16) & 0x3FF != 0x220:
+            if not m or int(m.group(3), 16) & 0x3FF != style + 0x10:
                 continue
             value = int(m.group(2), 16)
             if not 0x400 <= value < len(p.data):
@@ -496,7 +620,7 @@ def main():
         ins = len(d.boundaries)
         print("aiscripts: %s: %d instructions in %d characters' scripts; banks at %s; %d kinds of instruction, %d tests" %
               (args.game, ins, len(seen), " ".join("%06X" % banks[b] for b in range(4)),
-               len([k for k in lengths if k != "if"]), len(tests)))
+               len([k for k in lengths if k != "ifs"]), sum(len(t) for t in tests.values())))
         for problem in d.problems:
             print("  " + problem)
         return 1 if d.problems else 0
