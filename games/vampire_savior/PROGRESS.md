@@ -780,6 +780,45 @@ own parts:
   Definitive built and a coached ring out run in each with nothing left to the interpreter but Definitive's own (as on
   main). Only headless.
 
+## The computer player: scripts (found 2026-10-25, not yet readable)
+
+The game's computer player is a small interpreter running scripts from the ROM, a set of them for each character. A
+look, to learn what making it readable would take (nothing changed). Offsets from the player (A6):
+
+- Entered from the player's routine (022552, at 0225BC: `jsr 02B7FA`) for a computer's fighter. 02B7FA chooses by the
+  mode `+204` (0, 2, 4, 6) one of four banks of scripts, each from a table of the characters' (by `+382`, kCharacter,
+  four bytes each) in the ROM's data: 0BF01A, 0BF09A, 0BF11A, 0BF19A. The scripts themselves are 100000-113000 (from
+  100000 for the first character, about E9C bytes to the next).
+- 02CCAE starts bank 0's script (`+205` the one, its first word to `+206`, the pointer to `+210` and `+224`). 02CCE6
+  bank 1's: one of 32 bytes at random, from the row `+20A` (0, 20 or 40) of the character's table, names the script
+  (word offsets at +60 of the table); the pointer to `+214`. Banks 2 and 3 likewise (02CD3C, 02CD98; `+218`, `+21C`).
+- The interpreter, 02B90E: the script's next word to `+240` (`+240` the opcode, `+241` the sub-op; FF ends the script,
+  02C718), the pointer kept in `+220`. 14 opcodes (the table at 02B94E: 02B96A, 02BBC0, ... 02C6EC), about 52
+  instructions with their sub-ops (by a table each, on `+241`), reading their operands from the script: for one,
+  02B99C waits a number of frames (`+208`) standing. An instruction that waits for a thing to be so (the handlers at
+  02C9xx-02CBxx: until the other is nearer than, further than, the timer out; `+201`/`+202` the step) goes to the next
+  with 02CCA4. `+242` a distance it compares with `+130`; `+20B` the way it wants to walk (1 back: the walk's hook
+  above).
+- Interrupts: 02CED4, asked by the waits, breaks off to bank 2 (02CF66: `+204` = 4, then 02B7FA) when the other player
+  (`+32`, A4) has projectiles out (A4+149 to 14D: counts of the player's live objects by kind, added to at 05475A and
+  taken from at 054770) or an attack out (A4+105, kAttacking, with the move's data byte A4+1C → +17), and the
+  character's 128-byte table at 0BB580 (02D62A) says to. 02CF74 the same for the bits of `+228`. The tables at 0BB480
+  and 0BB500 are asked the same way (02C7AE, 02C7E6).
+- The tier `+20A`, chosen as a match begins (00D9BA): 0 or 20 at random from 32 slots made from a pair of counts at
+  00DCC0 (00DD40 for a while after something at A5-6162), by the difficulty (A5+BE) and the stage of the ladder
+  (A5+114); 40 when A5+83 is set. So the difficulty is mostly which row of each character's choices it draws from.
+- It never reads the other player's controls (nothing in 02B7FA-02D800 reads A4+12B, kHeld, or the input ports): it
+  sees the other's attack the frame it is out, and its projectiles, not the buttons.
+- Measured with the ladder movie (--watch FF8A20-FF8A23): the computer's script pointer steps through 1032xx, two to
+  six bytes an instruction, written at 02B928.
+- The same interpreter at the same offsets in Vampire Savior 2 (02B0EC), Vampire Hunter 2 (02B11A) and Super Gem
+  Fighter (0135C2): one decoder and one readable interpreter would do for all four games (Definitive is this program).
+  The Alpha games read operands from scripts the same way at other offsets (Street Fighter Alpha 2 at 0281EC, Alpha
+  3 at 030B98, Alpha at 02291A): likely Capcom's same design, its own tables.
+- What making it readable would take: a decoder that prints each character's scripts as text, by the 52
+  instructions' operands (each handler read once); then the interpreter (02B7FA-02D800, about 1,900 instructions) as
+  readable code, checked with --check-rewrites against the movies with a computer in them. The scripts stay data.
+
 ## Board settings (2026-10-15)
 
 `board.cpp`: the test menu's operator settings (設定: System and Game) as features on the Board page, each
