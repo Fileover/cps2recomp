@@ -6,6 +6,8 @@
   the left trigger) held runs the game four times as fast, without sound ("FAST FORWARD x4" at the bottom); each only
   when the player has not given it to the game. The Multi game page lists them under While it plays, and in Now
   playing (recomp-common: `MultiButton`). (`port/frontend_sdl.cpp`, `Port::hurry`, `runtime/game.h` `AskNextGame`.)
+- The ring out shows its score (Ring outs: N) at the top all the while it plays, as survival does, not only when it
+  is over.
 - **Another game: Street Fighter Alpha 3** (`games/sfa3`; ROM set `sfa3u`, USA 980904, the last revision and the one
   tournaments and Fightcade play; issue #89). The game as the board plays it, translated whole (its 68000 program and
   its sound program, Capcom's driver 1.71) and checked, with everything Street Fighter Alpha 2's port has: a **training

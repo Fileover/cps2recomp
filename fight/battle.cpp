@@ -1792,9 +1792,10 @@ namespace {
         if (g.tourStages && g.phase != Phase::Starting) {
             TourEnd(machine);
         }
-        if (g.kind == Kind::Survival && g.phase != Phase::Starting && g.phase != Phase::Over) {
+        // The score so far, all the while (the ring out's through the fall and the drop to the next stage too)
+        if ((g.kind == Kind::Survival || g.kind == Kind::RingOut) && g.phase != Phase::Starting && g.phase != Phase::Over) {
             char text[32];
-            snprintf(text, sizeof(text), "Beaten: %d", g.score);
+            snprintf(text, sizeof(text), g.kind == Kind::RingOut ? "Ring outs: %d" : "Beaten: %d", g.score);
             lines.push_back({0.5f, 0.21f, 0, text});
         }
         if (g.kind == Kind::Team && g.tag && g.phase == Phase::Fighting) {
@@ -1979,7 +1980,8 @@ void battle::Register(const Description &description) {
     game.pages.push_back({kRingOut, kModes, "No health: knock your opponent over the end of the stage, and jump down to the next."});
     game.commands.push_back({"ringout_start", kRingOut, "Start",
                              "Choose a character. Nobody loses health: the ends of a stage are open, and a fighter knocked over "
-                             "one falls. Knock your opponent out and you jump down to the next stage; over when you fall.",
+                             "one falls. Knock your opponent out and you jump down to the next stage; over when you fall. The ring outs so "
+                             "far are shown at the top.",
                              StartRingOut});
     {
         static std::vector<std::string> numbers;
