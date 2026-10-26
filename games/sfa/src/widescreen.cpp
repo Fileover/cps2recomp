@@ -370,7 +370,18 @@ void WideForPort(Machine &) {
     g_shift = g_kept.shift;
 }
 
+namespace {
+    using namespace sfa;
+    // Where a player's fighter stands in the picture, for the window's zoom (fight/alternative.h, modes::Focus): the
+    // middle of its feet, the wide picture's columns counted
+    void FocusPlace(int player, int &x, int &y) {
+        x = static_cast<int16_t>(Ram16(Player(player) + kX)) - static_cast<int16_t>(Ram16(kCameraX)) + WideStage();
+        y = 239 - (static_cast<int16_t>(Ram16(Player(player) + kY)) - static_cast<int16_t>(Ram16(kCameraY)));
+    }
+} // namespace
+
 void RegisterWidescreen() {
+    modes::Focus(FocusPlace, 44);
     TheGame().widestPicture = [] { return Video::kWidth + (FeatureOn("widescreen") ? 2 * kSide : 0); };
     AddRewrite(0x01A57A, "CameraAcross", CameraAcross, kFreeFlags, 256);
     AddRewrite(0x01A5F2, "CameraUp", CameraUp, kFreeFlags, 222);

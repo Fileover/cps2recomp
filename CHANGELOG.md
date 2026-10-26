@@ -11,6 +11,14 @@
   computer does not play the modes itself. `tools/aiscripts.py` names Alpha 2's jumps' ways as its jump reads them
   (1 forward, 0 straight up, FF back), and the tests of the other's jump with them.
 
+- **Zoom** in every fighting game: Street Fighter Alpha, Alpha 2, Alpha 3, Super Turbo, Super Gem Fighter, Marvel
+  Super Heroes and X-Men vs. Street Fighter, as in the Vampire Savior games (the left stick's click and a shoulder;
+  the d-pad to frame the fighter; Left Shift, Q, E and the arrows on the keyboard). The toolkit's `modes::Focus`
+  (`fight/alternative.h`) gives a game its `Game::focus` from where its fighter stands: only while a round is fought
+  and not in the model viewer, looking so many lines above the feet (Alpha 1-3 44, Super Turbo 40, Super Gem Fighter
+  28, the Marvel engine 40, for the size of their fighters). Each game's place is its model viewer's with the wide
+  picture's columns counted (`widescreen.cpp`); the Marvel engine's is in `fight/marvel.cpp`, from where it puts the
+  training mode's boxes, a tag-team game's point characters being its first two records.
 - **Zoom**: the camera keeps its fighter in the middle at every size, past the stage's ends too (black there); it
   was kept inside the picture, so near an end the fighter was off to the side, and it trailed a dash. It eases only
   when it changes fighter or size. With the left stick's click held, the d-pad or the stick moves it to frame the

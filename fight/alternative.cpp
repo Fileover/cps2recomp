@@ -4,6 +4,7 @@
 // The "Alternative modes" page, attract mode and the stage viewer (alternative.h), made from Vampire Savior's and Street
 // Fighter Alpha 2's, which were the same but for where each game keeps things.
 #include "alternative.h"
+#include "model.h"
 
 #include "spare.h"
 #include "state.h"
@@ -365,6 +366,24 @@ bool RoundFought() {
     }
     return Ram16(d.steps) == 2 && Ram16(d.steps + 4) == d.gameMatch && Ram16(d.steps + 8) == d.matchRound &&
            Ram16(d.steps + 12) == d.roundFought;
+}
+
+namespace {
+    void (*g_place)(int player, int &x, int &y) = nullptr;
+    int g_lift = 0;
+} // namespace
+
+void Focus(void (*place)(int player, int &x, int &y), int lift) {
+    g_place = place;
+    g_lift = lift;
+    TheGame().focus = [](int player, int &x, int &y) {
+        if (!RoundFought() || model::On()) {
+            return false;
+        }
+        g_place(player, x, y);
+        y -= g_lift;
+        return true;
+    };
 }
 
 bool Choosing() {
