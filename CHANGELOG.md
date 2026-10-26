@@ -8,6 +8,10 @@
 - **Multi game** on macOS: the next game comes to the front. It opened behind the other windows, since macOS brings
   forward only a program started by the one in front; the game ending for the next one hands the front to the
   launcher first (`port/front_macos.mm`), and every game raises its window as it opens.
+- `tools/aiscripts.py sfa2` prints Street Fighter Alpha 2's CPU scripts: the same interpreter as Vampire Savior's,
+  its own instructions named from its code (a second if with else if, the super combo, the Alpha counter, answers
+  picked by where the other's attack reaches), checked against the places the game's interpreter keeps in five runs
+  (games/sfa2/PROGRESS.md, "The computer player: scripts").
 - **Linux ARM64**: a download for 64-bit ARM Linux (aarch64: ARM handhelds, single-board computers, ARM
   Chromebooks' Linux), `CPS2Recomp-linux-arm64.tar.gz`, beside the x86_64 one, and its launcher updates itself from
   `update-linux-arm64.txt` (issue #99). CI builds and starts it on an ARM64 runner. (`tools/release/linux.sh` builds

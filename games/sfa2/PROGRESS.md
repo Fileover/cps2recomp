@@ -337,6 +337,51 @@ when to tag and whom (the partner with the most health), and in a ring out short
   two new movies (`ringout_computer.txt`, `team_tag_computer.txt`) with make check both ways. Only headless: nobody
   has played against it yet.
 
+## The computer player: scripts (2026-10-26)
+
+The CPU is Vampire Savior's design (games/vampire_savior/PROGRESS.md, "The computer player"): an interpreter
+(`0280D4`, called each step from PlayerInControl while `+A5` is set) running scripts from the ROM, four banks of them
+for each character, and `tools/aiscripts.py sfa2` prints them all (40,947 instructions in 19 characters' scripts;
+`--character NAME` for one). Game data: nothing decoded is kept in the repository.
+
+- The computer's part of a player's record is Vampire Savior's 10h further on: where the interpreter is `+230`, each
+  bank's place `+220` to `+22C`, the instruction's word `+208`, the bank `+204`, the plan `+205`, frames left `+216`, the
+  gap `+218`, the first "if"'s nesting `+21E` and the second's `+255`. The level is `+A7`, the character `+82`.
+- The banks' tables by character: plans `0992EC`, tactics `09934C`, reactions `0993AC`, the answers `09940C`. Chance
+  tables: a tactic or back to the plan at a script's end `09AF44`, a go to a tactic `09BE44`, the Alpha counter by
+  character `09B044` (128 bytes each).
+- Eleven operations to Vampire Savior's fourteen: 00 waits, 02 walks, 04 jumps, 06 a normal, 08 a special, 0A a super
+  combo (unlike Vampire Savior's, no gauge stock is looked at or taken here), 0C if/else/endif, 0E go to a tactic, 10
+  guard, 12 what may break in, 14 a second if. Most kinds are Vampire Savior's code with the record's fields moved.
+  Alpha 2's own:
+  - Waits: 0A a normal at the other's attack if it is attacking (`027038`: by which of its boxes' zones reach, a
+    move from the table at `0270E2`); 0C so many frames, or that answer as soon as the other attacks; 0E while the
+    other's projectile is out farther than a gap; 22 a normal by the gap and the height between them (the table at
+    `026F1A`), if there is one for them.
+  - Jumps: 00 a jump (the move, the way, the frames: a move after so many frames, as Vampire Savior's kind 4) and 02
+    a special of the character's numbered 3 as its jump, with the move word's strength (only Rolento's scripts).
+  - 10: a guard if an attack is coming; kind 02 also lets it Alpha counter (`+21B`: the reeling's guard takes it when
+    the gauge has a level, `022770`) by the character's chance.
+  - 14: if (00, a test), else if (02, a test at the same nesting), else (04), a break out to the endif (06, at the end
+    of a branch done), endif (08). It skips with a routine of its own (`029284`, `029412`); the first "if" with
+    another (`029E46`).
+- Tests: 31 for both ifs, as Vampire Savior's but for 06 the super gauge at least so much (`+9E`), 0C the other
+  knocked down (`+134`), 10 and 12 the other's projectile nearer than a gap or not (the gap to its box, `028DCE`),
+  30 and 32 the other's projectile by a class of the table at `028BCE` (0 or 4, or none out; 3 and more), 3C `+5B`
+  set. None of the last four of Vampire Savior's.
+- A move word (`029BE4`): bits 1 to 3 to `+212`, `+213`, `+214` (held for a character's command normals; `+214` is
+  also a walk's and jump's way), then a normal's stance (0 standing, 2 crouching, 4 jumping), punch or kick and
+  strength a nibble each (`+100`, `+101`, `+102`), or a special's number (`+133`, in the character's own list) and
+  strength.
+- Checked: every script decodes, nothing left over, and the places the game kept against them
+  (`aiscripts.py sfa2 --against`): 7,129 places in five runs, all of them instructions found, and every step from one to
+  the next one the scripts allow (the ladder 2,398, ring out 386, tag style 3,098, the attract mode's two sides 561
+  and 686). The watch sees only the interpreter's writes, so the runs leave every rewrite out and run the game's code
+  as blocks: `CPS2RECOMP_SKIP_REWRITES=<all of them> CPS2RECOMP_WATCH_REPORTS=100000000 build/sfa2/sfa2 ... --cpu
+  blocks --watch FF8A30-FF8A33` (player 2; player 1 `FF8630`).
+- Not sure of: what the projectile classes of `028BCE` are; what `+5B` (test 3C, cleared by the wait kind 24) is;
+  which of the characters' specials the numbers are.
+
 ## Readable code
 
 Rewrites (`cps2recomp/docs/READABLE.md`), each run beside the game's own code on every call by `make
