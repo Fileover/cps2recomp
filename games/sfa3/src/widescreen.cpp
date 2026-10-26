@@ -423,8 +423,9 @@ void WidescreenBeforeFrame(Machine &machine) {
         planesShown[n] = g_planeBefore[n];
         g_planeBefore[n] = static_cast<int16_t>(Ram16(kPlanes[n] + kX));
     }
-    // (fights only; the stage viewer and the modes that lay one machine's picture over another's keep the board's)
-    g_shown = FeatureOn("widescreen") && InFight() && !modes::StageViewer() && !BattleMode();
+    // (fights only, the alternative modes' too; the stage viewer keeps the board's. The modes that lay one machine's
+    // picture over another's draw the other as wide: WideForSpare)
+    g_shown = FeatureOn("widescreen") && InFight() && !modes::StageViewer();
     g_play = g_shown && !FeatureOn("widescreen_walls");
     SetWide(machine, camera, shown, planesShown);
 }

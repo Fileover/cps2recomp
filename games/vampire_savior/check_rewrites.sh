@@ -29,6 +29,26 @@ for skip in "" "AllHitTests,CameraAcross,CameraUp,$inPicture" "$inPicture,Drawn,
     run versus 6000 "" "$skip"
     run ladder 12000 free_play "$skip"
 done
+# The computer player (computer.cpp): the movies a computer plays in, and the attract mode's fights (the computer
+# against itself) with its level held low, middling and high, and each tier of its tactics. Then with the outer
+# routines left out, for the ones they use.
+computer="ComputerPlays,AnswerNow,BrokenOff"
+check_attract() { # frames, bytes held (--poke), rewrites to leave out
+    out=$(CPS2RECOMP_SKIP_REWRITES="$3" $port --rom "${ROM:-rom/$GAME}" --headless --frames "$1" ${2:+--poke $2} --check-rewrites 2>&1)
+    failed=$?
+    echo "== the attract mode${2:+ ($2)}${3:+ (without $3)}"
+    echo "$out" | grep -E "^rewrite|did not" | grep -v " 0 calls"
+    return $failed
+}
+for skip in "" "$computer"; do
+    run team_tag_computer 8000 free_play "$skip"
+    run ringout_computer 8000 free_play "$skip"
+    # (FF87B3, FF8BB3: each player's level; FF860A, FF8A0A: their tiers, 40 in the attract mode's own fights)
+    for held in "FF87B3=00,FF8BB3=00" "FF87B3=0C,FF8BB3=0C,FF860A=20,FF8A0A=20" "FF87B3=1F,FF8BB3=1F,FF860A=00,FF8A0A=00"; do
+        at_once check_attract 40000 "$held" "$skip"
+    done
+done
+run ladder 12000 free_play "$computer"
 # The stage's code (camera.cpp, planes.cpp, rows.cpp, picture.cpp, edges.cpp, pieces.cpp): each stage has its own choice of those routines, so every stage
 # is visited: a training session on it, the players moved by made-up controls (no movie with them: a movie's
 # controls would be the only ones, and the camera has to go from end to end). The outer rewrites, then

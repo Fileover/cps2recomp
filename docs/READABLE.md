@@ -84,3 +84,6 @@ both, so it covers the hooks' and rewrites' calls being made at the same places 
 | TakeDamage: a hit's damage off a player's health | 018AB0 | `fight.cpp` |
 | HitLands: a hit has landed: guarded or not (by the attack's kind and how the player stands), armour | 018230 | `fight.cpp` |
 | GuardRange, GuardRangeAttack: is an attack near enough to guard | 027694, 0276A6 | `fight.cpp` |
+| ComputerPlays: a frame of the computer player's play: its scripts chosen, their instructions run and looked at | 02B7FA | `computer.cpp` |
+| AnswerNow, BrokenOff, Reactions: the computer's answers that break in, and a script broken off | 02D09A, 02C7C0, 02CF74 | `computer.cpp` |
+| Chance, AttackComing, UnpackMove, UnpackChainMove, and seven more the player's routines ask while the computer's move goes on | 02D62A, 02D43C, 02CE44, 02CEB0... | `computer.cpp` |

@@ -6,12 +6,22 @@
   Chromebooks' Linux), `CPS2Recomp-linux-arm64.tar.gz`, beside the x86_64 one, and its launcher updates itself from
   `update-linux-arm64.txt` (issue #99). CI builds and starts it on an ARM64 runner. (`tools/release/linux.sh` builds
   for the processor it runs on; `tools/release/all.sh` makes it in an ARM64 build image.)
+- Street Fighter Alpha 3's widescreen is on in the alternative modes' fights too (survival, the endless battle, the
+  ring out, the tag team battle), as in Alpha and Alpha 2; only arcade, versus and training had it (issue #109).
+  Alpha 2's README said its modes were 4:3; they were already wide.
 - **Multi game**: in its endless battle, **N** (or a gamepad's left shoulder) fades out to the next game, and **F** (or
   the left trigger) held runs the game four times as fast, without sound ("FAST FORWARD x4" at the bottom); each only
   when the player has not given it to the game. The Multi game page lists them under While it plays, and in Now
   playing (recomp-common: `MultiButton`). (`port/frontend_sdl.cpp`, `Port::hurry`, `runtime/game.h` `AskNextGame`.)
 - The ring out shows its score (Ring outs: N) at the top all the while it plays, as survival does, not only when it
   is over.
+- **The Vampire Savior games' computer player is readable C++** (`games/vampire_savior/src/computer.cpp`): the
+  interpreter of its scripts (choosing a plan, a tactic, a reaction; the instructions and the if's tests; each
+  instruction looked at frame by frame until it is over) and fourteen routines the fighters' own code calls in it,
+  about 1,900 instructions of the game's. Each is checked call by call against the game's own code, in Vampire
+  Savior, Definitive, Vampire Savior 2 and Vampire Hunter 2 (the last two's code differs in four places, which their
+  `family.h` names), over the computer's movies, the attract mode's fights and ladders at levels from lowest to
+  highest. Nothing plays differently: it is the ground for a computer that plays the alternative modes itself.
 - **Another game: Street Fighter Alpha 3** (`games/sfa3`; ROM set `sfa3u`, USA 980904, the last revision and the one
   tournaments and Fightcade play; issue #89). The game as the board plays it, translated whole (its 68000 program and
   its sound program, Capcom's driver 1.71) and checked, with everything Street Fighter Alpha 2's port has: a **training

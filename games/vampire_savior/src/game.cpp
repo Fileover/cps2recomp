@@ -26,6 +26,7 @@ void RegisterRows();      // rows.cpp
 void RegisterPicture();   // picture.cpp
 void RegisterEdges();     // edges.cpp
 void RegisterPieces();    // pieces.cpp
+void RegisterComputer();  // computer.cpp
 void RegisterFrames();    // frames.cpp
 void RegisterTraining(); // training.cpp
 void TrainingBeforeFrame(Machine &machine);
@@ -79,6 +80,7 @@ void RegisterGame() {
     RegisterPicture();
     RegisterEdges();
     RegisterPieces();
+    RegisterComputer();
     RegisterFrames();
     RegisterWidescreen();
     RegisterTitle();

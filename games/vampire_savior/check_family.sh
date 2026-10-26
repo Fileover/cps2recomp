@@ -4,9 +4,10 @@
 #
 # Checks Vampire Savior's rewritten routines (src/) in a game made from its program that builds them too
 # (Vampire Savior 2, Vampire Hunter 2): every call of each, run both ways and compared (docs/READABLE.md), over
-# made-up play (one player and two, from the attract mode with free play) and a training session on each of
-# the game's stages with the players moved by made-up controls. Inner rewrites are only called by outer ones,
-# so each run is made again with the outer ones left out. Run from the repository's top: check_family.sh GAME
+# made-up play (one player and two, from the attract mode with free play), the attract mode itself (the computer
+# against itself) and a training session on each of the game's stages with the players moved by made-up controls.
+# Inner rewrites are only called by outer ones, so each run is made again with the outer ones left out. Run from
+# the repository's top: check_family.sh GAME
 GAME=$1
 port=${B:-build/$GAME}/$GAME
 status=0
@@ -29,6 +30,20 @@ for skip in "" "AllHitTests,CameraAcross,CameraUp,$inPicture" "$inPicture,Drawn,
     at_once play 3 2 10000 "$skip"
     at_once play 5 1 12000 "$skip"
 done
+# The computer player (computer.cpp): the attract mode's fights, the computer against itself; then with the outer
+# routines left out, for the ones they use
+attract() { # rewrites to leave out
+    out=$(CPS2RECOMP_SKIP_REWRITES="$1" $port --rom "${ROM:-rom/$GAME}" --eeprom "$eeprom/attract-$$.bin" --headless --frames 40000 \
+        --check-rewrites 2>&1)
+    failed=$?
+    echo "== the attract mode${1:+ (without $1)}"
+    out=$(echo "$out" | grep -E "^rewrite|did not" | grep -v " 0 calls")
+    echo "$out"
+    echo "$out" | grep -E "differs|did not|calls, [1-9][0-9]* differed" >/dev/null && return 1
+    return $failed
+}
+at_once attract ""
+at_once attract "ComputerPlays,AnswerNow,BrokenOff"
 check_stage() { # stage, rewrites to leave out, more of the port's options
     out=$(CPS2RECOMP_SKIP_REWRITES="$2" $port --rom "${ROM:-rom/$GAME}" --eeprom "$eeprom/stage-$1-$$.bin" --headless --frames 6000 \
         --auto 7:1500 --keys "5:ftraining_stage=$1,10:ctraining_start" $3 --check-rewrites 2>&1)

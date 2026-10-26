@@ -147,12 +147,32 @@ inline constexpr Place kPlaceList[] = {
     {0x02297A, 0x02138C}, // an instruction, 2 on alike
     {0x0229F2, 0x021404}, // an instruction, 5 on alike
     {0x022A06, 0x021418}, // an instruction, 2 on alike
+    {0x026058, 0x024CE8}, // an instruction, 18 on alike
     {0x027694, 0x026898}, // an instruction, 24 on alike
     {0x0276A6, 0x0268AA}, // an instruction, 24 on alike
     {0x027EC0, 0x027142}, // the reelings' animation set (battle.cpp), found by its instructions: the second of three tables, then 0x382(a6) by hand
+    {0x027EC8, 0x02714A}, // an instruction, 24 on alike
     {0x027F70, 0x0271F2}, // the animation on a step (battle.cpp), found by its instructions: subq.b #1,0x20(a6) and the frame's flags by hand
     {0x028192, 0x027414}, // an instruction, 24 on alike
     {0x02824C, 0x0274D6}, // an instruction, 24 on alike
+    {0x02B7FA, 0x02B002}, // an instruction, 8 on alike
+    {0x02C7C0, 0x02BFCA}, // an instruction, 3 on alike
+    {0x02CE44, 0x02C64E}, // an instruction, 19 on alike
+    {0x02CEB0, 0x02C6BA}, // an instruction, 9 on alike
+    {0x02CF74, 0x02C77E}, // an instruction, 24 on alike
+    {0x02D09A, 0x02C8A4}, // an instruction, 3 on alike
+    {0x02D278, 0x02CA82}, // a place the code names so (1/1)
+    {0x02D2B8, 0x02CAC2}, // a place the code names so (1/1)
+    {0x02D2F8, 0x02CB02}, // a place the code names so (1/1)
+    {0x02D374, 0x02CB7E}, // an instruction, 9 on alike
+    {0x02D3F2, 0x02CC0C}, // an instruction, 10 on alike
+    {0x02D43C, 0x02CC56}, // an instruction, 24 on alike
+    {0x02D50C, 0x02CD28}, // an instruction, 8 on alike
+    {0x02D544, 0x02CDCA}, // an instruction, 10 on alike
+    {0x02D568, 0x02CDEE}, // the same bytes, once only
+    {0x02D5B2, 0x02CE38}, // an instruction, 11 on alike
+    {0x02D5E6, 0x02CE6C}, // an instruction, 8 on alike
+    {0x02D62A, 0x02CEB0}, // an instruction, 8 on alike
     {0x07D240, 0x08B586}, // an instruction, 11 on alike
     {0x07D354, 0x08B69A}, // the same entry of a jump table, 3 on alike
     {0x07D372, 0x08B6B8}, // an instruction, 5 on alike
@@ -451,9 +471,21 @@ inline constexpr Place kPlaceList[] = {
     {0x0B7640, 0x0D0D50}, // a place the code names so (3/3)
     {0x0B7740, 0x0D0E50}, // a place the code names so (1/1)
     {0x0B7940, 0x0D1050}, // a place the code names so (2/2)
+    {0x0BB480, 0x0D4EB0}, // a place the code names so (1/1)
+    {0x0BB500, 0x0D4F30}, // a place the code names so (1/1)
+    {0x0BB580, 0x0D4FB0}, // a place the code names so (4/4)
+    {0x0BC680, 0x0D60B0}, // a place the code names so (1/1)
+    {0x0BC780, 0x0D61B0}, // a place the code names so (1/1)
+    {0x0BC880, 0x0D62B0}, // a place the code names so (1/1)
+    {0x0BCD20, 0x0D6750}, // a place the code names so (4/4)
     {0x0BCE7A, 0x0D68AA}, // a place the code names so (2/2)
     {0x0BCEFA, 0x0D692A}, // a place the code names so (1/1)
     {0x0BCF7A, 0x0D69AA}, // a place the code names so (4/4)
+    {0x0BF01A, 0x0D8A4A}, // a place the code names so (1/1)
+    {0x0BF09A, 0x0D8ACA}, // a place the code names so (1/1)
+    {0x0BF11A, 0x0D8B4A}, // a place the code names so (1/1)
+    {0x0BF19A, 0x0D8BCA}, // a place the code names so (1/1)
+    {0x0BF21A, 0x0D8C4A}, // a place the code names so (1/1)
     {0x100000, 0x100000}, // a place the code names so (19/19)
     {0x2776B0, 0x2981FC}, // a place the code names so (2/2)
     {0x357CA4, 0x348C94}, // a place the code names so (3/3)
@@ -759,6 +791,20 @@ inline constexpr uint8_t kOverheadToo = 0x50;
 inline constexpr uint32_t kGuardsAnything = 0x143;
 inline constexpr uint16_t kGuardNear = 0x100;
 inline constexpr uint32_t kAtEdgeToo = 0x148;
+
+// How the computer player differs from Vampire Savior's (src/computer.cpp), this game's code:
+// - the stocks a wait for a stock move (kind 22) needs, and a byte of the player's record that, set, keeps it from one
+//   (02B34E: two, and kAllForGood)
+// - one more character whose jump's move waits while its +1BC is set (JumpMoveNow, 02CB72)
+// - how near (across) the end of the other's attack has to be for it to be coming: twice Vampire Savior's; and the
+//   numbers of its attack's boxes are read unsigned (AttackComing, 02CCA8, 02CCEE)
+// - the guarding pose crouches for the other's low attacks too (GuardPose, 02CD14)
+inline constexpr uint8_t kStockMoveStocks = 2;
+inline constexpr uint32_t kNoStockMove = 0x1C3;
+inline constexpr int kJumpMoveWaitsToo = 0x10;
+inline constexpr uint16_t kComingNear = 0x100;
+inline constexpr bool kComingBoxesUnsigned = true;
+inline constexpr bool kGuardsLowAttacks = true;
 
 // Tiles of the objects the port tells apart (src/machines.cpp, src/widescreen.cpp), from one to one less than the
 // other: the shadows (colour set 22), the panel's faces beside the bars (drawn in the players' own colours), the red
