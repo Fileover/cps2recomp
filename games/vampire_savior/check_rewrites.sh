@@ -10,8 +10,8 @@ port=${B:-build/$GAME}/$GAME
 movies=games/$GAME/movies
 status=0
 . tools/at-once.sh # (the runs at once, a few at a time; what each wrote printed in order)
-check() { # movie, frames, features, rewrites to leave out
-    out=$(CPS2RECOMP_SKIP_REWRITES="$4" $port --rom "${ROM:-rom/$GAME}" --headless --frames "$2" --movie "$movies/$1.txt" --features "$3" --check-rewrites 2>&1)
+check() { # movie, frames, features, rewrites to leave out, more of the port's options (the movie's own)
+    out=$(CPS2RECOMP_SKIP_REWRITES="$4" $port --rom "${ROM:-rom/$GAME}" --headless --frames "$2" --movie "$movies/$1.txt" --features "$3" $5 --check-rewrites 2>&1)
     failed=$?
     echo "== $1${4:+ (without $4)}"
     echo "$out" | grep -E "^rewrite|did not" | grep -v " 0 calls"
@@ -33,6 +33,10 @@ done
 # against itself) with its level held low, middling and high, and each tier of its tactics. Then with the outer
 # routines left out, for the ones they use.
 computer="ComputerPlays,AnswerNow,BrokenOff"
+# (in the tag style and the ring out the computer plays the modes' tactics of the port's, not the game's alone: the
+# movies of those modes are checked with no side playing them, CPS2RECOMP_COACH=0; as each movie says, the battle's
+# numbers at random from seed 1)
+export CPS2RECOMP_COACH=0 CPS2RECOMP_BATTLE_SEED=1
 check_attract() { # frames, bytes held (--poke), rewrites to leave out
     out=$(CPS2RECOMP_SKIP_REWRITES="$3" $port --rom "${ROM:-rom/$GAME}" --headless --frames "$1" ${2:+--poke $2} --check-rewrites 2>&1)
     failed=$?
@@ -40,9 +44,19 @@ check_attract() { # frames, bytes held (--poke), rewrites to leave out
     echo "$out" | grep -E "^rewrite|did not" | grep -v " 0 calls"
     return $failed
 }
+computers="ComputerPlays|AnswerNow|BrokenOff|Reactions|UnpackMove|UnpackChainMove|Chance|AttackComing|JumpMoveNow|SecondMoveNow|GuardPose|SetGuardsWithMove|AtEdgeJump|GuardAnyway|NextChainMove"
+check_mode() { # as check: a movie of a mode, whose own changes to the round's rules differ from the game's, as they are
+    # meant to (only the computer's rewrites are looked at)
+    out=$(check "$@")
+    echo "$out" | grep -E "^==|did not" ; out=$(echo "$out" | grep -E "^rewrite ($computers)( |$)")
+    echo "$out"
+    echo "$out" | grep -E "differs|calls, [1-9][0-9]* differed" >/dev/null && return 1
+    echo "$out" | grep -q "^rewrite ComputerPlays\|^rewrite Chance" || return 1
+    return 0
+}
 for skip in "" "$computer"; do
-    run team_tag_computer 8000 free_play "$skip"
-    run ringout_computer 8000 free_play "$skip"
+    at_once check_mode team_tag_computer 8000 free_play,team_style=0,team_size=1,team_opponent=0,team_stage=4 "$skip" "--keys 60:cteam_start"
+    at_once check_mode ringout_computer 8000 free_play "$skip" "--keys 60:cringout_start"
     # (FF87B3, FF8BB3: each player's level; FF860A, FF8A0A: their tiers, 40 in the attract mode's own fights)
     for held in "FF87B3=00,FF8BB3=00" "FF87B3=0C,FF8BB3=0C,FF860A=20,FF8A0A=20" "FF87B3=1F,FF8BB3=1F,FF860A=00,FF8A0A=00"; do
         at_once check_attract 40000 "$held" "$skip"

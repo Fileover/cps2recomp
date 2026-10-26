@@ -176,6 +176,9 @@ struct Description {
     // ... and whether something of the other's is near enough for the side's fighter to guard (the game's own test, as
     // the training dummy's guard asks it; nullptr: never), when the coach lets the game's play guard it
     bool (*attackComing)(Machine &machine, int side) = nullptr;
+    // ... or none of that: the game's computer plays the modes itself (its scripts ask what is below, ComputerMode...,
+    // and ask for its tags), and the coach takes no side's controls and tags for none
+    bool computerPlaysModes = false;
 
     // A game is being played (no: the board was reset)
     bool (*inGame)() = nullptr;
@@ -239,5 +242,17 @@ bool RingOutLetsOut(uint32_t player);
 // The ring out: whether a player the game plays may walk back now, as its computer wants to (not with its back near its
 // end, coached: battle.cpp); the game's sources ask where the computer's walk takes its way
 bool RingOutMayWalkBack(uint32_t player);
+// For a game whose computer plays the modes itself (Description::computerPlaysModes), what the computer playing the
+// player whose record is at `player` is told: the mode its fight is in now (or kNone: none, or a side not the
+// computer's); in a ring out, how far its fighter's back is from the end behind it and the other's from theirs
+// (pixels); in the tag style, whether its fighter wants to go off (low, with a partner who has more, and not just
+// after a tag); and how well it plays, by the menu's CPU difficulty or the game's, 0 to 1000. It asks for a tag,
+// taken when its fighter can tag (in the frames after).
+enum class ComputerMode { kNone, kRingOut, kTag };
+ComputerMode ComputerModeOf(uint32_t player);
+int ComputerBack(uint32_t player, bool other);
+bool ComputerTagWanted(uint32_t player);
+int ComputerSkill();
+void ComputerAsksTag(uint32_t player);
 
 } // namespace cps2recomp

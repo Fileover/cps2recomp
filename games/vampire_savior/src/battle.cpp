@@ -168,6 +168,8 @@ void RegisterBattle() {
     d.noEntrances = TagNoEntrances;
     d.difficulty = TagDifficulty;
     d.attackComing = [](Machine &machine, int side) { return AttackInRange(machine.cpu, Player(side)); };
+    // (the game's computer plays the tag style and the ring out itself: the modes' tactics, computer.cpp)
+    d.computerPlaysModes = true;
     d.difficultyNow = [] { return static_cast<int>(Ram8(At(0xFF80BE))); }; // (the game's copy of the board's, taken as a game begins)
     d.taggedIn = TaggedIn;
     d.offStage = TagOffStage;

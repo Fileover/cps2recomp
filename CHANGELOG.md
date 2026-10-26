@@ -6,6 +6,15 @@
   Chromebooks' Linux), `CPS2Recomp-linux-arm64.tar.gz`, beside the x86_64 one, and its launcher updates itself from
   `update-linux-arm64.txt` (issue #99). CI builds and starts it on an ARM64 runner. (`tools/release/linux.sh` builds
   for the processor it runs on; `tools/release/all.sh` makes it in an ARM64 build image.)
+- **The Vampire Savior games' CPU plays the tag style and the ring out itself** (Vampire Savior, Definitive, Vampire
+  Savior 2, Vampire Hunter 2): its own scripts, run by its interpreter (`computer.cpp`), have three tactics of the
+  port's, chosen in its own way as the fight calls for them: out of a corner (a throw that sends you behind, a jump over
+  you, a walk out), knocking you over your end (a throw or a sweep), and in the tag style backing off and tagging. It
+  keeps its own guard all the while, which the toolkit's coach (still Alpha 2's and Super Turbo's) cost it by taking
+  its controls. CPU against CPU it won 64-66% of ring outs against the game's own play (the coach: no gain on the same
+  runs). `battle::Description::computerPlaysModes` and `ComputerModeOf`, `ComputerBack`, `ComputerTagWanted`,
+  `ComputerSkill`, `ComputerAsksTag` (`fight/battle.h`). `tools/aiscripts.py` reads a normal's button and strength as
+  the game does (it had them a bit off: the throws are heavy and medium punches).
 - Street Fighter Alpha 3's widescreen is on in the alternative modes' fights too (survival, the endless battle, the
   ring out, the tag team battle), as in Alpha and Alpha 2; only arcade, versus and training had it (issue #109).
   Alpha 2's README said its modes were 4:3; they were already wide.

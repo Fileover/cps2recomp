@@ -244,6 +244,7 @@ namespace {
         bool planAir[2] = {false, false};
         int32_t planWay[2] = {0, 0}; // (a throw's: 1 the stick towards the other, -1 away)
         int32_t lastFree[2] = {0, 0}; // (a ring out's: how far from its end each was when last its own master)
+        int32_t tagAsked[2] = {0, 0}; // (a game whose computer plays the modes itself: frames its ask for a tag holds)
     } g;
     Spare g_dropBack;                    // the ring out: the machine of the next match's stage
     bool g_open = false;                 // the ring out: the port's machine is running a fight with open ends
@@ -807,7 +808,7 @@ namespace {
     void RingOutCoach(uint16_t &one, uint16_t &two) {
         uint16_t *panels[2] = {&one, &two};
         for (int side = 0; side < 2; side++) {
-            if (!Coached(side)) {
+            if (!Coached(side) || d.computerPlaysModes) {
                 continue;
             }
             if (g.plan[side] == kPlay) {
@@ -858,6 +859,9 @@ namespace {
             if (g.cool[side] > 0) {
                 g.cool[side]--;
             }
+            if (g.tagAsked[side] > 0) {
+                g.tagAsked[side]--;
+            }
             const int toward = Toward(side);
             switch (g.move[side]) {
             case kStill: {
@@ -866,7 +870,8 @@ namespace {
                 if (next < 0 || g.putBack[side]) {
                     break;
                 }
-                const bool computerTags = Coached(side) && !emptied && g.cool[side] == 0 && d.canTag(side) && ComputerTags(side);
+                const bool asked = d.computerPlaysModes ? g.tagAsked[side] > 0 : ComputerTags(side);
+                const bool computerTags = Coached(side) && !emptied && g.cool[side] == 0 && d.canTag(side) && asked;
                 if (computerTags && Log()) {
                     const int full = std::max<int>(g.full, 1);
                     fprintf(Log(), "tag %d side=%d health=%d partner=%d other_down=%d distance=%d\n", g.clock, side,
@@ -1939,6 +1944,61 @@ bool RingOutMayWalkBack(uint32_t player) {
         return true;
     }
     return !Part(8) || Back(side) >= Between(100, 200);
+}
+
+namespace {
+    int SideOf(uint32_t player) {
+        return player == Player(0) ? 0 : player == Player(1) ? 1 : -1;
+    }
+} // namespace
+
+ComputerMode ComputerModeOf(uint32_t player) {
+    const int side = SideOf(player);
+    if (side < 0 || g.phase != Phase::Fighting || !Coached(side)) {
+        return ComputerMode::kNone;
+    }
+    if (g.kind == Kind::RingOut) {
+        return ComputerMode::kRingOut;
+    }
+    if (g.kind == Kind::Team && g.tag && g.move[side] == kStill) {
+        return ComputerMode::kTag;
+    }
+    return ComputerMode::kNone;
+}
+
+int ComputerBack(uint32_t player, bool other) {
+    const int side = SideOf(player);
+    return side < 0 || g.kind != Kind::RingOut ? 0 : Back(other ? 1 - side : side);
+}
+
+// The tag style's want (ComputerTags' first part): the one on low and a partner with more, or a partner who has rested
+// with much more; not soon after the last tag, nor just out of a hit
+bool ComputerTagWanted(uint32_t player) {
+    const int side = SideOf(player);
+    if (ComputerModeOf(player) != ComputerMode::kTag || g.cool[side] > 0 || g.free[side] < kOutOfHit) {
+        return false;
+    }
+    const int next = Healthiest(side);
+    const int full = std::max<int>(g.full, 1);
+    const int on = std::max<int>(static_cast<int16_t>(Ram16(Player(side) + d.health)), 0) * 1000 / full;
+    const int partner = next >= 0 ? g.kept[side][next] * 1000 / full : 0;
+    const bool low = on < Between(250, 400) && partner >= on + 150;
+    const bool rested = partner >= on + 450 && g.sinceTag[side] > Between(1800, 1200);
+    return next >= 0 && g.sinceTag[side] >= Between(720, 360) && (low || rested);
+}
+
+int ComputerSkill() {
+    return Skill();
+}
+
+void ComputerAsksTag(uint32_t player) {
+    const int side = SideOf(player);
+    if (side >= 0 && ComputerModeOf(player) == ComputerMode::kTag) {
+        g.tagAsked[side] = 20;
+        if (Log()) {
+            fprintf(Log(), "asked to tag %d side=%d\n", g.clock, side);
+        }
+    }
 }
 
 // In a ring out fight a player that is not its own master (reeling from a hit, guarding one, thrown) is not
