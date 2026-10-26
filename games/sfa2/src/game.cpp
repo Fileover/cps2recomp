@@ -21,6 +21,7 @@ void RegisterDamage();    // damage.cpp
 void RegisterHit();       // hit.cpp
 void RegisterThrows();    // throws.cpp
 void RegisterPlayer();    // player.cpp
+void RegisterComputer();  // computer.cpp
 void TrainingBeforeFrame(Machine &machine);
 void TrainingFrame(Machine &machine);
 void TrainingState(Archive &ar);
@@ -77,6 +78,7 @@ void RegisterGame() {
     RegisterHit();
     RegisterThrows();
     RegisterPlayer();
+    RegisterComputer();
     RegisterWidescreen();
     RegisterTitle();
     // The training aids work only in a training session (the dummy's are the toolkit's: fight::RegisterDummy)
