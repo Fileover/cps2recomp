@@ -341,8 +341,16 @@ int RunWindowed(Port &port) {
                 for (SDL_Gamepad *gp : gamepads) {
                     if (ZoomHeld(gp)) {
                         const int x = SDL_GetGamepadAxis(gp, SDL_GAMEPAD_AXIS_LEFTX), y = SDL_GetGamepadAxis(gp, SDL_GAMEPAD_AXIS_LEFTY);
-                        across += (SDL_GetGamepadButton(gp, SDL_GAMEPAD_BUTTON_DPAD_RIGHT) || x > kDead) - (SDL_GetGamepadButton(gp, SDL_GAMEPAD_BUTTON_DPAD_LEFT) || x < -kDead);
-                        down += (SDL_GetGamepadButton(gp, SDL_GAMEPAD_BUTTON_DPAD_DOWN) || y > kDead) - (SDL_GetGamepadButton(gp, SDL_GAMEPAD_BUTTON_DPAD_UP) || y < -kDead);
+                        const int right = SDL_GetGamepadButton(gp, SDL_GAMEPAD_BUTTON_DPAD_RIGHT) || x > kDead;
+                        const int left = SDL_GetGamepadButton(gp, SDL_GAMEPAD_BUTTON_DPAD_LEFT) || x < -kDead;
+                        const int lower = SDL_GetGamepadButton(gp, SDL_GAMEPAD_BUTTON_DPAD_DOWN) || y > kDead;
+                        const int higher = SDL_GetGamepadButton(gp, SDL_GAMEPAD_BUTTON_DPAD_UP) || y < -kDead;
+                        across += right - left;
+                        down += lower - higher;
+                        // (the click was the camera's, not the menu's, once it has been moved with it)
+                        if (right || left || lower || higher) {
+                            stickWaiting = false;
+                        }
                     }
                 }
                 port.zoom.Pan(std::clamp(across, -1, 1), std::clamp(down, -1, 1));
