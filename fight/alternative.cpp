@@ -373,9 +373,11 @@ namespace {
     int g_lift = 0;
 } // namespace
 
-void Focus(void (*place)(int player, int &x, int &y), int lift) {
+void Focus(void (*place)(int player, int &x, int &y), int lift, int tall) {
     g_place = place;
     g_lift = lift;
+    TheGame().focusLift = lift;
+    TheGame().focusTall = tall;
     TheGame().focus = [](int player, int &x, int &y) {
         if (!RoundFought() || model::On()) {
             return false;

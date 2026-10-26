@@ -65,7 +65,7 @@ struct Options {
     uint64_t presentEvery = 0;  // --present-every N:PREFIX: ... every N frames (the zoom followed every frame)
     std::string presentPrefix;
     int scale = 0;            // --scale: the window this many times the board's lines (0: the Display page's)
-    int zoom = 0, zoomPlayer = 0; // --zoom SIZE:PLAYER: the camera's zoom from the start (zoom.h; SIZE 0-4, PLAYER 1 or 2)
+    int zoom = 0, zoomPlayer = 0; // --zoom SIZE:PLAYER: the camera's zoom from the start (zoom.h; SIZE 0-4, PLAYER 1 or 2, 3 both)
 };
 
 // Recorded input: what the players hold, at the frames where it changes

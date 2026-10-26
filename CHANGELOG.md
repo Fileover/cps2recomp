@@ -7,6 +7,12 @@
   settings as Screen and Picture are, and kept nowhere. In a window, the next game opens where the one before was and
   as tall (the game ending for the next writes its window's place to a file in the temporary folder, which the next
   reads within the minute and removes); it opened where the system puts a new window, so a window moved stayed behind.
+- **Zoom on both fighters** in every fighting game: the left stick's click held and the right stick's click (keyboard:
+  Left Shift and W) keeps both in the picture, the camera as close as shows both whole (2x at most, the whole picture
+  at least): tight when they are close, wide when they are apart, kept inside the stage. Again for the whole picture;
+  a shoulder looks at one of them instead. How much room a fighter takes is the game's (`Game::focusLift`,
+  `focusTall`; `modes::Focus(place, lift, tall)`): the Vampire Savior games 128 lines tall, Alpha 1-3 112, Super Turbo
+  104, Super Gem Fighter 76, the Marvel engine 136. `--zoom 1:3` and `--keys TICK:z2` for tests.
 - **Street Fighter Alpha 2's CPU plays the tag style and the ring out itself**, as the Vampire Savior games' does: its
   own scripts, run by its interpreter (`games/sfa2/src/computer.cpp`), have three tactics of the port's: out of a
   corner (a throw, a jump over you, a walk out), knocking you over your end (a throw or a sweep), and in the tag

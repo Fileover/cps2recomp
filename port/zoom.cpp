@@ -19,6 +19,9 @@ namespace {
     constexpr int kLabelTicks = 150; // (two and a half seconds)
     constexpr float kPanStep = 2.0f;  // the picture's pixels a step of Pan moves the camera (a step a picture)
     constexpr float kPanMost = 160.0f;
+    // Keeping both in the picture: room beyond a fighter's height (the game's focusTall) above it, below its feet for
+    // its shadow, and across, as a part of its height, for its arms and what it wears
+    constexpr float kRoomTop = 8.0f, kRoomFeet = 14.0f, kAcrossOfTall = 0.62f;
 } // namespace
 
 bool Zoom::Possible() {
@@ -28,6 +31,8 @@ bool Zoom::Possible() {
 void Zoom::Said() {
     if (m_size == 0) {
         snprintf(m_label, sizeof(m_label), "ZOOM OFF");
+    } else if (m_player == kBoth) {
+        snprintf(m_label, sizeof(m_label), "ZOOM  BOTH FIGHTERS");
     } else {
         snprintf(m_label, sizeof(m_label), "ZOOM %gx  PLAYER %d", static_cast<double>(kSizes[m_size]), m_player + 1);
     }
@@ -38,13 +43,31 @@ void Zoom::Press(int player) {
     if (!Possible()) {
         return;
     }
-    if (m_size == 0 || player == m_player) {
+    if (m_player == kBoth) {
+        // (from both to one: that one at the size it was last looked at, the first if none)
+        m_size = std::max(m_size, 1);
+    } else if (m_size == 0 || player == m_player) {
         m_size = (m_size + 1) % kSizeCount;
     }
     if (m_size == 0 || player != m_player) {
         m_panX = m_panY = 0; // (framed afresh: the moved camera was for the other fighter)
     }
     m_player = player;
+    Said();
+}
+
+void Zoom::Both() {
+    if (!Possible()) {
+        return;
+    }
+    if (m_player == kBoth && m_size > 0) {
+        m_size = 0;
+        m_player = 0;
+    } else {
+        m_player = kBoth;
+        m_size = std::max(m_size, 1);
+    }
+    m_panX = m_panY = 0;
     Said();
 }
 
@@ -57,7 +80,7 @@ void Zoom::Pan(int across, int down) {
 }
 
 void Zoom::Set(int size, int player) {
-    m_size = std::clamp(size, 0, kSizeCount - 1);
+    m_size = player == kBoth ? std::max(size, 1) : std::clamp(size, 0, kSizeCount - 1);
     m_player = player;
     m_jump = true;
     Said();
@@ -68,9 +91,32 @@ void Zoom::Follow(int width, int height) {
         m_labelTicks--;
     }
     int x = 0, y = 0;
-    const bool seen = m_size > 0 && Possible() && cps2recomp::TheGame().focus(m_player, x, y);
-    const float wanted = seen ? kSizes[m_size] : 1.0f;
-    const float wantedX = seen ? x + m_panX : width / 2.0f, wantedY = seen ? y + m_panY : height / 2.0f;
+    float wanted = 1.0f, wantedX = width / 2.0f, wantedY = height / 2.0f;
+    bool seen = false;
+    if (m_size > 0 && Possible() && m_player == kBoth) {
+        // Both: the rectangle they are in, and as close as shows all of it
+        int x2 = 0, y2 = 0;
+        seen = cps2recomp::TheGame().focus(0, x, y) && cps2recomp::TheGame().focus(1, x2, y2);
+        if (seen) {
+            // (the places are focusLift above the feet; a fighter reaches focusTall up from them)
+            const cps2recomp::Game &game = cps2recomp::TheGame();
+            const float across = game.focusTall * kAcrossOfTall;
+            const float above = static_cast<float>(game.focusTall - game.focusLift) + kRoomTop;
+            const float below = static_cast<float>(game.focusLift) + kRoomFeet;
+            const float left = std::min(x, x2) - across, right = std::max(x, x2) + across;
+            const float top = std::min(y, y2) - above, bottom = std::max(y, y2) + below;
+            wanted = std::clamp(std::min(width / (right - left), height / (bottom - top)), 1.0f, kSizes[kSizeCount - 1]);
+            wantedX = (left + right) / 2 + m_panX;
+            wantedY = (top + bottom) / 2 + m_panY;
+        }
+    } else if (m_size > 0 && Possible()) {
+        seen = cps2recomp::TheGame().focus(m_player, x, y);
+        if (seen) {
+            wanted = kSizes[m_size];
+            wantedX = x + m_panX;
+            wantedY = y + m_panY;
+        }
+    }
     if (m_jump || !m_settled) {
         // (from nothing, the place is where the size starts from, and the size eases; asked for, both are there)
         m_offX = m_offY = 0;
@@ -107,11 +153,16 @@ bool Zoom::View(int width, int height, SDL_FRect &view) const {
     if (m_shown <= 1.0f) {
         return false;
     }
-    // (the place looked at in the middle, always: past the picture's edges is black)
+    // (the place looked at in the middle, always: past the picture's edges is black; but both fighters are kept
+    // inside the picture, which holds them)
     view.w = width / m_shown;
     view.h = height / m_shown;
     view.x = m_x - view.w / 2;
     view.y = m_y - view.h / 2;
+    if (m_player == kBoth) {
+        view.x = std::clamp(view.x, 0.0f, width - view.w);
+        view.y = std::clamp(view.y, 0.0f, height - view.h);
+    }
     return true;
 }
 

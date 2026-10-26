@@ -63,8 +63,9 @@ namespace {
     }
 
     // The camera's zoom (zoom.h) is the left stick's click held and a shoulder pressed: left for player 1, right for
-    // player 2; the d-pad (or the stick) moves the camera. While the click is held (and is not the game's), the
-    // shoulders and the directions are not the game's. On the keyboard, Left Shift held, Q and E, and the arrows.
+    // player 2, the right stick's click for both fighters at once; the d-pad (or the stick) moves the camera. While the
+    // click is held (and is not the game's), the shoulders and the directions are not the game's. On the keyboard,
+    // Left Shift held, Q, E and W, and the arrows.
     bool ZoomHeld(SDL_Gamepad *gp) {
         return Zoom::Possible() && gp && !ButtonBound(SDL_GAMEPAD_BUTTON_LEFT_STICK) && SDL_GetGamepadButton(gp, SDL_GAMEPAD_BUTTON_LEFT_STICK);
     }
@@ -79,7 +80,7 @@ namespace {
         return Zoom::Possible() && keys[SDL_SCANCODE_LSHIFT] && !KeyBound(SDL_SCANCODE_LSHIFT);
     }
     bool KeyZoom(SDL_Scancode key) {
-        return key == SDL_SCANCODE_Q || key == SDL_SCANCODE_E || key == SDL_SCANCODE_UP || key == SDL_SCANCODE_DOWN ||
+        return key == SDL_SCANCODE_Q || key == SDL_SCANCODE_E || key == SDL_SCANCODE_W || key == SDL_SCANCODE_UP || key == SDL_SCANCODE_DOWN ||
                key == SDL_SCANCODE_LEFT || key == SDL_SCANCODE_RIGHT;
     }
 
@@ -299,9 +300,14 @@ int RunWindowed(Port &port) {
             switch (ev.type) {
             case SDL_EVENT_QUIT: running = false; break;
             case SDL_EVENT_KEY_DOWN:
-                if (!port.menu.IsOpen() && !ev.key.repeat && (ev.key.scancode == SDL_SCANCODE_Q || ev.key.scancode == SDL_SCANCODE_E) &&
+                if (!port.menu.IsOpen() && !ev.key.repeat &&
+                    (ev.key.scancode == SDL_SCANCODE_Q || ev.key.scancode == SDL_SCANCODE_E || ev.key.scancode == SDL_SCANCODE_W) &&
                     KeyZoomHeld(SDL_GetKeyboardState(nullptr))) {
-                    port.zoom.Press(ev.key.scancode == SDL_SCANCODE_E ? 1 : 0);
+                    if (ev.key.scancode == SDL_SCANCODE_W) {
+                        port.zoom.Both();
+                    } else {
+                        port.zoom.Press(ev.key.scancode == SDL_SCANCODE_E ? 1 : 0);
+                    }
                 } else if (ev.key.scancode == SDL_SCANCODE_ESCAPE || ev.key.scancode == SDL_SCANCODE_F1 || (ev.key.scancode == SDL_SCANCODE_TAB && !KeyBound(SDL_SCANCODE_TAB))) {
                     toggleMenu();
                 } else if (KeyBound(ev.key.scancode)) {
@@ -335,6 +341,10 @@ int RunWindowed(Port &port) {
             case SDL_EVENT_GAMEPAD_BUTTON_DOWN:
                 if (!port.menu.IsOpen() && Shoulder(ev.gbutton.button) && ZoomHeld(SDL_GetGamepadFromID(ev.gbutton.which))) {
                     port.zoom.Press(ev.gbutton.button == SDL_GAMEPAD_BUTTON_RIGHT_SHOULDER ? 1 : 0);
+                    stickWaiting = false;
+                } else if (!port.menu.IsOpen() && ev.gbutton.button == SDL_GAMEPAD_BUTTON_RIGHT_STICK &&
+                           !ButtonBound(SDL_GAMEPAD_BUTTON_RIGHT_STICK) && ZoomHeld(SDL_GetGamepadFromID(ev.gbutton.which))) {
+                    port.zoom.Both(); // (not the right stick's own pause)
                     stickWaiting = false;
                 } else if (ButtonBound(static_cast<SDL_GamepadButton>(ev.gbutton.button))) {
                     // (a button the player has given to the game does only that)

@@ -10,7 +10,7 @@ players hold as its standard) with the three characters only [Vampire Savior 2](
 Savior's fifteen stay, so all eighteen are there, and every one plays by Vampire Savior's rules, as if the three
 had always been in it. It has everything the [Vampire Savior port](../vampire_savior/README.md) has: the training
 mode and the dummy, widescreen, the modes (the team battle, tag style or knock-out, 2 vs 2 for four players, among them), custom colours,
-the board's settings, the zoom on a fighter (the left stick's click and a shoulder, the d-pad to frame it) and the rest.
+the board's settings, the zoom on a fighter or both (the left stick's click and a shoulder or the right stick's click, the d-pad to frame it) and the rest.
 
 > **Beta.** The three play, and what they do is checked against Vampire Savior 2 (every animation picture for
 > picture in the model viewer, every rewritten routine of the game against its own code), but nobody has played

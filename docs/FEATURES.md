@@ -103,12 +103,14 @@ features with `fNAME=N` and runs commands with `cNAME`).
 The window can show part of the picture larger, about one player's fighter (`port/zoom.h`): a gamepad's left
 stick's click held and a shoulder pressed, left for player 1 and right for player 2, at 1.25x to 2x (keyboard:
 Left Shift held, Q and E). The fighter stays in the middle; the d-pad (arrows) with the click (Shift) held moves
-the camera off it. It is the
+the camera off it. The right stick's click (W) keeps both fighters in the picture instead, as close as shows both
+whole; how much room a fighter takes is `Game::focusTall` (from its feet up) and `focusLift`. It is the
 window's alone (the game, save states and screenshots never see it). A game has it once its sources say where to
 look: `TheGame().focus = [](int player, int &x, int &y) { ...; return true; }`, the place in the picture's pixels
 (widescreen's columns counted) to keep in the middle, false when there is no fighter to look at. A fighting game gives
-it through `modes::Focus(place, lift)` (`fight/alternative.h`): `place` the fighter's feet in the picture, `lift` how
-far above them to look; it is on only while a round is fought and not in the model viewer. Vampire Savior's
+it through `modes::Focus(place, lift, tall)` (`fight/alternative.h`): `place` the fighter's feet in the picture, `lift`
+how far above them to look, `tall` how tall a fighter stands; it is on only while a round is fought and not in the
+model viewer. Vampire Savior's
 is in `src/camera.cpp`: where the fighter stands, 44 lines up from its feet. `--zoom SIZE:PLAYER` starts zoomed.
 
 ## Where a feature does its work
