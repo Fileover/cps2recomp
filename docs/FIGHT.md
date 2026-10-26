@@ -130,7 +130,13 @@ throw over its head or a jump over the other, a walk out of the end's way; with 
 that sends it on or a sweep; and walks and jumps to the better side. Never into an attack coming (the game's own guard
 test, `Description::attackComing`): the game's play guards it. And a game's sources ask `RingOutMayWalkBack` where the
 computer takes the way it walks (Alpha 2's Walking rewrite, Vampire Savior's hook on its walk), so that a coached
-fighter does not walk back towards the end it is near. The difficulty (the team battle's own, or the game's:
+fighter does not walk back towards the end it is near. A game whose computer player is readable code with tactics of
+the port's for the modes (`Description::computerPlaysModes`: the Vampire Savior games and Alpha 2, each in its
+`src/computer.cpp`) plays them itself instead, its own guard on all the while: the coach stands aside, and the
+computer is told the mode it is in, how far its back and the other's are from their ends, when its fighter wants to
+tag and how well it plays (`ComputerModeOf`, `ComputerBack`, `ComputerTagWanted`, `ComputerSkill`), and asks for a
+tag, taken once its fighter can (`ComputerAsksTag`); `RingOutMayWalkBack` is still asked. The difficulty (the team
+battle's own, or the game's:
 `difficultyNow`) says how soon it sees a chance and how often it takes one. A game gives `canAct` (or `canTag`) for any
 of it; for tests, `CPS2RECOMP_BATTLE_CPU=1` has the game play side 1 too (and begins a mode again when it is over),
 `CPS2RECOMP_COACH` and `CPS2RECOMP_COACH_PARTS` choose what is coached, and `CPS2RECOMP_BATTLE_LOG` writes each tag,

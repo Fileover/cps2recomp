@@ -1,5 +1,5 @@
 # cps2recomp input movie: frame player1 player2 (pressed bits, hex)
-# team battle, tag style, against the CPU's team of three (made-up play for player 1 from 400, --auto 11:400:1): the CPU tags its own fighters in, as the coach says (low on health, a partner with more, the other down or far off), and its bars emptied bring the next in; one round. Run with CPS2RECOMP_BATTLE_SEED=1 and --features free_play,team_style=0,team_size=1,team_opponent=0,team_stage=4 --keys 60:cteam_start
+# team battle, tag style, against the CPU's team of three (recorded with the coach, 2026-10-25; the CPU now tags itself, src/computer.cpp) (made-up play for player 1 from 400, --auto 11:400:1): the CPU tags its own fighters in, as the coach says (low on health, a partner with more, the other down or far off), and its bars emptied bring the next in; one round. Run with CPS2RECOMP_BATTLE_SEED=1 and --features free_play,team_style=0,team_size=1,team_opponent=0,team_stage=4 --keys 60:cteam_start
 0 0000 0000
 408 0091 0000
 409 0041 0000

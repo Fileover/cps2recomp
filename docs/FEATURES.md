@@ -106,7 +106,9 @@ Left Shift held, Q and E). The fighter stays in the middle; the d-pad (arrows) w
 the camera off it. It is the
 window's alone (the game, save states and screenshots never see it). A game has it once its sources say where to
 look: `TheGame().focus = [](int player, int &x, int &y) { ...; return true; }`, the place in the picture's pixels
-(widescreen's columns counted) to keep in the middle, false when there is no fighter to look at. Vampire Savior's
+(widescreen's columns counted) to keep in the middle, false when there is no fighter to look at. A fighting game gives
+it through `modes::Focus(place, lift)` (`fight/alternative.h`): `place` the fighter's feet in the picture, `lift` how
+far above them to look; it is on only while a round is fought and not in the model viewer. Vampire Savior's
 is in `src/camera.cpp`: where the fighter stands, 44 lines up from its feet. `--zoom SIZE:PLAYER` starts zoomed.
 
 ## Where a feature does its work

@@ -7,6 +7,23 @@
   settings as Screen and Picture are, and kept nowhere. In a window, the next game opens where the one before was and
   as tall (the game ending for the next writes its window's place to a file in the temporary folder, which the next
   reads within the minute and removes); it opened where the system puts a new window, so a window moved stayed behind.
+- **Street Fighter Alpha 2's CPU plays the tag style and the ring out itself**, as the Vampire Savior games' does: its
+  own scripts, run by its interpreter (`games/sfa2/src/computer.cpp`), have three tactics of the port's: out of a
+  corner (a throw, a jump over you, a walk out), knocking you over your end (a throw or a sweep), and in the tag
+  style backing off and tagging; its own guard on all the while, which the toolkit's coach (now Super Turbo's alone)
+  cost it by taking its controls. CPU against CPU it won 64% and 59% of ring outs against the game's own play (53%
+  and 47% with nobody playing the mode; the coach 56% and 59%). `ComputerModeOf` says no mode for a game whose
+  computer does not play the modes itself. `tools/aiscripts.py` names Alpha 2's jumps' ways as its jump reads them
+  (1 forward, 0 straight up, FF back), and the tests of the other's jump with them.
+
+- **Zoom** in every fighting game: Street Fighter Alpha, Alpha 2, Alpha 3, Super Turbo, Super Gem Fighter, Marvel
+  Super Heroes and X-Men vs. Street Fighter, as in the Vampire Savior games (the left stick's click and a shoulder;
+  the d-pad to frame the fighter; Left Shift, Q, E and the arrows on the keyboard). The toolkit's `modes::Focus`
+  (`fight/alternative.h`) gives a game its `Game::focus` from where its fighter stands: only while a round is fought
+  and not in the model viewer, looking so many lines above the feet (Alpha 1-3 44, Super Turbo 40, Super Gem Fighter
+  28, the Marvel engine 40, for the size of their fighters). Each game's place is its model viewer's with the wide
+  picture's columns counted (`widescreen.cpp`); the Marvel engine's is in `fight/marvel.cpp`, from where it puts the
+  training mode's boxes, a tag-team game's point characters being its first two records.
 - **Zoom**: the camera keeps its fighter in the middle at every size, past the stage's ends too (black there); it
   was kept inside the picture, so near an end the fighter was off to the side, and it trailed a dash. It eases only
   when it changes fighter or size. With the left stick's click held, the d-pad or the stick moves it to frame the

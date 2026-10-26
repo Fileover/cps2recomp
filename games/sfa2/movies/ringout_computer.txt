@@ -1,5 +1,5 @@
 # cps2recomp input movie: frame player1 player2 (pressed bits, hex)
-# ring out against the CPU, coached (made-up play for player 1 from 400, --auto 16:400:1): the CPU walks player 1 towards an end, jumps out of a corner and keeps off its own end; the CPU knocked out at about 4,700, the next stage dropped onto, player 1 out at about 4,960. Run with CPS2RECOMP_BATTLE_SEED=1 and --features free_play --keys 60:cringout_start
+# ring out against the CPU (recorded with the coach, 2026-10-25; the CPU now plays the ring out itself, src/computer.cpp) (made-up play for player 1 from 400, --auto 16:400:1): the CPU walks player 1 towards an end, jumps out of a corner and keeps off its own end; the CPU knocked out at about 4,700, the next stage dropped onto, player 1 out at about 4,960. Run with CPS2RECOMP_BATTLE_SEED=1 and --features free_play --keys 60:cringout_start
 0 0000 0000
 401 0029 0000
 408 0002 0000
