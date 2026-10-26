@@ -780,44 +780,74 @@ own parts:
   Definitive built and a coached ring out run in each with nothing left to the interpreter but Definitive's own (as on
   main). Only headless.
 
-## The computer player: scripts (found 2026-10-25, not yet readable)
+## The computer player: scripts (2026-10-25; `tools/aiscripts.py` prints them)
 
-The game's computer player is a small interpreter running scripts from the ROM, a set of them for each character. A
-look, to learn what making it readable would take (nothing changed). Offsets from the player (A6):
+The game's computer player is a small interpreter running scripts from the ROM, a set of them for each character.
+`tools/aiscripts.py` prints every character's scripts as text, from a build's work/ (nothing of the game's in the
+repository); `--check` decodes everything, `--against` checks a run against it (below). The interpreter is not yet
+readable code. Offsets from the player (A6):
 
-- Entered from the player's routine (022552, at 0225BC: `jsr 02B7FA`) for a computer's fighter. 02B7FA chooses by the
-  mode `+204` (0, 2, 4, 6) one of four banks of scripts, each from a table of the characters' (by `+382`, kCharacter,
-  four bytes each) in the ROM's data: 0BF01A, 0BF09A, 0BF11A, 0BF19A. The scripts themselves are 100000-113000 (from
-  100000 for the first character, about E9C bytes to the next).
-- 02CCAE starts bank 0's script (`+205` the one, its first word to `+206`, the pointer to `+210` and `+224`). 02CCE6
-  bank 1's: one of 32 bytes at random, from the row `+20A` (0, 20 or 40) of the character's table, names the script
-  (word offsets at +60 of the table); the pointer to `+214`. Banks 2 and 3 likewise (02CD3C, 02CD98; `+218`, `+21C`).
-- The interpreter, 02B90E: the script's next word to `+240` (`+240` the opcode, `+241` the sub-op; FF ends the script,
-  02C718), the pointer kept in `+220`. 14 opcodes (the table at 02B94E: 02B96A, 02BBC0, ... 02C6EC), about 52
-  instructions with their sub-ops (by a table each, on `+241`), reading their operands from the script: for one,
-  02B99C waits a number of frames (`+208`) standing. An instruction that waits for a thing to be so (the handlers at
-  02C9xx-02CBxx: until the other is nearer than, further than, the timer out; `+201`/`+202` the step) goes to the next
-  with 02CCA4. `+242` a distance it compares with `+130`; `+20B` the way it wants to walk (1 back: the walk's hook
-  above).
-- Interrupts: 02CED4, asked by the waits, breaks off to bank 2 (02CF66: `+204` = 4, then 02B7FA) when the other player
-  (`+32`, A4) has projectiles out (A4+149 to 14D: counts of the player's live objects by kind, added to at 05475A and
-  taken from at 054770) or an attack out (A4+105, kAttacking, with the move's data byte A4+1C → +17), and the
-  character's 128-byte table at 0BB580 (02D62A) says to. 02CF74 the same for the bits of `+228`. The tables at 0BB480
-  and 0BB500 are asked the same way (02C7AE, 02C7E6).
-- The tier `+20A`, chosen as a match begins (00D9BA): 0 or 20 at random from 32 slots made from a pair of counts at
-  00DCC0 (00DD40 for a while after something at A5-6162), by the difficulty (A5+BE) and the stage of the ladder
-  (A5+114); 40 when A5+83 is set. So the difficulty is mostly which row of each character's choices it draws from.
+- Entered from the player's routine (022552, at 0225BC: `jsr 02B7FA`) for a computer's fighter. 02B7FA runs the bank
+  the mode `+204` names (0, 2, 4, 6); each bank's scripts are found from a table of the characters' (by `+382`,
+  kCharacter, a long each) in the ROM's data: 0BF01A, 0BF09A, 0BF11A, 0BF19A. The scripts are at 100000-113000. All
+  offsets in the tables are signed words (a plan's tactics can be ones written before it).
+  - Bank 0, the plans (02CCAE): word offsets by `+205` (a byte offset), to `+210` and `+224`.
+  - Bank 1, the tactics (02CCE6): word offsets by the plan (`+205`) to a table of 96 bytes (32 slots for each tier,
+    by `+20A`: 0, 20, 40) naming its scripts, with their offsets at +60; one slot at random. To `+214`.
+  - Bank 2, the reactions (02CD3C): the same, from the first of its tables (`+20E` is 0). To `+218`.
+  - Bank 3 (02CD98): word offsets by `+22B` (a reaction the game chose). To `+21C`.
+  A script is a word (to `+206`: what happens when it is broken off, 02C7C0) and its instructions.
+- The interpreter, 02B90E: the next word to `+240` (the operation, then its kind), its operands after it; the place
+  kept in `+220`, and after every instruction in the bank's own (`+210` to `+21C`, 02B934): so a plan broken off goes
+  on where it was. 14 operations, 50 kinds with their operands, and an if (operation 0C: kind 0 if, 2 else, 4
+  endif, nested by `+22C`) of 34 tests. The lengths are the game's own: 02D0A8, which skips a failed if's
+  instructions, steps over each kind's operands by a table (`aiscripts.py` reads it from the program).
+  - Each instruction starts in 02B96A-02C6EC and sets `+202`/`+203` (its state); 02C7F6 runs that state's routine
+    every frame (02C840-02CCA2) until it is done (02CCA4: on to the next). 00: stand, crouch, wait (frames, while the
+    other is in the air, while a projectile is out, a "think" time: 02CDD0, a base by level 02D2B8, the character's
+    02D2F8 and a random 02D278), stand. 02: walk forward, back, or to a gap (`+130`, the gap between the two, a
+    distance less their widths), for so long. 04: jump (the way word: high byte 0 forward, 1 back, FF up; low byte a
+    kind, 4: the move after so many frames), a jump into a chain, two jumps. 06 a normal (`+105` attacking), 08 a
+    special (if the character's routine at 0BF21A allows it), 0A and 14 the moves that take a gauge stock (`+109`),
+    16 a dash with a move, 18 a chain (a list of moves at 0BCD20). A move is a word unpacked by 02CE44 into what a
+    player's buttons give (02757A): bit 0 clear, a normal (`+100` stance 0 standing 2 crouching 4 jumping (in the jumps), `+101` 0 punch 2
+    kick, `+102` 0 light 2 medium 4 heavy, `+103`/`+104` the directions, `+22F` a variant); bit 0 set, a special
+    (`+106` its number, `+102` its strength, `+22F` its variant). 0E: go to a tactic and come back (0E 02: by the
+    chance table 0BC780). 10: guard if an attack is coming (by the character's chance table 0BB580), 10 02 then a
+    move. 12: above a level, let reactions (bits of `+228`) break in or keep them out; can or cannot be broken off
+    (`+231`). FF ends: 00 a tactic at random, 02 back to the plan, 04 one of those by the chance table 0BB480.
+  - The tests (02C148-02C424): the gap, the level, a chance (one in 2, three in 4, a 16-bit mask), a gauge stock,
+    the other in the air (rising, falling, jumping forward, back or up, above or below a height), crouching, lying
+    down, open (02D240: on the floor, in its own control, hittable, in a move), an attack coming (02D43C: the other
+    side's objects with an attack out, or the other's attack), projectiles out (either side's, by kind), health
+    (`+50`, its own or the other's, or the two compared), which character either is, gauge stocks.
+- Breaking off: 02CED4, asked by the waits, goes to bank 2 (02CF66: `+204` = 4) when the other (`+32`, A4) has
+  projectiles out (A4+149 to 14D: counts of a player's live objects by kind, added to at 05475A and taken from at
+  054770) or an attack out (A4+105, kAttacking, with the move's data byte A4+1C → +17), and the character's chance
+  table at 0BB580 says to; 02CF74 the same for the bits of `+228`.
+- Chance tables (0BB480, 0BB500, 0BB580 by character, 0BC780): a long for each level; a random bit of it (02D62A).
+- The level `+3B3` (0-31): the computer's copy (00D452, every frame) of A5+12E, a level for the whole fight that rises
+  and falls (by A5-618A: so much every 780 frames at least, 00D3D8, under a ceiling from 00DAA8 by the difficulty
+  A5+BE and the stage of the ladder A5+114). Seen in the ladder movie between 6 and 16; 16 as a player is set up (02231E), and a person's stays so.
+  The tier `+20A`, chosen as a match begins (00D9BA): 0 or 20 at random from 32 slots made from a pair of counts at
+  00DCC0 (00DD40 for a while after something at A5-6162), by the difficulty and the stage; 40 when A5+83 is set.
 - It never reads the other player's controls (nothing in 02B7FA-02D800 reads A4+12B, kHeld, or the input ports): it
   sees the other's attack the frame it is out, and its projectiles, not the buttons.
-- Measured with the ladder movie (--watch FF8A20-FF8A23): the computer's script pointer steps through 1032xx, two to
-  six bytes an instruction, written at 02B928.
-- The same interpreter at the same offsets in Vampire Savior 2 (02B0EC), Vampire Hunter 2 (02B11A) and Super Gem
-  Fighter (0135C2): one decoder and one readable interpreter would do for all four games (Definitive is this program).
-  The Alpha games read operands from scripts the same way at other offsets (Street Fighter Alpha 2 at 0281EC, Alpha
-  3 at 030B98, Alpha at 02291A): likely Capcom's same design, its own tables.
-- What making it readable would take: a decoder that prints each character's scripts as text, by the 52
-  instructions' operands (each handler read once); then the interpreter (02B7FA-02D800, about 1,900 instructions) as
-  readable code, checked with --check-rewrites against the movies with a computer in them. The scripts stay data.
+- The same interpreter in Vampire Savior 2 (02B0EC), Vampire Hunter 2 (02B11A) and Super Gem Fighter (0135C2, 46 kinds
+  of its own: the names are this game's); `aiscripts.py` finds each game's tables from its listing. The Alpha games
+  read operands from scripts the same way at other offsets (Alpha 2 at 0281EC, Alpha 3 at 030B98, Alpha at 02291A):
+  likely Capcom's same design, not yet looked at.
+- Checked: `aiscripts.py --check` decodes every character's scripts with nothing left over (Vampire Savior and
+  Definitive 19,408 instructions in 17 characters; Vampire Savior 2 and Vampire Hunter 2 22,462 in 20; Super Gem
+  Fighter 5,059 in 12). Then a run's watch of the computer's place (`CPS2RECOMP_WATCH_REPORTS=100000000 ... --watch
+  FF8A20-FF8A23`) against it, `aiscripts.py GAME --against FILE`: every place the game kept is an instruction found,
+  and every step from one to the next is to the next instruction, forward in the script, to a script's start or
+  back into the plan: the ladder, team_tag_computer and ringout_computer movies here (4,630 places), and each other
+  game's ladder (Vampire Savior 2 2,217, Vampire Hunter 2 2,001, Super Gem Fighter 550). About half the even places
+  in 100000-113000 are instructions, so a place found by chance would fail one time in two.
+- Not sure of: what a jump's kinds 0 and 2 do with their move, 04 02's second word, the operations 0A and 14 by
+  name (two of the gauge moves), test 3C (`+39`). Next: the interpreter as readable code (02B7FA-02D800, about
+  1,900 instructions), checked with --check-rewrites against the movies with a computer in them.
 
 ## Board settings (2026-10-15)
 
