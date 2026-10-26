@@ -17,6 +17,16 @@
   a shoulder looks at one of them instead. How much room a fighter takes is the game's (`Game::focusLift`,
   `focusTall`; `modes::Focus(place, lift, tall)`): the Vampire Savior games 128 lines tall, Alpha 1-3 112, Super Turbo
   104, Super Gem Fighter 76, the Marvel engine 136. `--zoom 1:3` and `--keys TICK:z2` for tests.
+- **Street Fighter Alpha 3's CPU plays the tag style and the ring out itself**, as Alpha 2's and the Vampire Savior
+  games' do: its computer player is readable C++ now (`games/sfa3/src/computer.cpp`, Alpha 2's interpreter with Alpha
+  3's own: the isms' super combos and custom combos, a throw instruction, cancels), checked call by call against the
+  game's code with nothing differing (about 1.45 million calls), and it has the port's tactics for the modes. CPU
+  against CPU it won 53% and 64% of ring outs against the game's own play (47% and 53% with nobody playing the mode;
+  the coach 53% and 45%). In the tag style it tags only while the other is knocked down: in this game every tag
+  costs the side that makes it (the coach's too), and that costs least. `tools/aiscripts.py sfa3` prints Alpha 3's
+  scripts, its own instructions named, and `--check` says whether a script has what a skipping routine of its does not
+  know inside an if.
+
 - **Street Fighter Alpha 2's CPU plays the tag style and the ring out itself**, as the Vampire Savior games' does: its
   own scripts, run by its interpreter (`games/sfa2/src/computer.cpp`), have three tactics of the port's: out of a
   corner (a throw, a jump over you, a walk out), knocking you over your end (a throw or a sweep), and in the tag

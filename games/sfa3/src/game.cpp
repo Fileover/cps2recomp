@@ -30,6 +30,7 @@ void RegisterBattle();   // battle.cpp
 void RegisterChoosing(); // choosing.cpp
 void ChoosingBeforeFrame(Machine &machine);
 void RegisterWidescreen(); // widescreen.cpp
+void RegisterComputer();   // computer.cpp
 void WidescreenBeforeFrame(Machine &machine);
 bool WidePlay();
 void RegisterModel(); // model.cpp
@@ -50,6 +51,7 @@ void RegisterGame() {
     RegisterColours();
     RegisterChoosing();
     RegisterWidescreen();
+    RegisterComputer();
     RegisterCoins();
     RegisterTitle();
     RegisterBoard();

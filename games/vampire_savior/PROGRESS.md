@@ -872,7 +872,7 @@ code, `src/computer.cpp` (below, "As C++"). Offsets from the player (A6):
   of its own: the names are this game's); `aiscripts.py` finds each game's tables from its listing. The Alpha games
   read operands from scripts the same way at other offsets (Alpha 2 at 0281EC, Alpha 3 at 030B98, Alpha at 02291A):
   the same design. Alpha 2's is decoded too, its own instructions named (games/sfa2/PROGRESS.md, "The computer
-  player: scripts"); Alpha 3's has an operation and some tests more, Alpha's finds its tables another way.
+  player: scripts"), and Alpha 3's (games/sfa3/PROGRESS.md, the same title); Alpha's finds its tables another way.
 - Checked: `aiscripts.py --check` decodes every character's scripts with nothing left over (Vampire Savior and
   Definitive 19,408 instructions in 17 characters; Vampire Savior 2 and Vampire Hunter 2 22,462 in 20; Super Gem
   Fighter 5,059 in 12). Then a run's watch of the computer's place (`CPS2RECOMP_WATCH_REPORTS=100000000 ... --watch

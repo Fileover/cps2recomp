@@ -2,8 +2,9 @@
 # SPDX-License-Identifier: GPL-3.0-only
 # Copyright (C) 2026 Tommy McLeroy. Part of cps2recomp.
 """Prints the computer player's scripts as text: the Vampire Savior games', Super Gem Fighter's and Street Fighter
-Alpha 2's computer is an interpreter running scripts from the ROM, a set for each character
-(games/vampire_savior/PROGRESS.md, "The computer player"; games/sfa2/PROGRESS.md, "The computer player: scripts").
+Alpha 2's and 3's computer is an interpreter running scripts from the ROM, a set for each character
+(games/vampire_savior/PROGRESS.md, "The computer player"; games/sfa2/PROGRESS.md and games/sfa3/PROGRESS.md, "The
+computer player: scripts").
 Read from a build's work/<id>/ (program.lst, program.bin, program.bin.data), run from the repository's top.
 
   aiscripts.py [GAME]                     every character's scripts (GAME: vampire_savior)
@@ -19,8 +20,9 @@ The instructions' lengths are the game's own: its routine that skips over instru
 fails) has a table of them, read here from the program. The instructions are named by the interpreter they
 were read from, told apart by where it keeps the computer's part of a player's record: Vampire Savior's (the
 banks' places from +210) or Alpha 2's (from +220, its record's fields 10h on from Vampire Savior's; fewer
-operations, a second "if" with "else if" and a break out of it, the Alpha counter). An instruction of another
-kind is printed as its words.
+operations, a second "if" with "else if" and a break out of it, the Alpha counter); Alpha 3's is Alpha 2's with its
+own fields and more (the isms, a throw, a custom combo), named by the game. An instruction of another kind is
+printed as its words.
 
 Each character has four banks of scripts: 0 its plans (one chosen by the game), 1 its tactics (one at random
 from 32 slots for its plan, in the row of its tier: 0, 20 or 40 by the difficulty), 2 its reactions to an attack or a
@@ -71,17 +73,27 @@ class Program:
 # --- the instructions' lengths: the game's skipping routine ---
 
 def skip_lengths(p):
-    """{(op, kind): operand words} and {test: operand words} for "if", from the routine that skips over
-    instructions: move.b (a0)+,d0 / bmi / move.w T(pc,d0.w),d1 / jmp T(pc,d1.w) (the operation's table)."""
-    table = None
+    """{(op, kind): operand words} and {test: operand words} for "if", from the routines that skip over
+    instructions: move.b (a0)+,d0 / bmi / move.w T(pc,d0.w),d1 / jmp T(pc,d1.w) (the operation's table). A game can
+    have more than one (Alpha 2 and 3: one for each kind of if), and they need not know the same operations and tests
+    (Alpha 3's): the one that knows the most is taken, and lengths["known by all"] says what every one of them knows."""
+    tables = []
     for i, (a, ins) in enumerate(p.lines):
         if ins == "move.b (a0)+,d0" and i + 2 < len(p.lines) and p.lines[i + 1][1].startswith("bmi ") and \
                 re.match(r"move\.w \$[0-9A-F]+\(pc,d0\.w\),d1", p.lines[i + 2][1]):
-            table = int(re.search(r"\$([0-9A-F]+)", p.lines[i + 2][1]).group(1), 16)
-            break
-    if table is None:
+            tables.append(int(re.search(r"\$([0-9A-F]+)", p.lines[i + 2][1]).group(1), 16))
+    if not tables:
         sys.exit("aiscripts: the routine that skips over instructions is not in this program's listing")
+    found = [skip_lengths_of(p, t) for t in tables]
+    found = [x for x in found if x[0].get("ifs")]  # (a skipping routine knows its ifs)
+    lengths, tests = max(found, key=lambda x: (len(x[0]), sum(len(t) for t in x[1].values())))
+    ops = set.intersection(*({k[0] for k in x[0] if k != "ifs"} for x in found))
+    known = set.intersection(*({k for t in x[1].values() for k in t} for x in found))
+    lengths["known by all"] = (ops, known)
+    return lengths, tests
 
+
+def skip_lengths_of(p, table):
     def length_at(a):  # a routine that steps over operands: lea N(a0),a0; rts or rts
         if p.cuw(a) == 0x41E8 and p.cuw(a + 4) == 0x4E75:
             return p.cuw(a + 2) // 2
@@ -124,6 +136,8 @@ def skip_lengths(p):
             kinds = []
             while t + 2 * len(kinds) < t + p.cw(t) and len(kinds) < 8:  # (up to the first kind's code)
                 kinds.append(t + p.cw(t + 2 * len(kinds)))
+            if len(kinds) not in (3, 5):
+                continue  # (not an if's: not a skipping routine's table)
             for k in range(len(kinds)):
                 lengths[(op, 2 * k)] = 0  # (the test's own word: below)
             # [addq.b #1,nesting] / move.w (a0)+,d0 / move.w T(pc,d0.w),d1 / jsr (Alpha 2's first "if" skips without
@@ -392,10 +406,71 @@ ALPHA_ENDS[0x04] = "end: a tactic, or back to the plan, by the table 09AF44's ch
 # --- reading the scripts ---
 
 # The instructions' names by interpreter (bank_tables: where the banks' places start in the record)
+# --- naming (Alpha 3's instructions: its interpreter at 030A80; Alpha 2's but for these) ---
+
+def alpha3_move(w):
+    """As the game unpacks it (0328B0): bits 0 to 3 held (+83; bit 0 is also the way, +211); bit 11 set, a special
+    (its number from bit 4, +AA; punch or kick, bit 10; strength from bit 13), clear a normal (bits 4 to 7 to +2C0;
+    stance from bit 8, punch or kick bit 10, strength from bit 13)"""
+    held = " held %X" % (w & 0xF) if w & 0xF else ""
+    strength = STRENGTH.get((w >> 12) & 0xE, "strength %d" % ((w >> 12) & 0xE))
+    if w & 0x800:
+        return "special %d %s%s" % ((w >> 4) & 0x3F, strength, held)
+    text = "%s %s %s" % ({0: "standing", 2: "crouching", 4: "jumping"}.get((w >> 7) & 6, "stance %d" % ((w >> 7) & 6)), strength,
+                         "kick" if w & 0x400 else "punch")
+    if w & 0xF0:
+        text += " (+2C0 %X)" % ((w >> 4) & 0xF)
+    return text + held
+
+
+def alpha3_with_move(w, m, frames):
+    kind = w & 0xFF
+    if kind & 0xFE == 4:
+        return ": %s after %d frames" % (alpha3_move(m), frames)
+    return "" if not m and not frames else " (kind %d: %s, %d)" % (kind, alpha3_move(m), frames)
+
+
+ALPHA3_TESTS = dict(ALPHA_TESTS)
+ALPHA3_TESTS.update({
+    0x06: "super gauge >= {0} (A-ISM; X- and V-ISM, or +123 set: a full gauge)",
+    0x3E: "A-ISM", 0x40: "not A-ISM", 0x42: "X-ISM", 0x44: "not X-ISM", 0x46: "V-ISM", 0x48: "not V-ISM",
+    0x4A: "+5B is 1", 0x4C: "+B9 set",
+})
+
+
+def alpha3_name(op, kind, args, names):
+    a = args + [0] * 5
+    n = {
+        (0x04, 0x00): "jump %s%s" % (alpha_way(a[1]), alpha3_with_move(a[1], a[0], a[2])),
+        (0x04, 0x02): "special 3 (a jump of its own) %s, as %s%s" % (alpha_way(a[1]), alpha3_move(a[0]), alpha3_with_move(a[1], a[0], a[2])),
+        (0x04, 0x04): "jump %s, a V-ISM custom combo in the air if it can (half the gauge)%s" % (alpha_way(a[1]), alpha3_with_move(a[1], a[0], a[2])),
+        (0x04, 0x06): "jump %s into an air throw (%02X %02X)%s" % (alpha_way(a[1]), a[0] >> 8, a[0] & 0xFF, alpha3_with_move(a[1], 0, a[2])),
+        (0x06, 0x00): "attack: %s" % alpha3_move(a[0]),
+        (0x06, 0x02): "attack, held: %s" % alpha3_move(a[0]),
+        (0x08, 0x00): "special move: %s" % alpha3_move(a[0]),
+        (0x0A, 0x00): "super combo: %s (X-ISM: level 3, a full gauge; V-ISM: a frame's wait instead)" % alpha3_move(a[0]),
+        (0x0A, 0x02): "custom combo (V-ISM, half the gauge), timers by %d, special %d" % (a[0] >> 8, a[0] & 0xFF),
+        (0x0E, 0x02): "go to a tactic (bank 1) by the table 0C965A's chance, then back here",
+        (0x10, 0x02): "guard if an attack is coming, with an Alpha counter (a level of gauge, the character's chance 0C845A)",
+        (0x16, 0x00): "throw (%02X %02X)" % (a[0] >> 8, a[0] & 0xFF),
+    }.get((op, kind))
+    return n if n is not None else alpha_name(op, kind, args, names)
+
+
+ALPHA3_ENDS = dict(ENDS)
+ALPHA3_ENDS[0x04] = "end: a tactic, or back to the plan, by the table 0C835A's chance"
+
 STYLES = {
     0x210: (name, TESTS, ENDS),
     0x220: (alpha_name, ALPHA_TESTS, ALPHA_ENDS),
+    "alpha3": (alpha3_name, ALPHA3_TESTS, ALPHA3_ENDS),
 }
+# Alpha 3's interpreter is Alpha 2's with more (its record's fields elsewhere, the same banks' places): told apart by
+# the game. Its first if's skipping routine (032AEE) knows its throw (a word after it) and its tests from 3E (none),
+# its second if's only Alpha 2's operations and tests (--check counts those inside such an if: none)
+ALPHA3 = ("sfa3",)
+ALPHA3_MORE = {(0x16, None): 1}
+ALPHA3_MORE_TESTS = {t: 0 for t in range(0x3E, 0x4E, 2)}
 
 
 class Decoder:
@@ -404,6 +479,10 @@ class Decoder:
         self.ifs = lengths.get("ifs", {})  # the "if" operations: how many kinds each has
         self.name, self.test_names, self.end_names = STYLES[style]
         self.problems = []
+        # (Alpha 3: what not every one of its skipping routines knows, inside an if whose routine does not: a failed if
+        # there would step over it)
+        self.unskippable = []
+        self.known = lengths.get("known by all", (set(), set()))
         self.boundaries = set()
         self.ends = set()
         self.printed = {}  # a script's place: what it was first printed as
@@ -428,7 +507,7 @@ class Decoder:
         lines = ["    header %04X" % p.dw(at)]
         a = at + 2
         self.firsts.add(a)
-        depth = 0
+        depth = depth5 = 0  # (depth5: inside the ifs of five kinds)
         previous = None
         while a < limit:
             self.boundaries.add(a)
@@ -455,6 +534,8 @@ class Decoder:
                         self.problems.append("%s: an if of an unknown test %02X (%06X)" % (label, test, a))
                         return lines, a
                     args = [p.dw(a + 4 + 2 * i) for i in range(n)]
+                    if depth5 and test not in self.known[1]:
+                        self.unskippable.append("%s: test %02X inside an if of operation %02X (%06X)" % (label, test, max(self.ifs), a))
                     text = self.test_names.get(test, "test %02X" % test)
                     text = text.format(*args) if n else text
                     if test in (0x38, 0x3A) and args:
@@ -462,6 +543,7 @@ class Decoder:
                     if kind == 0:
                         lines.append("    %06X  [%02X %02X] %sif %s" % (a, op, test, "  " * depth, text))
                         depth += 1
+                        depth5 += five
                     else:
                         lines.append("    %06X  [%02X %02X] %selse if %s" % (a, op, test, "  " * max(depth - 1, 0), text))
                     a += 4 + 2 * n
@@ -476,9 +558,12 @@ class Decoder:
                     continue
                 if kind == (8 if five else 4):
                     depth = max(depth - 1, 0)
+                    depth5 = max(depth5 - five, 0)
                     lines.append("    %06X  [%02X %02X] %sendif" % (a, op, kind, "  " * depth))
                     a += 2
                     continue
+            if depth5 and op not in self.known[0]:
+                self.unskippable.append("%s: operation %02X inside an if of operation %02X (%06X)" % (label, op, max(self.ifs), a))
             n = self.instruction_length(op, kind)
             if n is None:
                 self.problems.append("%s: an instruction not in the game's table, %02X %02X (%06X)" % (label, op, kind, a))
@@ -549,6 +634,12 @@ def main():
     p = Program(args.game)
     lengths, tests = skip_lengths(p)
     banks, style = bank_tables(p)
+    place = style + 0x10  # (where the interpreter is, in the record)
+    if args.game in ALPHA3:
+        style = "alpha3"
+        lengths.update(ALPHA3_MORE)
+        for t in tests.values():
+            t.update(ALPHA3_MORE_TESTS)
     names = character_names(args.game)
     d = Decoder(p, lengths, tests, names, style)
     who = None
@@ -584,7 +675,7 @@ def main():
         previous = None
         for line in open(args.against):
             m = re.match(r"watch: ([0-9A-F]{6}) writes ([0-9A-F]{8}) to ([0-9A-F]{6})", line)
-            if not m or int(m.group(3), 16) & 0x3FF != style + 0x10:
+            if not m or int(m.group(3), 16) & 0x3FF != place:
                 continue
             value = int(m.group(2), 16)
             if not 0x400 <= value < len(p.data):
@@ -625,9 +716,12 @@ def main():
         ins = len(d.boundaries)
         print("aiscripts: %s: %d instructions in %d characters' scripts; banks at %s; %d kinds of instruction, %d tests" %
               (args.game, ins, len(seen), " ".join("%06X" % banks[b] for b in range(4)),
-               len([k for k in lengths if k != "ifs"]), sum(len(t) for t in tests.values())))
+               len([k for k in lengths if k not in ("ifs", "known by all")]), sum(len(t) for t in tests.values())))
         for problem in d.problems:
             print("  " + problem)
+        if d.unskippable:
+            print("  %d instructions inside an if whose skipping routine does not know them (the first: %s)" %
+                  (len(d.unskippable), d.unskippable[0]))
         return 1 if d.problems else 0
     print("\n".join(out))
     for problem in d.problems:

@@ -140,6 +140,7 @@ void RegisterBattle() {
     d.inAir = [](uint32_t player) { return Ram8(player + kInAir) != 0; };
     d.atJumpTop = [](uint32_t player) { return Ram8(player + kInAir) && static_cast<int32_t>(Ram32(player + kSpeedY)) <= 0; };
     d.attackComing = [](Machine &machine, int side) { return AttackInRange(machine.cpu, Player(side)); };
+    d.computerPlaysModes = true; // (the game's computer plays the tag style and the ring out itself: the modes' tactics, computer.cpp)
     d.difficultyNow = [] { return static_cast<int>(Ram8(0xFF80BE)); }; // (the game's copy of the board's, taken as a game begins)
     d.canAct = [](int side) { return CanAct(Player(side)); };
     d.teams = true;
