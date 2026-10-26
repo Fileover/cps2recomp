@@ -12,6 +12,7 @@ layout(set = 3, binding = 0) uniform Sizes {
     vec2 size;  // the picture, in its own pixels
     vec2 scale; // screen pixels to one of the picture's, across and down
     vec4 view;  // the part of the picture shown: its corner, then its size, as parts of the whole
+    vec2 shown; // the picture's own pixels, from the corner (past them: black)
 };
 void main() {
     vec2 at = (view.xy + uv * view.zw) * size;
@@ -19,5 +20,6 @@ void main() {
     vec2 within = at - pixel - 0.5;
     vec2 flat_part = 0.5 - 0.5 / max(scale, vec2(1.0));
     vec2 blend = (within - clamp(within, -flat_part, flat_part)) * max(scale, vec2(1.0));
-    colour = vec4(texture(picture, (pixel + 0.5 + blend) / size).rgb, 1.0);
+    bool inside = all(greaterThanEqual(at, vec2(0.0))) && all(lessThan(at, shown));
+    colour = inside ? vec4(texture(picture, (pixel + 0.5 + blend) / size).rgb, 1.0) : vec4(0.0, 0.0, 0.0, 1.0);
 }
