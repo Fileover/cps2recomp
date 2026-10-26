@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- **Multi game**: the rest of the Display page every game has, for the whole run: **Invisible walls**, **Scaling**,
+  **Picture shape** and **Window size**, each also "As each game is set" (the default), given after the game's own
+  settings as Screen and Picture are, and kept nowhere. In a window, the next game opens where the one before was and
+  as tall (the game ending for the next writes its window's place to a file in the temporary folder, which the next
+  reads within the minute and removes); it opened where the system puts a new window, so a window moved stayed behind.
 - **Street Fighter Alpha 2's CPU plays the tag style and the ring out itself**, as the Vampire Savior games' does: its
   own scripts, run by its interpreter (`games/sfa2/src/computer.cpp`), have three tactics of the port's: out of a
   corner (a throw, a jump over you, a walk out), knocking you over your end (a throw or a sweep), and in the tag
