@@ -8,6 +8,10 @@
   fighter as the player wants (kept until the zoom is off or looks at the other fighter; `Zoom::Pan`), and the keyboard has the zoom too: Left
   Shift held, Q and E for players 1 and 2, the arrows to move it. Vampire Savior's looks a little lower (44 lines
   up from the feet, not 56), so at 2x the feet and their shadow are in the picture.
+- Street Fighter Alpha 2's computer player as readable C++ (`games/sfa2/src/computer.cpp`): the script interpreter
+  (ComputerThinks) and the routines the fighters' code calls (Chance, BrokenOff, Reactions, AnswerNow), checked call
+  by call against the game's code with nothing differing (about 1.9 million calls, every instruction and test the
+  scripts have). The CPU plays as before.
 - **Zoom** (Vampire Savior, Definitive, Vampire Savior 2, Vampire Hunter 2): a gamepad's left stick's click held
   and the left shoulder pressed zooms the camera in on player 1's fighter, the right shoulder on player 2's, a size up
   each press (1.25x, 1.5x, 1.75x, 2x, the model viewer's sizes), then back to the whole picture. The camera eases

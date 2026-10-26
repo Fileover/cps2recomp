@@ -381,6 +381,23 @@ for each character, and `tools/aiscripts.py sfa2` prints them all (40,947 instru
   blocks --watch FF8A30-FF8A33` (player 2; player 1 `FF8630`).
 - Not sure of: what the projectile classes of `028BCE` are; what `+5B` (test 3C, cleared by the wait kind 24) is;
   which of the characters' specials the numbers are.
+- As C++ (2026-10-26, `src/computer.cpp`): ComputerThinks (0280D4: the banks, the interpreter, the instructions and
+  tests, its three ways of stepping over instructions, the waits frame by frame) and the four routines of 0280BA-029E38
+  the fighters' code calls (Chance, BrokenOff, Reactions, AnswerNow). What it calls outside stays the game's: the
+  attack coming (`027E94`), the normal at the other's attack (`027038`) and by the gap (`026EBC`), each character's
+  test of a special. D0, D1 and the flags are free for ComputerThinks, AnswerNow and BrokenOff (as Vampire Savior's:
+  the callers load D0 again, and D1's low word for the action routine they go on to; with D1 not free, the
+  differences reported were in its low word, a jump table's offset); Chance and Reactions give back every register and flag.
+  - Checked with `--check-rewrites`, the players' routines left out (layers.sh's last line) so that the game's own
+    code makes every call: about 1.9 million calls of ComputerThinks, 2.8 million of Reactions, 190,000 of Chance,
+    8,700 of BrokenOff and 2,300 of AnswerNow, none differing. The runs: the endless battle CPU against CPU
+    (`CPS2RECOMP_BATTLE_CPU=1`) at levels 0 to 31 and tiers 0, 20h and 40h (`--poke FF84A7`, `FF861A`, player 2
+    `FF88A7`, `FF8A1A`), each plan (`+205`, `FF8605`/`FF8A05`: set only as a round starts, so the endless battle's
+    one long round keeps plan 0 unless held), Dhalsim, Chun-Li and Birdie for the scripts only they have, the ring
+    out and the tag style, and check_rewrites.sh.
+  - Every instruction, test, wait and walk in the scripts was reached (counted while checking, then taken out),
+    but for what no script has (the wait 1A, operation 0E's kind 00, test 2C) and the second if's endif done (each
+    branch ends with a break out, which steps over it).
 
 ## Readable code
 
@@ -426,6 +443,9 @@ Combo's shadows, the clock held in a super's flash, things thrown, PushApart, th
 | ThrowTest: can this player throw the other now (its reach against the other's push box), and the throw's start | 0260E8 | `throws.cpp` |
 | CameraAcross, CameraUp: the camera's place across and up, its ends (the wide picture's inside), a mode's own place | 01B662, 01B6DA | `widescreen.cpp` |
 | KeepIn, KeepBothIn: the players inside the picture, the corner's push back | 0236F0, 0237BE | `widescreen.cpp` |
+| ComputerThinks: a frame of the computer player's play: its scripts chosen, their instructions run and looked at | 0280D4 | `computer.cpp` |
+| AnswerNow, BrokenOff, Reactions: the computer's answers that break in, and a script broken off | 029E38, 0295EC, 029CEA | `computer.cpp` |
+| Chance: a bit of a level's long in a table, at random | 0280BA | `computer.cpp` |
 
 Coverage gaps: the guard decision's pose 4 (never seen) and the throw test's path for helpers were not reached by the movies. The air pose (3) is, by `air_guard.txt`: fireballs and jump-ins guarded and not in the air.
 Reeling kinds 8 (`022BFA`: flung through the air, landing into kind 4's bounce) and 0A (`022C5C`: as
