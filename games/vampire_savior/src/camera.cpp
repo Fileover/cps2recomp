@@ -9,6 +9,7 @@
 //
 // What the modes and widescreen do to the camera is here, in the rules they change: a mode can have it go
 // to a place of its own (modes.h, CameraAt), and in a wide picture its ends are 64 in from the board's.
+#include "model.h"
 #include "modes.h"
 #include "stage.h"
 #include "widescreen.h"
@@ -169,9 +170,32 @@ namespace {
             CameraSetUp(c);
         }
     }
+
+    // Where the window's zoom looks to see a player's fighter (runtime/game.h, Game::focus): where it stands in the
+    // picture, and as far up from its feet as the model viewer centres its larger sizes. Only in a round (the
+    // records hold other things outside one), and not in the model viewer, which has sizes of its own.
+    constexpr int kFocusLift = 56;
+    bool Focus(int player, int &x, int &y) {
+        if (model::On()) {
+            return false;
+        }
+        for (int n = 0; n < 2; n++) {
+            if (Ram16(Player(n) + kHealth) > kHealthFull || Ram16(Player(n) + kHealthCeiling) > kHealthFull) {
+                return false;
+            }
+        }
+        const uint8_t clock = Ram8(kClock);
+        if (clock == 0 || clock > kClockFull) {
+            return false;
+        }
+        x = Signed(Ram16(Player(player) + kX)) - Signed(Ram16(kCameraX)) + WideStage();
+        y = 239 - (Signed(Ram16(Player(player) + kY)) - Signed(Ram16(kCameraY))) - kFocusLift;
+        return true;
+    }
 } // namespace
 
 void RegisterCamera() {
+    TheGame().focus = Focus;
     // (the last number is the time a call is charged: the game's own, as the check measured it)
     AddRewrite(kPlayersAcross, "PlayersAcross", PlayersAcross, kFreeFlags, 186);
     AddRewrite(kPlayersUp, "PlayersUp", PlayersUp, kFreeFlags, 100);

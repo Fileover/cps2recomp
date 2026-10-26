@@ -8,6 +8,7 @@
 #include "menu.h"
 #include "present.h"
 #include "soundtrack.h"
+#include "zoom.h"
 
 #include <array>
 #include <cstdint>
@@ -62,6 +63,7 @@ struct Options {
     std::string presentTest;  // --present-test FILE.png: the last picture drawn by the GPU path with no window
     int presentWidth = 0, presentHeight = 0; // --present-size WxH: the window it is drawn in
     int scale = 0;            // --scale: the window this many times the board's lines (0: the Display page's)
+    int zoom = 0, zoomPlayer = 0; // --zoom SIZE:PLAYER: the camera's zoom from the start (zoom.h; SIZE 0-4, PLAYER 1 or 2)
 };
 
 // Recorded input: what the players hold, at the frames where it changes
@@ -114,8 +116,13 @@ struct Port {
     bool quit = false; // the player chose the menu's "Quit game": the frontend stops
     // The game's picture at the size the menu is drawn at (4:3, three times the lines)
     void MenuPicture(std::vector<uint32_t> &pixels, uint32_t &width, uint32_t &height) const;
-    // The picture with the readout over it (runtime/game.h, SetHud), as the window and screenshots show it
-    void Shown(std::vector<uint32_t> &pixels) const;
+    // The picture with the readout over it (runtime/game.h, SetHud), as the window and screenshots show it; and
+    // where on it the readout's panels went (none: not asked)
+    void Shown(std::vector<uint32_t> &pixels, std::vector<SDL_Rect> *panels = nullptr) const;
+    // The camera's zoom (zoom.h), the window's: a gamepad's left stick held and a shoulder pressed
+    Zoom zoom;
+    // The picture for the window, a step of the zoom on: as Shown, or zoomed (true), as `zoomed` says (present.h)
+    bool Windowed(std::vector<uint32_t> &pixels, Zoomed &zoomed);
     // How many pixels a line of it has (the machine's picture: wider when the game's sources ask)
     int ShownWidth() const {
         return machine->PictureWidth();

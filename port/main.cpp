@@ -544,28 +544,53 @@ bool Port::Tick() {
     return true;
 }
 
-void Port::Shown(std::vector<uint32_t> &pixels) const {
+void Port::Shown(std::vector<uint32_t> &pixels, std::vector<SDL_Rect> *panels) const {
     const int across = ShownWidth();
     pixels.assign(machine->Picture(), machine->Picture() + across * Video::kHeight);
-    DrawHud(pixels.data(), across, Video::kHeight);
+    DrawHud(pixels.data(), across, Video::kHeight, panels);
+    // A line at the bottom, in the middle (`up` lines higher)
+    auto status = [&](const char *text, int up) {
+        const recomp::text::Canvas canvas{pixels.data(), across, Video::kHeight};
+        const float width = recomp::text::TextWidth(text, 1);
+        const float x = (across - width) / 2, y = static_cast<float>(Video::kHeight - 11 - up);
+        canvas.Fill(x - 3, y - 2, width + 6, 12, {20, 22, 30, 220});
+        canvas.Text(x, y, 1, 0, {255, 255, 255, 255}, text);
+        if (panels) {
+            panels->push_back({static_cast<int>(x) - 3, static_cast<int>(y) - 2, static_cast<int>(width) + 7, 12});
+        }
+    };
     // Stopped, slowed or fast-forwarded: said at the bottom (stopped, with the frame's number, for counting
     // frames by stepping)
     const bool hurried = hurry && !paused && !MultiGame().empty();
     if (paused || menu.SlowBy() > 1 || hurried) {
-        char status[64];
+        char text[64];
         if (paused) {
-            snprintf(status, sizeof(status), "STOPPED  frame %llu", static_cast<unsigned long long>(frame));
+            snprintf(text, sizeof(text), "STOPPED  frame %llu", static_cast<unsigned long long>(frame));
         } else if (hurried) {
-            snprintf(status, sizeof(status), "FAST FORWARD x%d", kHurry);
+            snprintf(text, sizeof(text), "FAST FORWARD x%d", kHurry);
         } else {
-            snprintf(status, sizeof(status), "SPEED 1/%d", menu.SlowBy());
+            snprintf(text, sizeof(text), "SPEED 1/%d", menu.SlowBy());
         }
-        const recomp::text::Canvas canvas{pixels.data(), across, Video::kHeight};
-        const float width = recomp::text::TextWidth(status, 1);
-        const float x = (across - width) / 2, y = Video::kHeight - 11;
-        canvas.Fill(x - 3, y - 2, width + 6, 12, {20, 22, 30, 220});
-        canvas.Text(x, y, 1, 0, {255, 255, 255, 255}, status);
+        status(text, 0);
     }
+    // (what the camera's zoom was set to, for a few seconds: above that if both are said)
+    if (*zoom.Label()) {
+        status(zoom.Label(), paused || menu.SlowBy() > 1 || hurried ? 14 : 0);
+    }
+}
+
+bool Port::Windowed(std::vector<uint32_t> &pixels, Zoomed &zoomed) {
+    const int across = ShownWidth();
+    zoom.Follow(across, Video::kHeight);
+    zoomed.keep.clear();
+    if (!zoom.View(across, Video::kHeight, zoomed.view)) {
+        Shown(pixels);
+        return false;
+    }
+    // (the game's own picture above, the one with the readout below)
+    Shown(pixels, &zoomed.keep);
+    pixels.insert(pixels.begin(), machine->Picture(), machine->Picture() + across * Video::kHeight);
+    return true;
 }
 
 void Port::MenuPicture(std::vector<uint32_t> &pixels, uint32_t &width, uint32_t &height) const {
@@ -1108,6 +1133,7 @@ void Usage() {
             "  --sound-test SEED[:N]  every N frames (30) a command to the sound side: each song in turn, placed\n"
             "                         some made-up way, and the other commands (with --sound check)\n"
             "  --scale N              window size, times 224 lines (else the Display page's)\n"
+            "  --zoom SIZE:PLAYER     the camera zoomed from the start: SIZE 1-4 (1.25x-2x), PLAYER 1 or 2\n"
             "  --fullscreen  --window (a window, after --fullscreen)  --mute  --unthrottled\n"
             "  --headless             no window, no sound, as fast as it goes\n"
             "  --frames N             stop after N frames\n"
@@ -1175,6 +1201,11 @@ bool ParseArgs(int argc, char **argv, port::Options &o) {
             o.sound = next();
         } else if (a == "--scale") {
             o.scale = atoi(next());
+        } else if (a == "--zoom") {
+            const char *spec = next();
+            o.zoom = atoi(spec);
+            const char *colon = strchr(spec, ':');
+            o.zoomPlayer = colon ? atoi(colon + 1) - 1 : 0;
         } else if (a == "--fullscreen") {
             o.fullscreen = true;
         } else if (a == "--window") {
@@ -1403,6 +1434,9 @@ int main(int argc, char **argv) {
         }
         return 0;
     }
+    if (p.opt.zoom > 0) {
+        p.zoom.Set(p.opt.zoom, std::clamp(p.opt.zoomPlayer, 0, 1));
+    }
     int result = 0;
     const auto begin = std::chrono::steady_clock::now();
     if (p.opt.headless) {
@@ -1432,7 +1466,8 @@ int main(int argc, char **argv) {
             // (the picture the run ended on, through the GPU path and read back: what a window would show)
             std::vector<uint32_t> shown, drawn;
             std::string error;
-            p.Shown(shown);
+            port::Zoomed zoomed;
+            const bool isZoomed = p.Windowed(shown, zoomed);
             // (in a window --present-size big, or one the picture's shape at 3 times its lines)
             const int across = p.ShownWidth();
             const int outHeight = p.opt.presentHeight > 0 ? p.opt.presentHeight : 672;
@@ -1440,7 +1475,8 @@ int main(int argc, char **argv) {
                                                         : static_cast<int>(std::lround(outHeight * port::PictureShape(across, Video::kHeight, port::DisplayShape(), 4.0f / 3.0f)));
             const SDL_FRect where = port::FitPicture(outWidth, outHeight, across, Video::kHeight, port::DisplayShape(), port::DisplayScaling());
             if (SDL_Init(SDL_INIT_VIDEO) &&
-                port::Presenter::Render(shown.data(), across, Video::kHeight, outWidth, outHeight, where, port::DisplayScaling(), drawn, error)) {
+                port::Presenter::Render(shown.data(), across, Video::kHeight, outWidth, outHeight, where, port::DisplayScaling(), drawn, error,
+                                        isZoomed ? &zoomed : nullptr)) {
                 WritePng(p.opt.presentTest.c_str(), drawn.data(), outWidth, outHeight);
             } else {
                 fprintf(stderr, "--present-test: %s\n", error.empty() ? SDL_GetError() : error.c_str());

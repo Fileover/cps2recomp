@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+- **Zoom** (Vampire Savior, Definitive, Vampire Savior 2, Vampire Hunter 2): a gamepad's left stick's click held
+  and the left shoulder pressed zooms the camera in on player 1's fighter, the right shoulder on player 2's, a size up
+  each press (1.25x, 1.5x, 1.75x, 2x, the model viewer's sizes), then back to the whole picture. The camera eases
+  from size to size and follows the fighter; "ZOOM 1.5x  PLAYER 1" is said at the bottom for a few seconds, and
+  outside a fight the picture goes back to its own size. It is the window's alone: the game, its save states,
+  movies and screenshots are as they were. While the click is held the shoulders are not the game's (the right one
+  is hard punch), and with a zoom to work the click alone opens the menu when it is let go, not as it goes down.
+  The port draws part of the picture larger (the shader's `view`, `port/present.h` `Zoomed`) and the readout's
+  panels over it at their own size; a game's sources say where to look with `Game::focus` (`runtime/game.h`;
+  `port/zoom.h`). `--zoom SIZE:PLAYER` starts zoomed, for tests and `--present-test`.
 - **Multi game**: the **Picture** of every game in a run (widescreen, 4:3, or as each game is set) and a **Window**
   beside Full screen, so a run looks the same from game to game. For that run only: each game's own switches are
   left as they were (`--features` and the games' new `--window` after the launcher's own).
