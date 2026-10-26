@@ -53,7 +53,7 @@ QSound chip, the sound CPU and its registers) is code written for this project, 
   up, 1.25x, 1.5x, 1.75x and 2x (the model viewer's sizes: at 2x the top of a tall fighter is off the screen), then
   back to the whole picture; a press for the other player looks at that one instead. The fighter is kept in the
   middle all the while (past the stage's ends is black); with the click (or Left Shift) still held, the d-pad or
-  the stick (the arrows) moves the camera to frame it as you like, until the zoom is off. The size eases from one
+  the stick (the arrows) moves the camera to frame it as you like, until the zoom is off or looks at the other fighter. The size eases from one
   to the next, it is said at the bottom for a few seconds, and outside a fight the picture is whole again. The
   game's own health bars are zoomed with it; the port's own text (a mode's score, the training display) is not.
   The left stick's click alone still opens the menu, when it is let go.

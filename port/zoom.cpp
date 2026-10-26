@@ -41,8 +41,8 @@ void Zoom::Press(int player) {
     if (m_size == 0 || player == m_player) {
         m_size = (m_size + 1) % kSizeCount;
     }
-    if (m_size == 0) {
-        m_panX = m_panY = 0;
+    if (m_size == 0 || player != m_player) {
+        m_panX = m_panY = 0; // (framed afresh: the moved camera was for the other fighter)
     }
     m_player = player;
     Said();

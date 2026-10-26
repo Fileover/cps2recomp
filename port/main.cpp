@@ -457,6 +457,10 @@ void Port::Key(char key, unsigned n) {
     case '-': menu.SetSlowBy(menu.SlowBy() * 2); break;
     case '=': menu.SetSlowBy(menu.SlowBy() / 2); break;
     case 'h': hurry = !hurry; break; // (tests: the frontend sets it while F is held)
+    case 'z': zoom.Press(static_cast<int>(n)); break; // (tests: the zoom pressed for player n + 1)
+    case 'm': // (tests: the zoom's camera moved a step: 1 left, 2 right, 3 up, 4 down)
+        zoom.Pan(n == 1 ? -1 : n == 2 ? 1 : 0, n == 3 ? -1 : n == 4 ? 1 : 0);
+        break;
     case 'n':
         if (!MultiGame().empty() && NextGameAsked() < 0) {
             AskNextGame(static_cast<int64_t>(tick));
@@ -505,7 +509,7 @@ bool Port::Tick() {
                     SetFeatureValue(what.substr(0, eq).c_str(), atoi(what.c_str() + eq + 1));
                 }
             } else {
-                Key(key, key == 'k' ? static_cast<unsigned>(atoi(opt.keys.c_str() + colon + 2)) : 0);
+                Key(key, key == 'k' || key == 'z' || key == 'm' ? static_cast<unsigned>(atoi(opt.keys.c_str() + colon + 2)) : 0);
             }
         }
         const size_t comma = opt.keys.find(',', colon);
@@ -1145,6 +1149,7 @@ void Usage() {
             "  --present-test F.png   (headless) the run's last picture drawn by the GPU path, no window, as the\n"
             "                         Display page has it (896x672 at 4:3)\n"
             "  --present-size WxH     ... in a window this big\n"
+            "  --present-every N[:P]  (headless) every N frames the picture as the window draws it, zoom and all, to P000123.png\n"
                         "  --cpu-speed N          the 68000 N times as fast as the board's: the game is never short of time\n"
             "  --movie FILE           replay an input movie\n"
             "  --record FILE          record an input movie\n"
@@ -1218,6 +1223,11 @@ bool ParseArgs(int argc, char **argv, port::Options &o) {
             o.headless = true;
         } else if (a == "--frames") {
             o.frames = strtoull(next(), nullptr, 10);
+        } else if (a == "--present-every") {
+            const std::string v = next();
+            const size_t colon = v.find(':');
+            o.presentEvery = strtoull(v.c_str(), nullptr, 10);
+            o.presentPrefix = colon == std::string::npos ? "present_" : v.substr(colon + 1);
         } else if (a == "--shot-every") {
             const std::string v = next();
             const size_t colon = v.find(':');
@@ -1443,9 +1453,38 @@ int main(int argc, char **argv) {
         std::vector<int16_t> sound;
         std::vector<float> music, musicMade;
         int musicRate = 0;
+        // A picture as the window draws it (--present-test, --present-every): through the GPU path, read back, written
+        // to `path`; in a window --present-size big, or one the picture's shape at 3 times its lines
+        auto present = [&](const std::string &path, const std::vector<uint32_t> &shown, const port::Zoomed *zoomed) {
+            std::vector<uint32_t> drawn;
+            std::string error;
+            const int across = p.ShownWidth();
+            const int outHeight = p.opt.presentHeight > 0 ? p.opt.presentHeight : 672;
+            const int outWidth = p.opt.presentWidth > 0 ? p.opt.presentWidth
+                                                        : static_cast<int>(std::lround(outHeight * port::PictureShape(across, Video::kHeight, port::DisplayShape(), 4.0f / 3.0f)));
+            const SDL_FRect where = port::FitPicture(outWidth, outHeight, across, Video::kHeight, port::DisplayShape(), port::DisplayScaling());
+            if (SDL_Init(SDL_INIT_VIDEO) &&
+                port::Presenter::Render(shown.data(), across, Video::kHeight, outWidth, outHeight, where, port::DisplayScaling(), drawn, error, zoomed)) {
+                WritePng(path.c_str(), drawn.data(), outWidth, outHeight);
+                return true;
+            }
+            fprintf(stderr, "--present-test: %s\n", error.empty() ? SDL_GetError() : error.c_str());
+            return false;
+        };
         while (!p.quit && (p.opt.frames == 0 || p.frame < p.opt.frames)) {
             if (!p.Tick()) {
                 continue;
+            }
+            if (p.opt.presentEvery) {
+                // (the window's picture made every frame, as the window would, so that the zoom eases as it does there)
+                std::vector<uint32_t> shown;
+                port::Zoomed zoomed;
+                const bool isZoomed = p.Windowed(shown, zoomed);
+                if (p.frame % p.opt.presentEvery == 0) {
+                    char path[512];
+                    snprintf(path, sizeof(path), "%s%06llu.png", p.opt.presentPrefix.c_str(), static_cast<unsigned long long>(p.frame));
+                    present(path, shown, isZoomed ? &zoomed : nullptr);
+                }
             }
             if (!p.opt.audioDump.empty()) {
                 sound.insert(sound.end(), p.machine->audio.begin(), p.machine->audio.end());
@@ -1464,22 +1503,10 @@ int main(int argc, char **argv) {
         }
         if (!p.opt.presentTest.empty()) {
             // (the picture the run ended on, through the GPU path and read back: what a window would show)
-            std::vector<uint32_t> shown, drawn;
-            std::string error;
+            std::vector<uint32_t> shown;
             port::Zoomed zoomed;
             const bool isZoomed = p.Windowed(shown, zoomed);
-            // (in a window --present-size big, or one the picture's shape at 3 times its lines)
-            const int across = p.ShownWidth();
-            const int outHeight = p.opt.presentHeight > 0 ? p.opt.presentHeight : 672;
-            const int outWidth = p.opt.presentWidth > 0 ? p.opt.presentWidth
-                                                        : static_cast<int>(std::lround(outHeight * port::PictureShape(across, Video::kHeight, port::DisplayShape(), 4.0f / 3.0f)));
-            const SDL_FRect where = port::FitPicture(outWidth, outHeight, across, Video::kHeight, port::DisplayShape(), port::DisplayScaling());
-            if (SDL_Init(SDL_INIT_VIDEO) &&
-                port::Presenter::Render(shown.data(), across, Video::kHeight, outWidth, outHeight, where, port::DisplayScaling(), drawn, error,
-                                        isZoomed ? &zoomed : nullptr)) {
-                WritePng(p.opt.presentTest.c_str(), drawn.data(), outWidth, outHeight);
-            } else {
-                fprintf(stderr, "--present-test: %s\n", error.empty() ? SDL_GetError() : error.c_str());
+            if (!present(p.opt.presentTest, shown, isZoomed ? &zoomed : nullptr)) {
                 result = 1;
             }
         }

@@ -5,7 +5,7 @@
 - **Zoom**: the camera keeps its fighter in the middle at every size, past the stage's ends too (black there); it
   was kept inside the picture, so near an end the fighter was off to the side, and it trailed a dash. It eases only
   when it changes fighter or size. With the left stick's click held, the d-pad or the stick moves it to frame the
-  fighter as the player wants (kept until the zoom is off; `Zoom::Pan`), and the keyboard has the zoom too: Left
+  fighter as the player wants (kept until the zoom is off or looks at the other fighter; `Zoom::Pan`), and the keyboard has the zoom too: Left
   Shift held, Q and E for players 1 and 2, the arrows to move it. Vampire Savior's looks a little lower (44 lines
   up from the feet, not 56), so at 2x the feet and their shadow are in the picture.
 - **Zoom** (Vampire Savior, Definitive, Vampire Savior 2, Vampire Hunter 2): a gamepad's left stick's click held

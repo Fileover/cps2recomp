@@ -25,7 +25,7 @@ public:
     // A press for player `player` (0 or 1)
     void Press(int player);
     // The camera moved off its fighter by so many steps across and down (the d-pad or the arrows, while zooming), to
-    // frame it as the player wants; kept until the zoom is off
+    // frame it as the player wants; kept until the zoom is off or looks at the other fighter
     void Pan(int across, int down);
     // Straight to a size (0: none) about a player, with no easing (--zoom)
     void Set(int size, int player);

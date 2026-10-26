@@ -62,6 +62,8 @@ struct Options {
     std::string renderer;     // --renderer sdl|gpu (gpu unless said)
     std::string presentTest;  // --present-test FILE.png: the last picture drawn by the GPU path with no window
     int presentWidth = 0, presentHeight = 0; // --present-size WxH: the window it is drawn in
+    uint64_t presentEvery = 0;  // --present-every N:PREFIX: ... every N frames (the zoom followed every frame)
+    std::string presentPrefix;
     int scale = 0;            // --scale: the window this many times the board's lines (0: the Display page's)
     int zoom = 0, zoomPlayer = 0; // --zoom SIZE:PLAYER: the camera's zoom from the start (zoom.h; SIZE 0-4, PLAYER 1 or 2)
 };
@@ -101,7 +103,8 @@ struct Port {
     bool Tick();
     // The keys that work while playing: 'p' stops and starts, 'o' goes on by a frame, '-' and '=' change the
     // speed, 'k' does the game's command with the key `n` (runtime/game.h, kKeyRestart...), 'n' asks a
-    // Multi game run for its next game ('h': its fast forward on and off, for tests)
+    // Multi game run for its next game ('h': its fast forward on and off, for tests; 'z' the zoom pressed for player
+    // `n` + 1, 'm' its camera moved a step, `n` 1-4 left, right, up, down, for tests)
     void Key(char key, unsigned n = 0);
     void RunCommand(size_t index);
     // (rapid fire: how long each player has held each button)
