@@ -5,6 +5,8 @@
 // text.
 #pragma once
 
+#include <SDL3/SDL_rect.h>
+
 #include <cstdint>
 #include <vector>
 
@@ -17,7 +19,8 @@ struct HudPanel {
 
 // The panels for a picture of this size
 std::vector<HudPanel> HudPanels(int width, int height);
-// Straight onto a picture (32-bit pixels, red in the low byte)
-void DrawHud(uint32_t *pixels, int width, int height);
+// Straight onto a picture (32-bit pixels, red in the low byte); and where the panels went (the boxes are not
+// kept: they are drawn over the game's picture, and zoomed with it)
+void DrawHud(uint32_t *pixels, int width, int height, std::vector<SDL_Rect> *panels = nullptr);
 
 } // namespace port

@@ -98,6 +98,15 @@ or an eighth of its speed (the menu's Speed row, `-` and `=`). The game's state 
 whatever was done (`--keys TICK:KEY,...` presses these keys in a headless run for tests, sets
 features with `fNAME=N` and runs commands with `cNAME`).
 
+## The camera's zoom
+
+The window can show part of the picture larger, about one player's fighter (`port/zoom.h`): a gamepad's left
+stick's click held and a shoulder pressed, left for player 1 and right for player 2, at 1.25x to 2x. It is the
+window's alone (the game, save states and screenshots never see it). A game has it once its sources say where to
+look: `TheGame().focus = [](int player, int &x, int &y) { ...; return true; }`, the place in the picture's pixels
+(widescreen's columns counted) to keep in the middle, false when there is no fighter to look at. Vampire Savior's
+is in `src/camera.cpp`: where the fighter stands, 56 lines up from its feet. `--zoom SIZE:PLAYER` starts zoomed.
+
 ## Where a feature does its work
 
 - **After every frame** (`TheGame().frame`), on the game's memory: `Ram8/16/32`, `SetRam8/16/32`

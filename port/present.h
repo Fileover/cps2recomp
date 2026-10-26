@@ -30,6 +30,16 @@ SDL_FRect FitPicture(int width, int height, int columns, int rows, Shape shape, 
 // The picture's shape (width over height) for a window of the given shape
 float PictureShape(int columns, int rows, Shape shape, float window);
 
+// Of the picture, the part shown larger (the port's camera, zoom.h). The picture given is then twice as tall: the
+// game's own above, and below it the same with the readout over it. `view`, in the pixels of the one above, fills
+// the rectangle the whole picture would; and `keep`, rectangles of the one below (in the pixels of its own size,
+// not counting the one above) are shown where they are and at their size all the same: the readout's panels,
+// which are not part of the game's picture.
+struct Zoomed {
+    SDL_FRect view;
+    std::vector<SDL_Rect> keep;
+};
+
 class Presenter {
 public:
     ~Presenter();
@@ -48,8 +58,8 @@ public:
     // The window's size in pixels
     void Size(int &width, int &height) const;
     // Shows a picture (`width` x `height` pixels, each red, green, blue and a spare byte in memory) in the
-    // rectangle `where` of the window, the rest black
-    void Show(const uint32_t *pixels, int width, int height, const SDL_FRect &where);
+    // rectangle `where` of the window, the rest black (zoomed: part of it larger, as `zoomed` says)
+    void Show(const uint32_t *pixels, int width, int height, const SDL_FRect &where, const Zoomed *zoomed = nullptr);
     // How the picture's pixels are drawn (FitPicture says where): Sharp unless set
     void SetScaling(Scaling scaling) {
         m_scaling = scaling;
@@ -58,13 +68,13 @@ public:
     // For tests: the GPU path with no window. The picture is drawn into `outWidth` x `outHeight` at `where`
     // as Show would draw it, and read back. False (with the reason) where there is no GPU device.
     static bool Render(const uint32_t *pixels, int width, int height, int outWidth, int outHeight, const SDL_FRect &where,
-                       Scaling scaling, std::vector<uint32_t> &out, std::string &error);
+                       Scaling scaling, std::vector<uint32_t> &out, std::string &error, const Zoomed *zoomed = nullptr);
 
 private:
     bool OpenGpu(SDL_Window *window, std::string &error);
     bool MakePipeline(SDL_GPUTextureFormat target, std::string &error);
     bool Upload(SDL_GPUCommandBuffer *commands, const uint32_t *pixels, int width, int height);
-    void Draw(SDL_GPUCommandBuffer *commands, SDL_GPUTexture *target, const SDL_FRect &where);
+    void Draw(SDL_GPUCommandBuffer *commands, SDL_GPUTexture *target, const SDL_FRect &where, const Zoomed *zoomed);
 
     SDL_Window *m_window = nullptr;
     Scaling m_scaling = Scaling::Sharp;

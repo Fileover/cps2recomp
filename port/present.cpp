@@ -33,7 +33,7 @@ namespace {
     }
 
     struct Sizes {
-        float size[2], scale[2];
+        float size[2], scale[2], view[4];
     };
 } // namespace
 
@@ -248,7 +248,7 @@ bool Presenter::Upload(SDL_GPUCommandBuffer *commands, const uint32_t *pixels, i
     return true;
 }
 
-void Presenter::Draw(SDL_GPUCommandBuffer *commands, SDL_GPUTexture *target, const SDL_FRect &where) {
+void Presenter::Draw(SDL_GPUCommandBuffer *commands, SDL_GPUTexture *target, const SDL_FRect &where, const Zoomed *zoomed) {
     SDL_GPUColorTargetInfo colour = {};
     colour.texture = target;
     colour.clear_color = {0, 0, 0, 1};
@@ -260,17 +260,38 @@ void Presenter::Draw(SDL_GPUCommandBuffer *commands, SDL_GPUTexture *target, con
     SDL_SetGPUViewport(pass, &viewport);
     const SDL_GPUTextureSamplerBinding binding = {m_picture, m_sampler};
     SDL_BindGPUFragmentSamplers(pass, 0, &binding, 1);
-    // (blended all over: as if each of the picture's pixels took one of the screen's, which the shader blends
-    // from edge to edge)
-    const bool smooth = m_scaling == Scaling::Smooth;
-    const Sizes sizes = {{static_cast<float>(m_width), static_cast<float>(m_height)},
-                         {smooth ? 1.0f : std::floor(where.w / m_width + 0.999f), smooth ? 1.0f : std::floor(where.h / m_height + 0.999f)}};
-    SDL_PushGPUFragmentUniformData(commands, 0, &sizes, sizeof(sizes));
-    SDL_DrawGPUPrimitives(pass, 3, 1, 0, 0);
+    // (zoomed, the texture is two pictures, one above the other: present.h, Zoomed)
+    const float width = static_cast<float>(m_width), height = static_cast<float>(zoomed ? m_height / 2 : m_height);
+    const float tall = static_cast<float>(m_height);
+    // The part `view` of the texture (its pixels) over the whole of `where`, drawn only inside `clip` (the window's pixels)
+    auto part = [&](const SDL_FRect &view, const SDL_Rect &clip) {
+        SDL_SetGPUScissor(pass, &clip);
+        // (blended all over: as if each of the picture's pixels took one of the screen's, which the shader blends
+        // from edge to edge)
+        const bool smooth = m_scaling == Scaling::Smooth;
+        const Sizes sizes = {{width, tall},
+                             {smooth ? 1.0f : std::floor(where.w / view.w + 0.999f), smooth ? 1.0f : std::floor(where.h / view.h + 0.999f)},
+                             {view.x / width, view.y / tall, view.w / width, view.h / tall}};
+        SDL_PushGPUFragmentUniformData(commands, 0, &sizes, sizeof(sizes));
+        SDL_DrawGPUPrimitives(pass, 3, 1, 0, 0);
+    };
+    // (a rectangle of the picture's pixels, where it is in the window)
+    auto inWindow = [&](float x, float y, float w, float h) {
+        const int left = static_cast<int>(std::lround(where.x + x * where.w / width));
+        const int top = static_cast<int>(std::lround(where.y + y * where.h / height));
+        return SDL_Rect{left, top, static_cast<int>(std::lround(where.x + (x + w) * where.w / width)) - left,
+                        static_cast<int>(std::lround(where.y + (y + h) * where.h / height)) - top};
+    };
+    part(zoomed ? zoomed->view : SDL_FRect{0, 0, width, height}, inWindow(0, 0, width, height));
+    if (zoomed) {
+        for (const SDL_Rect &keep : zoomed->keep) {
+            part({0, height, width, height}, inWindow(static_cast<float>(keep.x), static_cast<float>(keep.y), static_cast<float>(keep.w), static_cast<float>(keep.h)));
+        }
+    }
     SDL_EndGPURenderPass(pass);
 }
 
-void Presenter::Show(const uint32_t *pixels, int width, int height, const SDL_FRect &where) {
+void Presenter::Show(const uint32_t *pixels, int width, int height, const SDL_FRect &where, const Zoomed *zoomed) {
     if (m_device) {
         SDL_GPUCommandBuffer *commands = SDL_AcquireGPUCommandBuffer(m_device);
         if (!commands) {
@@ -278,29 +299,47 @@ void Presenter::Show(const uint32_t *pixels, int width, int height, const SDL_FR
         }
         SDL_GPUTexture *screen = nullptr;
         // (not the call that waits for a free picture of the window's: a frame that cannot be shown is left out)
-        if (SDL_AcquireGPUSwapchainTexture(commands, m_window, &screen, nullptr, nullptr) && screen && Upload(commands, pixels, width, height)) {
-            Draw(commands, screen, where);
+        if (SDL_AcquireGPUSwapchainTexture(commands, m_window, &screen, nullptr, nullptr) && screen &&
+            Upload(commands, pixels, width, zoomed ? 2 * height : height)) {
+            Draw(commands, screen, where, zoomed);
         }
         SDL_SubmitGPUCommandBuffer(commands);
         return;
     }
-    if (!m_texture || width != m_width || height != m_height) {
+    // (zoomed, the texture is two pictures, one above the other: present.h, Zoomed)
+    const int tall = zoomed ? 2 * height : height;
+    if (!m_texture || width != m_width || tall != m_height) {
         if (m_texture) {
             SDL_DestroyTexture(m_texture);
         }
-        m_texture = SDL_CreateTexture(m_renderer, SDL_PIXELFORMAT_XBGR8888, SDL_TEXTUREACCESS_STREAMING, width, height);
+        m_texture = SDL_CreateTexture(m_renderer, SDL_PIXELFORMAT_XBGR8888, SDL_TEXTUREACCESS_STREAMING, width, tall);
         SDL_SetTextureScaleMode(m_texture, SDL_SCALEMODE_NEAREST);
         m_width = width;
-        m_height = height;
+        m_height = tall;
         m_enlargedBy = 0;
     }
     SDL_UpdateTexture(m_texture, nullptr, pixels, width * static_cast<int>(sizeof(uint32_t)));
+    // Zoomed: the part shown, then each rectangle kept as it is, from a texture `by` times the picture's size
+    auto draw = [&](SDL_Texture *texture, float by) {
+        const SDL_FRect whole = {0, 0, static_cast<float>(width), static_cast<float>(height)};
+        const SDL_FRect &view = zoomed ? zoomed->view : whole;
+        const SDL_FRect from = {view.x * by, view.y * by, view.w * by, view.h * by};
+        SDL_RenderTexture(m_renderer, texture, &from, &where);
+        if (zoomed) {
+            const float across = where.w / width, down = where.h / height;
+            for (const SDL_Rect &keep : zoomed->keep) {
+                const SDL_FRect part = {keep.x * by, (keep.y + height) * by, keep.w * by, keep.h * by};
+                const SDL_FRect to = {where.x + keep.x * across, where.y + keep.y * down, keep.w * across, keep.h * down};
+                SDL_RenderTexture(m_renderer, texture, &part, &to);
+            }
+        }
+    };
     if (m_scaling == Scaling::Smooth) {
         // (blended all over: the picture as it is, fitted smoothly)
         SDL_SetTextureScaleMode(m_texture, SDL_SCALEMODE_LINEAR);
         SDL_SetRenderDrawColor(m_renderer, 0, 0, 0, 255);
         SDL_RenderClear(m_renderer);
-        SDL_RenderTexture(m_renderer, m_texture, nullptr, &where);
+        draw(m_texture, 1);
         SDL_RenderPresent(m_renderer);
         return;
     }
@@ -308,12 +347,12 @@ void Presenter::Show(const uint32_t *pixels, int width, int height, const SDL_FR
     // The picture's pixels are not square, so it never fits the window a whole number of times across. To keep
     // the pixels crisp and even it is first enlarged a whole number of times (each pixel a sharp block), and
     // that is then fitted to the window smoothly.
-    const int by = std::clamp(static_cast<int>(where.h / height + 0.999f), 1, 8);
+    const int by = std::clamp(static_cast<int>(where.h / (zoomed ? zoomed->view.h : static_cast<float>(height)) + 0.999f), 1, 8);
     if (by != m_enlargedBy) {
         if (m_enlarged) {
             SDL_DestroyTexture(m_enlarged);
         }
-        m_enlarged = SDL_CreateTexture(m_renderer, SDL_PIXELFORMAT_XBGR8888, SDL_TEXTUREACCESS_TARGET, width * by, height * by);
+        m_enlarged = SDL_CreateTexture(m_renderer, SDL_PIXELFORMAT_XBGR8888, SDL_TEXTUREACCESS_TARGET, width * by, tall * by);
         if (m_enlarged) {
             SDL_SetTextureScaleMode(m_enlarged, SDL_SCALEMODE_LINEAR);
         }
@@ -326,12 +365,12 @@ void Presenter::Show(const uint32_t *pixels, int width, int height, const SDL_FR
     }
     SDL_SetRenderDrawColor(m_renderer, 0, 0, 0, 255);
     SDL_RenderClear(m_renderer);
-    SDL_RenderTexture(m_renderer, m_enlarged ? m_enlarged : m_texture, nullptr, &where);
+    draw(m_enlarged ? m_enlarged : m_texture, m_enlarged ? static_cast<float>(by) : 1.0f);
     SDL_RenderPresent(m_renderer);
 }
 
 bool Presenter::Render(const uint32_t *pixels, int width, int height, int outWidth, int outHeight, const SDL_FRect &where,
-                       Scaling scaling, std::vector<uint32_t> &out, std::string &error) {
+                       Scaling scaling, std::vector<uint32_t> &out, std::string &error, const Zoomed *zoomed) {
     Presenter p;
     p.m_scaling = scaling;
     if (!p.OpenGpu(nullptr, error)) {
@@ -352,9 +391,9 @@ bool Presenter::Render(const uint32_t *pixels, int width, int height, int outWid
     transfer.size = static_cast<Uint32>(outWidth * outHeight * 4);
     SDL_GPUTransferBuffer *download = SDL_CreateGPUTransferBuffer(device, &transfer);
     SDL_GPUCommandBuffer *commands = SDL_AcquireGPUCommandBuffer(device);
-    bool ok = target && download && commands && p.Upload(commands, pixels, width, height);
+    bool ok = target && download && commands && p.Upload(commands, pixels, width, zoomed ? 2 * height : height);
     if (ok) {
-        p.Draw(commands, target, where);
+        p.Draw(commands, target, where, zoomed);
         SDL_GPUCopyPass *copy = SDL_BeginGPUCopyPass(commands);
         SDL_GPUTextureRegion region = {};
         region.texture = target;

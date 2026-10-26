@@ -90,6 +90,9 @@ struct Game {
     // For a game whose sources can ask for a wider picture (video.h, Video::wide): how many columns the
     // widest will have with the player's choices as they are, so that the window starts in its shape
     int (*widestPicture)() = nullptr;
+    // For the port's camera (its zoom, port/zoom.h): where to look to see player `player`'s fighter (0: player 1's
+    // side), in the picture's pixels; false when there is none to look at now (no fight on). Not given: no zoom.
+    bool (*focus)(int player, int &x, int &y) = nullptr;
     // Not to run ahead now (the port's run-ahead): a mode whose own workings a save state does not wholly hold,
     // so that frames run and taken back would change it. Not given: run-ahead whenever it is on.
     bool (*noRunAhead)() = nullptr;

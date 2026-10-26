@@ -74,10 +74,23 @@ namespace {
         return pad;
     }
 
+    // The camera's zoom (zoom.h) is the left stick's click held and a shoulder pressed: left for player 1, right for
+    // player 2. While the click is held (and is not the game's), the shoulders are not the game's either.
+    bool ZoomHeld(SDL_Gamepad *gp) {
+        return Zoom::Possible() && gp && !ButtonBound(SDL_GAMEPAD_BUTTON_LEFT_STICK) && SDL_GetGamepadButton(gp, SDL_GAMEPAD_BUTTON_LEFT_STICK);
+    }
+    bool Shoulder(int button) {
+        return button == SDL_GAMEPAD_BUTTON_LEFT_SHOULDER || button == SDL_GAMEPAD_BUTTON_RIGHT_SHOULDER;
+    }
+
     uint16_t ReadGamepad(SDL_Gamepad *gp, int player) {
         uint16_t pad = 0;
+        const bool zoomHeld = ZoomHeld(gp);
         for (int action = 0; action < Table().table.count; action++) {
             const PadInput input = g_bindings.pad[player][action];
+            if (zoomHeld && Shoulder(input.button)) {
+                continue;
+            }
             if ((input.button >= 0 && SDL_GetGamepadButton(gp, static_cast<SDL_GamepadButton>(input.button))) ||
                 (input.axis >= 0 && SDL_GetGamepadAxis(gp, static_cast<SDL_GamepadAxis>(input.axis)) > kDead)) {
                 pad |= Table().bits[action];
@@ -182,6 +195,9 @@ int RunWindowed(Port &port) {
     unsigned previousMenu = 0;
     int triggerHeld = 0;
     bool bothHeld = false; // a gamepad's Start and Select (Back) together: the menu
+    // (with a zoom to work, the left stick's click opens the menu when it is let go, unless a shoulder was pressed
+    // while it was held: then it was the zoom's)
+    bool stickWaiting = false;
     auto toggleMenu = [&]() {
         if (port.menu.IsOpen()) {
             port.menu.Close();
@@ -241,8 +257,13 @@ int RunWindowed(Port &port) {
                 }
                 break;
             case SDL_EVENT_GAMEPAD_BUTTON_DOWN:
-                if (ButtonBound(static_cast<SDL_GamepadButton>(ev.gbutton.button))) {
+                if (!port.menu.IsOpen() && Shoulder(ev.gbutton.button) && ZoomHeld(SDL_GetGamepadFromID(ev.gbutton.which))) {
+                    port.zoom.Press(ev.gbutton.button == SDL_GAMEPAD_BUTTON_RIGHT_SHOULDER ? 1 : 0);
+                    stickWaiting = false;
+                } else if (ButtonBound(static_cast<SDL_GamepadButton>(ev.gbutton.button))) {
                     // (a button the player has given to the game does only that)
+                } else if (ev.gbutton.button == SDL_GAMEPAD_BUTTON_LEFT_STICK && Zoom::Possible() && !port.menu.IsOpen()) {
+                    stickWaiting = true;
                 } else if (ev.gbutton.button == SDL_GAMEPAD_BUTTON_LEFT_STICK || ev.gbutton.button == SDL_GAMEPAD_BUTTON_GUIDE) {
                     toggleMenu();
                 } else if (port.menu.IsOpen()) {
@@ -251,6 +272,14 @@ int RunWindowed(Port &port) {
                     port.Key('p');
                 } else if (ev.gbutton.button == SDL_GAMEPAD_BUTTON_LEFT_SHOULDER) {
                     port.Key(multi ? 'n' : 'k', kKeyRestart);
+                }
+                break;
+            case SDL_EVENT_GAMEPAD_BUTTON_UP:
+                if (ev.gbutton.button == SDL_GAMEPAD_BUTTON_LEFT_STICK && stickWaiting) {
+                    stickWaiting = false;
+                    if (!port.menu.IsOpen()) {
+                        toggleMenu();
+                    }
                 }
                 break;
             case SDL_EVENT_GAMEPAD_ADDED:
@@ -466,8 +495,10 @@ int RunWindowed(Port &port) {
             }
         }
 
-        port.Shown(shown);
-        presenter.Show(shown.data(), port.ShownWidth(), Video::kHeight, where);
+        // (zoomed: the part of the picture the camera looks at, the readout's panels as they are)
+        Zoomed zoomed;
+        const bool isZoomed = port.Windowed(shown, zoomed);
+        presenter.Show(shown.data(), port.ShownWidth(), Video::kHeight, where, isZoomed ? &zoomed : nullptr);
 
         if (!port.opt.unthrottled && !FastForward()) {
             nextFrame += static_cast<uint64_t>(kFrameNs);
