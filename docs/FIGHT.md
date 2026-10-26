@@ -131,7 +131,7 @@ that sends it on or a sweep; and walks and jumps to the better side. Never into 
 test, `Description::attackComing`): the game's play guards it. And a game's sources ask `RingOutMayWalkBack` where the
 computer takes the way it walks (Alpha 2's Walking rewrite, Vampire Savior's hook on its walk), so that a coached
 fighter does not walk back towards the end it is near. A game whose computer player is readable code with tactics of
-the port's for the modes (`Description::computerPlaysModes`: the Vampire Savior games and Alpha 2, each in its
+the port's for the modes (`Description::computerPlaysModes`: the Vampire Savior games, Alpha 2 and Alpha 3, each in its
 `src/computer.cpp`) plays them itself instead, its own guard on all the while: the coach stands aside, and the
 computer is told the mode it is in, how far its back and the other's are from their ends, when its fighter wants to
 tag and how well it plays (`ComputerModeOf`, `ComputerBack`, `ComputerTagWanted`, `ComputerSkill`), and asks for a

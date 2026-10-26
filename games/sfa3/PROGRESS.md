@@ -145,6 +145,58 @@ The toolkit's modes (`fight/alternative.h`, `fight/battle.h`), with this game's 
   (Ryu: A 76, B 50, C 49, D 70). The viewer sets +263 for player 2 so the camera leaves it out.
 - The stage viewer's stages: the planes' and pieces' objects are kept, the panel left out.
 
+## The computer player: scripts (2026-10-26)
+
+Alpha 2's interpreter (games/sfa2/PROGRESS.md, "The computer player: scripts"; Vampire Savior's design), at 030A80,
+called each step for a player the game plays: `tools/aiscripts.py sfa3` prints every character's scripts (44,385
+instructions in 28 characters'; `--character NAME`). Game data: nothing decoded is kept in the repository.
+
+- The computer's part of a player's record is Alpha 2's, some fields moved: where the interpreter is `+230`, the banks'
+  places `+220` to `+22C`, frames left `+21A`, the gap `+21C`, the tier `+213`, the level `+127`, the first if's depth
+  `+215`, the answer chosen `+21E`, the answers that may break in `+240`. The character is `+102`, its ism `+132` (0 the
+  A-ism, FF the X-ism, 1 the V-ism), the gauge `+11E`. Tables: plans `0DF492`, tactics `0DF512`, reactions `0DF592`,
+  answers `0DF612`, the characters' test of a special `0DF412`; chances `0C835A` (an end), `0C83DA` (broken off),
+  `0C965A` (a go to), `0C845A` (by character: breaking in, the Alpha counter).
+- Alpha 3's own, beside Alpha 2's:
+  - A throw, operation 16: the throw's state at once (02040000), its word's two bytes to `+81` and `+80` (the scripts'
+    throws are mostly 0000). Jump kind 06: a jump into an air throw the same way; kind 04: a jump into a V-ism custom
+    combo in the air (half the gauge, none on; else a plain jump). No script has kind 04.
+  - The super combo by the ism: the A-ism's at a level of gauge, the X-ism's (and a character's with `+123` set) at a
+    full gauge, as a level 3; for the V-ism a frame's wait instead. Operation 0A kind 02: the V-ism's custom combo
+    (half the gauge), its special and timers (`+244`, `+2A6`, `+2A8`) by its word.
+  - Tests 3E to 4C: the A-ism (3E), not (40), the X-ism (42), not (44), the V-ism (46), not (48), `+5B` 1 (4A), a custom
+    combo on (4C); test 06 wants a full gauge but for the A-ism.
+  - A move word: bits 0 to 3 held (`+83`, bit 0 also the way), bit 11 set for a special (its number from bit 4,
+    punch or kick bit 10, strength from bit 13), clear a normal (bits 4 to 7 to `+2C0`, stance from bit 8).
+  - A normal or a special is cancelled into the next instruction's at once when it may be (032CD6, 032D08: in a custom
+    combo, the next a normal or a special; from a chain, a super combo too by the gauge).
+  - The second if (operation 14) is the game's, but no script of this version has one. Its two skipping routines know
+    only Alpha 2's operations and tests (a throw there would be stepped over wrongly), and `aiscripts.py --check` says
+    none is inside such an if; the first if's (032AEE) knows them all.
+- Checked: every script decodes, nothing left over; the places the game kept against them (`--against`, every rewrite
+  left out, `--cpu blocks`): 14,729 places in seven runs on both sides (the ladder, the attract mode, the endless
+  battle, the ring out, the tag style), every one an instruction found and every step one the scripts allow (but three
+  written by the tag style's copy of a record, 000CD2).
+- As C++ (`src/computer.cpp`, after Alpha 2's): ComputerThinks (030A80) and Chance, BrokenOff, Reactions, AnswerNow
+  (030A66, 032258, 0329AA, 032AE0). The two places the game jumps into from outside (03139C, the custom combo's start;
+  032C9A, a jump picked at random out of a reeling) stay the game's. Checked with `--check-rewrites` (Alpha 3 has no
+  other rewrites of its players: the game's own code makes every call): about 1.45 million calls of ComputerThinks,
+  2.1 million of Reactions, 149,000 of Chance, 5,800 of BrokenOff and 1,700 of AnswerNow, none differing, CPU against
+  CPU at levels 0 to 31, every tier and plan, each ism held (`+132`), the gauge held full or at half, and Gen and
+  Chun-Li for the scripts only they have (`check_rewrites.sh`'s computer section). Every instruction and test the
+  scripts have was reached, but for Reactions' answer 2 (the other lying down near) taken.
+- The tag style and the ring out (as Alpha 2's: `Description::computerPlaysModes`, the coach standing aside; the
+  port's tactics in Alpha 3's words, its throw instruction among them, the tag operation 18 and the tests 4E, 50, 52).
+  CPU against CPU, 12 seeds of 40,000 frames each way:
+  - The ring out: nobody playing it, side 1 won 47% of 281 ring outs; side 1 playing it itself 53% (301), side 2
+    itself 64% (255, from 53%). The coach: 53% and 45%.
+  - The tag style (team battles of three, about 75 matches each): with nobody tagging but when a bar empties side 1
+    won 44%. Tags cost the side that makes them in this game, the coach's too (side 1 43%, side 2 36%): Alpha 2's tactic
+    (back off, then tag) won 39% and 24%, tagging only while the other is down or far 32% and 30%, only while it is
+    knocked down 40% and 42%. The last is the computer's here: the one coming on jumps in, and Alpha 3's computer hits
+    it.
+- Only headless: nobody has played against it yet.
+
 ## Widescreen
 
 - The rewrites above, with the margin in them; with invisible walls the margin is 0 (the game's memory the board's at
