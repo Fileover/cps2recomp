@@ -189,6 +189,9 @@ int RunWindowed(Port &port) {
             fprintf(stderr, "state %d: %s\n", port.menu.Slot(), error.c_str());
         }
     };
+    // A Multi game run (the launcher's Multi game page): N or a gamepad's left shoulder for the next game, F or
+    // the left trigger held to fast-forward (each when the player has not given it to the game)
+    const bool multi = !MultiGame().empty();
     const double kFrameNs = 1e9 / Machine::kFramesPerSecond;
     uint64_t nextFrame = SDL_GetTicksNS();
     bool running = true;
@@ -202,6 +205,8 @@ int RunWindowed(Port &port) {
                     toggleMenu();
                 } else if (KeyBound(ev.key.scancode)) {
                     // (a key the player has given to the game does only that)
+                } else if (multi && !port.menu.IsOpen() && ev.key.scancode == SDL_SCANCODE_N && !ev.key.repeat) {
+                    port.Key('n');
                 } else if (ev.key.scancode == SDL_SCANCODE_F5 || ev.key.scancode == SDL_SCANCODE_F9) {
                     // F5 keeps the game in the slot, F9 goes back to it; F6 / F7: the slot before, the next
                     if (!port.menu.IsOpen()) {
@@ -236,7 +241,7 @@ int RunWindowed(Port &port) {
                 } else if (ev.gbutton.button == SDL_GAMEPAD_BUTTON_RIGHT_STICK) {
                     port.Key('p');
                 } else if (ev.gbutton.button == SDL_GAMEPAD_BUTTON_LEFT_SHOULDER) {
-                    port.Key('k', kKeyRestart);
+                    port.Key(multi ? 'n' : 'k', kKeyRestart);
                 }
                 break;
             case SDL_EVENT_GAMEPAD_ADDED:
@@ -268,14 +273,16 @@ int RunWindowed(Port &port) {
                 }
                 port.service = keys[SDL_SCANCODE_9] && !KeyBound(SDL_SCANCODE_9);
             }
+            bool hurry = multi && keys[SDL_SCANCODE_F] && !KeyBound(SDL_SCANCODE_F);
             bool trigger = false, both = false;
             const bool stepOnTrigger = !PadInputBound(g_bindings, Table(), {-1, SDL_GAMEPAD_AXIS_LEFT_TRIGGER});
             for (size_t i = 0; i < gamepads.size() && static_cast<int>(i) < Players(); i++) {
                 pads[i] |= ReadGamepad(gamepads[i], static_cast<int>(i));
                 const bool left = stepOnTrigger && SDL_GetGamepadAxis(gamepads[i], SDL_GAMEPAD_AXIS_LEFT_TRIGGER) > kDead;
                 trigger = trigger || left;
-                // (while the game runs, the left trigger is its player's Tag: kTag)
-                if (left && !port.paused) {
+                hurry = hurry || (multi && left);
+                // (while the game runs, the left trigger is its player's Tag: kTag; in a Multi game run, fast forward)
+                if (left && !port.paused && !multi) {
                     pads[i] |= kTag;
                 }
                 both = both || (SDL_GetGamepadButton(gamepads[i], SDL_GAMEPAD_BUTTON_START) &&
@@ -283,6 +290,7 @@ int RunWindowed(Port &port) {
             }
             // The left trigger goes on by one frame (held: frame after frame, after a moment), once the game
             // has been stopped: it does not stop it, so a touch of it while playing does nothing
+            port.hurry = hurry && !port.menu.IsOpen();
             triggerHeld = trigger && port.paused ? triggerHeld + 1 : 0;
             if (!port.menu.IsOpen() && (triggerHeld == 1 || (triggerHeld > 24 && triggerHeld % 4 == 0))) {
                 port.Key('o');
@@ -417,7 +425,7 @@ int RunWindowed(Port &port) {
         made.clear();
         if (ran && port.soundtrackOn && port.soundtrack.Any()) {
             // (fed as the game's sound is: the game's time's worth each frame, kept a frame or two ahead of the device)
-            port.soundtrack.Make(port.machine->soundtrack.state, !FastForward(), musicMade);
+            port.soundtrack.Make(port.machine->soundtrack.state, !FastForward() && !port.hurry, musicMade);
             if (!musicMade.empty()) {
                 const int rate = port.soundtrack.Rate();
                 if (!music) {

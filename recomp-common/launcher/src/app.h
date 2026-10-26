@@ -183,6 +183,7 @@ private:
 
     // The Multi game page (a collection's MultiModes): a mode's choices and games, and the run of one
     void multi_page(float width);
+    void multi_buttons(const launcher::MultiMode& m, float width, bool after);
     void multi_card(size_t mode, float width);
     int multi_value(size_t mode, size_t choice) const;  // (launcher.ini, [multi.<key>])
     // The mode's games the player can play (each with a page of its own), in the sidebar's order, and whether each is

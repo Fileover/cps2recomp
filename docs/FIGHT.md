@@ -144,7 +144,10 @@ on stages that fade or scroll, with every stage in turn (shuffled for the fade, 
 twice; once the last has been fought on for its time, or scrolled across, the picture and sound fade out and the
 game ends the program with exit code 3 (`kNextGame`, `EndProgram`), which the launcher takes as the next game's
 turn. A start or a next match that never comes to its round ends it the same way, so that one game's trouble does not
-stop the run. The fighters are as the game's own Endless battle page has them.
+stop the run. The fighters are as the game's own Endless battle page has them. The player can ask for the next game (N, a
+gamepad's left shoulder: `AskNextGame`): the battle starts the same fade-out at once, and if the game is not far
+enough on for that (still starting), the port ends it itself 150 ticks of the screen later (stopped too). F or the left trigger held runs four
+frames a picture, unheard (`Port::hurry`).
 
 Every match and stage machine after the first is begun from a machine kept at the character choice with both players
 in (the first spare that came there), so the next one is ready in about 500 frames, not 2,000 from switching on.

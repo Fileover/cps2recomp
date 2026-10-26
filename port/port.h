@@ -92,10 +92,14 @@ struct Port {
     uint64_t tick = 0;
     bool paused = false;
     int steps = 0;        // frames to go on by while stopped
+    // In a Multi game run (runtime/game.h, MultiGame): held, the game runs kHurry frames a tick, unheard
+    static constexpr int kHurry = 4;
+    bool hurry = false;
     // One tick; true if the game ran (so that there is a new picture and sound)
     bool Tick();
     // The keys that work while playing: 'p' stops and starts, 'o' goes on by a frame, '-' and '=' change the
-    // speed, 'k' does the game's command with the key `n` (runtime/game.h, kKeyRestart...)
+    // speed, 'k' does the game's command with the key `n` (runtime/game.h, kKeyRestart...), 'n' asks a
+    // Multi game run for its next game ('h': its fast forward on and off, for tests)
     void Key(char key, unsigned n = 0);
     void RunCommand(size_t index);
     // (rapid fire: how long each player has held each button)

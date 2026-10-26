@@ -1903,6 +1903,7 @@ void App::multi_page(float width) {
                 multi_message_ = "Stopped: " + one.name + " is the last.";
             }
         });
+        multi_buttons(m, width, true);
         card.end();
         ui::gap(28);
     } else if (!multi_message_.empty()) {
@@ -1913,6 +1914,30 @@ void App::multi_page(float width) {
         ImGui::PushID(static_cast<int>(mode));
         multi_card(mode, width);
         ImGui::PopID();
+    }
+}
+
+// A mode's keys and buttons for while it plays: a row each, with keycaps (after a separator: under another row)
+void App::multi_buttons(const launcher::MultiMode& m, float width, bool after) {
+    constexpr float kKeys = 230.0f;
+    for (size_t n = 0; n < m.buttons.size(); n++) {
+        if (after || n > 0) {
+            inset_separator(width);
+        }
+        const launcher::MultiButton& b = m.buttons[n];
+        row(width, b.title, b.detail, kKeys, 24.0f, [&] {
+            float keys = 0.0f;  // (at the right, as the other rows' controls end)
+            for (size_t k = 0; k < b.keys.size(); k++) {
+                keys += std::max(ui::text_size(b.keys[k], Font::Semibold, ui::size::kSmall).x + px(14), px(30)) + (k > 0 ? px(8) : 0.0f);
+            }
+            ImGui::SetCursorScreenPos(ImGui::GetCursorScreenPos() + ImVec2(std::max(0.0f, px(kKeys) - keys), 0.0f));
+            for (size_t k = 0; k < b.keys.size(); k++) {
+                if (k > 0) {
+                    ImGui::SameLine(0, px(8));
+                }
+                ui::keycap(b.keys[k]);
+            }
+        });
     }
 }
 
@@ -1961,6 +1986,13 @@ void App::multi_card(size_t mode, float width) {
         }
     });
     card.end();
+    if (!m.buttons.empty()) {
+        ui::gap(24);
+        layout::label("WHILE IT PLAYS");
+        Card keys(width);
+        multi_buttons(m, width, false);
+        keys.end();
+    }
     ui::gap(24);
     layout::label("GAMES");
     std::vector<size_t> games = multi_games(mode);

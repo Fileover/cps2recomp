@@ -456,6 +456,12 @@ void Port::Key(char key, unsigned n) {
         break;
     case '-': menu.SetSlowBy(menu.SlowBy() * 2); break;
     case '=': menu.SetSlowBy(menu.SlowBy() / 2); break;
+    case 'h': hurry = !hurry; break; // (tests: the frontend sets it while F is held)
+    case 'n':
+        if (!MultiGame().empty() && NextGameAsked() < 0) {
+            AskNextGame(static_cast<int64_t>(tick));
+        }
+        break;
     case 'k':
         for (size_t i = 0; i < TheGame().commands.size(); i++) {
             if (TheGame().commands[i].key == n && n != kKeyNone) {
@@ -466,6 +472,10 @@ void Port::Key(char key, unsigned n) {
     default: break;
     }
 }
+
+namespace {
+constexpr uint64_t kNextGameWait = 150; // ticks (so stopped too)
+} // namespace
 
 bool Port::Tick() {
     if (ProgramEnded() >= 0) {
@@ -502,6 +512,10 @@ bool Port::Tick() {
         at = comma == std::string::npos ? opt.keys.size() : comma + 1;
     }
     tick++;
+    // (the next game asked for: the game's sources have had their time to end it their own way)
+    if (NextGameAsked() >= 0 && tick >= static_cast<uint64_t>(NextGameAsked()) + kNextGameWait) {
+        EndProgram(kNextGame);
+    }
     if (FastForward()) {
         // The game's sources are taking the game somewhere: as fast as it goes, a slice at a time
         for (int n = 0; n < 120 && FastForward(); n++) {
@@ -518,6 +532,14 @@ bool Port::Tick() {
     } else if (tick % static_cast<uint64_t>(menu.SlowBy()) != 0) {
         return false;
     }
+    if (hurry && !paused && !MultiGame().empty()) {
+        // A Multi game run's fast forward: kHurry frames, unheard
+        for (int n = 0; n < kHurry; n++) {
+            RunFrame();
+            machine->audio.clear();
+        }
+        return true;
+    }
     RunFrame();
     return true;
 }
@@ -526,11 +548,15 @@ void Port::Shown(std::vector<uint32_t> &pixels) const {
     const int across = ShownWidth();
     pixels.assign(machine->Picture(), machine->Picture() + across * Video::kHeight);
     DrawHud(pixels.data(), across, Video::kHeight);
-    // Stopped or slowed: said at the bottom, with the frame's number (for counting frames by stepping)
-    if (paused || menu.SlowBy() > 1) {
+    // Stopped, slowed or fast-forwarded: said at the bottom (stopped, with the frame's number, for counting
+    // frames by stepping)
+    const bool hurried = hurry && !paused && !MultiGame().empty();
+    if (paused || menu.SlowBy() > 1 || hurried) {
         char status[64];
         if (paused) {
             snprintf(status, sizeof(status), "STOPPED  frame %llu", static_cast<unsigned long long>(frame));
+        } else if (hurried) {
+            snprintf(status, sizeof(status), "FAST FORWARD x%d", kHurry);
         } else {
             snprintf(status, sizeof(status), "SPEED 1/%d", menu.SlowBy());
         }
@@ -796,7 +822,7 @@ void Port::SoundTest() {
 void Port::RunAhead() {
     const int ahead = FeatureValue("run_ahead");
     // (nor while stopped, stepped a frame at a time or slowed: there the frame shown is the frame)
-    if (ahead <= 0 || FastForward() || SpareRan() || paused || menu.SlowBy() > 1 || SlowMotion() > 1 ||
+    if (ahead <= 0 || FastForward() || hurry || SpareRan() || paused || menu.SlowBy() > 1 || SlowMotion() > 1 ||
         (TheGame().noRunAhead && TheGame().noRunAhead())) {
         return;
     }
@@ -1116,7 +1142,8 @@ void Usage() {
             "  --trace LOW-HIGH:FILE  those bytes of work RAM after every frame, appended to FILE\n"
             "  --watch LOW[-HIGH]     report the 68000's writes to these addresses (hex), with who made them\n"
             "  --keys TICK:KEY,...    keys pressed at those ticks of the screen: p (stop/go), o (a frame on),\n"
-            "                         - and = (speed), k1.. (the game's command keys), cNAME (a command),\n"
+            "                         - and = (speed), n and h (a Multi game run's next game, fast forward on/off),\n"
+            "                         k1.. (the game's command keys), cNAME (a command),\n"
             "                         fNAME=N (a feature set)\n"
             "  --stats                speed, at the end\n"
             "  --audio-dump FILE      write the sound to a WAV file\n"

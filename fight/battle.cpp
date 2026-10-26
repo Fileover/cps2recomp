@@ -1862,6 +1862,10 @@ void BattleBeforeFrame(Machine &machine) {
         g.backCamera = LeftEnd();
         g_backSound.Start();
     }
+    // The player asked for the next game: the fade-out the last stage ends with, from here
+    if (g_tour.on && NextGameAsked() >= 0 && g.tourStages && g.phase != Phase::Starting && !g.tourOut) {
+        g.tourOut = 1;
+    }
     if (g.kind != Kind::None) {
         BeforeFrame(machine);
     }

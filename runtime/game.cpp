@@ -233,6 +233,7 @@ void SetRunningAhead(bool on) {
 namespace {
 std::string g_multiGame;
 int g_programEnded = -1;
+int64_t g_nextGameAsked = -1;
 } // namespace
 void SetMultiGame(const std::string &spec) {
     g_multiGame = spec;
@@ -245,6 +246,12 @@ void EndProgram(int code) {
 }
 int ProgramEnded() {
     return g_programEnded;
+}
+void AskNextGame(int64_t tick) {
+    g_nextGameAsked = tick;
+}
+int64_t NextGameAsked() {
+    return g_nextGameAsked;
 }
 
 void SetSlowMotion(int by) {
