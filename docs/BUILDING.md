@@ -104,7 +104,9 @@ tools/release/macos.sh      # build/release/CPS2Recomp-macOS.zip (Apple silicon 
 docker build --platform linux/amd64 -t cps2recomp-build tools/release
 docker run --rm --platform linux/amd64 -v "$PWD":/src -w /src cps2recomp-build tools/release/linux.sh
 docker run --rm --platform linux/amd64 -v "$PWD":/src -w /src cps2recomp-build tools/release/windows.sh
-tools/release/all.sh        # all three and SHA256SUMS.txt
+docker build --platform linux/arm64 -t cps2recomp-build-arm64 tools/release
+docker run --rm --platform linux/arm64 -v "$PWD":/src -w /src cps2recomp-build-arm64 tools/release/linux.sh
+tools/release/all.sh        # all four and SHA256SUMS.txt
 ```
 
 Each script ends with `tools/release/check_archive.sh`, which fails if an archive holds a game file or a

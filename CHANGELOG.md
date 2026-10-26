@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- **Linux ARM64**: a download for 64-bit ARM Linux (aarch64: ARM handhelds, single-board computers, ARM
+  Chromebooks' Linux), `CPS2Recomp-linux-arm64.tar.gz`, beside the x86_64 one, and its launcher updates itself from
+  `update-linux-arm64.txt` (issue #99). CI builds and starts it on an ARM64 runner. (`tools/release/linux.sh` builds
+  for the processor it runs on; `tools/release/all.sh` makes it in an ARM64 build image.)
 - Street Fighter Alpha 3's widescreen is on in the alternative modes' fights too (survival, the endless battle, the
   ring out, the tag team battle), as in Alpha and Alpha 2; only arcade, versus and training had it (issue #109).
   Alpha 2's README said its modes were 4:3; they were already wide.
