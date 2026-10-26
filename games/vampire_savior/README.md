@@ -56,7 +56,10 @@ QSound chip, the sound CPU and its registers) is code written for this project, 
   the stick (the arrows) moves the camera to frame it as you like, until the zoom is off or looks at the other fighter. The size eases from one
   to the next, it is said at the bottom for a few seconds, and outside a fight the picture is whole again. The
   game's own health bars are zoomed with it; the port's own text (a mode's score, the training display) is not.
-  The left stick's click alone still opens the menu, when it is let go.
+  With the left stick's click held, the right stick's click (keyboard: Left Shift and W) keeps **both fighters** in
+  the picture instead: the camera as close as shows both whole, tight when they are close and wide when they are
+  apart (2x at most, the whole picture at least), kept inside the stage; again for the whole picture. The left
+  stick's click alone still opens the menu, when it is let go.
 - **Rapid fire** (Game page): a button held down is pressed again and again, fifteen times a second, for the first
   button or for all of them; the first press is seen at once.
 - **Pure** plays exactly as the board does. **Enhanced** (the default) adds free play and your own

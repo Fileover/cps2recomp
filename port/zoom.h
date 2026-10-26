@@ -9,6 +9,9 @@
 // chosen is said on the picture for a few seconds. Only where the game's sources say where a fighter is
 // (runtime/game.h, Game::focus), and only while there is one: elsewhere the picture goes back to its own size.
 // It is the window's alone: the game, its save states and its screenshots know nothing of it.
+//
+// Or both fighters at once: the camera is as close as keeps both in the picture (2x at most, the whole picture at
+// least), between them, and inside the picture's edges: tight when they are close, wide when they are apart.
 #pragma once
 
 #include "present.h"
@@ -22,12 +25,15 @@ public:
     // Whether the game can be zoomed at all
     static bool Possible();
 
+    static constexpr int kBoth = 2; // (the "player" the camera follows when it keeps both in the picture)
     // A press for player `player` (0 or 1)
     void Press(int player);
+    // A press for both fighters at once: on, or off when it is on
+    void Both();
     // The camera moved off its fighter by so many steps across and down (the d-pad or the arrows, while zooming), to
     // frame it as the player wants; kept until the zoom is off or looks at the other fighter
     void Pan(int across, int down);
-    // Straight to a size (0: none) about a player, with no easing (--zoom)
+    // Straight to a size (0: none) about a player (kBoth: both, whatever the size), with no easing (--zoom)
     void Set(int size, int player);
     // Each picture shown, `width` x `height`: the size and the place looked at a step nearer what is wanted
     void Follow(int width, int height);

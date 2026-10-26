@@ -197,6 +197,8 @@ namespace {
 
 void RegisterCamera() {
     TheGame().focus = Focus;
+    TheGame().focusLift = kFocusLift;
+    TheGame().focusTall = 128;
     // (the last number is the time a call is charged: the game's own, as the check measured it)
     AddRewrite(kPlayersAcross, "PlayersAcross", PlayersAcross, kFreeFlags, 186);
     AddRewrite(kPlayersUp, "PlayersUp", PlayersUp, kFreeFlags, 100);

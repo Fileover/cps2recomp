@@ -457,7 +457,13 @@ void Port::Key(char key, unsigned n) {
     case '-': menu.SetSlowBy(menu.SlowBy() * 2); break;
     case '=': menu.SetSlowBy(menu.SlowBy() / 2); break;
     case 'h': hurry = !hurry; break; // (tests: the frontend sets it while F is held)
-    case 'z': zoom.Press(static_cast<int>(n)); break; // (tests: the zoom pressed for player n + 1)
+    case 'z': // (tests: the zoom pressed for player n + 1; 2: for both)
+        if (n == Zoom::kBoth) {
+            zoom.Both();
+        } else {
+            zoom.Press(static_cast<int>(n));
+        }
+        break;
     case 'm': // (tests: the zoom's camera moved a step: 1 left, 2 right, 3 up, 4 down)
         zoom.Pan(n == 1 ? -1 : n == 2 ? 1 : 0, n == 3 ? -1 : n == 4 ? 1 : 0);
         break;
@@ -1137,7 +1143,7 @@ void Usage() {
             "  --sound-test SEED[:N]  every N frames (30) a command to the sound side: each song in turn, placed\n"
             "                         some made-up way, and the other commands (with --sound check)\n"
             "  --scale N              window size, times 224 lines (else the Display page's)\n"
-            "  --zoom SIZE:PLAYER     the camera zoomed from the start: SIZE 1-4 (1.25x-2x), PLAYER 1 or 2\n"
+            "  --zoom SIZE:PLAYER     the camera zoomed from the start: SIZE 1-4 (1.25x-2x), PLAYER 1 or 2 (3: both)\n"
             "  --fullscreen  --window (a window, after --fullscreen)  --mute  --unthrottled\n"
             "  --headless             no window, no sound, as fast as it goes\n"
             "  --frames N             stop after N frames\n"
@@ -1445,7 +1451,7 @@ int main(int argc, char **argv) {
         return 0;
     }
     if (p.opt.zoom > 0) {
-        p.zoom.Set(p.opt.zoom, std::clamp(p.opt.zoomPlayer, 0, 1));
+        p.zoom.Set(p.opt.zoom, std::clamp(p.opt.zoomPlayer, 0, +port::Zoom::kBoth));
     }
     int result = 0;
     const auto begin = std::chrono::steady_clock::now();

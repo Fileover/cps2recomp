@@ -671,7 +671,7 @@ void RegisterModel(uint32_t cameraWayAt, int largeLift) {
             x = Word(Player(player) + e.x) - Word(camera + e.cameraX) - e.pictureLeft + WideStage();
             y = Word(Player(player) + e.y) - Word(camera + e.cameraY) - 0x0F;
         },
-        40);
+        40, 136);
 }
 
 } // namespace cps2recomp::marvel

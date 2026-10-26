@@ -93,6 +93,9 @@ struct Game {
     // For the port's camera (its zoom, port/zoom.h): where to look to see player `player`'s fighter (0: player 1's
     // side), in the picture's pixels; false when there is none to look at now (no fight on). Not given: no zoom.
     bool (*focus)(int player, int &x, int &y) = nullptr;
+    // ... how far above the feet that place is, and how tall a fighter stands from its feet, so that the camera keeping
+    // both in the picture shows them whole
+    int focusLift = 44, focusTall = 120;
     // Not to run ahead now (the port's run-ahead): a mode whose own workings a save state does not wholly hold,
     // so that frames run and taken back would change it. Not given: run-ahead whenever it is on.
     bool (*noRunAhead)() = nullptr;

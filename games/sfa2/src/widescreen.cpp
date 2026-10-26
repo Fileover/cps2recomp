@@ -540,7 +540,7 @@ namespace {
 } // namespace
 
 void RegisterWidescreen() {
-    modes::Focus(FocusPlace, 44);
+    modes::Focus(FocusPlace, 44, 112);
     TheGame().widestPicture = [] { return Video::kWidth + (FeatureOn("widescreen") ? 2 * kSide : 0); };
     AddRewrite(0x01B662, "CameraAcross", CameraAcross, kFreeFlags, 253);
     AddRewrite(0x01B6DA, "CameraUp", CameraUp, kFreeFlags, 218);
