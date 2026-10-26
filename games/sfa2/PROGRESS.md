@@ -399,6 +399,40 @@ for each character, and `tools/aiscripts.py sfa2` prints them all (40,947 instru
     but for what no script has (the wait 1A, operation 0E's kind 00, test 2C) and the second if's endif done (each
     branch ends with a break out, which steps over it).
 
+## The computer plays the tag style and the ring out itself (2026-10-26)
+
+As Vampire Savior's (its PROGRESS.md, the same title): the coach, which took the CPU's controls in a ring out and
+said when it tagged, stands aside (`Description::computerPlaysModes`), and the computer's own interpreter
+(`src/computer.cpp`) has three tactics of the port's, written in Alpha 2's instructions and one of the port's own,
+kept at addresses no ROM has (`kModeScripts`):
+
+- Out of the corner (the ring out, its back within 150 of its end and nearer it than the other's): guard if an attack
+  is coming; near (40), a throw; nearer than 90, a jump forward with a jumping heavy kick after 14 frames; else a
+  walk forward. Knock over (the other's back within 100 of its end): near, a throw or a sweep (one in two); else
+  walk in, then a sweep. Tag out (the tag style, its fighter wanting to go off, `ComputerTagWanted`): the other
+  knocked down, or 160 away, a tag at once; else guard, back off to 160, then tag.
+- A computer's throw goes the way the character's own computer throw routine says (`097CCC`, by character; Ryu's,
+  `02B202`: by where the thrower stands against the middle of the picture), not by the stick or the move word:
+  a script cannot ask for the throw that sends the other behind, as Vampire Savior's can.
+- Taken in the place of a tactic of the game's (ChooseTactic) when the fight calls for one, from four to nine
+  times in ten by the difficulty (`ComputerSkill`); a plan's chance of going to a tactic taken anyway then; and a
+  wait or a walk broken off for it, on about one frame in twelve of those. Operation 16 asks the toolkit for a tag
+  (`ComputerAsksTag`); tests 3E and 40 (the computer's back, the other's, nearer its end than a word) and 42 (the
+  tag wanted) are the port's.
+- `RingOutMayWalkBack` (the Walking rewrite) is still asked: with the toolkit's check of it left out for a game that
+  plays the modes itself, side 1 won 57% and side 2 62% (below), against 64% and 59% with it; the same within the
+  noise, so it stays. `ComputerModeOf` now says no mode for a game that does not play them itself (the coach binary
+  measured below had both, until then).
+- Numbers, CPU against CPU (`CPS2RECOMP_BATTLE_CPU=1`), 12 seeds of 40,000 frames each way:
+  - The ring out: nobody playing it (`CPS2RECOMP_COACH=0`) side 1 won 53% of 337 ring outs; side 1 playing it
+    itself 64% (336), side 2 itself 59% (248, from 47%). The coach: side 1 56% (306), side 2 59% (273).
+  - The tag style (team battles of three, about 78 matches each): nobody tagging but when a bar empties 55% for
+    side 1; side 1 tagging itself 49%, side 2 itself 49%; the coach 49% and 28% (its side 2 losing). Tagging changes
+    little, as in Vampire Savior; the computer's own tags were called off 2 times in 232, the coach's 9 in 257.
+- Checked: the computer's rewrites against the game's in the two mode movies and the attract mode at three levels
+  and tiers, with no side playing the modes (`check_rewrites.sh`'s computer section), and every movie as before.
+  Only headless: nobody has played against it yet.
+
 ## Readable code
 
 Rewrites (`cps2recomp/docs/READABLE.md`), each run beside the game's own code on every call by `make

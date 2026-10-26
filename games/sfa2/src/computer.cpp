@@ -19,7 +19,15 @@
 //
 // Alpha 2's own, beside Vampire Savior's: a second if (operation 14) with else if and a break out of it, a normal
 // picked by where the other's attack reaches or by the gap, the super combo, and the guard that may Alpha counter.
+//
+// The computer never reads the other player's controls: it sees the other's attack the frame it is out, and its
+// projectiles, not the buttons.
+#include "../../../fight/battle.h"
 #include "sfa2.h"
+
+#include <array>
+#include <cstdio>
+#include <cstdlib>
 
 namespace cps2recomp {
 
@@ -61,7 +69,7 @@ namespace {
     constexpr uint32_t kOperands = 0x20A;      // words: an instruction's words, kept (up to three)
     constexpr uint32_t kMoveWhen = 0x211;      // byte: a jump's way word's low byte: when its move comes
     constexpr uint32_t kHeld1 = 0x212, kHeld2 = 0x213; // bytes: a move word's bits 1 and 2 (a command normal's)
-    constexpr uint32_t kWay = 0x214;           // byte: 0 forward, 1 back (a walk, a jump; a move word's bit 3)
+    constexpr uint32_t kWay = 0x214;           // byte: a walk's 0 forward, 1 back; a jump's 1 forward, 0 straight up, FF back (023344)
     constexpr uint32_t kChainable = 0x215;     // byte: a normal of kind 02 (it goes on while this is set)
     constexpr uint32_t kCount = 0x216;         // word: frames left (a wait, a walk)
     constexpr uint32_t kGap = 0x218;           // word: the gap between the two players
@@ -81,7 +89,7 @@ namespace {
     constexpr uint32_t kLevel = 0xA7;          // byte: how well the computer plays, 0-31
 
     // The rest of a player's record that the computer reads or sets
-    constexpr uint32_t kWalkingBack = 0x3C;    // byte: 1 walking back, 0 forward (a jump's: 1, 0 or FF)
+    constexpr uint32_t kWalkingBack = 0x3C;    // byte: 1 walking back, 0 forward (a jump's: 1 forward, 0 straight up, FF back)
     constexpr uint32_t kSpeedUp = 0x44;        // long (a word's test reads its high word)
     constexpr uint32_t kReelKind = 0x54;       // byte
     constexpr uint32_t kCanChain = 0x5B;       // byte (cleared as an attack starts; test 3C)
@@ -155,9 +163,10 @@ namespace {
         return Byte(c, kProjectileOut) && Word(c, kProjectile);
     }
 
+    uint16_t ScriptWord(M68K &c, uint32_t address);
     // The next word of the script
     uint16_t Operand(M68K &c) {
-        const uint16_t word = Mem16(c, c.a[0]);
+        const uint16_t word = ScriptWord(c, c.a[0]);
         c.a[0] += 2;
         return word;
     }
@@ -312,6 +321,112 @@ namespace {
         return c.d[0] & 0xFF;
     }
 
+    // --- the modes: the port's own tactics ---
+    //
+    // The game's scripts know nothing of the toolkit's modes (fight/battle.h): a tag, or a ring out, where only the
+    // stage's ends count. For those the port has tactics of its own, written in the same instructions and one of its
+    // own, kept at addresses of their own (kModeScripts: no place of the board's). A tactic is chosen as the game's are
+    // (ChooseTactic), one of these in its place when the mode and the fight call for it (ModeSituation), as often as
+    // the difficulty says. Its instructions are the computer's own walks, jumps, attacks and guarding, so that the
+    // reactions break in on them as on the game's. (As Vampire Savior's; Alpha 2's own words.)
+    constexpr uint32_t kModeScripts = 0x80000000;
+    constexpr uint16_t kTagInstruction = 0x1600; // (operation 16: the toolkit is asked for a tag)
+    // (moves, as the game's scripts have them: a jumping heavy kick, a jump's way word forward with its move after so
+    // many frames; a standing heavy punch held for a throw (+212); a crouching heavy kick, a sweep, a knock-down. The
+    // computer's throws go the way the character's own throw routine says, not the stick: 097CCC)
+    constexpr uint16_t kJumpKick = 0x4240, kForwardThenMove = 0x0104, kThrow = 0x4002, kSweep = 0x4220;
+    constexpr std::array<uint16_t, 64> kModeWords = {
+        // 0: the ring out, its back near its end: a throw (near), over the other (near enough), or walking out of the
+        // end's way
+        0x0002,
+        0x1000,                                   // guard if an attack is coming
+        0x0C00, 0x0000, 40,                       // if gap <= 40
+        0x0600, kThrow,                           //   throw
+        0x0C02,                                   // else
+        0x0C00, 0x0000, 90,                       //   if gap <= 90
+        0x0400, kJumpKick, kForwardThenMove, 14,  //     jump forward: jumping heavy kick after 14 frames
+        0x0C02,                                   //   else
+        0x020A, 50, 30,                           //     walk forward until gap <= 50, at most 30 frames
+        0x0C04,                                   //   endif
+        0x0C04,                                   // endif
+        0xFF02,                                   // back to the plan
+        // 22: the ring out, the other's back near its end: a throw or a sweep (a knock-down carries it over)
+        0x0002,
+        0x1000,                                   // guard if an attack is coming
+        0x0C00, 0x0000, 40,                       // if gap <= 40
+        0x0C00, 0x0004,                           //   if one time in 2
+        0x0600, kThrow,                           //     throw
+        0x0C02,                                   //   else
+        0x0600, kSweep,                           //     sweep
+        0x0C04,                                   //   endif
+        0x0C02,                                   // else
+        0x020A, 36, 40,                           //   walk forward until gap <= 36, at most 40 frames
+        0x0600, kSweep,                           //   sweep
+        0x0C04,                                   // endif
+        0xFF02,                                   // back to the plan
+        // 43: the tag style, wanting to go off: a tag while the other is down or far, or after walking away from it
+        0x0002,
+        0x0C00, 0x000C,                           // if the other knocked down
+        kTagInstruction,                          //   tag
+        0x0C02,                                   // else
+        0x0C00, 0x0002, 160,                      //   if gap >= 160
+        kTagInstruction,                          //     tag
+        0x0C02,                                   //   else
+        0x1000,                                   //     guard if an attack is coming
+        0x020C, 160, 50,                          //     walk back while nearer than 160, at most 50 frames
+        kTagInstruction,                          //     tag
+        0x0C04,                                   //   endif
+        0x0C04,                                   // endif
+        0xFF02,                                   // back to the plan
+    };
+    enum ModeTacticAt : uint32_t { kOutOfTheCorner = 0, kKnockOver = 22, kTagOut = 43 };
+    // (each begins after the end of the one before)
+    static_assert(kModeWords[kKnockOver - 1] == 0xFF02 && kModeWords[kTagOut - 1] == 0xFF02 && kModeWords[60] == 0xFF02);
+    // When the ring out's tactics are wanted: within 150 pixels of one's own end (and nearer it than the other is
+    // to its own), the other within 100 of its end
+    constexpr int kNearOwnEnd = 150, kNearTheirEnd = 100;
+
+    // A word of a script: the game's (in its ROM) or the port's
+    uint16_t ScriptWord(M68K &c, uint32_t address) {
+        if (address & kModeScripts) {
+            const uint32_t at = (address & ~kModeScripts) / 2;
+            return at < kModeWords.size() ? kModeWords[at] : 0xFF02;
+        }
+        return Mem16(c, address);
+    }
+    uint8_t ScriptByte(M68K &c, uint32_t address) {
+        const uint16_t word = ScriptWord(c, address & ~1u);
+        return static_cast<uint8_t>(address & 1 ? word : word >> 8);
+    }
+
+    // Which of the modes' tactics the fight calls for (-1: none, or no mode)
+    int ModeSituation(M68K &c) {
+        switch (ComputerModeOf(Me(c))) {
+        case ComputerMode::kRingOut: {
+            const int mine = ComputerBack(Me(c), false), theirs = ComputerBack(Me(c), true);
+            if (mine < kNearOwnEnd && mine < theirs) {
+                return kOutOfTheCorner;
+            }
+            if (theirs < kNearTheirEnd && theirs < mine) {
+                return kKnockOver;
+            }
+            return -1;
+        }
+        case ComputerMode::kTag:
+            return ComputerTagWanted(Me(c)) ? static_cast<int>(kTagOut) : -1;
+        default:
+            return -1;
+        }
+    }
+    // (for tests, CPS2RECOMP_BATTLE_LOG as fight/battle.cpp's: each of the modes' tactics taken)
+    void LogModeTactic(M68K &c, int mode, const char *how) {
+        static const bool log = getenv("CPS2RECOMP_BATTLE_LOG") != nullptr;
+        if (log) {
+            fprintf(stderr, "tactic side=%d %s gap=%d%s\n", Me(c) == Player(0) ? 0 : 1,
+                    mode == kOutOfTheCorner ? "out of the corner" : mode == kKnockOver ? "knock over" : "tag out", Word(c, kGap), how);
+        }
+    }
+
     // --- choosing a script ---
 
     // A script's table: the character's (D0 the character by four), then the entry at `offset` (a signed word
@@ -358,13 +473,22 @@ namespace {
         SetByte(c, kDepth, 0);
         SetByte(c, kDepth2, 0);
     }
-    // 029A8C. A tactic of the plan's, at random
+    // 029A8C. A tactic of the plan's, at random. (In the modes: one of the port's when the fight calls for it, from
+    // four times in ten to nine times in ten by the difficulty)
     void ChooseTactic(M68K &c) {
         SetByte(c, kUnbreakable, 0);
         CharacterTable(c, kTactics);
         SetLow8(c.d[0], Byte(c, kPlan));
         Entry(c);
         FromSlots(c);
+        const int mode = ModeSituation(c);
+        if (mode >= 0) {
+            Random(c);
+            if (static_cast<int>(c.d[0] & 0xFF) * 1000 / 256 < 400 + ComputerSkill() / 2) {
+                c.a[0] = kModeScripts + 2u * static_cast<uint32_t>(mode);
+                LogModeTactic(c, mode, "");
+            }
+        }
         Begin(c, kPlaces + 4);
     }
     // 029AE6. A reaction to the other's attack: the table by the kind of its frame, a slot at random
@@ -416,11 +540,12 @@ namespace {
     constexpr uint8_t kWaitWords[19] = {1, 0, 0, 0, 1, 0, 1, 1, 0, 0, 0, 0, 0, 1, 2, 2, 0, 0, 0};
     constexpr uint8_t kWalkWords[8] = {1, 1, 1, 1, 1, 2, 2, 2};
     // and the ifs' tests (by the test's number, in twos)
-    constexpr uint8_t kTestWords[31] = {1, 1, 0, 1, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 1,
-                                        1, 0, 1, 0, 0, 0, 1, 1, 0, 0, 1, 0, 1, 1, 0};
+    // (the last three are the port's: 3E, 40, 42)
+    constexpr uint8_t kTestWords[34] = {1, 1, 0, 1, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 1, 1,
+                                        0, 1, 0, 0, 0, 1, 1, 0, 0, 1, 0, 1, 1, 0, 1, 1, 0};
     enum Operation : uint8_t {
         kWaits = 0x00, kWalks = 0x02, kJumps = 0x04, kNormalMove = 0x06, kSpecialMoves = 0x08, kSuperCombos = 0x0A,
-        kIf = 0x0C, kGoToTactic = 0x0E, kGuards = 0x10, kBreakIn = 0x12, kIf2 = 0x14, kEnd = 0xFF,
+        kIf = 0x0C, kGoToTactic = 0x0E, kGuards = 0x10, kBreakIn = 0x12, kIf2 = 0x14, kTag = 0x16, kEnd = 0xFF,
     };
     // The first if: 00 if (and a test), 02 else, 04 endif. The second: 00 if, 02 else if (a test at the same depth),
     // 04 else, 06 a break out to its endif (at the end of a branch done), 08 endif.
@@ -435,10 +560,10 @@ namespace {
     void Skip(M68K &c, SkipTo to) {
         for (;;) {
             c.d[0] = 0;
-            SetLow8(c.d[0], Mem8(c, c.a[0]));
+            SetLow8(c.d[0], ScriptByte(c, c.a[0]));
             c.a[0] += 1;
             const uint8_t operation = c.d[0] & 0xFF;
-            SetLow8(c.d[0], Mem8(c, c.a[0]));
+            SetLow8(c.d[0], ScriptByte(c, c.a[0]));
             c.a[0] += 1;
             const uint8_t kind = c.d[0] & 0xFF;
             // (no script ends inside an if: aiscripts.py --check)
@@ -449,7 +574,7 @@ namespace {
             case kWalks: words = kWalkWords[kind / 2]; break;
             case kJumps: words = 3; break;
             case kNormalMove: case kSpecialMoves: case kSuperCombos: words = 1; break;
-            case kGoToTactic: case kGuards: words = 0; break;
+            case kGoToTactic: case kGuards: case kTag: words = 0; break;
             case kBreakIn: words = kind < 4 ? 2 : 0; break;
             case kIf:
                 if (to != SkipTo::kIfEnd) {
@@ -469,7 +594,7 @@ namespace {
                     }
                 }
                 break;
-            default: // kIf2
+            case kIf2:
                 if (to == SkipTo::kIfEnd) {
                     test = kind == kIf2Test || kind == kElseIf;
                 } else if (kind == kIf2Test) {
@@ -479,7 +604,7 @@ namespace {
                     // (029284 stops at its own depth's else if or else, and leaves A0 at it: it is done next)
                     if (to == SkipTo::kNextBranch && (c.d[6] & 0xFF) == Byte(c, kDepth2)) {
                         c.a[0] -= 2;
-                        SetLow16(c.d[0], Mem16(c, c.a[0]));
+                        SetLow16(c.d[0], ScriptWord(c, c.a[0]));
                         return;
                     }
                     test = kind == kElseIf;
@@ -839,7 +964,7 @@ namespace {
         }
         case 0x14: // an attack coming
             return Asks(c, kAttackComing);
-        case 0x16: case 0x18: case 0x1A: { // the other in the air, its +3C 1, 0, FF (going back, forward, straight up)
+        case 0x16: case 0x18: case 0x1A: { // the other jumping forward, straight up, back (its +3C 1, 0, FF)
             other = Other(c);
             const uint8_t way = test == 0x16 ? 1 : test == 0x18 ? 0 : 0xFF;
             return InTheAir(other) && Ram8(other + kWalkingBack) == way;
@@ -897,8 +1022,15 @@ namespace {
         case 0x3A: // the computer is
             SetLow16(c.d[1], Operand(c));
             return (c.d[1] & 0xFF) == Byte(c, kCharacter);
-        default: // 0x3C
+        case 0x3C:
             return Byte(c, kCanChain) != 0;
+        // The port's: in a ring out, the computer's back nearer its end than so many pixels, the other's; in the tag
+        // style, the computer's fighter wanting to go off (fight/battle.h)
+        case 0x3E: case 0x40:
+            SetLow16(c.d[1], Operand(c));
+            return ComputerBack(me, test == 0x40) < static_cast<int>(c.d[1] & 0xFFFF);
+        default: // 0x42
+            return ComputerTagWanted(me);
         }
     }
 
@@ -948,8 +1080,8 @@ namespace {
 
     // 028E1E. Operation 0E: go to a tactic, and come back to the plan after it (02: by a chance)
     bool GoToTactic(M68K &c, uint8_t kind) {
-        if (kind == 2 && !Chance(c, kGoToChances)) {
-            return true;
+        if (kind == 2 && !Chance(c, kGoToChances) && ModeSituation(c) < 0) {
+            return true; // (in a mode whose tactic the fight calls for, a tactic is gone to anyway)
         }
         SetWord(c, kKeptIfBrokenOff, Word(c, kIfBrokenOff));
         SetByte(c, kBank, 2);
@@ -1016,7 +1148,8 @@ namespace {
             case kGoToTactic: next = GoToTactic(c, kind); break;
             case kGuards: next = Guard(c, kind); break;
             case kBreakIn: next = LetBreakIn(c, kind); break;
-            default: next = If2(c, kind); break;
+            case kIf2: next = If2(c, kind); break;
+            default: next = true; ComputerAsksTag(Me(c)); break; // kTag (the port's: a tag, taken once the fighter can)
             }
             if (!next) {
                 return;
@@ -1255,9 +1388,41 @@ namespace {
         }
     }
 
+    // (the port's) In the modes, a wait or a walk of a plan's or of the game's tactic broken off for the modes' tactic the
+    // fight calls for, seen on a frame in twelve or so (as often as the difficulty says, of those): it takes the
+    // tactic's place, and goes back to the plan where it was when it ends
+    bool ToModeTactic(M68K &c) {
+        const uint8_t bank = Byte(c, kBank);
+        if (bank > 2 || (bank == 2 && (Ram32(Me(c) + kPlaces + 4) & kModeScripts))) {
+            return false;
+        }
+        const int mode = ModeSituation(c);
+        if (mode < 0) {
+            return false;
+        }
+        Random(c);
+        if (static_cast<int>(c.d[0] & 0xFF) * 1000 / 256 * 12 >= 400 + ComputerSkill() / 2) {
+            return false;
+        }
+        if (bank == 0) {
+            SetWord(c, kKeptIfBrokenOff, Word(c, kIfBrokenOff));
+            SetByte(c, kBank, 2);
+        }
+        c.a[0] = kModeScripts + 2u * static_cast<uint32_t>(mode);
+        Begin(c, kPlaces + 4);
+        LogModeTactic(c, mode, " (broken off)");
+        return true;
+    }
+
     // 029626. The instruction going on, a frame of it
     void Going(M68K &c) {
         const uint8_t group = Byte(c, kWaiting), kind = Byte(c, kWaiting + 1);
+        if ((group == 0x00 && (kind == 0x00 || kind == 0x10)) || group == 0x02) {
+            if (ToModeTactic(c)) {
+                Over(c);
+                return;
+            }
+        }
         bool on;
         switch (group) {
         case 0x00:

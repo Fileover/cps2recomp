@@ -310,6 +310,10 @@ def alpha_move(w):
     return text + (", held" + held if held else "")
 
 
+def alpha_way(w):  # a jump's way word's high byte, as Alpha 2's jump reads it (023344): 0 straight up, 1 forward, FF back
+    return {0: "straight up", 1: "forward", 0xFF: "back"}.get(w >> 8, "way %02X" % (w >> 8))
+
+
 def alpha_with_move(w, m, frames):
     """A jump's move, by the way word's low byte (as Vampire Savior's: 4 starts the move after so many frames)"""
     kind = w & 0xFF
@@ -323,6 +327,7 @@ ALPHA_TESTS.update({
     0x06: "super gauge >= {0}", 0x0C: "the other knocked down",
     0x0E: "the other's projectile out", 0x10: "the other's projectile within {0}",
     0x12: "no projectile of the other's within {0}", 0x14: "an attack coming",
+    0x16: "the other jumping forward", 0x18: "the other jumping straight up", 0x1A: "the other jumping back",
     0x30: "no projectile of the other's out, or one of class 0 or 4 (table 028BCE)",
     0x32: "the other's projectile out, of class 3 or more (table 028BCE)", 0x3C: "+5B set",
 })
@@ -360,8 +365,8 @@ def alpha_name(op, kind, args, names):
         (0x02, 0x0A): "walk forward until gap <= %d, at most %d frames" % (a[0], a[1]),
         (0x02, 0x0C): "walk back until gap >= %d, at most %d frames" % (a[0], a[1]),
         (0x02, 0x0E): "walk to gap %d, at most %d frames" % (a[0], a[1]),
-        (0x04, 0x00): "jump %s%s" % (way(a[1]), alpha_with_move(a[1], a[0], a[2])),
-        (0x04, 0x02): "special 3 (a jump of its own) %s, as %s%s" % (way(a[1]), alpha_move(a[0]), alpha_with_move(a[1], a[0], a[2])),
+        (0x04, 0x00): "jump %s%s" % (alpha_way(a[1]), alpha_with_move(a[1], a[0], a[2])),
+        (0x04, 0x02): "special 3 (a jump of its own) %s, as %s%s" % (alpha_way(a[1]), alpha_move(a[0]), alpha_with_move(a[1], a[0], a[2])),
         (0x06, 0x00): "attack: %s" % alpha_move(a[0]),
         (0x06, 0x02): "attack, held: %s" % alpha_move(a[0]),
         (0x08, 0x00): "special move: %s" % alpha_move(a[0]),

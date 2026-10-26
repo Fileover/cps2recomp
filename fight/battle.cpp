@@ -1954,7 +1954,7 @@ namespace {
 
 ComputerMode ComputerModeOf(uint32_t player) {
     const int side = SideOf(player);
-    if (side < 0 || g.phase != Phase::Fighting || !Coached(side)) {
+    if (side < 0 || !d.computerPlaysModes || g.phase != Phase::Fighting || !Coached(side)) {
         return ComputerMode::kNone;
     }
     if (g.kind == Kind::RingOut) {

@@ -94,6 +94,7 @@ void RegisterBattle() {
     // (no entrances: a team battle's fighters begin ready, livetag.cpp's TagEntrance; one health bar is all the game has)
     d.difficulty = TagDifficulty;
     d.attackComing = [](Machine &machine, int side) { return AttackInRange(machine.cpu, Player(side)); };
+    d.computerPlaysModes = true; // (the game's computer plays the tag style and the ring out itself: the modes' tactics, computer.cpp)
     d.difficultyNow = [] { return static_cast<int>(Ram8(0xFF80BE)); }; // (the game's copy of the board's, taken as a game begins)
     d.canTag = CanTag;
     d.tagIn = TagIn;
