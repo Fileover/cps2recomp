@@ -40,7 +40,10 @@ if [ ! -f "$OUT/librashader.dylib" ] || [ ! -f "$OUT/version-$LIBRASHADER_VERSIO
     fi
     for target in aarch64-apple-darwin x86_64-apple-darwin; do
         rustup target add "$target" >/dev/null 2>&1 || true
-        (cd "$SOURCE" && MACOSX_DEPLOYMENT_TARGET=13.0 cargo build --quiet --release --locked -p librashader-capi --lib \
+        # (the source paths Rust keeps in the library for its messages, as neutral ones: not the builder's home)
+        (cd "$SOURCE" && MACOSX_DEPLOYMENT_TARGET=13.0 RUSTFLAGS="--remap-path-prefix=$SOURCE=/librashader \
+            --remap-path-prefix=${CARGO_HOME:-$HOME/.cargo}=/cargo --remap-path-prefix=${RUSTUP_HOME:-$HOME/.rustup}=/rustup \
+            --remap-path-prefix=$HOME=/home" cargo build --quiet --release --locked -p librashader-capi --lib \
             --no-default-features --features runtime-opengl --target "$target")
     done
     lipo -create -output "$OUT/librashader.dylib" \
