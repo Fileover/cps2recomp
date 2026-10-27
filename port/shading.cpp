@@ -3,6 +3,7 @@
 
 #include "shading.h"
 
+#include <algorithm>
 #include <cmath>
 #include <cstdio>
 #include <type_traits>
@@ -107,8 +108,10 @@ namespace {
         GL_TEXTURE_2D = 0x0DE1, GL_RGBA = 0x1908, GL_RGBA8 = 0x8058, GL_UNSIGNED_BYTE = 0x1401,
         GL_TEXTURE_MAG_FILTER = 0x2800, GL_TEXTURE_MIN_FILTER = 0x2801, GL_TEXTURE_WRAP_S = 0x2802, GL_TEXTURE_WRAP_T = 0x2803,
         GL_NEAREST = 0x2600, GL_LINEAR = 0x2601, GL_CLAMP_TO_EDGE = 0x812F, GL_TEXTURE_SWIZZLE_A = 0x8E45, GL_ONE = 1,
+        GL_TEXTURE_MAX_LEVEL = 0x813D,
         GL_UNPACK_ALIGNMENT = 0x0CF5, GL_UNPACK_ROW_LENGTH = 0x0CF2, GL_SCISSOR_TEST = 0x0C11,
         GL_READ_FRAMEBUFFER = 0x8CA8, GL_DRAW_FRAMEBUFFER = 0x8CA9, GL_COLOR_ATTACHMENT0 = 0x8CE0, GL_COLOR_BUFFER_BIT = 0x4000,
+        GL_PACK_ALIGNMENT = 0x0D05,
     };
     struct Gl {
         void(GL_CALL *GenTextures)(GLsizei, GLuint *);
@@ -126,6 +129,7 @@ namespace {
         void(GL_CALL *ClearColor)(float, float, float, float);
         void(GL_CALL *Clear)(unsigned);
         void(GL_CALL *Disable)(GLenum);
+        void(GL_CALL *ReadPixels)(GLint, GLint, GLsizei, GLsizei, GLenum, GLenum, void *);
         bool Load() {
             bool all = true;
             auto take = [&](auto &function, const char *symbol) {
@@ -147,6 +151,7 @@ namespace {
             take(ClearColor, "glClearColor");
             take(Clear, "glClear");
             take(Disable, "glDisable");
+            take(ReadPixels, "glReadPixels");
             return all;
         }
     } gl;
@@ -164,6 +169,8 @@ namespace {
         gl.TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, filter);
         gl.TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
         gl.TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        // (one level, complete for a sampler that would blend between levels: librashader's are)
+        gl.TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 0);
         // (the picture's fourth byte is spare, not how opaque it is)
         gl.TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_A, GL_ONE);
         gl.BindTexture(GL_TEXTURE_2D, 0);
@@ -250,7 +257,7 @@ bool Shading::Load(const std::string &preset, std::string &error) {
     }
     filter_chain_gl_opt_t options = {};
     options.version = LIBRASHADER_CURRENT_VERSION;
-    options.glsl_version = 330;
+    options.glsl_version = 410;
     options.disable_cache = true; // (the cache needs OpenGL 4.5, which macOS has not)
     libra_gl_filter_chain_t chain = nullptr;
     auto loader = [](const char *name) { return reinterpret_cast<const void *>(SDL_GL_GetProcAddress(name)); };
@@ -321,9 +328,13 @@ void Shading::Show(const uint32_t *pixels, int width, int height, const SDL_FRec
         options.frametime_delta = 17;
         options.brightness_nits = 200;
         const std::string failed = Message(*library, library->chain_frame(Chain(m_chain), m_frame++, in, out, &viewport, nullptr, &options));
+        // (librashader leaves its own framebuffers and scissor as they were in its last pass)
+        gl.Disable(GL_SCISSOR_TEST);
+        gl.BindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
         if (failed.empty()) {
             gl.BindFramebuffer(GL_READ_FRAMEBUFFER, m_drawnFrame);
-            gl.BlitFramebuffer(0, 0, drawnWidth, drawnHeight, left, foot, right, top, GL_COLOR_BUFFER_BIT, GL_NEAREST);
+            // (librashader's picture has its first row at the texture's start too, as it was given it)
+            gl.BlitFramebuffer(0, 0, drawnWidth, drawnHeight, left, top, right, foot, GL_COLOR_BUFFER_BIT, GL_NEAREST);
         } else if (m_frame == 1) {
             fprintf(stderr, "shader: %s\n", failed.c_str());
         }
@@ -332,7 +343,32 @@ void Shading::Show(const uint32_t *pixels, int width, int height, const SDL_FRec
         gl.BlitFramebuffer(0, 0, width, height, left, top, right, foot, GL_COLOR_BUFFER_BIT, GL_LINEAR);
     }
     gl.BindFramebuffer(GL_READ_FRAMEBUFFER, 0);
+    if (keepLast) {
+        Keep();
+    }
     SDL_GL_SwapWindow(m_window);
+}
+
+void Shading::Keep() {
+    int width = 0, height = 0;
+    Size(width, height);
+    std::vector<uint32_t> rows(static_cast<size_t>(width) * height);
+    gl.BindFramebuffer(GL_READ_FRAMEBUFFER, 0);
+    gl.PixelStorei(GL_PACK_ALIGNMENT, 4);
+    gl.ReadPixels(0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, rows.data());
+    m_last.resize(rows.size());
+    for (int y = 0; y < height; y++) {
+        std::copy_n(&rows[static_cast<size_t>(height - 1 - y) * width], width, &m_last[static_cast<size_t>(y) * width]);
+    }
+    m_lastWidth = width;
+    m_lastHeight = height;
+}
+
+bool Shading::ReadBack(std::vector<uint32_t> &pixels, int &width, int &height) {
+    pixels = m_last;
+    width = m_lastWidth;
+    height = m_lastHeight;
+    return !m_last.empty();
 }
 
 } // namespace port

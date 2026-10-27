@@ -152,7 +152,9 @@ void RegisterPortFeatures() {
                                   "4:3: as the arcade's monitor showed it. Square pixels: each pixel as wide as it is tall, "
                                   "a little wider than 4:3. Fill: the whole window or screen, stretched to it.",
                                   0, {"4:3", "Square pixels", "Fill"}});
-    // (display_shader: Port::ShaderPreset, shading.h; the presets are in shaders/ beside the program, kShaderPresets)
+    // (display_shader: Port::ShaderPreset, shading.h; the presets are in shaders/ beside the program, kShaderPresets.
+    // macOS only for now: only its app carries librashader, tools/librashader.sh)
+#ifdef __APPLE__
     TheGame().features.push_back({"display_shader", "Display", "Shader",
                                   "The picture drawn through one of RetroArch's shaders. CRT: a curved arcade monitor. CRT "
                                   "Lottes and CRT Guest: flat monitors, sharp and bright. CRT Royale: the closest to a real "
@@ -161,6 +163,7 @@ void RegisterPortFeatures() {
                                   "beside the game's settings (any RetroArch slang preset, with the files it names). The "
                                   "picture's shape and size stay as set; the shader draws its pixels in place of Scaling.",
                                   0, {"Off", "CRT", "CRT Lottes", "CRT Royale", "CRT Guest", "Scanlines", "xBRZ", "ScaleFX", "Your own"}});
+#endif
     TheGame().features.push_back({"window_size", "Display", "Window size",
                                   "How large the window opens, in times the board's 224 lines (it can be made any size by "
                                   "dragging its edges; full screen is on the launcher's first page and F11).",
@@ -309,7 +312,7 @@ bool Port::Init(std::string &error) {
 // slang-shaders, copied to shaders/ beside the program by tools/shaders.py), and before them what Your own is
 namespace {
     const char *const kShaderPresets[] = {
-        "crt/crt-geom.slangp", "crt/crt-lottes.slangp", "crt/crt-royale.slangp", "crt/crt-guest-advanced-fast.slangp",
+        "crt/crt-geom-mini.slangp", "crt/crt-lottes.slangp", "crt/crt-royale.slangp", "crt/crt-guest-advanced-fast.slangp",
         "scanlines/scanline.slangp", "edge-smoothing/xbrz/xbrz-freescale-multipass.slangp", "edge-smoothing/scalefx/scalefx.slangp",
     };
     constexpr int kYourOwnShader = 1 + static_cast<int>(std::size(kShaderPresets));

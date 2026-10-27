@@ -78,7 +78,8 @@ Each game's page has all it does, with pictures.
 - **Shaders** (macOS for now): the picture through one of RetroArch's shaders, by
   [librashader](https://github.com/SnowflakePowered/librashader): a curved CRT, CRT Lottes, CRT Royale or CRT Guest,
   scanlines, or xBRZ and ScaleFX to smooth the pixels' edges (the Display page's **Shader**). **Your own** takes any
-  RetroArch slang preset (`.slangp`) you put in a `shaders` folder beside the game's settings, with the files it names.
+  RetroArch slang preset (`.slangp`) you put in a `shaders` folder beside the game's settings, with the files it names
+  (a few need a newer OpenGL than macOS has).
   The menu is drawn over the picture without the shader. A shader that cannot be made leaves the picture as it was.
 - **The board's operator settings** (difficulty, damage, timer speed, game speed, rounds and the rest), each as
   the board is set unless you choose, and the game's own test menu.

@@ -4,12 +4,13 @@
 
 - **Shaders** (macOS for now; #121): the Display page's **Shader** draws the picture through one of RetroArch's slang
   shader presets, by [librashader](https://github.com/SnowflakePowered/librashader) 0.12.1 with OpenGL: CRT
-  (crt-geom), CRT Lottes, CRT Royale, CRT Guest (advanced, fast), Scanlines, xBRZ (freescale) and ScaleFX, or Your own,
+  (crt-geom-mini), CRT Lottes, CRT Royale, CRT Guest (advanced, fast), Scanlines, xBRZ (freescale) and ScaleFX, or Your own,
   the first `.slangp` in `shaders/` beside settings.ini. `--shader FILE.slangp` takes any preset. The picture keeps its
   shape and size; zoomed, the shader is given what the camera sees. The menu is shown without the shader. librashader
   needs the window's own OpenGL, which SDL's GPU API does not hand out, so with a shader the window is an OpenGL
   window; switching to or from Off makes the window again where it is. Without `librashader.dylib`, or with a preset
-  it cannot make, the picture is drawn as before (and stderr says why). The app carries librashader (built from
+  it cannot make, the picture is drawn as before (and stderr says why). macOS's OpenGL stops at 4.1, so a preset whose
+  shaders need more (crt-geom itself, crt-hyllian) cannot be made there: CRT is crt-geom-mini. The app carries librashader (built from
   source by `tools/librashader.sh`, which needs Rust) and the presets (copied by `tools/shaders.py` from a pinned
   slang-shaders commit, each file keeping its own licence).
 

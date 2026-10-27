@@ -6,6 +6,7 @@
 
 #include "bindings.h"
 #include "port.h"
+#include "png_write.h"
 #include "present.h"
 
 #include "../runtime/game.h"
@@ -263,6 +264,9 @@ int RunWindowed(Port &port) {
         fprintf(stderr, "no GPU device (%s): the picture goes through SDL's renderer\n", presentError.c_str());
     }
     auto sayPresenter = [&]() {
+        if (presenter.Shaded() && getenv("CPS2RECOMP_SHADER_SHOT")) {
+            presenter.Shader()->keepLast = true;
+        }
         if (port.opt.stats) {
             fprintf(stderr, "picture: %s\n", presenter.Shaded()  ? ("OpenGL, shader " + preset).c_str()
                                              : presenter.UsesGpu() ? SDL_GetGPUDeviceDriver(presenter.Device())
@@ -712,6 +716,14 @@ int RunWindowed(Port &port) {
             } else if (now - nextFrame > 100000000ull) {
                 nextFrame = now; // (fell far behind: start counting again)
             }
+        }
+    }
+    // (for the checks: what a shaded window showed last, CPS2RECOMP_SHADER_SHOT=FILE.png)
+    if (const char *shot = getenv("CPS2RECOMP_SHADER_SHOT"); shot && presenter.Shaded()) {
+        std::vector<uint32_t> pixels;
+        int width = 0, height = 0;
+        if (presenter.Shader()->ReadBack(pixels, width, height)) {
+            WritePng(shot, pixels.data(), static_cast<uint32_t>(width), static_cast<uint32_t>(height));
         }
     }
     for (SDL_Gamepad *gp : gamepads) {

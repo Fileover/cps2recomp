@@ -56,6 +56,9 @@ public:
     bool Shaded() const {
         return m_shading != nullptr;
     }
+    Shading *Shader() {
+        return m_shading.get();
+    }
     // Another preset, while shaded; false with the reason, and the one before is kept
     bool SetPreset(const std::string &preset, std::string &error) {
         return m_shading && m_shading->Load(preset, error);

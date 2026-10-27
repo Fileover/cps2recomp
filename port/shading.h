@@ -13,6 +13,7 @@
 
 #include <cstdint>
 #include <string>
+#include <vector>
 
 namespace port {
 
@@ -35,6 +36,9 @@ public:
     // rectangle `where` of the window, the rest black: through the preset, or (`shade` false: the menu, which
     // is drawn larger than the game's picture) only fitted, smoothly
     void Show(const uint32_t *pixels, int width, int height, const SDL_FRect &where, bool shade);
+    // For the checks (CPS2RECOMP_SHADER_SHOT): each picture shown kept, and the last one, its first row its top
+    bool keepLast = false;
+    bool ReadBack(std::vector<uint32_t> &pixels, int &width, int &height);
 
 private:
     SDL_Window *m_window = nullptr;
@@ -45,6 +49,9 @@ private:
     uint32_t m_picture = 0, m_drawn = 0, m_pictureFrame = 0, m_drawnFrame = 0;
     int m_width = 0, m_height = 0, m_drawnWidth = 0, m_drawnHeight = 0;
     size_t m_frame = 0;
+    std::vector<uint32_t> m_last;
+    int m_lastWidth = 0, m_lastHeight = 0;
+    void Keep();
 };
 
 } // namespace port
