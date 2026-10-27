@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+## 0.4.0-beta.7
+
+Two more games, Street Fighter Alpha 3 and Super Street Fighter II Turbo, with what the other fighting games have
+(Super Turbo's tag team battle too): fourteen in all. A multi-game endless battle that hands off from one game to the
+next. Zoom on one fighter or on both in every fighting game. The CPU now plays the tag style and the ring out itself
+in the Vampire Savior games and Alpha 2 and 3, and every Alpha's and Vampire Savior's computer player is readable C++.
+Speeds from 1/8 to 8x and Reset all options in the menu, your games in your own order on the launcher, a launcher that
+fits a small window, portable mode, and a download for Linux ARM64.
+
 - **Faster speeds, and finer ones**: the menu's Speed goes from 1/8 to 8x in 13 steps, each about 1.4 times the last
   (1/8, 1/6, 1/4, 1/3, 1/2, 3/4, Full, 1.5x, 2x, 3x, 4x, 6x, 8x; - and = step through them). Sped up, every frame's
   sound is played, faster by as much, as slowed it is played slower. `--stats` says the screen's ticks when they
