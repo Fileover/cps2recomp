@@ -56,6 +56,15 @@ for exe in "$APP/Contents/MacOS/"*; do
     done
 done
 
+# The Display page's shaders (port/shading.h): librashader in Frameworks and the presets in Resources, made by
+# tools/librashader.sh (which needs Rust); without them the games have no shaders, and draw as they always did
+if LIBRA=$("$(dirname "$0")/librashader.sh"); then
+    cp "$LIBRA/librashader.dylib" "$APP/Contents/Frameworks/"
+    cp -R "$LIBRA/shaders" "$APP/Contents/Resources/"
+else
+    echo "warning: no shaders in $APP (tools/librashader.sh failed)" >&2
+fi
+
 cat > "$APP/Contents/Info.plist" <<PLIST
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">

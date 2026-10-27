@@ -23,8 +23,9 @@ check "nothing made from a game (generated code, entry lists, listings, memory d
 check "movies only in a game's movies folder, and as text" "$(grep -E '(^|/)movies/' "$LIST" | grep -vE '^games/[a-z0-9_]+/movies/[a-z0-9_]+\.txt$' || true)"
 check "every game has its game.cfg" "$(grep -E '^games/[^/]+/' "$LIST" | cut -d/ -f2 | sort -u | while read -r g; do [ -f "games/$g/game.cfg" ] || echo "games/$g"; done)"
 check "no pictures but the README's, no sound or video" "$(grep -iE '\.(png|jpe?g|gif|bmp|ppm|webp|mp4|mov|webm|wav|ogg|mp3|flac)$' "$LIST" | grep -vE '^docs/screenshots/([a-z0-9_]+/)?[a-z0-9-]+\.(png|jpg|gif)$' || true)"
-# (the published checksums of the libraries the builds download, and the hashes of the copied files, are not keys)
-check "no key-like hex strings (32 digits or more)" "$(grep_files '(^|[^0-9a-fA-F.])[0-9a-fA-F]{32,}([^0-9a-fA-F]|$)' | grep -vE 'URL_HASH SHA256=[0-9a-f]{64}|SHA256=[0-9a-f]{64}|= [0-9a-f]{64} \]|^recomp-common/COMMIT:|^\.github/workflows/' || true)"
+# (the published checksums of the libraries the builds download, the commits they are pinned to, and the hashes of
+# the copied files, are not keys)
+check "no key-like hex strings (32 digits or more)" "$(grep_files '(^|[^0-9a-fA-F.])[0-9a-fA-F]{32,}([^0-9a-fA-F]|$)' | grep -vE 'URL_HASH SHA256=[0-9a-f]{64}|SHA256=[0-9a-f]{64}|_COMMIT=[0-9a-f]{40}$|= [0-9a-f]{64} \]|^recomp-common/COMMIT:|^\.github/workflows/' || true)"
 # (a CPS-2 board's key is two 32-bit numbers; a tool that wrote key files from them was taken out, and neither
 # it nor its numbers may come back)
 check "no board key written out, and no tool that writes key files" "$(grep_files 'makekey\.py[^|]*[ =](0x)?[0-9a-fA-F]{8}[ ,]+(0x)?[0-9a-fA-F]{8}\b' || true; grep -iE '(^|/)makekey' "$LIST" || true)"

@@ -40,6 +40,12 @@ make collection-app         # build/collection/CPS-2 Recomp.app, a quick bundle 
 `make GAME=<id> launcher` and `make GAME=<id> app` still make a launcher for that one game, which is handy
 while working on it.
 
+The Display page's shaders need librashader and the presets in the app: `brew install rustup && rustup default
+stable` once, and `tools/librashader.sh` (which the app bundles and `tools/release/macos.sh` run) builds
+librashader from its source into `build/deps/librashader/` and copies the presets beside it, the first time only.
+Without Rust a quick bundle has no shaders (and says so); the release needs them. To try a preset from a build
+folder, put `librashader.dylib` beside the game and run it with `--shader FILE.slangp`.
+
 ## Linux (and SteamOS)
 
 GCC 13 or later or Clang 16 or later (C++20), CMake 3.28 or later, Ninja, Python 3, zlib's and SDL 3's

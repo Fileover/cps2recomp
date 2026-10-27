@@ -165,6 +165,7 @@ The Display page (in the launcher and the in-game menu) says how the picture fit
 | --- | --- |
 | Scaling | Sharp (each pixel a crisp block), Whole pixels (every pixel the same whole number of the screen's pixels tall, a border round it), Smooth |
 | Picture shape | 4:3 (as the arcade's monitor showed it), Square pixels, Fill |
+| Shader | Off, or the picture through one of RetroArch's shaders (macOS for now): CRT (a curved arcade monitor), CRT Lottes, CRT Royale, CRT Guest, Scanlines, xBRZ, ScaleFX, or Your own (a `.slangp` preset in the `shaders` folder beside the game's settings) |
 | Window size | 3x the board's 224 lines, or 2x to 6x |
 
 The first of each is the default, and how it has always been drawn.

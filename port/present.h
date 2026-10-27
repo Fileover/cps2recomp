@@ -2,12 +2,16 @@
 // Copyright (C) 2026 Tommy McLeroy. Part of cps2recomp.
 //
 // Putting the picture on the screen. With SDL's GPU API (Metal, Vulkan, Direct3D 12) where there is a
-// device for it; with SDL's renderer otherwise, or when asked (--renderer sdl).
+// device for it; with SDL's renderer otherwise, or when asked (--renderer sdl); through a shader preset, with
+// OpenGL, when one is chosen (shading.h).
 #pragma once
+
+#include "shading.h"
 
 #include <SDL3/SDL.h>
 
 #include <cstdint>
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -45,7 +49,20 @@ public:
     ~Presenter();
     // False with the reason in `error` if the window cannot be drawn to either way
     bool Open(SDL_Window *window, bool gpu, std::string &error);
+    // Through the shader preset `preset` (a .slangp), in an OpenGL window (shading.h); false with the reason, and
+    // the window is then not drawn to (it is an OpenGL window, which Open does not draw to either)
+    bool OpenShaded(SDL_Window *window, const std::string &preset, std::string &error);
     void Close();
+    bool Shaded() const {
+        return m_shading != nullptr;
+    }
+    Shading *Shader() {
+        return m_shading.get();
+    }
+    // Another preset, while shaded; false with the reason, and the one before is kept
+    bool SetPreset(const std::string &preset, std::string &error) {
+        return m_shading && m_shading->Load(preset, error);
+    }
     bool UsesGpu() const {
         return m_device != nullptr;
     }
@@ -58,8 +75,9 @@ public:
     // The window's size in pixels
     void Size(int &width, int &height) const;
     // Shows a picture (`width` x `height` pixels, each red, green, blue and a spare byte in memory) in the
-    // rectangle `where` of the window, the rest black (zoomed: part of it larger, as `zoomed` says)
-    void Show(const uint32_t *pixels, int width, int height, const SDL_FRect &where, const Zoomed *zoomed = nullptr);
+    // rectangle `where` of the window, the rest black (zoomed: part of it larger, as `zoomed` says). Shaded, through
+    // the preset unless `shade` is false (the menu, drawn larger than the game's picture: only fitted to `where`)
+    void Show(const uint32_t *pixels, int width, int height, const SDL_FRect &where, const Zoomed *zoomed = nullptr, bool shade = true);
     // How the picture's pixels are drawn (FitPicture says where): Sharp unless set
     void SetScaling(Scaling scaling) {
         m_scaling = scaling;
@@ -89,6 +107,9 @@ private:
     SDL_Renderer *m_renderer = nullptr;
     SDL_Texture *m_texture = nullptr, *m_enlarged = nullptr;
     int m_enlargedBy = 0;
+    // A shader preset's
+    std::unique_ptr<Shading> m_shading;
+    std::vector<uint32_t> m_composed;
 };
 
 } // namespace port

@@ -35,6 +35,44 @@ namespace {
     struct Sizes {
         float size[2], scale[2], view[4], shown[2], spare[2];
     };
+
+    // Zoomed (present.h, Zoomed: `pixels` two pictures, one above the other), what the camera shows, at the
+    // picture's size: of the one above, the part `view` blended up to the whole (past its edges, black), and the
+    // rectangles `keep` of the one below over it where they are
+    void Compose(const uint32_t *pixels, int width, int height, const Zoomed &zoomed, std::vector<uint32_t> &out) {
+        out.assign(static_cast<size_t>(width) * height, 0);
+        auto at = [&](int x, int y) -> uint32_t {
+            return x < 0 || y < 0 || x >= width || y >= height ? 0 : pixels[static_cast<size_t>(y) * width + x];
+        };
+        auto mix = [](uint32_t a, uint32_t b, float by) {
+            uint32_t mixed = 0;
+            for (int shift = 0; shift < 24; shift += 8) {
+                const float from = static_cast<float>((a >> shift) & 0xFF), to = static_cast<float>((b >> shift) & 0xFF);
+                mixed |= static_cast<uint32_t>(std::lround(from + (to - from) * by)) << shift;
+            }
+            return mixed;
+        };
+        const SDL_FRect &view = zoomed.view;
+        for (int y = 0; y < height; y++) {
+            const float down = view.y + (y + 0.5f) * view.h / height - 0.5f;
+            const int row = static_cast<int>(std::floor(down));
+            const float below = down - row;
+            for (int x = 0; x < width; x++) {
+                const float across = view.x + (x + 0.5f) * view.w / width - 0.5f;
+                const int column = static_cast<int>(std::floor(across));
+                const float right = across - column;
+                out[static_cast<size_t>(y) * width + x] = mix(mix(at(column, row), at(column + 1, row), right),
+                                                              mix(at(column, row + 1), at(column + 1, row + 1), right), below);
+            }
+        }
+        for (const SDL_Rect &keep : zoomed.keep) {
+            for (int y = std::max(keep.y, 0); y < std::min(keep.y + keep.h, height); y++) {
+                for (int x = std::max(keep.x, 0); x < std::min(keep.x + keep.w, width); x++) {
+                    out[static_cast<size_t>(y) * width + x] = pixels[static_cast<size_t>(y + height) * width + x];
+                }
+            }
+        }
+    }
 } // namespace
 
 float PictureShape(int columns, int rows, Shape shape, float window) {
@@ -141,6 +179,16 @@ bool Presenter::OpenGpu(SDL_Window *window, std::string &error) {
     return true;
 }
 
+bool Presenter::OpenShaded(SDL_Window *window, const std::string &preset, std::string &error) {
+    m_window = window;
+    m_shading = std::make_unique<Shading>();
+    if (!m_shading->Open(window, error) || !m_shading->Load(preset, error)) {
+        m_shading.reset();
+        return false;
+    }
+    return true;
+}
+
 bool Presenter::Open(SDL_Window *window, bool gpu, std::string &error) {
     m_window = window;
     if (gpu && OpenGpu(window, error)) {
@@ -156,6 +204,7 @@ bool Presenter::Open(SDL_Window *window, bool gpu, std::string &error) {
 }
 
 void Presenter::Close() {
+    m_shading.reset();
     if (m_device) {
         if (m_transfer) {
             SDL_ReleaseGPUTransferBuffer(m_device, m_transfer);
@@ -193,7 +242,9 @@ void Presenter::Close() {
 }
 
 void Presenter::Size(int &width, int &height) const {
-    if (m_renderer) {
+    if (m_shading) {
+        m_shading->Size(width, height);
+    } else if (m_renderer) {
         SDL_GetRenderOutputSize(m_renderer, &width, &height);
     } else {
         SDL_GetWindowSizeInPixels(m_window, &width, &height);
@@ -292,7 +343,18 @@ void Presenter::Draw(SDL_GPUCommandBuffer *commands, SDL_GPUTexture *target, con
     SDL_EndGPURenderPass(pass);
 }
 
-void Presenter::Show(const uint32_t *pixels, int width, int height, const SDL_FRect &where, const Zoomed *zoomed) {
+void Presenter::Show(const uint32_t *pixels, int width, int height, const SDL_FRect &where, const Zoomed *zoomed, bool shade) {
+    if (m_shading) {
+        // Zoomed, the picture the preset is given is what the camera sees at the board's size (the part shown,
+        // blended up to it, with the readout's panels over it where they are), so that the preset draws its
+        // scanlines and the rest over the picture as it is shown, as a monitor would
+        if (zoomed) {
+            Compose(pixels, width, height, *zoomed, m_composed);
+            pixels = m_composed.data();
+        }
+        m_shading->Show(pixels, width, height, where, shade);
+        return;
+    }
     if (m_device) {
         SDL_GPUCommandBuffer *commands = SDL_AcquireGPUCommandBuffer(m_device);
         if (!commands) {
