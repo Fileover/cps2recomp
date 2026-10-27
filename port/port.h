@@ -60,6 +60,7 @@ struct Options {
     bool hashGame = false;     // --hash-game: the state hash without the Z80 and its own memory (to compare --sound driver and z80)
     int cpuSpeed = 1;         // --cpu-speed
     std::string renderer;     // --renderer sdl|gpu (gpu unless said)
+    std::string shader;       // --shader FILE.slangp: that shader preset, whatever the Display page's Shader says (shading.h)
     std::string presentTest;  // --present-test FILE.png: the last picture drawn by the GPU path with no window
     int presentWidth = 0, presentHeight = 0; // --present-size WxH: the window it is drawn in
     uint64_t presentEvery = 0;  // --present-every N:PREFIX: ... every N frames (the zoom followed every frame)
@@ -139,6 +140,8 @@ struct Port {
     bool soundtrackOn = false;
     int soundtrackValue = 0; // (the feature's choice: 1 on, 2 on with the playlist shuffled)
     std::string SoundtrackFolder() const;
+    // The shader preset to draw with (shading.h): --shader's, or the Display page's Shader's; "" for none
+    std::string ShaderPreset() const;
     void SoundtrackFollow(); // (each frame: the feature switched on or off in the menu)
     // One frame: input (window, movie or made up), the machine, the per-frame outputs
     void RunFrame();

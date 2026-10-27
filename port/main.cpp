@@ -152,6 +152,15 @@ void RegisterPortFeatures() {
                                   "4:3: as the arcade's monitor showed it. Square pixels: each pixel as wide as it is tall, "
                                   "a little wider than 4:3. Fill: the whole window or screen, stretched to it.",
                                   0, {"4:3", "Square pixels", "Fill"}});
+    // (display_shader: Port::ShaderPreset, shading.h; the presets are in shaders/ beside the program, kShaderPresets)
+    TheGame().features.push_back({"display_shader", "Display", "Shader",
+                                  "The picture drawn through one of RetroArch's shaders. CRT: a curved arcade monitor. CRT "
+                                  "Lottes and CRT Guest: flat monitors, sharp and bright. CRT Royale: the closest to a real "
+                                  "monitor's glass and the slowest. Scanlines: the lines alone. xBRZ and ScaleFX: the pixels' "
+                                  "edges made smooth lines and curves. Your own: the first .slangp preset in the shaders folder "
+                                  "beside the game's settings (any RetroArch slang preset, with the files it names). The "
+                                  "picture's shape and size stay as set; the shader draws its pixels in place of Scaling.",
+                                  0, {"Off", "CRT", "CRT Lottes", "CRT Royale", "CRT Guest", "Scanlines", "xBRZ", "ScaleFX", "Your own"}});
     TheGame().features.push_back({"window_size", "Display", "Window size",
                                   "How large the window opens, in times the board's 224 lines (it can be made any size by "
                                   "dragging its edges; full screen is on the launcher's first page and F11).",
@@ -296,6 +305,53 @@ bool Port::Init(std::string &error) {
 }
 
 // The custom soundtrack's folder: the one the launcher chose, or "soundtrack" beside settings.ini
+// The Display page's Shader's presets, in the order of its choices after Off (the folders and files of RetroArch's
+// slang-shaders, copied to shaders/ beside the program by tools/shaders.py), and before them what Your own is
+namespace {
+    const char *const kShaderPresets[] = {
+        "crt/crt-geom.slangp", "crt/crt-lottes.slangp", "crt/crt-royale.slangp", "crt/crt-guest-advanced-fast.slangp",
+        "scanlines/scanline.slangp", "edge-smoothing/xbrz/xbrz-freescale-multipass.slangp", "edge-smoothing/scalefx/scalefx.slangp",
+    };
+    constexpr int kYourOwnShader = 1 + static_cast<int>(std::size(kShaderPresets));
+} // namespace
+
+std::string Port::ShaderPreset() const {
+    if (!opt.shader.empty()) {
+        return opt.shader;
+    }
+    const int value = FeatureValue("display_shader");
+    std::error_code error;
+    if (value == kYourOwnShader) {
+        // (the first .slangp, by name, in shaders/ beside settings.ini)
+        if (opt.settingsPath.empty()) {
+            return "";
+        }
+        std::vector<std::filesystem::path> found;
+        for (const auto &entry : std::filesystem::directory_iterator(TextPath(opt.settingsPath).parent_path() / "shaders", error)) {
+            if (entry.path().extension() == ".slangp") {
+                found.push_back(entry.path());
+            }
+        }
+        std::sort(found.begin(), found.end());
+        return found.empty() ? "" : PathText(found.front());
+    }
+    if (value < 1 || value >= kYourOwnShader) {
+        return "";
+    }
+    // (beside the program, or in a macOS app its Resources; CPS2RECOMP_SHADERS for another folder)
+    if (const char *folder = getenv("CPS2RECOMP_SHADERS")) {
+        return PathText(TextPath(folder) / kShaderPresets[value - 1]);
+    }
+    const char *base = SDL_GetBasePath();
+    const std::filesystem::path program = base ? TextPath(base) : std::filesystem::path(".");
+    for (const std::filesystem::path &at : {program / "shaders", program / ".." / "Resources" / "shaders"}) {
+        if (std::filesystem::exists(at / kShaderPresets[value - 1], error)) {
+            return PathText(at / kShaderPresets[value - 1]);
+        }
+    }
+    return PathText(program / "shaders" / kShaderPresets[value - 1]);
+}
+
 std::string Port::SoundtrackFolder() const {
     if (!opt.soundtrack.empty()) {
         return opt.soundtrack;
@@ -1191,6 +1247,7 @@ void Usage() {
             "  --settings FILE        settings.ini with the player's feature choices\n"
             "  --multi MODE:CHOICES   played as one of the launcher's Multi game page's games (endless:scroll:1,\n"
             "                         endless:shuffle:60); exit code 3 when it is the next game's turn\n"
+            "  --shader FILE          draw through that RetroArch shader preset (.slangp), whatever the Display page says\n"
             "  --soundtrack DIR       the custom soundtrack's folder (its songs.txt names the files)\n"
             "  --soundtrack-dump FILE (with --headless) write what the custom soundtrack plays to a WAV file\n"
             "  --poke A=B,...         write byte B at RAM address A after every frame (hex)\n"
@@ -1313,6 +1370,8 @@ bool ParseArgs(int argc, char **argv, port::Options &o) {
             exit(0);
         } else if (a == "--settings") {
             o.settingsPath = next();
+        } else if (a == "--shader") {
+            o.shader = next();
         } else if (a == "--soundtrack") {
             o.soundtrack = next();
         } else if (a == "--soundtrack-dump") {

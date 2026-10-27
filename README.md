@@ -75,6 +75,11 @@ Each game's page has all it does, with pictures.
   without it.
 - **The picture your way**: sharp, whole pixels or smooth; 4:3, square pixels or the whole screen; full screen
   or a window of the size you choose; widescreen in the fighting games.
+- **Shaders** (macOS for now): the picture through one of RetroArch's shaders, by
+  [librashader](https://github.com/SnowflakePowered/librashader): a curved CRT, CRT Lottes, CRT Royale or CRT Guest,
+  scanlines, or xBRZ and ScaleFX to smooth the pixels' edges (the Display page's **Shader**). **Your own** takes any
+  RetroArch slang preset (`.slangp`) you put in a `shaders` folder beside the game's settings, with the files it names.
+  The menu is drawn over the picture without the shader. A shader that cannot be made leaves the picture as it was.
 - **The board's operator settings** (difficulty, damage, timer speed, game speed, rounds and the rest), each as
   the board is set unless you choose, and the game's own test menu.
 - **Straight to the title**: at a start or a reset, everything before the title runs unseen.

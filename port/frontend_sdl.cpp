@@ -192,39 +192,126 @@ int RunWindowed(Port &port) {
     Placement placed;
     const bool carried = !MultiGame().empty() && TakePlacement(placed) && !port.opt.fullscreen;
     const int windowHeight = carried ? placed.height : Video::kHeight * scale;
-    const SDL_PropertiesID properties = SDL_CreateProperties();
-    SDL_SetStringProperty(properties, SDL_PROP_WINDOW_CREATE_TITLE_STRING, title);
-    SDL_SetNumberProperty(properties, SDL_PROP_WINDOW_CREATE_WIDTH_NUMBER, std::lround(windowHeight * windowShape(columns)));
-    SDL_SetNumberProperty(properties, SDL_PROP_WINDOW_CREATE_HEIGHT_NUMBER, windowHeight);
-    if (carried) {
-        SDL_SetNumberProperty(properties, SDL_PROP_WINDOW_CREATE_X_NUMBER, placed.x);
-        SDL_SetNumberProperty(properties, SDL_PROP_WINDOW_CREATE_Y_NUMBER, placed.y);
-    }
-    SDL_SetNumberProperty(properties, SDL_PROP_WINDOW_CREATE_FLAGS_NUMBER,
-                          SDL_WINDOW_RESIZABLE | (port.opt.fullscreen ? SDL_WINDOW_FULLSCREEN : 0) | (carried && placed.maximized ? SDL_WINDOW_MAXIMIZED : 0) |
-                              (getenv("CPS2RECOMP_HIDDEN_WINDOW") ? SDL_WINDOW_HIDDEN : 0)); // (hidden: for tests)
-    SDL_Window *window = SDL_CreateWindowWithProperties(properties);
-    SDL_DestroyProperties(properties);
-    // (in front: on macOS a program started by one that is not, as the launcher is behind a Multi game run's
-    // last game, opens behind the other windows)
-    if (window && !getenv("CPS2RECOMP_HIDDEN_WINDOW")) {
-        SDL_RaiseWindow(window);
-    }
+    // The window, as an OpenGL window for a shader (shading.h: nothing else draws to it), `at` a place for it (`width`
+    // 0: as wide as the picture's shape makes it)
+    auto makeWindow = [&](bool opengl, const Placement *at, int width, int height, bool fullscreen) {
+        const SDL_PropertiesID properties = SDL_CreateProperties();
+        SDL_SetStringProperty(properties, SDL_PROP_WINDOW_CREATE_TITLE_STRING, title);
+        SDL_SetNumberProperty(properties, SDL_PROP_WINDOW_CREATE_WIDTH_NUMBER, width > 0 ? width : std::lround(height * windowShape(columns)));
+        SDL_SetNumberProperty(properties, SDL_PROP_WINDOW_CREATE_HEIGHT_NUMBER, height);
+        if (at) {
+            SDL_SetNumberProperty(properties, SDL_PROP_WINDOW_CREATE_X_NUMBER, at->x);
+            SDL_SetNumberProperty(properties, SDL_PROP_WINDOW_CREATE_Y_NUMBER, at->y);
+        }
+        SDL_SetNumberProperty(properties, SDL_PROP_WINDOW_CREATE_FLAGS_NUMBER,
+                              SDL_WINDOW_RESIZABLE | (fullscreen ? SDL_WINDOW_FULLSCREEN : 0) | (at && at->maximized ? SDL_WINDOW_MAXIMIZED : 0) |
+                                  (opengl ? SDL_WINDOW_OPENGL : 0) | (getenv("CPS2RECOMP_HIDDEN_WINDOW") ? SDL_WINDOW_HIDDEN : 0)); // (hidden: for tests)
+        SDL_Window *made = SDL_CreateWindowWithProperties(properties);
+        SDL_DestroyProperties(properties);
+        // (in front: on macOS a program started by one that is not, as the launcher is behind a Multi game run's
+        // last game, opens behind the other windows)
+        if (made && !getenv("CPS2RECOMP_HIDDEN_WINDOW")) {
+            SDL_RaiseWindow(made);
+        }
+        return made;
+    };
     // The picture goes to the window through SDL's GPU API, or through SDL's renderer where there is no
-    // device for that (and the dummy video driver of the tests has none) or when asked: --renderer sdl
+    // device for that (and the dummy video driver of the tests has none) or when asked: --renderer sdl. With a
+    // shader preset chosen (the Display page's Shader, or --shader) it goes through the preset with OpenGL instead,
+    // where librashader is beside the game and makes the preset; else as without one.
     Presenter presenter;
     std::string presentError;
     const bool wantGpu = port.opt.renderer != "sdl" && strcmp(SDL_GetCurrentVideoDriver(), "dummy") != 0;
-    if (!window || !presenter.Open(window, wantGpu, presentError)) {
+    const bool canShade = strcmp(SDL_GetCurrentVideoDriver(), "dummy") != 0;
+    std::string preset = canShade ? port.ShaderPreset() : "";
+    int shaderValue = FeatureValue("display_shader");
+    std::string shaderError;
+    if (!preset.empty() && !Shading::Available(shaderError)) {
+        fprintf(stderr, "shader: %s; the picture is drawn without it\n", shaderError.c_str());
+        preset.clear();
+    }
+    SDL_Window *window = makeWindow(!preset.empty(), carried ? &placed : nullptr, 0, windowHeight, port.opt.fullscreen);
+    // (opened as the preset says, or as without one when that fails)
+    auto openPresenter = [&]() {
+        if (!preset.empty()) {
+            if (presenter.OpenShaded(window, preset, shaderError)) {
+                return true;
+            }
+            fprintf(stderr, "shader %s: %s; the picture is drawn without it\n", preset.c_str(), shaderError.c_str());
+            preset.clear();
+            // (an OpenGL window is drawn to by nothing else: one that is not, where this one is)
+            Placement at;
+            int width = 0;
+            SDL_GetWindowPosition(window, &at.x, &at.y);
+            SDL_GetWindowSize(window, &width, &at.height);
+            at.maximized = SDL_GetWindowFlags(window) & SDL_WINDOW_MAXIMIZED;
+            const bool fullscreen = SDL_GetWindowFlags(window) & SDL_WINDOW_FULLSCREEN;
+            SDL_DestroyWindow(window);
+            window = makeWindow(false, &at, width, at.height, fullscreen);
+            if (!window) {
+                presentError = SDL_GetError();
+                return false;
+            }
+        }
+        return presenter.Open(window, wantGpu, presentError);
+    };
+    if (!window || !openPresenter()) {
         fprintf(stderr, "SDL window: %s\n", window ? presentError.c_str() : SDL_GetError());
         return 1;
     }
-    if (wantGpu && !presenter.UsesGpu()) {
+    if (wantGpu && !presenter.UsesGpu() && !presenter.Shaded()) {
         fprintf(stderr, "no GPU device (%s): the picture goes through SDL's renderer\n", presentError.c_str());
     }
-    if (port.opt.stats) {
-        fprintf(stderr, "picture: %s\n", presenter.UsesGpu() ? SDL_GetGPUDeviceDriver(presenter.Device()) : SDL_GetRendererName(presenter.Renderer()));
-    }
+    auto sayPresenter = [&]() {
+        if (port.opt.stats) {
+            fprintf(stderr, "picture: %s\n", presenter.Shaded()  ? ("OpenGL, shader " + preset).c_str()
+                                             : presenter.UsesGpu() ? SDL_GetGPUDeviceDriver(presenter.Device())
+                                                                   : SDL_GetRendererName(presenter.Renderer()));
+        }
+    };
+    sayPresenter();
+    // The Display page's Shader changed in the menu: another preset in the same window, or the window made again
+    // for or without OpenGL, where it is and as large
+    auto followShader = [&]() {
+        const int value = FeatureValue("display_shader");
+        if (value == shaderValue || !port.opt.shader.empty() || !canShade) {
+            return;
+        }
+        shaderValue = value;
+        std::string next = port.ShaderPreset();
+        if (!next.empty() && !Shading::Available(shaderError)) {
+            fprintf(stderr, "shader: %s; the picture is drawn without it\n", shaderError.c_str());
+            next.clear();
+        }
+        if (next == preset) {
+            return;
+        }
+        if (!next.empty() && presenter.Shaded()) {
+            if (presenter.SetPreset(next, shaderError)) {
+                preset = next;
+                sayPresenter();
+            } else {
+                fprintf(stderr, "shader %s: %s; the one before is kept\n", next.c_str(), shaderError.c_str());
+            }
+            return;
+        }
+        Placement at;
+        int width = 0;
+        SDL_GetWindowPosition(window, &at.x, &at.y);
+        SDL_GetWindowSize(window, &width, &at.height);
+        at.maximized = SDL_GetWindowFlags(window) & SDL_WINDOW_MAXIMIZED;
+        const bool fullscreen = SDL_GetWindowFlags(window) & SDL_WINDOW_FULLSCREEN;
+        presenter.Close();
+        SDL_DestroyWindow(window);
+        preset = next;
+        window = makeWindow(!preset.empty(), &at, width, at.height, fullscreen);
+        if (!window || !openPresenter()) {
+            fprintf(stderr, "SDL window: %s\n", window ? presentError.c_str() : SDL_GetError());
+            port.quit = true;
+            return;
+        }
+        sayPresenter();
+    };
 
     // Sound: how much is kept waiting to be played (seconds), and how much is too much. The device is asked
     // for small buffers, so that little waits there either. (CPS2RECOMP_AUDIO_LOG: what is waiting, printed
@@ -518,6 +605,10 @@ int RunWindowed(Port &port) {
                 shownSize = size;
             }
         }
+        followShader();
+        if (port.quit) {
+            break;
+        }
         // The picture in the window as the Display page says (present.h)
         int width = 0, height = 0;
         presenter.Size(width, height);
@@ -531,7 +622,8 @@ int RunWindowed(Port &port) {
                 menuPicture = menuBase;
                 port.menu.Draw(menuPicture.data(), static_cast<int>(menuWidth), static_cast<int>(menuHeight));
             }
-            presenter.Show(menuPicture.data(), static_cast<int>(menuWidth), static_cast<int>(menuHeight), where);
+            // (not through a shader: the menu is drawn three times the board's size, and is not the game's picture)
+            presenter.Show(menuPicture.data(), static_cast<int>(menuWidth), static_cast<int>(menuHeight), where, nullptr, false);
             SDL_Delay(8);
             nextFrame = SDL_GetTicksNS();
             continue;

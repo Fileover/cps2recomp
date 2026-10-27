@@ -4,7 +4,8 @@
 #
 # Release build for macOS (Apple silicon and Intel in one program, macOS 13 and later):
 # build/release/CPS2Recomp-macOS.zip holding "CPS-2 Recomp.app" (the launcher, with every game's program beside
-# it). Needs the translated code of a build of each game with its ROM set (lib.sh). SDL 3 is built in. The app is
+# it). Needs the translated code of a build of each game with its ROM set (lib.sh), and Rust for librashader
+# (tools/librashader.sh: the Display page's shaders). SDL 3 is built in. The app is
 # signed ad hoc and not notarized, so Gatekeeper warns the first time it is opened.
 set -eu
 . "$(dirname "$0")/lib.sh"
@@ -20,9 +21,16 @@ strip -x "$APP/Contents/MacOS/"*
 sed -e "s/@VERSION@/$VERSION/g" -e "s/@NAME@/$NAME/g" -e "s/@APP_ID@/$APP_ID/g" -e "s/@EXE@/$EXE-launcher/g" \
     "$ROOT/tools/release/Info.plist" > "$APP/Contents/Info.plist"
 add_notices "$APP/Contents/Resources" "$BUILD/launcher"
+# (the Display page's shaders, port/shading.h: librashader and the presets, tools/librashader.sh)
+LIBRA=$("$ROOT/tools/librashader.sh")
+mkdir -p "$APP/Contents/Frameworks"
+cp "$LIBRA/librashader.dylib" "$APP/Contents/Frameworks/"
+cp -R "$LIBRA/shaders" "$APP/Contents/Resources/"
+cp "$LIBRA/librashader-LICENSE.md" "$APP/Contents/Resources/licenses/librashader-MPL-2.0.txt"
+cp "$LIBRA/librashader-LICENSE-GPL.md" "$APP/Contents/Resources/licenses/librashader-GPL-3.0.txt"
 codesign --force --deep -s - "$APP"
 
-for binary in "$APP/Contents/MacOS/"*; do
+for binary in "$APP/Contents/MacOS/"* "$APP/Contents/Frameworks/"*; do
     if otool -L "$binary" | grep -q '/opt/homebrew\|/usr/local'; then
         echo "error: $binary links a library outside macOS" >&2
         exit 1
