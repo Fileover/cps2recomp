@@ -101,6 +101,11 @@ struct Port {
     // In a Multi game run (runtime/game.h, MultiGame): held, the game runs kHurry frames a tick, unheard
     static constexpr int kHurry = 4;
     bool hurry = false;
+    // The speed is said at the bottom for a while after it changes (as the zoom's label), not all the while it is not
+    // full: the rate said last, and the screen's ticks it is said for yet
+    static constexpr int kSpeedTicks = 150; // (two and a half seconds)
+    Menu::Rate saidRate{1, 1};
+    int speedTicks = 0;
     // One tick; true if the game ran (so that there is a new picture and sound)
     bool Tick();
     // The keys that work while playing: 'p' stops and starts, 'o' goes on by a frame, '-' and '=' change the

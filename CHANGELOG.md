@@ -13,6 +13,9 @@
   shaders need more (crt-geom itself, crt-hyllian) cannot be made there: CRT is crt-geom-mini. The app carries librashader (built from
   source by `tools/librashader.sh`, which needs Rust) and the presets (copied by `tools/shaders.py` from a pinned
   slang-shaders commit, each file keeping its own licence).
+- **The speed's line** ("SPEED x1.5", "SPEED 1/2") goes after two and a half seconds, as the zoom's does, and
+  comes back each time the speed changes; it stayed at the bottom all the while the game was not at full speed.
+  STOPPED and FAST FORWARD stay while they last.
 
 ## 0.4.0-beta.7
 
