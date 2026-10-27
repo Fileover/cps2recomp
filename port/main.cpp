@@ -584,10 +584,10 @@ void Port::Shown(std::vector<uint32_t> &pixels, std::vector<SDL_Rect> *panels) c
             panels->push_back({static_cast<int>(x) - 3, static_cast<int>(y) - 2, static_cast<int>(width) + 7, 12});
         }
     };
-    // Stopped, slowed or fast-forwarded: said at the bottom (stopped, with the frame's number, for counting
-    // frames by stepping)
+    // Stopped or fast-forwarded: said at the bottom all the while (stopped, with the frame's number, for counting
+    // frames by stepping); slowed or sped up, for a few seconds after the speed changes (speedTicks)
     const bool hurried = hurry && !paused && !MultiGame().empty();
-    const bool told = paused || !menu.FullSpeed() || hurried;
+    const bool told = paused || hurried || (!menu.FullSpeed() && speedTicks > 0);
     if (told) {
         char text[64];
         if (paused) {
@@ -613,6 +613,13 @@ void Port::Shown(std::vector<uint32_t> &pixels, std::vector<SDL_Rect> *panels) c
 bool Port::Windowed(std::vector<uint32_t> &pixels, Zoomed &zoomed) {
     const int across = ShownWidth();
     zoom.Follow(across, Video::kHeight);
+    const Menu::Rate rate = menu.GameRate();
+    if (rate.frames != saidRate.frames || rate.ticks != saidRate.ticks) {
+        saidRate = rate;
+        speedTicks = kSpeedTicks;
+    } else if (speedTicks > 0) {
+        speedTicks--;
+    }
     zoomed.keep.clear();
     if (!zoom.View(across, Video::kHeight, zoomed.view)) {
         Shown(pixels);
