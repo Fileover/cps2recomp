@@ -869,6 +869,11 @@ void App::set_feature(Slot& one, size_t index, int value) {
     one.settings.save();
 }
 
+void App::set_menu_choices(Slot& one, size_t index, const std::vector<bool>& offered) {
+    recomp::SetMenuChoices(one.settings, one.features[index], offered);
+    one.settings.save();
+}
+
 void App::set_shared(size_t index, int value) {
     for (const auto& [which, feature] : shared_[index].where) {
         set_feature(*slots_[which], feature, value);
@@ -1767,8 +1772,11 @@ void App::title_page(size_t which, float width) {
             rows.push_back({&one.features[i], values[i], "", i});
         }
     }
-    feature_list(width, rows, "Nothing of its own: every feature it has is on the Features page.",
-                 [&](const FeatureRow& feature, int value) { set_feature(one, feature.index, value); });
+    feature_list(
+        width, rows, "Nothing of its own: every feature it has is on the Features page.",
+        [&](const FeatureRow& feature, int value) { set_feature(one, feature.index, value); },
+        [&](const FeatureRow& feature) { return recomp::MenuChoices(one.settings, one.features[feature.index]); },
+        [&](const FeatureRow& feature, const std::vector<bool>& offered) { set_menu_choices(one, feature.index, offered); });
 }
 
 // ---- Multi game ------------------------------------------------------------------------------
@@ -2231,7 +2239,10 @@ void App::features_page(float width) {
         for (size_t i = 0; i < one.features.size(); i++) {
             rows.push_back({&one.features[i], values[i], "", i});
         }
-        feature_list(width, rows, "No optional features yet.", [&](const FeatureRow& feature, int value) { set_feature(one, feature.index, value); });
+        feature_list(
+            width, rows, "No optional features yet.", [&](const FeatureRow& feature, int value) { set_feature(one, feature.index, value); },
+            [&](const FeatureRow& feature) { return recomp::MenuChoices(one.settings, one.features[feature.index]); },
+            [&](const FeatureRow& feature, const std::vector<bool>& offered) { set_menu_choices(one, feature.index, offered); });
         return;
     }
     // A collection's: each as the first game that has it has it (a note where the games differ, or not every
@@ -2262,14 +2273,63 @@ void App::features_page(float width) {
         }
         rows.push_back({&shared.info, value, note, i});
     }
-    feature_list(width, rows, here < 2 ? "With one game, its features are on its own page." : "The games have no features in common.",
-                 [&](const FeatureRow& feature, int value) { set_shared(feature.index, value); });
+    // (the menu's choices: as the first game that has the feature has them, and set for every one)
+    feature_list(
+        width, rows, here < 2 ? "With one game, its features are on its own page." : "The games have no features in common.",
+        [&](const FeatureRow& feature, int value) { set_shared(feature.index, value); },
+        [&](const FeatureRow& feature) {
+            const auto& [which, index] = shared_[feature.index].where[0];
+            return recomp::MenuChoices(slots_[which]->settings, slots_[which]->features[index]);
+        },
+        [&](const FeatureRow& feature, const std::vector<bool>& offered) {
+            for (const auto& [which, index] : shared_[feature.index].where) {
+                set_menu_choices(*slots_[which], index, offered);
+            }
+        });
+}
+
+// Under a kFeatureMenuChoices feature: how many of its choices the game's menu offers, and (opened) a switch for each
+template <typename SetOffered>
+void App::menu_choices(float width, const FeatureRow& feature, std::vector<bool> offered, SetOffered set_offered) {
+    const std::vector<std::string>& choices = feature.info->choices;
+    const int all = static_cast<int>(choices.size()) - 1;
+    const int count = static_cast<int>(std::count(offered.begin() + 1, offered.end(), true));
+    auto open = std::find(menu_choices_open_.begin(), menu_choices_open_.end(), feature.info->name);
+    const bool is_open = open != menu_choices_open_.end();
+    std::string label = "In the game's menu: " + (count == all ? "all " + std::to_string(all) : std::to_string(count) + " of " + std::to_string(all));
+    inset_separator(width);
+    ImGui::PushID("menu choices");
+    row(width, label.c_str(), "The ones Left and Right go through in the game's own menu, for a shorter list there. Off always is.", 120.0f,
+        36.0f, [&] {
+            if (ui::button(is_open ? "Done" : "Choose", Kind::Secondary, 120.0f)) {
+                if (is_open) {
+                    menu_choices_open_.erase(open);
+                } else {
+                    menu_choices_open_.push_back(feature.info->name);
+                }
+            }
+        });
+    if (is_open) {
+        for (int choice = 1; choice <= all; choice++) {
+            inset_separator(width);
+            ImGui::PushID(choice);
+            const bool on = offered[static_cast<size_t>(choice)];
+            row(width, choices[static_cast<size_t>(choice)].c_str(), "", 42.0f, 24.0f, [&] {
+                if (ui::toggle("##offered", on)) {
+                    offered[static_cast<size_t>(choice)] = !on;
+                    set_offered(offered);
+                }
+            });
+            ImGui::PopID();
+        }
+    }
+    ImGui::PopID();
 }
 
 // The rows under their categories, narrowed by the search box: only those whose name, description, category or
 // choices have every word typed (Ctrl+F or Cmd+F goes into it)
-template <typename Set>
-void App::feature_list(float width, const std::vector<FeatureRow>& rows, const char* none, Set set) {
+template <typename Set, typename Offered, typename SetOffered>
+void App::feature_list(float width, const std::vector<FeatureRow>& rows, const char* none, Set set, Offered offered, SetOffered set_offered) {
     const ui::Palette& p = ui::palette();
     if (rows.empty()) {
         ui::text(none, Font::Regular, ui::size::kBody, p.secondary, width);
@@ -2349,6 +2409,9 @@ void App::feature_list(float width, const std::vector<FeatureRow>& rows, const c
                         set(rows[i], chosen);
                     }
                 });
+                if (feature.flags & recomp::kFeatureMenuChoices) {
+                    menu_choices(width, rows[i], offered(rows[i]), [&](const std::vector<bool>& to) { set_offered(rows[i], to); });
+                }
             }
             ImGui::PopID();
         }

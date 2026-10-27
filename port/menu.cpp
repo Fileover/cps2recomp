@@ -73,6 +73,18 @@ void Menu::Open(bool withStates) {
     }
     config.value = [](size_t feature) { return cps2recomp::FeatureSetting(cps2recomp::TheGame().features[feature].name); };
     config.setValue = [](size_t feature, int value) { cps2recomp::SetFeatureValue(cps2recomp::TheGame().features[feature].name, value); };
+    // (of a long choice, those the launcher leaves in the menu: settings.ini's [menu], recomp-common/settings.h)
+    {
+        recomp::Ini settings(cps2recomp::SettingsPath());
+        settings.load();
+        std::vector<std::vector<bool>> offered;
+        for (const recomp::FeatureInfo &info : cps2recomp::FeatureList()) {
+            offered.push_back(recomp::MenuChoices(settings, info));
+        }
+        config.offered = [offered](size_t feature, int choice) {
+            return feature >= offered.size() || choice < 0 || choice >= static_cast<int>(offered[feature].size()) || offered[feature][static_cast<size_t>(choice)];
+        };
+    }
     Speeds(config);
     config.speedDescription = "Left/Right: slow motion, or faster than the board. While playing, P (or a click of the right stick) stops "
                               "the game and starts it again; O (or, once stopped, the left trigger) goes on by one frame; - and = change "

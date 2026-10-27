@@ -158,11 +158,15 @@ void RegisterPortFeatures() {
     TheGame().features.push_back({"display_shader", "Display", "Shader",
                                   "The picture drawn through one of RetroArch's shaders. CRT: a curved arcade monitor. CRT "
                                   "Lottes and CRT Guest: flat monitors, sharp and bright. CRT Royale: the closest to a real "
-                                  "monitor's glass and the slowest. Scanlines: the lines alone. xBRZ and ScaleFX: the pixels' "
-                                  "edges made smooth lines and curves. Your own: the first .slangp preset in the shaders folder "
-                                  "beside the game's settings (any RetroArch slang preset, with the files it names). The "
-                                  "picture's shape and size stay as set; the shader draws its pixels in place of Scaling.",
-                                  0, {"Off", "CRT", "CRT Lottes", "CRT Royale", "CRT Guest", "Scanlines", "xBRZ", "ScaleFX", "Your own"}});
+                                  "monitor's glass and the slowest. CRT Light: lines and a faint mask, for a slow computer. "
+                                  "Scanlines: the lines alone, light, strong, as an OSSC draws them, or dark (a black line "
+                                  "between each two, best with Whole pixels). xBRZ and ScaleFX: the pixels' edges made smooth "
+                                  "lines and curves. Your own: the first .slangp preset in the shaders folder beside the "
+                                  "game's settings. The launcher chooses which of these the menu goes through. The picture's "
+                                  "shape and size stay as set; the shader draws its pixels in place of Scaling.",
+                                  kFeatureMenuChoices,
+                                  {"Off", "CRT", "CRT Lottes", "CRT Royale", "CRT Guest", "CRT Light", "Scanlines: light",
+                                   "Scanlines: strong", "Scanlines: OSSC", "Scanlines: dark", "xBRZ", "ScaleFX", "Your own"}});
 #endif
     TheGame().features.push_back({"window_size", "Display", "Window size",
                                   "How large the window opens, in times the board's 224 lines (it can be made any size by "
@@ -313,7 +317,9 @@ bool Port::Init(std::string &error) {
 namespace {
     const char *const kShaderPresets[] = {
         "crt/crt-geom-mini.slangp", "crt/crt-lottes.slangp", "crt/crt-royale.slangp", "crt/crt-guest-advanced-fast.slangp",
-        "scanlines/scanline.slangp", "edge-smoothing/xbrz/xbrz-freescale-multipass.slangp", "edge-smoothing/scalefx/scalefx.slangp",
+        "crt/zfast-crt.slangp", "scanlines/scanline-fract.slangp", "pixel-art-scaling/sharp-bilinear-scanlines.slangp",
+        "scanlines/ossc.slangp", "scanlines/integer-scaling-scanlines.slangp",
+        "edge-smoothing/xbrz/xbrz-freescale-multipass.slangp", "edge-smoothing/scalefx/scalefx.slangp",
     };
     constexpr int kYourOwnShader = 1 + static_cast<int>(std::size(kShaderPresets));
 } // namespace
