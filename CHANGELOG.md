@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- **The speed's line** ("SPEED x1.5", "SPEED 1/2") goes after two and a half seconds, as the zoom's does, and
+  comes back each time the speed changes; it stayed at the bottom all the while the game was not at full speed.
+  STOPPED and FAST FORWARD stay while they last.
+
 ## 0.4.0-beta.7
 
 Two more games, Street Fighter Alpha 3 and Super Street Fighter II Turbo, with what the other fighting games have
