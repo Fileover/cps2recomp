@@ -91,9 +91,10 @@ struct Port {
     uint64_t autoState = 0;
     uint16_t autoPad[cps2recomp::Machine::kMaxPlayers] = {};
     Menu menu;
-    // Stopping and slowing the game: a tick is one picture of the screen; the game runs a frame in every
-    // tick, or in one of so many (menu.SlowBy()), or while stopped only when asked to step
+    // Stopping, slowing and speeding up the game: a tick is one picture of the screen; the game runs a frame in
+    // every tick, or so many frames in so many ticks (menu.GameRate()), or while stopped only when asked to step
     uint64_t tick = 0;
+    int owed = 0;         // the game's frames due, in ticks of the rate (whole frames run at once)
     bool paused = false;
     int steps = 0;        // frames to go on by while stopped
     // In a Multi game run (runtime/game.h, MultiGame): held, the game runs kHurry frames a tick, unheard

@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- **Faster speeds, and finer ones**: the menu's Speed goes from 1/8 to 8x in 13 steps, each about 1.4 times the last
+  (1/8, 1/6, 1/4, 1/3, 1/2, 3/4, Full, 1.5x, 2x, 3x, 4x, 6x, 8x; - and = step through them). Sped up, every frame's
+  sound is played, faster by as much, as slowed it is played slower. `--stats` says the screen's ticks when they
+  were not the game's frames.
+- **Reset all options**, above Reset game (Reset renamed): every feature back to the launcher's default, the Enhanced
+  preset, in settings.ini too, and the speed back to full. The game's own Test menu settings and the controls stay.
 - **Street Fighter Alpha's computer player is readable C++** (`games/sfa/src/computer.cpp`), Alpha 2's interpreter
   with Alpha 1's own (one if, fewer waits and tests, one kind of jump, a think time by character), checked call by
   call against the game's code with nothing differing (about 910,000 calls). It plays the ring out as the game always

@@ -19,7 +19,7 @@ namespace {
 
 void Menu::Configure(MenuConfig config) {
     m_config = std::move(config);
-    m_speed = std::clamp(m_speed, 0, std::max(static_cast<int>(m_config.speeds.size()) - 1, 0));
+    m_speed = std::clamp(m_speed < 0 ? m_config.normalSpeed : m_speed, 0, std::max(static_cast<int>(m_config.speeds.size()) - 1, 0));
     if (m_open) {
         Fill();
     }
@@ -298,7 +298,7 @@ void Menu::Draw(uint32_t *pixels, int width, int height) const {
         case kRowSpeed:
             title = "Speed";
             value = m_config.speeds[static_cast<size_t>(m_speed)];
-            valueColor = m_speed == 0 ? dim : on;
+            valueColor = m_speed == m_config.normalSpeed ? dim : on;
             rowDescription = m_config.speedDescription;
             break;
         case kRowMute:

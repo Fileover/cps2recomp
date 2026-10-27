@@ -88,8 +88,10 @@ struct MenuConfig {
     // A feature's value now (by its place in `features`), and changing it
     std::function<int(size_t feature)> value;
     std::function<void(size_t feature, int value)> setValue;
-    // The Speed row: the speeds' names, the first being full speed, and what the row's description says
+    // The Speed row: the speeds' names, slowest first, and what the row's description says; full speed is the one
+    // at normalSpeed (the slower ones before it, the faster after), the speed the menu starts at
     std::vector<std::string> speeds;
+    int normalSpeed = 0;
     std::string speedDescription;
     // The Mute row: whether the game's sound is off now, and switching it off and on
     std::function<bool()> muted;
@@ -129,7 +131,7 @@ public:
     void SetSlot(int slot) { // 1-9, around
         m_slot = (slot + 8) % 9 + 1;
     }
-    // The speed chosen, by its place in MenuConfig::speeds (0: full speed)
+    // The speed chosen, by its place in MenuConfig::speeds (MenuConfig::normalSpeed: full speed)
     int Speed() const {
         return m_speed;
     }
@@ -161,7 +163,7 @@ private:
     std::string m_page;     // the category shown ("": the first page)
     int m_selected = 0;
     std::vector<int> m_left; // (the rows the pages above this one were left on, the first page's first)
-    int m_speed = 0;
+    int m_speed = -1; // (-1: not chosen yet, so full speed)
     int m_slot = 1;
     std::string m_note;
 };

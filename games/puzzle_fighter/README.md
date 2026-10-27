@@ -48,7 +48,8 @@ the settings memory) is code written for this project, not an emulator
   launcher. Two more can be given a key or a button: all three punches at once, and all three kicks. In the collection
   it can have a layout of its own, apart from the other games'.
 - An in-game menu (Esc or `F1`; on a gamepad, the left stick's click or Start and Select together)
-  with the training mode, save states, speed, the cheats and every feature.
+  with the training mode, save states, speed (1/8 to 8x), the cheats,
+  every feature, and a Reset all options row.
 - **Rapid fire** (Game page): a button held down is pressed again and again, fifteen times a second, for the first
   button or for all of them; the first press is seen at once.
 - **Pure** plays exactly as the board does. **Enhanced** (the default) adds free play, pushing up to
@@ -109,7 +110,7 @@ stage). [docs/FEATURES.md](docs/FEATURES.md) has the whole list.
 
 The in-game menu's first row, "Alternative modes", has ways of playing and watching the game that the
 board does not have. Each has a page with a Start row and its own choices, and runs until another is
-started or the menu's Reset.
+started or the menu's Reset game.
 
 | Mode | What it does |
 | --- | --- |

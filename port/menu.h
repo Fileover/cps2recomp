@@ -20,8 +20,9 @@ namespace port {
 
 class Menu {
 public:
-    enum class Action { None, Save, Load, Coin, Start2, Test, Reset, Command, Quit };
+    enum class Action { None, Save, Load, Coin, Start2, Test, Reset, ResetOptions, Command, Quit };
 
+    Menu();
     // withStates: show the save state rows
     void Open(bool withStates);
     void Close() {
@@ -51,9 +52,18 @@ public:
     size_t Command() const {
         return m_command;
     }
-    // The speed the player chose: the game runs one frame in this many of the screen's
-    int SlowBy() const;
-    void SetSlowBy(int by);
+    // The speed the game runs at (the player's choice): `frames` frames in `ticks` of the screen's
+    struct Rate {
+        int frames, ticks;
+    };
+    Rate GameRate() const;
+    bool FullSpeed() const {
+        const Rate rate = GameRate();
+        return rate.frames == rate.ticks;
+    }
+    // The next speed up (by 1) or down (by -1)
+    void Faster(int by);
+    void SetFullSpeed();
     // A line to tell the player (why not, say), until the next press
     void Note(const std::string &text) {
         m_menu.Note(text);
@@ -64,6 +74,8 @@ public:
     }
 
 private:
+    static void Speeds(recomp::MenuConfig &config);
+
     recomp::Menu m_menu;
     size_t m_command = 0;
 };

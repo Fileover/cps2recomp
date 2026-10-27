@@ -134,6 +134,9 @@ void SetFeature(const char *name, bool on);
 // For a feature with choices: which is chosen (0: the first, which is off), and choosing
 int FeatureValue(const char *name);
 void SetFeatureValue(const char *name, int value);
+// Every feature back as the launcher's default preset (Enhanced) has it, and settings.ini so (the menu's Reset all
+// options)
+void ResetFeatures();
 // What the player has chosen for a feature, whether it works now or not (the menu shows this; FeatureValue gives
 // 0 for a training aid outside a training session)
 int FeatureSetting(const char *name);

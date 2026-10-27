@@ -62,7 +62,8 @@ Each game's page has all it does, with pictures.
   the games or for one game on its own (the launcher's Controllers page: Layout for). A fighting game's controls
   also have all three punches at once and all three kicks, for a key or a button of their own.
 - **An in-game menu** (Esc or `F1`; on a gamepad, the left stick's click or Start and Select together): the
-  game's modes, save states, speed, pause and frame advance, cheats, and every feature.
+  game's modes, save states, speed (from 1/8 to 8 times the board's, in 13 steps), pause and frame advance, cheats,
+  every feature, and Reset all options (every feature back to the launcher's Enhanced preset).
 - **Pure or Enhanced.** Pure plays exactly as the board does. Enhanced (the default) adds free play and your
   own colours. Every other feature is a switch of its own, off unless you choose it.
 - **Rapid fire**: a button held down pressed again and again, fifteen times a second, for the first button or for
