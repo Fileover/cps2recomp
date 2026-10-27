@@ -2,9 +2,9 @@
 # SPDX-License-Identifier: GPL-3.0-only
 # Copyright (C) 2026 Tommy McLeroy. Part of cps2recomp.
 """Prints the computer player's scripts as text: the Vampire Savior games', Super Gem Fighter's and Street Fighter
-Alpha 2's and 3's computer is an interpreter running scripts from the ROM, a set for each character
-(games/vampire_savior/PROGRESS.md, "The computer player"; games/sfa2/PROGRESS.md and games/sfa3/PROGRESS.md, "The
-computer player: scripts").
+Alpha 1's, 2's and 3's computer is an interpreter running scripts from the ROM, a set for each character
+(games/vampire_savior/PROGRESS.md, "The computer player"; games/sfa/PROGRESS.md, games/sfa2/PROGRESS.md and
+games/sfa3/PROGRESS.md, "The computer player: scripts").
 Read from a build's work/<id>/ (program.lst, program.bin, program.bin.data), run from the repository's top.
 
   aiscripts.py [GAME]                     every character's scripts (GAME: vampire_savior)
@@ -21,8 +21,8 @@ fails) has a table of them, read here from the program. The instructions are nam
 were read from, told apart by where it keeps the computer's part of a player's record: Vampire Savior's (the
 banks' places from +210) or Alpha 2's (from +220, its record's fields 10h on from Vampire Savior's; fewer
 operations, a second "if" with "else if" and a break out of it, the Alpha counter); Alpha 3's is Alpha 2's with its
-own fields and more (the isms, a throw, a custom combo), named by the game. An instruction of another kind is
-printed as its words.
+own fields and more (the isms, a throw, a custom combo), named by the game, and so is Alpha 1's, Alpha 2's with less
+(one "if", fewer waits and tests). An instruction of another kind is printed as its words.
 
 Each character has four banks of scripts: 0 its plans (one chosen by the game), 1 its tactics (one at random
 from 32 slots for its plan, in the row of its tier: 0, 20 or 40 by the difficulty), 2 its reactions to an attack or a
@@ -94,11 +94,14 @@ def skip_lengths(p):
 
 
 def skip_lengths_of(p, table):
-    def length_at(a):  # a routine that steps over operands: lea N(a0),a0; rts or rts
+    def length_at(a):  # a routine that steps over operands: lea N(a0),a0; rts, or move.w (a0)+,d1 for each (Alpha 1's); rts
         if p.cuw(a) == 0x41E8 and p.cuw(a + 4) == 0x4E75:
             return p.cuw(a + 2) // 2
-        if p.cuw(a) == 0x4E75:
-            return 0
+        n = 0
+        while p.cuw(a + 2 * n) == 0x3218 and n < 8:
+            n += 1
+        if p.cuw(a + 2 * n) == 0x4E75:
+            return n
         return None
 
     def sub_table(t, end):  # word offsets from t to routines, up to `end` (where the code goes on)
@@ -162,8 +165,9 @@ def bank_tables(p):
         m = re.match(r"move\.l a0,0x(2[12][048C])\(a6\)$", ins)
         if not m:
             continue
-        for back in range(1, 24):
-            mm = re.match(r"movea\.l #\$([0-9A-F]+),a0$", p.lines[i - back][1])
+        for back in range(1, 32):
+            # (Alpha 1's: lea TABLE(pc),a0)
+            mm = re.match(r"(?:movea\.l #|lea )\$([0-9A-F]+)(?:\(pc\))?,a0$", p.lines[i - back][1])
             if mm:
                 found.setdefault(int(m.group(1), 16), int(mm.group(1), 16))
                 break
@@ -460,11 +464,37 @@ def alpha3_name(op, kind, args, names):
 ALPHA3_ENDS = dict(ENDS)
 ALPHA3_ENDS[0x04] = "end: a tactic, or back to the plan, by the table 0C835A's chance"
 
+# --- naming (Alpha 1's instructions: its interpreter at 022810; Alpha 2's, with fewer of them) ---
+
+ALPHA1_TESTS = {t: n for t, n in ALPHA_TESTS.items() if t <= 0x34}
+ALPHA1_TESTS.update({
+    0x30: "no projectile of the other's out, or one of class 0 or 4 (table 0231C4)",
+    0x32: "the other's projectile out, of class 3 or more (table 0231C4)",
+})
+
+
+def alpha1_name(op, kind, args, names):
+    a = args + [0] * 5
+    n = {
+        (0x00, 0x0A): "if the other is attacking: a normal at its attack (by where it reaches, 02191A)",
+        (0x00, 0x0C): "stand %d frames, or a normal at the other's attack (02191A)" % a[0],
+        (0x0E, 0x02): "go to a tactic (bank 1) by the table 120498's chance, then back here",
+        (0x10, 0x02): "guard if an attack is coming, with an Alpha counter (the character's chance 11FC18)",
+    }.get((op, kind))
+    return n if n is not None else alpha_name(op, kind, args, names)
+
+
+ALPHA1_ENDS = dict(ENDS)
+ALPHA1_ENDS[0x04] = "end: a tactic, or back to the plan, by the table 11FB18's chance"
+
 STYLES = {
     0x210: (name, TESTS, ENDS),
     0x220: (alpha_name, ALPHA_TESTS, ALPHA_ENDS),
     "alpha3": (alpha3_name, ALPHA3_TESTS, ALPHA3_ENDS),
+    "alpha1": (alpha1_name, ALPHA1_TESTS, ALPHA1_ENDS),
 }
+# Alpha 1's banks' places are Alpha 2's (from +220): told apart by the game
+ALPHA1 = ("sfa",)
 # Alpha 3's interpreter is Alpha 2's with more (its record's fields elsewhere, the same banks' places): told apart by
 # the game. Its first if's skipping routine (032AEE) knows its throw (a word after it) and its tests from 3E (none),
 # its second if's only Alpha 2's operations and tests (--check counts those inside such an if: none)
@@ -616,8 +646,8 @@ def character(p, d, banks, who, out):
                 out.append("  %s %d.%d (slots of 32 by tier 0/20/40: %s)" % (what, g, k, rows))
                 lines, _ = d.script(s, end, "%s %s %d.%d" % (name, what, g, k))
                 out.extend(lines)
-    # bank 3: by +22B
-    for k, s in enumerate(offsets(p, tables[3])):
+    # bank 3: by +22B (Alpha 1's: the four answers its Reactions choose from, 023B78; the table runs on into data)
+    for k, s in enumerate(offsets(p, tables[3])[:4 if d.name is alpha1_name else None]):
         out.append("  reaction (by +22B) %d" % k)
         lines, _ = d.script(s, end, "%s reaction-b %d" % (name, k))
         out.extend(lines)
@@ -635,6 +665,8 @@ def main():
     lengths, tests = skip_lengths(p)
     banks, style = bank_tables(p)
     place = style + 0x10  # (where the interpreter is, in the record)
+    if args.game in ALPHA1:
+        style = "alpha1"
     if args.game in ALPHA3:
         style = "alpha3"
         lengths.update(ALPHA3_MORE)

@@ -266,7 +266,15 @@ namespace {
     // number of its own
     bool ToRound(Machine &machine, int32_t &frames) {
         if (frames == 0 && !g_atChoice.empty() && d.random) {
-            SetRam16(d.random, static_cast<uint16_t>(Random()));
+            if (d.randomNext) {
+                uint16_t random = Ram16(d.random);
+                for (uint32_t steps = Random() & 0xFFFF; steps; steps--) {
+                    random = d.randomNext(random);
+                }
+                SetRam16(d.random, random);
+            } else {
+                SetRam16(d.random, static_cast<uint16_t>(Random()));
+            }
         }
         if (g_atChoice.empty() && d.choosing()) {
             Archive ar(g_atChoice, true);

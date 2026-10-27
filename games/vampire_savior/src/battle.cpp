@@ -131,6 +131,7 @@ void RegisterBattle() {
     d.plays = kPlays;
     d.colours = kColours;
     d.random = 0xFF8000 + AtA5(0xD4); // (014E8A)
+    d.randomNext = battle::CapcomRandomNext;
     d.health = kHealth;
     d.healthCeiling = kHealthCeiling;
     d.healthFull = kHealthFull;

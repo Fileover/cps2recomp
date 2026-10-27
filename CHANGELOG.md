@@ -2,6 +2,19 @@
 
 ## Unreleased
 
+- **Street Fighter Alpha's computer player is readable C++** (`games/sfa/src/computer.cpp`), Alpha 2's interpreter
+  with Alpha 1's own (one if, fewer waits and tests, one kind of jump, a think time by character), checked call by
+  call against the game's code with nothing differing (about 910,000 calls). It plays the ring out as the game always
+  has: Alpha 2's tactics for the modes made no difference here CPU against CPU, and the coach did worse.
+  `tools/aiscripts.py sfa` prints Alpha 1's scripts (its tables found by `lea (pc)`, its skipping routines' `move.w
+  (a0)+,d1` runs counted).
+- **A stuck random number in the fighting modes** (survival, the endless battle, the ring out) of Alpha 1-3 and the
+  Vampire Savior games: a match begun from the character choice was given a random number of the toolkit's, and 130
+  of the 65,536 are ones the game's own routine keeps going round between two (or one), so every choice it made at
+  random came out the same. In Alpha 1's ring out the computer then broke in on itself without end, and the game hung
+  (1 test run in 36). Now the game's own number is stepped on so many times at random (`Description::randomNext`,
+  `battle::CapcomRandomNext`).
+
 - **Zoom** is gentler: the size eases more slowly and never faster than about 0.5x a second going in (1.2x coming
   out), and the camera keeping both fighters in the picture goes closer only when it could go 0.15x closer and eases
   its aim between them, so a fight's every step does not move it (it felt nauseating). A fighter can leave the picture

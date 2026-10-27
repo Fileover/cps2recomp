@@ -73,6 +73,13 @@ namespace battle {
 
 constexpr uint32_t kMostRecord = 0x400; // the most bytes of a player's record (kept for the way down)
 
+// The random number of the Alphas and the Vampire Savior games (sfa's 016462): three times itself, the top byte of
+// that its new top byte, and added to its bottom one
+inline uint16_t CapcomRandomNext(uint16_t random) {
+    const uint8_t top = static_cast<uint8_t>((random * 3) >> 8);
+    return static_cast<uint16_t>(top << 8 | static_cast<uint8_t>(random + top));
+}
+
 struct Description {
     // --- the game's memory ---
     uint32_t result = 0;            // byte: the round's result: 0 still going, 1 player 1 has won, 2 player 2, 3 neither
@@ -119,6 +126,11 @@ struct Description {
     // A word: the game's random number (a match begun from the character choice is given its own, or every one
     // would play out the same way from there), or 0: none
     uint32_t random = 0;
+    // How the game's routine steps it on, or none. With it, a match's own is the game's stepped on so many times at
+    // random: never a word the game's routine would not come to (without it, a word at random), as one of the few it
+    // keeps going round between two, or one, and every choice made by it the same (a script of the computer's
+    // breaking in on itself without end)
+    uint16_t (*randomNext)(uint16_t random) = nullptr;
     // Health (words): what the player has, and the most it can have back (the bar's other end), and in all;
     // what survival gives back for an opponent beaten. With `ceilingShown` the second is what the bar shows,
     // put at what is left.
