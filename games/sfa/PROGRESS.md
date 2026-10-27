@@ -253,6 +253,52 @@ Scripted, as Alpha 2's: `ladder.txt` (with `free_play,no_damage,one_hit`: Start,
 punch over and over) takes Ryu to Sagat, his ending, the score ranking and the title by frame 26,400; `versus.txt`
 (with `free_play`) is Ryu against Ken, then the winner on against the computer.
 
+## The computer player: scripts (2026-10-27)
+
+The CPU is Alpha 2's design, and Vampire Savior's before it (games/sfa2/PROGRESS.md, "The computer player: scripts"):
+an interpreter (`022810`, called each step from the computer's player routine at `021EF2` while `+24E` and A5+`2E0E`
+are clear) running scripts from the ROM, four banks of them for each character. `tools/aiscripts.py sfa` prints them
+all (32,309 instructions in 13 characters' scripts; `--character NAME` for one). Game data: nothing decoded is kept in
+the repository.
+
+- The computer's part of a player's record is Alpha 2's, `+200` to `+24F`; the level is `+C7`. The banks' tables are
+  found by `lea $X(pc),a0` (Alpha 2's have `movea.l #`): plans `023E2A`, tactics `023E5E`, reactions `023E92`, answers
+  `023EC6`. The answers' table has four entries (what follows it is other data). Chance tables (128 bytes each): a
+  tactic or back to the plan at a script's end `11FB18`, a broken-off script dropped `11FB98`, a go to a tactic
+  `120498`, the Alpha counter by character `11FC18`.
+- Less than Alpha 2's: one if (0C; the second, 14, is not there), so one way of stepping over instructions
+  (`023CD4`, with each skipped word read into D1 by runs of `move.w (a0)+,d1`); waits 00 to 20 (no 22 or 24; 20 is the
+  "open" wait with the other not just up, waiting `1A`); the countdown waits look at no zero first (a count at 0
+  goes round to FFFF, as the game's does); one jump kind (00). No clamp on the instructions done in a frame.
+- The think time (`0239C6`): the character's table by level, read through the program counter (deciphered space:
+  `CodeLong`, `0239FC`), and one of 16 signed words at random (`023EFA`), not below 0.
+- Tests: up to 34; 30 and 32 name the projectile classes table `0231C4`, as Alpha 2's 30/32 do theirs. Test 22 has
+  Charlie's own rule (character 3: his projectile out, `+238`). The projectile gap reads the boxes' bytes. A reaction
+  is chosen by the other's projectile word (`+124`: entry 2 if one is out) or else its frame's `+17`.
+- Checked: every script decodes, nothing left over, and the places the game kept against them
+  (`aiscripts.py sfa --against`): the attract mode 772 of 772, the endless battle 3,242 of 3,242, none elsewhere
+  (`--cpu blocks --watch FF8630-FF8633 --watch FF8A30-FF8A33`, `CPS2RECOMP_WATCH_REPORTS=200000`).
+- As C++ (`src/computer.cpp`): ComputerThinks (`022810`), AnswerNow (`023CC6`), BrokenOff (`02348A`), Reactions
+  (`023B78`) and Chance (`0227F6`). What they call outside stays the game's: the attack coming (`0226B2`), the normal at
+  the other's attack (`02191A`), the characters' specials (`023A3E`), the random number (`016462`). D0, D1 and the flags
+  are free for the first three (both callers of BrokenOff, `021DF4` and AnswerNow, set D0 and D1 before reading them),
+  D0 and D1 for Reactions; Chance gives back everything.
+  - Checked with `--check-rewrites` (check_rewrites.sh's computer part: the attract mode at levels 0, 0C and 1F; the
+    endless battle CPU against CPU in seven pairs of characters; level, tier and plan held with `--poke`, the gauge
+    full): about 336,000 calls of ComputerThinks, 543,000 of Reactions, 30,000 of Chance, 1,300 of BrokenOff and
+    450 of AnswerNow, none differing. Every operation, wait, walk, test and the four answers were reached (counted
+    while checking, then taken out).
+- The ring out is left to the game's own play. Alpha 2's tactics for it, written for this game (out of a corner,
+  knocking the other over its end), made no difference CPU against CPU (the side with them won 54% and 44% of 329
+  and 297 ring outs; 55% and 45% with nobody playing the mode), and the toolkit's coach did worse (44% and 36%).
+- A hang found on the way, the toolkit's (fight/battle.cpp `ToRound`): a match begun from the character choice was
+  given a word at random as the game's random number. The game's routine (three times itself, the top byte of that
+  its new top byte and added to its bottom one: Alpha 1-3's and Vampire Savior's) keeps a number in one round of
+  them (the longest 43,534 of the 65,536), and never comes to the 130 it keeps going round between two, or one, from
+  any other (`4054` and `C014`, `4040` and `C000`...). With one of those every choice at random came out the same, and a reaction (bank
+  4) broke in on itself without end (`023B6A`'s `bra 022810`), a step that never came back (1 run in 36 of the ring
+  out). The number is now the game's own stepped on so many times at random (`Description::randomNext`).
+
 ## Tech debt
 
 From the review of the pull request that brought this game in (tmcleroy/cps2recomp#34), left for a change of its own

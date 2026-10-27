@@ -22,6 +22,7 @@ void TitleFrame(Machine &machine);
 void RegisterModes();    // modes.cpp
 void RegisterTraining(); // training.cpp
 void RegisterBattle();   // battle.cpp
+void RegisterComputer(); // computer.cpp
 void RegisterModel();    // model.cpp
 void ModelBeforeFrame(Machine &machine);
 void ModelFrame(Machine &machine);
@@ -38,6 +39,7 @@ void RegisterGame() {
     RegisterModes();
     RegisterTraining();
     RegisterBattle();
+    RegisterComputer();
     RegisterModel();
     RegisterColours();
     RegisterChoosing();

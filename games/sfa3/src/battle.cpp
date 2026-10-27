@@ -101,6 +101,7 @@ void RegisterBattle() {
     d.character = kCharacter;
     d.colours = kColourChoice;
     d.random = kRandom;
+    d.randomNext = battle::CapcomRandomNext;
     d.computer = kComputer;
     d.control = kControl;
     d.controlOwn = kControlOwn;
