@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- **More shaders, and only your favourites in the menu**: the Display page's Shader has CRT Light (zfast-crt) and four
+  scanlines, light (scanline-fract), strong (sharp-bilinear-scanlines), OSSC (ossc) and dark
+  (integer-scaling-scanlines, best with Whole pixels), in place of the one; xBRZ and ScaleFX come after them. On the
+  launcher's Features page, under Shader, **In the game's menu** → **Choose** has a switch for each shader: the
+  in-game menu's Left, Right and Enter go past those switched off (Off and the one chosen stay). Kept in each game's
+  settings.ini, `[menu] display_shader = 1,7` (recomp-common's `kFeatureMenuChoices`, which any long choice can have).
+
 - **Shaders** (macOS for now; #121): the Display page's **Shader** draws the picture through one of RetroArch's slang
   shader presets, by [librashader](https://github.com/SnowflakePowered/librashader) 0.12.1 with OpenGL: CRT
   (crt-geom-mini), CRT Lottes, CRT Royale, CRT Guest (advanced, fast), Scanlines, xBRZ (freescale) and ScaleFX, or Your own,

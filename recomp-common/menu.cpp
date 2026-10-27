@@ -239,7 +239,23 @@ Menu::Chosen Menu::Buttons(unsigned pressed) {
             }
         } else {
             const int choices = static_cast<int>(feature.choices.size());
-            m_config.setValue(row.index, press ? (value + 1) % choices : std::clamp(value + step, 0, choices - 1));
+            auto offered = [&](int choice) { return choice == 0 || choice == value || !m_config.offered || m_config.offered(row.index, choice); };
+            int to = value;
+            if (press) {
+                // (around, to the next one offered: off at the latest)
+                do {
+                    to = (to + 1) % choices;
+                } while (!offered(to));
+            } else {
+                // (to the next one offered that way; none: as it is)
+                for (int at = value + step; at >= 0 && at < choices; at += step) {
+                    if (offered(at)) {
+                        to = at;
+                        break;
+                    }
+                }
+            }
+            m_config.setValue(row.index, to);
         }
         return {};
     }

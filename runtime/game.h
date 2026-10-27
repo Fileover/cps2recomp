@@ -44,6 +44,9 @@ enum : unsigned {
     // The game's own: the collection's launcher shows it on the game's page and never sets it for another game that
     // has a feature of the same name (a record, a number that means something else in each game)
     kFeatureOwn = 64,
+    // A long choice whose list in the in-game menu the player may make shorter on the launcher (recomp-common/settings.h:
+    // MenuChoices, settings.ini's [menu]): the menu goes past the choices left out
+    kFeatureMenuChoices = 128,
 };
 
 // Something the game's sources can do when the player asks (a row of the in-game menu, and a key if it has

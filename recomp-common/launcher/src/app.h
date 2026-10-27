@@ -175,7 +175,12 @@ private:
     void controllers_page(float width);
     // The rows of a page's features under their categories, with the search box over them; set(row, value)
     // sets one
-    template <typename Set> void feature_list(float width, const std::vector<FeatureRow>& rows, const char* none, Set set);
+    // (`offered` and `set_offered`: a kFeatureMenuChoices feature's choices in the game's menu, settings.h MenuChoices)
+    template <typename SetOffered>
+    void menu_choices(float width, const FeatureRow& feature, std::vector<bool> offered, SetOffered set_offered);
+    void set_menu_choices(Slot& one, size_t index, const std::vector<bool>& offered);
+    template <typename Set, typename Offered, typename SetOffered>
+    void feature_list(float width, const std::vector<FeatureRow>& rows, const char* none, Set set, Offered offered, SetOffered set_offered);
     void file_card(size_t which, float width);
     void display_cards(size_t which, float width);
     void play_button(size_t which, float width);
@@ -238,6 +243,7 @@ private:
 
     char feature_search_[128] = {};  // what the Features page is narrowed to ("": all of them)
     bool focus_search_ = false;      // Ctrl+F (or Cmd+F): into the search box
+    std::vector<std::string> menu_choices_open_;  // the features whose choices for the game's menu are shown
 
     std::string steam_message_;  // what Add to Steam did
 #ifdef LAUNCHER_UPDATE_REPO

@@ -88,6 +88,9 @@ struct MenuConfig {
     // A feature's value now (by its place in `features`), and changing it
     std::function<int(size_t feature)> value;
     std::function<void(size_t feature, int value)> setValue;
+    // Optional: whether the menu offers a choice of a feature (settings.h, MenuChoices): Left, Right and Confirm pass
+    // over those it does not. Off (the first) and the one chosen now always are.
+    std::function<bool(size_t feature, int choice)> offered;
     // The Speed row: the speeds' names, slowest first, and what the row's description says; full speed is the one
     // at normalSpeed (the slower ones before it, the faster after), the speed the menu starts at
     std::vector<std::string> speeds;
