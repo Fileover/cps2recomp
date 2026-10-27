@@ -10,7 +10,7 @@
 #include <vector>
 
 #define LIBRA_RUNTIME_OPENGL
-#include "../third_party/librashader/librashader.h"
+#include "../third_party/librashader.h"
 
 namespace port {
 
