@@ -35,7 +35,8 @@ program; what the program expects of the board is code written for this project,
   game's own launcher: X, A and B). In the collection it can have a layout of its own, apart from the other games',
   with its buttons under these names.
 - An in-game menu (Esc or `F1`; on a gamepad, the left stick's click or Start and Select together) with save states,
-  speed, pause and frame advance, the cheats and every feature.
+  speed (1/8 to 8x), pause and frame advance, the cheats,
+  every feature, and a Reset all options row.
 - **Pure** plays exactly as the board does. **Enhanced** (the default) adds free play and the third player. Every
   other feature is a switch of its own.
 - **Start at round**: a new game starts at the beginning of any of the seven rounds.

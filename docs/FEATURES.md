@@ -27,7 +27,7 @@ its own that only shares a name with another game's (a record, an animation's nu
 
 A feature can be a choice of several things instead of on or off (`choices` in its entry; the first
 means off; `FeatureValue` gives the number chosen; `--features name=2`), can last for one run only
-(`kFeatureSession`: not kept in settings.ini, off again at Reset), and the menu shows each category
+(`kFeatureSession`: not kept in settings.ini, off again at Reset game), and the menu shows each category
 as a page of its own.
 
 Every game also has the port's own features (`RegisterPortFeatures`, `port/main.cpp`): run-ahead on
@@ -182,7 +182,8 @@ recorded; `make check` and `make check-rewrites` run it first. To change the men
 recomp-common, run its tests, commit there, then run `tools/sync-common.sh` here and commit the copy.
 
 `port/menu.{h,cpp}` is what is this toolkit's about it: the first page's rows in their three groups
-(save states; the pages, Speed, Insert coin, Player 2 joins; Reset, Quit game, Resume), CPS-2's
+(save states; the pages, Speed, Insert coin, Player 2 joins; Reset all options, Reset game, Quit game,
+Resume), CPS-2's
 buttons turned into the menu's six, the speeds, and the games' features and commands handed over.
 A game needs nothing more: its features and commands show up from `TheGame()`. A game with pages
 that are under another page, or a page that belongs at the head of the menu before the save states

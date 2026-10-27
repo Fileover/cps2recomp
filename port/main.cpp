@@ -405,6 +405,11 @@ void Port::MenuAct(Menu::Action action) {
         testFrames = 6;
         menu.Close();
         return;
+    case Menu::Action::ResetOptions:
+        ResetFeatures();
+        menu.SetFullSpeed();
+        menu.Note("Every option is back as it first was.");
+        return;
     case Menu::Action::Reset:
         EndSessionFeatures();
         machine->Reset();
@@ -454,8 +459,8 @@ void Port::Key(char key, unsigned n) {
         }
         paused = true;
         break;
-    case '-': menu.SetSlowBy(menu.SlowBy() * 2); break;
-    case '=': menu.SetSlowBy(menu.SlowBy() / 2); break;
+    case '-': menu.Faster(-1); break;
+    case '=': menu.Faster(1); break;
     case 'h': hurry = !hurry; break; // (tests: the frontend sets it while F is held)
     case 'z': // (tests: the zoom pressed for player n + 1; 2: for both)
         if (n == Zoom::kBoth) {
@@ -534,13 +539,20 @@ bool Port::Tick() {
         }
         return true;
     }
+    int frames = 1;
     if (paused) {
         if (steps == 0) {
             return false;
         }
         steps--;
-    } else if (tick % static_cast<uint64_t>(menu.SlowBy()) != 0) {
-        return false;
+    } else {
+        const Menu::Rate rate = menu.GameRate();
+        owed += rate.frames;
+        frames = owed / rate.ticks;
+        owed %= rate.ticks;
+        if (frames == 0) {
+            return false;
+        }
     }
     if (hurry && !paused && !MultiGame().empty()) {
         // A Multi game run's fast forward: kHurry frames, unheard
@@ -550,7 +562,10 @@ bool Port::Tick() {
         }
         return true;
     }
-    RunFrame();
+    // (faster than the board: those frames and all their sound, which the frontend plays faster by as much)
+    for (int n = 0; n < frames; n++) {
+        RunFrame();
+    }
     return true;
 }
 
@@ -572,20 +587,26 @@ void Port::Shown(std::vector<uint32_t> &pixels, std::vector<SDL_Rect> *panels) c
     // Stopped, slowed or fast-forwarded: said at the bottom (stopped, with the frame's number, for counting
     // frames by stepping)
     const bool hurried = hurry && !paused && !MultiGame().empty();
-    if (paused || menu.SlowBy() > 1 || hurried) {
+    const bool told = paused || !menu.FullSpeed() || hurried;
+    if (told) {
         char text[64];
         if (paused) {
             snprintf(text, sizeof(text), "STOPPED  frame %llu", static_cast<unsigned long long>(frame));
         } else if (hurried) {
             snprintf(text, sizeof(text), "FAST FORWARD x%d", kHurry);
         } else {
-            snprintf(text, sizeof(text), "SPEED 1/%d", menu.SlowBy());
+            const Menu::Rate rate = menu.GameRate();
+            if (rate.frames < rate.ticks) {
+                snprintf(text, sizeof(text), "SPEED %d/%d", rate.frames, rate.ticks);
+            } else {
+                snprintf(text, sizeof(text), "SPEED x%g", static_cast<double>(rate.frames) / rate.ticks);
+            }
         }
         status(text, 0);
     }
     // (what the camera's zoom was set to, for a few seconds: above that if both are said)
     if (*zoom.Label()) {
-        status(zoom.Label(), paused || menu.SlowBy() > 1 || hurried ? 14 : 0);
+        status(zoom.Label(), told ? 14 : 0);
     }
 }
 
@@ -857,7 +878,7 @@ void Port::SoundTest() {
 void Port::RunAhead() {
     const int ahead = FeatureValue("run_ahead");
     // (nor while stopped, stepped a frame at a time or slowed: there the frame shown is the frame)
-    if (ahead <= 0 || FastForward() || hurry || SpareRan() || paused || menu.SlowBy() > 1 || SlowMotion() > 1 ||
+    if (ahead <= 0 || FastForward() || hurry || SpareRan() || paused || !menu.FullSpeed() ||
         (TheGame().noRunAhead && TheGame().noRunAhead())) {
         return;
     }
@@ -1543,6 +1564,9 @@ int main(int argc, char **argv) {
         const double seconds = std::chrono::duration<double>(std::chrono::steady_clock::now() - begin).count();
         fprintf(stderr, "%llu frames in %.2f s: %.0f a second (cpu: %s)\n", static_cast<unsigned long long>(p.frame), seconds,
                 p.frame / seconds, p.opt.cpu.c_str());
+        if (p.tick != p.frame) { // (slowed, sped up or stopped: the screen's pictures, which were not the game's frames)
+            fprintf(stderr, "in %llu ticks of the screen\n", static_cast<unsigned long long>(p.tick));
+        }
         if (p.opt.cpu == "native") {
             fprintf(stderr, "sound driver: %llu instructions had no translation\n",
                     static_cast<unsigned long long>(p.machine->soundCpu.interpreted));

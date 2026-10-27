@@ -45,7 +45,8 @@ checked against an interpreter of the same program ([how it was made](PROGRESS.m
   launcher. Two more can be given a key or a button: all three punches at once, and all three kicks. In the collection
   it can have a layout of its own, apart from the other games'.
 - An in-game menu (Esc or `F1`; on a gamepad, the left stick's click or Start and Select together) with the
-  training mode and the other modes, save states, speed, the cheats and every feature.
+  training mode and the other modes, save states, speed (1/8 to 8x), the cheats,
+  every feature, and a Reset all options row.
 - **Zoom**: hold the left stick's click and press the left shoulder to zoom in on player 1's fighter, the right
   shoulder for player 2's (keyboard: hold Left Shift and press Q or E). Each press for the same player goes a size
   up, 1.25x, 1.5x, 1.75x and 2x (the model viewer's sizes: at 2x the top of a tall fighter is off the screen), then
@@ -115,7 +116,7 @@ knockouts, infinite time).
 ## Alternative modes
 
 The in-game menu's first row, "Alternative modes", has ways of playing and watching the game that the board does not
-have. Each has a page with a Start row and its own choices, and runs until another is started or the menu's Reset.
+have. Each has a page with a Start row and its own choices, and runs until another is started or the menu's Reset game.
 
 | Mode | What it does |
 | --- | --- |

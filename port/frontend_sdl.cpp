@@ -537,7 +537,9 @@ int RunWindowed(Port &port) {
             continue;
         }
 
-        const int slowBy = port.paused ? 1 : port.menu.SlowBy();
+        // (the game's time to the screen's: under 1 slowed, over 1 faster than the board)
+        const auto rate = port.menu.GameRate();
+        const double pace = port.paused ? 1.0 : static_cast<double>(rate.frames) / rate.ticks;
         const bool ran = port.Tick();
 
         if (audio && silent != (port.menu.muted || audioLog)) {
@@ -550,8 +552,8 @@ int RunWindowed(Port &port) {
             // clocks never quite agree. So the sound is played a touch faster when it is piling up and a
             // touch slower when it is running out (a fraction of a percent, far too little to hear), which
             // keeps a frame or two of it waiting: no gaps, no growing delay.
-            // (Slowed, the sound is played slower by as much.)
-            double waiting = SDL_GetAudioStreamQueued(audio) / (4.0 * QSound::kSampleRate) * slowBy;
+            // (Slowed, the sound is played slower by as much; faster, faster.)
+            double waiting = SDL_GetAudioStreamQueued(audio) / (4.0 * QSound::kSampleRate) / pace;
             // (When much more than that is waiting (the game caught up after being held up, say) what waits
             // is thrown away: a click once, rather than sound that stays late for the seconds it would take
             // to play it off.)
@@ -560,7 +562,7 @@ int RunWindowed(Port &port) {
                 waiting = 0;
                 audioDropped++;
             }
-            const double ratio = (1.0 + std::clamp((waiting - kAudioWaiting) * 0.5, -0.02, 0.02)) / slowBy;
+            const double ratio = (1.0 + std::clamp((waiting - kAudioWaiting) * 0.5, -0.02, 0.02)) * pace;
             SDL_SetAudioStreamFrequencyRatio(audio, static_cast<float>(ratio));
             audioLeast = std::min(audioLeast, waiting);
             if (audioLog && port.frame % 60 == 0) {
@@ -594,12 +596,12 @@ int RunWindowed(Port &port) {
                     musicSilent = port.menu.muted || audioLog;
                     SDL_SetAudioStreamGain(music, musicSilent ? 0.0f : 1.0f);
                 }
-                double waiting = SDL_GetAudioStreamQueued(music) / (8.0 * musicSpec.freq) * slowBy;
+                double waiting = SDL_GetAudioStreamQueued(music) / (8.0 * musicSpec.freq) / pace;
                 if (waiting > kAudioMost) {
                     SDL_ClearAudioStream(music);
                     waiting = 0;
                 }
-                const double ratio = (1.0 + std::clamp((waiting - kAudioWaiting) * 0.5, -0.02, 0.02)) / slowBy;
+                const double ratio = (1.0 + std::clamp((waiting - kAudioWaiting) * 0.5, -0.02, 0.02)) * pace;
                 SDL_SetAudioStreamFrequencyRatio(music, static_cast<float>(ratio));
                 SDL_PutAudioStreamData(music, musicMade.data(), static_cast<int>(musicMade.size() * sizeof(float)));
             }

@@ -14,11 +14,17 @@ namespace port {
 
 namespace {
     // The first page's own rows
-    enum { kCoin = 1, kStart2, kReset, kTest };
+    enum { kCoin = 1, kStart2, kReset, kTest, kResetOptions };
 
-    // The speeds: the game runs one frame in this many of the screen's
-    const int kSlowBy[] = {1, 2, 4, 8};
-    const char *const kSpeedNames[] = {"Full", "1/2", "1/4", "1/8"};
+    // The speeds, slowest first, each about 1.4 times the one before: the game runs `frames` frames in `ticks` of
+    // the screen's
+    struct Speed {
+        const char *name;
+        int frames, ticks;
+    };
+    const Speed kSpeeds[] = {{"1/8", 1, 8}, {"1/6", 1, 6}, {"1/4", 1, 4}, {"1/3", 1, 3}, {"1/2", 1, 2}, {"3/4", 3, 4}, {"Full", 1, 1},
+                             {"1.5x", 3, 2}, {"2x", 2, 1}, {"3x", 3, 1}, {"4x", 4, 1}, {"6x", 6, 1}, {"8x", 8, 1}};
+    constexpr int kFull = 6;
 } // namespace
 
 void Menu::Open(bool withStates) {
@@ -52,7 +58,10 @@ void Menu::Open(bool withStates) {
          "Its Exit row goes back."},
     });
     config.groups.push_back({
-        {recomp::MenuRow::Action, kReset, "Reset", "Starts the board again, as if switched off and on."},
+        {recomp::MenuRow::Action, kResetOptions, "Reset all options",
+         "Puts every option back as it first was (the launcher's Enhanced preset), and the speed to full. The game's own "
+         "settings (its Test menu) and the controls stay as they are."},
+        {recomp::MenuRow::Action, kReset, "Reset game", "Starts the board again, as if switched off and on."},
         {recomp::MenuRow::Quit},
         {recomp::MenuRow::Resume},
     });
@@ -64,9 +73,10 @@ void Menu::Open(bool withStates) {
     }
     config.value = [](size_t feature) { return cps2recomp::FeatureSetting(cps2recomp::TheGame().features[feature].name); };
     config.setValue = [](size_t feature, int value) { cps2recomp::SetFeatureValue(cps2recomp::TheGame().features[feature].name, value); };
-    config.speeds.assign(std::begin(kSpeedNames), std::end(kSpeedNames));
-    config.speedDescription = "Left/Right: slow motion. While playing, P (or a click of the right stick) stops the game and starts it "
-                              "again; O (or, once stopped, the left trigger) goes on by one frame; - and = change the speed.";
+    Speeds(config);
+    config.speedDescription = "Left/Right: slow motion, or faster than the board. While playing, P (or a click of the right stick) stops "
+                              "the game and starts it again; O (or, once stopped, the left trigger) goes on by one frame; - and = change "
+                              "the speed.";
     config.muted = [this] { return muted; };
     config.setMuted = [this](bool to) { muted = to; };
     config.confirmName = "Enter or A";
@@ -75,17 +85,36 @@ void Menu::Open(bool withStates) {
     m_menu.Open();
 }
 
-int Menu::SlowBy() const {
-    // (the slower of the player's choice and what the game's sources ask for: runtime/game.h)
-    return std::max(kSlowBy[m_menu.Speed() < static_cast<int>(std::size(kSlowBy)) ? m_menu.Speed() : 0], cps2recomp::SlowMotion());
+Menu::Menu() {
+    // (so that - and = work before the menu is first opened)
+    recomp::MenuConfig config;
+    Speeds(config);
+    m_menu.Configure(std::move(config));
 }
 
-void Menu::SetSlowBy(int by) {
-    int speed = 0;
-    while (speed < static_cast<int>(std::size(kSlowBy)) - 1 && kSlowBy[speed] < by) {
-        speed++;
+void Menu::Speeds(recomp::MenuConfig &config) {
+    for (const Speed &speed : kSpeeds) {
+        config.speeds.push_back(speed.name);
     }
-    m_menu.SetSpeed(speed);
+    config.normalSpeed = kFull;
+}
+
+Menu::Rate Menu::GameRate() const {
+    const Speed &speed = kSpeeds[std::clamp(m_menu.Speed(), 0, static_cast<int>(std::size(kSpeeds)) - 1)];
+    // (the slower of the player's choice and what the game's sources ask for: runtime/game.h)
+    const int slowBy = cps2recomp::SlowMotion();
+    if (slowBy > 1 && speed.frames * slowBy > speed.ticks) {
+        return {1, slowBy};
+    }
+    return {speed.frames, speed.ticks};
+}
+
+void Menu::SetFullSpeed() {
+    m_menu.SetSpeed(kFull);
+}
+
+void Menu::Faster(int by) {
+    m_menu.SetSpeed(m_menu.Speed() + by);
 }
 
 Menu::Action Menu::Buttons(uint16_t pressed) {
@@ -115,7 +144,11 @@ Menu::Action Menu::Press(unsigned buttons) {
         m_command = static_cast<size_t>(chosen.id);
         return Action::Command;
     case recomp::Menu::Chosen::Action:
-        return chosen.id == kCoin ? Action::Coin : chosen.id == kStart2 ? Action::Start2 : chosen.id == kTest ? Action::Test : Action::Reset;
+        return chosen.id == kCoin           ? Action::Coin
+               : chosen.id == kStart2       ? Action::Start2
+               : chosen.id == kTest         ? Action::Test
+               : chosen.id == kResetOptions ? Action::ResetOptions
+                                            : Action::Reset;
     default: return Action::None;
     }
 }
