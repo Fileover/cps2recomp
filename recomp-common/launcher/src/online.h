@@ -9,7 +9,7 @@
 namespace launcher {
 
 struct LocalAddress {
-    std::string address; // "192.168.1.5"
+    std::string address; // "203.0.113.5"
     std::string kind;    // "home network", "Tailscale", "VPN" or "" (a public address)
 };
 

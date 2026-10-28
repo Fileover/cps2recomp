@@ -1559,7 +1559,7 @@ void App::online_card(size_t which, float width, bool ready) {
     });
     inset_separator(width);
     row(width, "Join a match", "The host's address, as their Online card says it (ADDRESS, or ADDRESS:PORT).", 330.0f, 36.0f, [&] {
-        if (ui::text_field("##online_address", online_address_, sizeof(online_address_), "192.168.1.5", 190.0f)) {
+        if (ui::text_field("##online_address", online_address_, sizeof(online_address_), "The host's address", 190.0f)) {
             prefs_.set("online", "address", online_address_);
             prefs_.save();
         }
