@@ -21,7 +21,7 @@ file), from a board you own. **Only the version named below works for each game.
 one.
 
 This project is not affiliated with, endorsed by, or sponsored by Capcom or Marvel. *Street Fighter*, *Super Puzzle
-Fighter*, *Super Gem Fighter*, *Pocket Fighter*, *Vampire Savior*, *Vampire Hunter* and *Darkstalkers* are trademarks of Capcom Co., Ltd.; *X-Men*, *Marvel Super Heroes* and their
+Fighter*, *Super Gem Fighter*, *Pocket Fighter*, *Vampire Savior*, *Vampire Hunter*, *Darkstalkers*, *Mega Man*, *Strider* and *Captain Commando* are trademarks of Capcom Co., Ltd.; *X-Men*, *Marvel Super Heroes* and their
 characters are trademarks of Marvel Characters, Inc.; *Alien vs. Predator*
 and *Cadillacs and Dinosaurs* are trademarks of their owners; "CPS-1", "CPS-2" and "QSound" are names and trademarks of
 their owners, used here only to say what the programs work with.
@@ -40,6 +40,7 @@ their owners, used here only to say what the programs work with.
 | [**Marvel Super Heroes**](games/msh/README.md) (1995) | `msh` (Europe 951024) | One-on-one with the Infinity Gems; a full training mode (hit boxes, frame data and a frame meter, input display, combo readout, a dummy that records, replays and guards, every gem at hand), widescreen, survival, ring out, endless battle, the stage and model viewers, a zoom that follows either fighter or keeps both in the picture, Dr. Doom and Thanos with no code, custom colours |
 | [**X-Men vs. Street Fighter**](games/xmvsf/README.md) (1996) | `xmvsf` (Europe 961004) | The first tag-team game here, with tag-team co-op against the computer and 2 vs 2 for four players; a full training mode (hit boxes, frame data and a frame meter, input display, combo readout, a dummy that records, replays and guards), widescreen, survival, ring out, endless battle, the stage and model viewers, a zoom that follows either fighter or keeps both in the picture, the hidden character with no code, custom colours |
 | [**Marvel Super Heroes vs. Street Fighter**](games/mshvsf/README.md) (1997) | `mshvsf` (Europe 970625) | The sequel to X-Men vs. Street Fighter, with tag-team co-op against the computer and 2 vs 2 for four players; a full training mode (hit boxes, frame data and a frame meter, input display, combo readout, a dummy that records, replays and guards), widescreen, survival, ring out, endless battle, the stage and model viewers, a zoom that follows either fighter or keeps both in the picture, the hidden characters with no code, custom colours |
+| [**Marvel vs. Capcom: Clash of Super Heroes**](games/mvsc/README.md) (1998) | `mvsc` (Europe 980123) | The last Marvel game on the board, with its special partners, tag-team co-op against the computer and 2 vs 2 for four players; a full training mode (hit boxes, frame data and a frame meter, input display, combo readout, a dummy that records, replays and guards), widescreen, survival, ring out, endless battle, the stage and model viewers, a zoom that follows either fighter or keeps both in the picture, the hidden characters with no code, custom colours |
 | [**Super Puzzle Fighter II Turbo**](games/puzzle_fighter/README.md) (1996) | `spf2t` (Europe 960529) | A training mode (attack readout, landing guide, input display, a dummy that sends counter gems to cancel, crash gems as you choose), CPU battle, the hidden characters at a kick, custom colours for the characters and the gems |
 | [**Vampire Savior: The Lord of Vampire**](games/vampire_savior/README.md) (1997) | `vsavj` (Japan 970519) | A full training mode (hit boxes, frame data and a frame meter, input display, a dummy that records, replays and guards), widescreen, survival, ring out, endless battle, a tag team battle, knock-out or Marvel-style (the left trigger tags; 2 vs 2 for four players), the CPU tagging and playing a ring out for the ring, the stage and model viewers, a zoom that follows either fighter or keeps both in the picture, the hidden characters, custom colours |
 | [**Vampire Savior 2: The Lord of Vampire**](games/vsav2/README.md) (1997) | `vsav2` (Japan 970913) | Donovan, Phobos and Pyron back, and Donovan's stage; everything Vampire Savior's port has (its sources, checked against this game's code) |
@@ -112,7 +113,7 @@ Each game's page has all it does, with pictures.
    and unpack it. Each release's page has the steps for macOS, Windows, Linux and the Steam devices.
 2. Open the launcher (`CPS-2 Recomp.app`, `cps2recomp-launcher`). On its Games page, **Choose folder…** and pick
    the folder you keep your ROM sets in: it finds each game's by the set's name (`ssf2xjr1.zip`, `sfa.zip`, `sfa2u.zip`, `sfa3u.zip`,
-   `sgemf.zip`, `msh.zip`, `xmvsf.zip`, `mshvsf.zip`, `spf2t.zip`, `vsavj.zip`, `vsav2.zip`, `vhunt2.zip`, `avspu.zip`, `dino.zip`, or a folder of the set's files). Or drop a set, or the folder, on the window, or choose each
+   `sgemf.zip`, `msh.zip`, `xmvsf.zip`, `mshvsf.zip`, `mvsc.zip`, `spf2t.zip`, `vsavj.zip`, `vsav2.zip`, `vhunt2.zip`, `avspu.zip`, `dino.zip`, or a folder of the set's files). Or drop a set, or the folder, on the window, or choose each
    game's set on its own. They stay where they are.
 3. Press **Play** beside a game (the first of its two buttons, where a gamepad's ring lands). Several games can run at once, each in its own window.
 
@@ -206,7 +207,7 @@ sfa2 --soundtrack ~/music/sfa2-arranged          # a custom soundtrack's folder 
 sfa2 --help                                     # what a game's program takes
 ```
 
-The games' ids are `ssf2t`, `sfa`, `sfa2`, `sfa3`, `pocket_fighter`, `msh`, `xmvsf`, `mshvsf`, `puzzle_fighter`, `vampire_savior`, `vsav2`, `vhunt2`, `vsav_definitive`, `avsp` and `dino`. `--features` may be given more than once, and
+The games' ids are `ssf2t`, `sfa`, `sfa2`, `sfa3`, `pocket_fighter`, `msh`, `xmvsf`, `mshvsf`, `mvsc`, `puzzle_fighter`, `vampire_savior`, `vsav2`, `vhunt2`, `vsav_definitive`, `avsp` and `dino`. `--features` may be given more than once, and
 a later one wins.
 
 ### Online play
@@ -319,7 +320,7 @@ top), to open the in-game menu; its "Quit game" row ends the game.
 
 - The ROM set of each game you want to play (a CPS-2 game's with its key file): `ssf2xjr1` (*Super Street Fighter II
   X: Grand Master Challenge*, Japan 940223), `sfa` (*Street Fighter Alpha: Warriors' Dreams*, Europe 950727), `sfa2u` (*Street Fighter Alpha 2*, USA 960430), `sfa3u` (*Street Fighter Alpha 3*, USA 980904),
-  `sgemf` (*Super Gem Fighter: Mini Mix*, USA 970904), `msh` (*Marvel Super Heroes*, Europe 951024), `xmvsf` (*X-Men Vs. Street Fighter*, Europe 961004), `mshvsf` (*Marvel Super Heroes Vs. Street Fighter*, Europe 970625), `spf2t` (*Super Puzzle Fighter II Turbo*, Europe 960529), `vsavj` (*Vampire Savior: The Lord of Vampire*,
+  `sgemf` (*Super Gem Fighter: Mini Mix*, USA 970904), `msh` (*Marvel Super Heroes*, Europe 951024), `xmvsf` (*X-Men Vs. Street Fighter*, Europe 961004), `mshvsf` (*Marvel Super Heroes Vs. Street Fighter*, Europe 970625), `mvsc` (*Marvel Vs. Capcom: Clash of Super Heroes*, Europe 980123), `spf2t` (*Super Puzzle Fighter II Turbo*, Europe 960529), `vsavj` (*Vampire Savior: The Lord of Vampire*,
   Japan 970519), `vsav2` (*Vampire Savior 2: The Lord of Vampire*, Japan 970913), `vhunt2` (*Vampire Hunter 2:
   Darkstalkers Revenge*, Japan 970929), `avspu` (*Alien vs. Predator*, USA 940520), `dino` (*Cadillacs and Dinosaurs*,
   World 930201). Vampire Savior Definitive needs both `vsavj` and `vsav2`. As a zip (with its parent set's zip beside it if your collection keeps the shared files there)
