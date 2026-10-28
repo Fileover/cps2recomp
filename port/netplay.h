@@ -123,6 +123,9 @@ private:
     // (for the report)
     uint64_t rollbacks = 0, rerun = 0, waits = 0, lastReport = 0, reportedRollbacks = 0;
     int mostRerun = 0;
+    double worst = 0;  // the longest a frame took, its rollback with it (seconds)
+    uint64_t over = 0; // ... and how many took longer than a frame's time
+
     // (tests: packets held back, and when they go)
     struct Late { uint64_t due; std::vector<uint8_t> data; };
     std::deque<Late> late;

@@ -561,6 +561,7 @@ void Netplay::Run(Port &port, uint64_t at, bool drawing) {
 }
 
 void Netplay::Frame(Port &port, uint16_t controls) {
+    const auto began = std::chrono::steady_clock::now();
     current = port.frame;
     const uint64_t frame = port.frame;
     localInput[(frame + delay) % kInputs] = controls;
@@ -609,6 +610,9 @@ void Netplay::Frame(Port &port, uint16_t controls) {
     // The frame itself
     port.KeepState(kept[frame % kKept].state);
     Run(port, frame, true);
+    const double took = std::chrono::duration<double>(std::chrono::steady_clock::now() - began).count();
+    worst = std::max(worst, took);
+    over += took > 1 / Machine::kFramesPerSecond;
     Report();
 }
 
@@ -653,10 +657,11 @@ void Netplay::Report(bool last) {
         return;
     }
     lastReport = now;
-    fprintf(stderr, "online: frame %llu, ping %.0f ms, %llu rollbacks (%llu since the last report), %llu frames run again, at most %d at once; %llu ticks waited\n",
+    fprintf(stderr, "online: frame %llu, ping %.0f ms, %llu rollbacks (%llu since the last report), %llu frames run again, at most %d at once; "
+                    "%llu ticks waited; a frame at most %.1f ms, %llu over a frame's time\n",
             static_cast<unsigned long long>(current), ping, static_cast<unsigned long long>(rollbacks),
             static_cast<unsigned long long>(rollbacks - reportedRollbacks), static_cast<unsigned long long>(rerun), mostRerun,
-            static_cast<unsigned long long>(waits));
+            static_cast<unsigned long long>(waits), worst * 1000, static_cast<unsigned long long>(over));
     reportedRollbacks = rollbacks;
 }
 
