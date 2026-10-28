@@ -515,9 +515,9 @@ namespace {
         startup.hStdError = nullptr;
         startup.hStdInput = nullptr;
         PROCESS_INFORMATION info{};
-        std::vector<char> line(command.begin(), command.end());
-        line.push_back('\0');
-        const bool started = CreateProcessA(nullptr, line.data(), nullptr, nullptr, TRUE, CREATE_NO_WINDOW, nullptr, nullptr, &startup, &info);
+        std::vector<char> commandLine(command.begin(), command.end());
+        commandLine.push_back('\0');
+        const bool started = CreateProcessA(nullptr, commandLine.data(), nullptr, nullptr, TRUE, CREATE_NO_WINDOW, nullptr, nullptr, &startup, &info);
         CloseHandle(writeEnd);
         std::string text;
         int exitCode = -1;
