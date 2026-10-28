@@ -43,7 +43,7 @@ namespace {
 
     // The packets: "C2NP", what kind, then the kind's fields, little-endian
     constexpr uint8_t kMagic[4] = {'C', '2', 'N', 'P'};
-    constexpr uint16_t kProtocol = 1;
+    constexpr uint16_t kProtocol = 2; // (2: the host's state sent at the start)
     enum Kind : uint8_t {
         kHello = 1,   // joining -> host: the protocol, the game and its build
         kWelcome = 2, // host -> joining: the delay, the board settings, the features that change play
