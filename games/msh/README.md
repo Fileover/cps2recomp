@@ -80,8 +80,8 @@ is checked against an interpreter of the same program ([how it was made](PROGRES
   songs. The `songs.txt` the game writes in the soundtrack folder names the music: each character's theme (a round
   plays the theme of the character whose stage it is), the opening, player select, the next opponent, the screen
   before each fight, the winner's, the one before Thanos, the ending, game over, the rankings and the notices.
-  [How →](../../README.md#a-custom-soundtrack)
-- Your ROM set is only ever read. Settings, save states and the board's settings memory go in your own user folder, or beside the launcher in [portable mode](../../README.md#portable-mode).
+  [How →](../../docs/SOUNDTRACK.md)
+- Your ROM set is only ever read. Settings, save states and the board's settings memory go in your own user folder, or beside the launcher in [portable mode](../../docs/LAUNCHER.md#portable-mode).
 
 ## Training mode
 
@@ -187,7 +187,7 @@ menu shows the board's own values.
 
 ## Playing
 
-Marvel Super Heroes comes with [CPS-2 Recomp](../../README.md#playing): open its launcher and show it your ROM set
+Marvel Super Heroes comes with [CPS-2 Recomp](../../README.md#getting-started): open its launcher and show it your ROM set
 (drop `msh.zip` or its folder on the window, or choose the folder you keep your sets in), then press **Play** beside
 Marvel Super Heroes. From a terminal, `cps2recomp-launcher --play msh` starts it straight away; the game's own program
 (`msh`, beside the launcher) runs by itself too: `msh --help` lists what it takes.

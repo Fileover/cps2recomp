@@ -78,8 +78,8 @@ program ([how it was made](PROGRESS.md)).
   folder of music plays as a playlist (in order or shuffled), or files named for the game's songs replace those
   songs. The `songs.txt` the game writes in the soundtrack folder names the music: each stage's, player select,
   versus, the winner's, the story, the ending, the staff roll, the rankings and the notices.
-  [How →](../../README.md#a-custom-soundtrack)
-- Your ROM set is only ever read. Settings, save states and the board's settings memory go in your own user folder, or beside the launcher in [portable mode](../../README.md#portable-mode).
+  [How →](../../docs/SOUNDTRACK.md)
+- Your ROM set is only ever read. Settings, save states and the board's settings memory go in your own user folder, or beside the launcher in [portable mode](../../docs/LAUNCHER.md#portable-mode).
 
 ## Training mode
 
@@ -188,7 +188,7 @@ menu shows the board's own values.
 
 ## Playing
 
-Super Gem Fighter Mini Mix comes with [CPS-2 Recomp](../../README.md#playing): open its launcher and show it your ROM
+Super Gem Fighter Mini Mix comes with [CPS-2 Recomp](../../README.md#getting-started): open its launcher and show it your ROM
 set (drop `sgemf.zip` or its folder on the window, or choose the folder you keep your sets in), then press **Play**
 beside Super Gem Fighter Mini Mix. From a terminal, `cps2recomp-launcher --play pocket_fighter` starts it straight
 away; the game's own program (`pocket_fighter`, beside the launcher) runs by itself too: `pocket_fighter --help`

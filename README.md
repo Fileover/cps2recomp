@@ -58,11 +58,13 @@ Each game's page has all it does, with pictures.
 
 Every fighting game has a full training mode, from the in-game menu:
 
-- **Hit boxes** (and throw boxes in Alpha 2 and 3), **frame data** and a **frame meter**, an **input display**, and combo,
-  damage and stun readouts.
+- **Hit boxes** (and throw boxes in Alpha 2 and 3), **frame data** and a **frame meter**, an **input display**, and a
+  combo and damage readout (and stun, in the Street Fighter games and Pocket Fighter).
 - **A dummy** that stands, crouches or jumps, guards (high, low or after the first hit), techs, gets up quickly,
   reverses, and **records and replays** what you show it (each game's page says what its dummy can do).
 - Health and meter refilled, a stage of your choice, and **start over** from the round's beginning with one button.
+
+**[More about training mode →](docs/TRAINING.md)**
 
 ## Online play
 
@@ -77,25 +79,26 @@ Linux, the Steam Deck and Windows can play each other.
 - **On screen:** the ping (and the input delay, if you like), and the **win streak** of a player who keeps winning.
 - A dropped connection waits for the other player to come back with the same code.
 
-The [guide](docs/GUIDE.md#online-play-in-detail) has the details: joining by address, the lobby, and how rollback
-works.
+**[More about online play →](docs/ONLINE.md)**: the lobby, joining by address, and how rollback works.
 
 ## Everything else
 
-- **Widescreen** in the fighting games: 16:9, with more of the stage on each side.
+- **Widescreen** in the fighting games: 16:9, with more of the stage on each side ([more](docs/PICTURE.md#widescreen)).
 - **Alternative modes** in the fighting games: survival, ring out, an endless battle the game plays itself, and in
-  several a tag team battle; plus a stage viewer and a model viewer.
+  most a tag team battle; plus a stage viewer and a model viewer ([more](docs/MODES.md)).
 - **The picture your way**: sharp or smooth scaling, 4:3 or square pixels, and RetroArch shaders (CRT, scanlines,
-  xBRZ and more, or your own preset). A camera zoom follows either fighter or keeps both in view.
+  xBRZ and more, or your own preset). A camera zoom follows either fighter or keeps both in view
+  ([more](docs/PICTURE.md)).
 - **Controls**: keyboard, gamepad or arcade stick, every button changeable per player and per game.
 - **An in-game menu**: save states, speed and pause, frame advance, cheats and every option.
 - **Arcade timing**: the processor slows down where and as much as the real board does, checked frame by frame
   against a cycle-exact model of it ([docs/TIMING.md](docs/TIMING.md)). Off unless you choose it.
 - **Run-ahead**, the board's operator settings, free play, rapid fire, and straight to the title at start-up.
-- **A custom soundtrack**: your own music files in place of the board's music ([how](docs/GUIDE.md#a-custom-soundtrack)).
-- **Multi game**: play several games one after another, such as an endless battle through every stage of each.
+- **A custom soundtrack**: your own music files in place of the board's music ([how](docs/SOUNDTRACK.md)).
+- **Multi game**: play several games one after another, such as an endless battle through every stage of each
+  ([more](docs/MODES.md#multi-game)).
 - **Updates** in the launcher, and a **portable mode** that keeps everything on a drive you carry
-  ([guide](docs/GUIDE.md)).
+  ([the launcher](docs/LAUNCHER.md)).
 
 ![The Features page: what the games share, set for all of them at once](docs/screenshots/launcher-features.png)
 

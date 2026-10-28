@@ -75,7 +75,7 @@ emulator ([how it works](docs/PORT.md)).
 - **A custom soundtrack**: your own music in place of the board's music, with the board's sound effects and voices:
   a folder of music plays as a playlist (in order or shuffled), or files named for the game's songs replace those
   songs. The `songs.txt` the game writes in the soundtrack folder names all 59 pieces
-  of its music (each character's theme, each ending, the staff rolls, the title and the screens between fights). [How →](../../README.md#a-custom-soundtrack)
+  of its music (each character's theme, each ending, the staff rolls, the title and the screens between fights). [How →](../../docs/SOUNDTRACK.md)
 - Your ROM set is only ever read. Settings, save states and the board's settings memory go in your own user
   folder.
 
@@ -218,7 +218,7 @@ set you changed** (Sakura with a punch, say), anywhere: arcade, versus, training
 | Windows | `%APPDATA%\Street Fighter Alpha 2\palettes` (paste it into Explorer's address bar; it is the `AppData\Roaming` folder in your user folder) |
 | macOS | `~/Library/Application Support/Street Fighter Alpha 2/palettes` |
 | Linux, SteamOS | `~/.local/share/Street Fighter Alpha 2/palettes` |
-| [Portable mode](../../README.md#portable-mode) | `user/Street Fighter Alpha 2/palettes` beside the launcher |
+| [Portable mode](../../docs/LAUNCHER.md#portable-mode) | `user/Street Fighter Alpha 2/palettes` beside the launcher |
 
 You can write or share them by hand: "Write the game's colours" (on the colour editor's page of the menu) puts
 every character's own colours in `palettes/original` to start from, each set up to five lines of 16 colours
@@ -247,7 +247,7 @@ the Display page switches all of it: on in Enhanced (it changes nothing until th
 
 ## Playing
 
-Street Fighter Alpha 2 comes with [CPS-2 Recomp](../../README.md#playing): download it for your system from the
+Street Fighter Alpha 2 comes with [CPS-2 Recomp](../../README.md#getting-started): download it for your system from the
 [releases page](https://github.com/tmcleroy/cps2recomp/releases), open its launcher, and show it your ROM
 set (drop `sfa2u.zip` or its folder on the window, or choose the folder you keep your sets in: it finds each
 game's by name). Then press **Play** beside Street Fighter Alpha 2, or on its own page, which has its Display switches and

@@ -82,7 +82,7 @@ the same program ([how it was made](PROGRESS.md)).
   songs. The `songs.txt` the game writes in the soundtrack folder names the music: each stage's tune and its later
   version in a round, the final fight, the introduction and title, player select, versus, the winner's, the ranking,
   Ryu's ending and the staff roll.
-  [How →](../../README.md#a-custom-soundtrack)
+  [How →](../../docs/SOUNDTRACK.md)
 - Your ROM set is only ever read. Settings, save states and the board's settings memory go in your own user folder.
 
 ## Training mode
@@ -181,7 +181,7 @@ and the test menu shows the board's own values.
 
 ## Playing
 
-Super Street Fighter II Turbo comes with [CPS-2 Recomp](../../README.md#playing): open its launcher and show it your
+Super Street Fighter II Turbo comes with [CPS-2 Recomp](../../README.md#getting-started): open its launcher and show it your
 ROM set (drop `ssf2xjr1.zip` or its folder on the window, or choose the folder you keep your sets in), then press
 **Play** beside Super Street Fighter II Turbo. From a terminal, `cps2recomp-launcher --play ssf2t` starts it straight
 away; the game's own program (`ssf2t`, beside the launcher) runs by itself too: `ssf2t --help` lists what it takes.

@@ -63,8 +63,8 @@ for this project, not an emulator.
 - **A custom soundtrack**: your own music in place of the board's, with the board's sound effects and voices: a
   folder of music plays as a playlist (in order or shuffled), or files named for the game's songs replace those
   songs (the `songs.txt` the game writes names its 61 pieces: each character's theme and win, the rival, Pyron, the
-  ending). [How →](../../README.md#a-custom-soundtrack)
-- Your ROM set is only ever read. Settings, save states and the board's settings memory go in your own user folder, or beside the launcher in [portable mode](../../README.md#portable-mode).
+  ending). [How →](../../docs/SOUNDTRACK.md)
+- Your ROM set is only ever read. Settings, save states and the board's settings memory go in your own user folder, or beside the launcher in [portable mode](../../docs/LAUNCHER.md#portable-mode).
 
 ## The characters and stages
 
@@ -142,7 +142,7 @@ character with the button of the set you changed. It works as in Vampire Savior,
 | Windows | `%APPDATA%\Vampire Hunter 2\palettes` |
 | macOS | `~/Library/Application Support/Vampire Hunter 2/palettes` |
 | Linux, SteamOS | `~/.local/share/Vampire Hunter 2/palettes` |
-| [Portable mode](../../README.md#portable-mode) | `user/Vampire Hunter 2/palettes` beside the launcher |
+| [Portable mode](../../docs/LAUNCHER.md#portable-mode) | `user/Vampire Hunter 2/palettes` beside the launcher |
 
 ## What you need
 
@@ -154,7 +154,7 @@ character with the button of the set you changed. It works as in Vampire Savior,
 
 ## Playing
 
-Vampire Hunter 2 comes with [CPS-2 Recomp](../../README.md#playing): open its launcher and show it your ROM set
+Vampire Hunter 2 comes with [CPS-2 Recomp](../../README.md#getting-started): open its launcher and show it your ROM set
 (drop `vhunt2.zip` or its folder on the window, or choose the folder you keep your sets in), then press **Play**
 beside Vampire Hunter 2. From a terminal, `cps2recomp-launcher --play vhunt2` starts it straight away; the game's own
 program (`vhunt2`, beside the launcher) runs by itself too: `vhunt2 --help` lists what it takes.

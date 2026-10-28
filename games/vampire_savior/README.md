@@ -75,9 +75,9 @@ QSound chip, the sound CPU and its registers) is code written for this project, 
 - **A custom soundtrack**: your own music in place of the board's music, with the board's sound effects and voices:
   a folder of music plays as a playlist (in order or shuffled), or files named for the game's songs replace those
   songs. The `songs.txt` the game writes in the soundtrack folder names all 80 pieces
-  of its music (each stage's, each character's win and ending, the opening and the screens between fights). [How →](../../README.md#a-custom-soundtrack)
+  of its music (each stage's, each character's win and ending, the opening and the screens between fights). [How →](../../docs/SOUNDTRACK.md)
 - Your ROM set is only ever read. Settings, save states and the board's settings memory go in your
-  own user folder, or beside the launcher in [portable mode](../../README.md#portable-mode).
+  own user folder, or beside the launcher in [portable mode](../../docs/LAUNCHER.md#portable-mode).
 
 | | |
 | --- | --- |
@@ -212,7 +212,7 @@ character (`Lilith.txt`) holding only the sets that are not the game's. The fold
 | Windows | `%APPDATA%\Vampire Savior\palettes` (paste it into Explorer's address bar; it is the `AppData\Roaming` folder in your user folder) |
 | macOS | `~/Library/Application Support/Vampire Savior/palettes` |
 | Linux, SteamOS | `~/.local/share/Vampire Savior/palettes` |
-| [Portable mode](../../README.md#portable-mode) | `user/Vampire Savior/palettes` beside the launcher |
+| [Portable mode](../../docs/LAUNCHER.md#portable-mode) | `user/Vampire Savior/palettes` beside the launcher |
 
 You can write or share them by hand: "Write the game's colours" (on the colour editor's page of
 the menu) puts every character's own colours in `palettes/original` to
@@ -243,7 +243,7 @@ there are files), off in Pure.
 
 ## Playing
 
-Vampire Savior comes with [CPS-2 Recomp](../../README.md#playing): download it for your system from the
+Vampire Savior comes with [CPS-2 Recomp](../../README.md#getting-started): download it for your system from the
 [releases page](https://github.com/tmcleroy/cps2recomp/releases), open its launcher, and show it your ROM
 set (drop `vsavj.zip` or its folder on the window, or choose the folder you keep your sets in: it finds each
 game's by name). Then press **Play** beside Vampire Savior, or on its own page, which has its Display switches and

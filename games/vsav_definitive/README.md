@@ -65,7 +65,7 @@ Not yet: Donovan's stage and Vampire Savior 2's music (Vampire Savior's twelve s
 
 ## Playing
 
-Vampire Savior Definitive comes with [CPS-2 Recomp](../../README.md#playing). From a terminal, `vsav_definitive
+Vampire Savior Definitive comes with [CPS-2 Recomp](../../README.md#getting-started). From a terminal, `vsav_definitive
 --rom <vsavj> --rom2 <vsav2>` starts it straight away (without `--rom2`, `vsav2` is looked for beside `vsavj`).
 
 ## How it works

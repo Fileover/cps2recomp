@@ -78,8 +78,8 @@ is checked against an interpreter of the same program ([how it was made](PROGRES
   folder of music plays as a playlist (in order or shuffled), or files named for the game's songs replace those
   songs. The `songs.txt` the game writes in the soundtrack folder names the music: each character's theme (a round
   plays player 2's), player select, the screen before each stage, the winner's, the warning before Apocalypse, the
-  ending, the staff roll, game over and the notices. [How →](../../README.md#a-custom-soundtrack)
-- Your ROM set is only ever read. Settings, save states and the board's settings memory go in your own user folder, or beside the launcher in [portable mode](../../README.md#portable-mode).
+  ending, the staff roll, game over and the notices. [How →](../../docs/SOUNDTRACK.md)
+- Your ROM set is only ever read. Settings, save states and the board's settings memory go in your own user folder, or beside the launcher in [portable mode](../../docs/LAUNCHER.md#portable-mode).
 
 ## Training mode
 
@@ -204,7 +204,7 @@ menu shows the board's own values.
 
 ## Playing
 
-X-Men vs. Street Fighter comes with [CPS-2 Recomp](../../README.md#playing): open its launcher and show it your ROM
+X-Men vs. Street Fighter comes with [CPS-2 Recomp](../../README.md#getting-started): open its launcher and show it your ROM
 set (drop `xmvsf.zip` or its folder on the window, or choose the folder you keep your sets in), then press **Play**
 beside X-Men vs. Street Fighter. From a terminal, `cps2recomp-launcher --play xmvsf` starts it straight away; the
 game's own program (`xmvsf`, beside the launcher) runs by itself too: `xmvsf --help` lists what it takes.
