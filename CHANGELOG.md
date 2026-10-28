@@ -14,6 +14,10 @@
   length, the gauge for a knock-down, pushing apart, the hit test's attack box, M. Bison's and Chun-Li's other forms
   and the rest, each checked by the rewrites' check on this game's own code. How a place is looked up is one piece of
   the toolkit now (`runtime/places_in.h`), for Vampire Savior's family too.
+- **Only the games you have**: a switch on the launcher's Games page (once a game is set up; off unless you switch it
+  on) leaves the games you have not set up out of the Games page, the Features page (their features, and their names
+  in its notes) and the Controllers page, for a player who plays one or two of them. **Choose folder…** still finds
+  the rest. (recomp-common: a collection's `[games] installed_only`.)
 - **Online: the ping on screen, and coming back after a drop.** "PING 42 ms" at the bottom all through a match
   (the time there and back, the frame's wait to read a packet taken off), or "WAITING FOR THE OTHER PLAYER" when
   they have been silent a second. When the other side leaves or goes silent, a host's window stays open and waits
