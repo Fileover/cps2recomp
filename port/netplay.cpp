@@ -17,14 +17,18 @@
 #include "netplay.h"
 
 #include "game_info.h"
+#include "../recomp-common/launcher/src/online.h"
 #include "../runtime/game.h"
 #include "port.h"
+
+#include <SDL3/SDL.h>
 
 #include <zlib.h>
 #include <algorithm>
 #include <chrono>
 #include <cmath>
 #include <cstring>
+#include <filesystem>
 #include <thread>
 
 using namespace cps2recomp;
@@ -46,6 +50,7 @@ namespace {
         kRefuse = 3,  // either: why not (and the match is over)
         kControls = 4, // either: controls, and the rest of what each frame says (Netplay::SendInputs)
         kBye = 5,     // either: this side has left
+        kPunch = 6,   // host -> joining, before the hello: nothing, but it opens the host's router to them
     };
 
     struct Writer {
@@ -117,6 +122,83 @@ namespace {
         h = crc32(h, port.roms.soundProgram.data(), static_cast<uInt>(port.roms.soundProgram.size()));
         return static_cast<uint32_t>(h);
     }
+    // A match's code as the service keeps it ("K7QM2X"), from what was typed ("k7q-m2x"), or "" if it is not one
+    // (an address has a dot or a colon)
+    std::string CodeOf(const std::string &text) {
+        static const std::string kAlphabet = "23456789ABCDEFGHJKMNPQRSTUVWXYZ"; // (online/src/index.js)
+        if (text.find_first_of(".:") != std::string::npos) {
+            return "";
+        }
+        std::string code;
+        for (const char c : text) {
+            if (c == '-' || c == ' ') {
+                continue;
+            }
+            const char upper = static_cast<char>(toupper(static_cast<unsigned char>(c)));
+            if (kAlphabet.find(upper) == std::string::npos) {
+                return "";
+            }
+            code += upper;
+        }
+        return code.size() == 6 ? code : "";
+    }
+    // ... as said to the player: "K7Q-M2X"
+    std::string Spaced(const std::string &code) {
+        return code.size() == 6 ? code.substr(0, 3) + "-" + code.substr(3) : code;
+    }
+
+    // The service is asked with the system's curl (as the launcher's updates are fetched: macOS, Windows 10 and
+    // later, and Linux have it), on another thread; the answer's last line is its HTTP status
+    std::string CurlProgram() {
+#ifdef _WIN32
+        char system[MAX_PATH];
+        const UINT n = GetSystemDirectoryA(system, MAX_PATH);
+        return n > 0 && n < MAX_PATH ? std::string(system) + "\\curl.exe" : "curl.exe";
+#else
+        std::error_code error;
+        return std::filesystem::exists("/usr/bin/curl", error) ? "/usr/bin/curl" : "curl";
+#endif
+    }
+
+    // A text field of a JSON answer ("" if none), a list of texts, and whether a field is true (the service's
+    // answers are small and of known shapes: online/src/index.js)
+    std::string JsonText(const std::string &json, const std::string &key) {
+        const size_t at = json.find("\"" + key + "\":\"");
+        if (at == std::string::npos) {
+            return "";
+        }
+        std::string out;
+        for (size_t i = at + key.size() + 4; i < json.size() && json[i] != '"'; i++) {
+            if (json[i] == '\\' && i + 1 < json.size()) {
+                i++;
+            }
+            out += json[i];
+        }
+        return out;
+    }
+    std::vector<std::string> JsonList(const std::string &json, const std::string &key) {
+        std::vector<std::string> out;
+        const size_t at = json.find("\"" + key + "\":[");
+        if (at == std::string::npos) {
+            return out;
+        }
+        const size_t end = json.find(']', at);
+        for (size_t i = json.find('"', at + key.size() + 3); i < end && i != std::string::npos;) {
+            const size_t close = json.find('"', i + 1);
+            if (close == std::string::npos || close > end) {
+                break;
+            }
+            out.push_back(json.substr(i + 1, close - i - 1));
+            i = json.find('"', close + 1);
+        }
+        return out;
+    }
+    bool JsonTrue(const std::string &json, const std::string &key) {
+        return json.find("\"" + key + "\":true") != std::string::npos;
+    }
+
+    // The STUN binding request (RFC 5389): what address and port a server sees this socket's packets come from
+    constexpr uint32_t kStunCookie = 0x2112A442;
 } // namespace
 
 // The socket
@@ -186,9 +268,9 @@ bool UdpSocket::Open(int port, std::string &error) {
     return true;
 }
 
-bool UdpSocket::Resolve(const std::string &host, int port, NetAddress &address, std::string &error) {
+bool UdpSocket::Resolve(const std::string &host, int port, NetAddress &address, std::string &error, bool fourOnly) {
     addrinfo hints{}, *found = nullptr;
-    hints.ai_family = AF_UNSPEC;
+    hints.ai_family = fourOnly ? AF_INET : AF_UNSPEC;
     hints.ai_socktype = SOCK_DGRAM;
     if (getaddrinfo(host.c_str(), std::to_string(port).c_str(), &hints, &found) != 0 || !found) {
         error = "cannot find " + host;
@@ -215,6 +297,31 @@ bool UdpSocket::Resolve(const std::string &host, int port, NetAddress &address, 
     return true;
 }
 
+void UdpSocket::Split(const std::string &text, std::string &host, int &port) {
+    host = text;
+    const size_t colon = host.rfind(':');
+    if (colon != std::string::npos && host.find(':') == colon) { // (ADDRESS:PORT; an IPv6 address alone has several)
+        port = atoi(host.c_str() + colon + 1);
+        host = host.substr(0, colon);
+    } else if (host.size() > 2 && host[0] == '[') { // ([IPv6]:PORT)
+        const size_t close = host.find(']');
+        if (close != std::string::npos && close + 1 < host.size() && host[close + 1] == ':') {
+            port = atoi(host.c_str() + close + 2);
+        }
+        host = host.substr(1, close == std::string::npos ? std::string::npos : close - 1);
+    }
+}
+
+int UdpSocket::LocalPort() const {
+    sockaddr_storage address{};
+    socklen_t length = sizeof(address);
+    if (getsockname(static_cast<SocketHandle>(handle), reinterpret_cast<sockaddr *>(&address), &length) != 0) {
+        return 0;
+    }
+    return ntohs(address.ss_family == AF_INET6 ? reinterpret_cast<sockaddr_in6 *>(&address)->sin6_port
+                                               : reinterpret_cast<sockaddr_in *>(&address)->sin_port);
+}
+
 void UdpSocket::Send(const NetAddress &to, const uint8_t *data, size_t size) {
     const bool asFour = !six && to.hasFour;
     sendto(static_cast<SocketHandle>(handle), reinterpret_cast<const char *>(data), static_cast<int>(size), 0,
@@ -239,16 +346,20 @@ int UdpSocket::Receive(uint8_t *data, size_t size, NetAddress &from) {
 // The session
 
 void Netplay::Send(const std::vector<uint8_t> &packet) {
+    SendTo(peer, packet);
+}
+
+void Netplay::SendTo(const NetAddress &to, const std::vector<uint8_t> &packet) {
     if (settings.fakeLoss && static_cast<int>((random = random * 6364136223846793005ull + 1442695040888963407ull) >> 33) % 100 < settings.fakeLoss) {
         return;
     }
     if (settings.fakeLag || settings.fakeJitter) {
         random = random * 6364136223846793005ull + 1442695040888963407ull;
         const int jitter = settings.fakeJitter ? static_cast<int>((random >> 33) % (2 * settings.fakeJitter + 1)) - settings.fakeJitter : 0;
-        late.push_back({NowMs() + static_cast<uint64_t>(std::max(0, settings.fakeLag + jitter)), packet});
+        late.push_back({NowMs() + static_cast<uint64_t>(std::max(0, settings.fakeLag + jitter)), to, packet});
         return;
     }
-    socket.Send(peer, packet.data(), packet.size());
+    socket.Send(to, packet.data(), packet.size());
 }
 
 namespace {
@@ -299,32 +410,305 @@ bool Netplay::Begin(Port &port, std::string &error) {
         greeting = welcome.out;
         waiting = "Waiting for the other player (UDP port " + std::to_string(settings.port) + ")";
     } else {
-        // The host's address: ADDRESS, ADDRESS:PORT, an IPv6 address, or [IPv6]:PORT
-        std::string host = settings.address;
-        int hostPort = settings.port;
-        const size_t colon = host.rfind(':');
-        if (colon != std::string::npos && host.find(':') == colon) {
-            hostPort = atoi(host.c_str() + colon + 1);
-            host = host.substr(0, colon);
-        } else if (host.size() > 2 && host[0] == '[') {
-            const size_t close = host.find(']');
-            if (close != std::string::npos && close + 1 < host.size() && host[close + 1] == ':') {
-                hostPort = atoi(host.c_str() + close + 2);
-            }
-            host = host.substr(1, close == std::string::npos ? std::string::npos : close - 1);
-        }
-        if (!UdpSocket::Resolve(host, hostPort, peer, error)) {
-            return false;
-        }
         Writer hello(kHello);
         hello.U16(kProtocol);
         hello.Text(GAME_ID);
         hello.U32(build);
         greeting = hello.out;
-        joinPort = hostPort;
-        waiting = "Joining " + host + " (UDP port " + std::to_string(hostPort) + ")";
+        // A match's code (K7Q-M2X: six letters and digits), or the host's address
+        joinCode = CodeOf(settings.address);
+        if (!joinCode.empty()) {
+            if (settings.service == "off" || settings.service.empty()) {
+                error = "Joining by a code needs the online service, which --net-service off turned off.";
+                return false;
+            }
+            intro = Intro::Stun;
+            waiting = "Joining match " + Spaced(joinCode);
+        } else {
+            std::string host;
+            int hostPort = settings.port;
+            UdpSocket::Split(settings.address, host, hostPort);
+            if (!UdpSocket::Resolve(host, hostPort, peer, error)) {
+                return false;
+            }
+            candidates = {peer};
+            joinPort = hostPort;
+            waiting = "Joining " + host + " (UDP port " + std::to_string(hostPort) + ")";
+        }
+    }
+    if (settings.hosting && settings.service != "off" && !settings.service.empty()) {
+        intro = Intro::Stun;
+    }
+    if (intro == Intro::Stun) {
+        // (the STUN servers' addresses looked up on another thread: a name can take a while, or fail, offline)
+        stunLookup = std::async(std::launch::async, [] {
+            std::vector<NetAddress> found;
+            for (const auto &[host, port] : {std::pair<const char *, int>{"stun.cloudflare.com", 3478}, {"stun.l.google.com", 19302}}) {
+                NetAddress address;
+                std::string ignored;
+                // (IPv4: the address a router changes, which the other side must be told)
+                if (UdpSocket::Resolve(host, port, address, ignored, true)) {
+                    found.push_back(address);
+                }
+            }
+            return found;
+        });
+        stunBegan = NowMs();
     }
     fprintf(stderr, "online: %s\n", waiting.c_str());
+    return true;
+}
+
+namespace {
+    // The service asked (method, its path after the service's address, a JSON body or none): the status (0: no
+    // answer) and the body, with curl, which is started with no window of its own
+    std::pair<int, std::string> Http(const std::string &method, const std::string &url, const std::string &body) {
+        std::vector<std::string> args = {CurlProgram(), "-sS", "--max-time", "10", "-X", method, "-H", "content-type: application/json",
+                                         "-w", "\n%{http_code}"};
+        if (!body.empty()) {
+            args.push_back("--data-binary");
+            args.push_back(body);
+        }
+        args.push_back(url);
+#ifdef _WIN32
+        // (Windows: curl, a console program, started with no console window; its output through a pipe)
+        std::string command;
+        for (const std::string &arg : args) {
+            std::string quoted = "\"";
+            for (size_t i = 0; i < arg.size(); i++) {
+                size_t slashes = 0;
+                while (i < arg.size() && arg[i] == '\\') {
+                    slashes++, i++;
+                }
+                if (i == arg.size()) {
+                    quoted.append(slashes * 2, '\\');
+                    break;
+                }
+                quoted.append(arg[i] == '"' ? slashes * 2 + 1 : slashes, '\\');
+                quoted += arg[i];
+            }
+            command += (command.empty() ? "" : " ") + quoted + "\"";
+        }
+        SECURITY_ATTRIBUTES inherit{sizeof(inherit), nullptr, TRUE};
+        HANDLE readEnd = nullptr, writeEnd = nullptr;
+        if (!CreatePipe(&readEnd, &writeEnd, &inherit, 0)) {
+            return {0, ""};
+        }
+        SetHandleInformation(readEnd, HANDLE_FLAG_INHERIT, 0);
+        STARTUPINFOA startup{};
+        startup.cb = sizeof(startup);
+        startup.dwFlags = STARTF_USESTDHANDLES;
+        startup.hStdOutput = writeEnd;
+        startup.hStdError = nullptr;
+        startup.hStdInput = nullptr;
+        PROCESS_INFORMATION info{};
+        std::vector<char> commandLine(command.begin(), command.end());
+        commandLine.push_back('\0');
+        const bool started = CreateProcessA(nullptr, commandLine.data(), nullptr, nullptr, TRUE, CREATE_NO_WINDOW, nullptr, nullptr, &startup, &info);
+        CloseHandle(writeEnd);
+        std::string text;
+        int exitCode = -1;
+        if (started) {
+            char buffer[4096];
+            DWORD got = 0;
+            while (ReadFile(readEnd, buffer, sizeof(buffer), &got, nullptr) && got > 0) {
+                text.append(buffer, got);
+            }
+            WaitForSingleObject(info.hProcess, INFINITE);
+            DWORD code = 0;
+            GetExitCodeProcess(info.hProcess, &code);
+            exitCode = static_cast<int>(code);
+            CloseHandle(info.hProcess);
+            CloseHandle(info.hThread);
+        }
+        CloseHandle(readEnd);
+#else
+        std::vector<const char *> argv;
+        for (const std::string &arg : args) {
+            argv.push_back(arg.c_str());
+        }
+        argv.push_back(nullptr);
+        const SDL_PropertiesID properties = SDL_CreateProperties();
+        SDL_SetPointerProperty(properties, SDL_PROP_PROCESS_CREATE_ARGS_POINTER, argv.data());
+        SDL_SetNumberProperty(properties, SDL_PROP_PROCESS_CREATE_STDOUT_NUMBER, SDL_PROCESS_STDIO_APP);
+        SDL_SetNumberProperty(properties, SDL_PROP_PROCESS_CREATE_STDERR_NUMBER, SDL_PROCESS_STDIO_NULL);
+        SDL_Process *process = SDL_CreateProcessWithProperties(properties);
+        SDL_DestroyProperties(properties);
+        if (!process) {
+            return {0, ""};
+        }
+        size_t size = 0;
+        int exitCode = 0;
+        char *out = static_cast<char *>(SDL_ReadProcess(process, &size, &exitCode));
+        SDL_DestroyProcess(process);
+        std::string text = out ? std::string(out, size) : "";
+        SDL_free(out);
+#endif
+        if (getenv("CPS2RECOMP_NET_DEBUG")) {
+            fprintf(stderr, "online: %s %s: curl %d: %s\n", method.c_str(), url.c_str(), exitCode, text.c_str());
+        }
+        const size_t line = text.rfind('\n');
+        if (exitCode != 0 || line == std::string::npos) {
+            return {0, ""};
+        }
+        return {atoi(text.c_str() + line + 1), text.substr(0, line)};
+    }
+} // namespace
+
+std::string Netplay::Addresses() const {
+    // (where the internet saw this socket, and its address on each of this machine's networks)
+    std::vector<std::string> list;
+    if (!seenAs.empty()) {
+        list.push_back(seenAs);
+    }
+    for (const launcher::LocalAddress &here : launcher::local_addresses()) {
+        list.push_back(here.address + ":" + std::to_string(socket.LocalPort()));
+    }
+    std::string json = "[";
+    for (size_t i = 0; i < list.size() && i < 8; i++) {
+        json += (i ? ",\"" : "\"") + list[i] + "\"";
+    }
+    return json + "]";
+}
+
+bool Netplay::TakeStun(const uint8_t *data, int size) {
+    // A binding success (0x0101) for our request: its XOR-MAPPED-ADDRESS (0x0020), IPv4
+    if (size < 20 || data[0] != 0x01 || data[1] != 0x01 || memcmp(data + 8, stunId.data(), 12) != 0) {
+        return false;
+    }
+    for (int at = 20; at + 4 <= size;) {
+        const int type = data[at] << 8 | data[at + 1], length = data[at + 2] << 8 | data[at + 3];
+        if (type == 0x0020 && length >= 8 && at + 12 <= size && data[at + 5] == 0x01) {
+            const int port = (data[at + 6] << 8 | data[at + 7]) ^ (kStunCookie >> 16);
+            const uint32_t ip = (static_cast<uint32_t>(data[at + 8]) << 24 | data[at + 9] << 16 | data[at + 10] << 8 | data[at + 11]) ^ kStunCookie;
+            seenAs = std::to_string(ip >> 24) + "." + std::to_string((ip >> 16) & 0xFF) + "." + std::to_string((ip >> 8) & 0xFF) + "." +
+                     std::to_string(ip & 0xFF) + ":" + std::to_string(port);
+            return true;
+        }
+        at += 4 + ((length + 3) & ~3);
+    }
+    return true;
+}
+
+// A step of the introduction (see Intro); false and `error` when joining by a code cannot go on
+bool Netplay::Introduce(uint64_t now, std::string &error) {
+    const std::string service = settings.service;
+    const auto ask = [&](const std::string &method, const std::string &path, const std::string &body) {
+        askedAt = now;
+        asking = std::async(std::launch::async, [method, url = service + path, body] {
+            const auto [status, text] = Http(method, url, body);
+            return HttpAnswer{status, text};
+        });
+    };
+    const auto answered = [&] { return asking.valid() && asking.wait_for(std::chrono::seconds(0)) == std::future_status::ready; };
+    const std::string about = "\"game\":\"" GAME_ID "\",\"build\":\"" + std::to_string(build) + "\"";
+    if (getenv("CPS2RECOMP_NET_DEBUG")) {
+        static int last = -1;
+        if (last != static_cast<int>(intro)) {
+            fprintf(stderr, "online: intro %d, stun servers %zu, seen as '%s'\n", static_cast<int>(intro), stunServers.size(), seenAs.c_str());
+            last = static_cast<int>(intro);
+        }
+    }
+    switch (intro) {
+    case Intro::Off:
+    case Intro::Done: return true;
+    case Intro::Stun:
+        if (stunServers.empty() && stunLookup.valid() && stunLookup.wait_for(std::chrono::seconds(0)) == std::future_status::ready) {
+            stunServers = stunLookup.get();
+        }
+        if (seenAs.empty() && now - stunBegan < 3000) {
+            if (!stunServers.empty() && now - stunSent > 400) {
+                // (a binding request: a type, no length, the cookie and a transaction id of our own)
+                for (uint8_t &b : stunId) {
+                    b = static_cast<uint8_t>((random = random * 6364136223846793005ull + 1442695040888963407ull) >> 56);
+                }
+                std::vector<uint8_t> request = {0x00, 0x01, 0x00, 0x00, 0x21, 0x12, 0xA4, 0x42};
+                request.insert(request.end(), stunId.begin(), stunId.end());
+                for (const NetAddress &server : stunServers) {
+                    socket.Send(server, request.data(), request.size());
+                }
+                stunSent = now;
+            }
+            return true;
+        }
+        // (with where the internet sees us, or without: then only the addresses of this machine's networks)
+        if (settings.hosting) {
+            ask("POST", "/v1/host", "{" + about + ",\"addresses\":" + Addresses() + "}");
+        } else {
+            ask("POST", "/v1/join/" + joinCode, "{" + about + ",\"addresses\":" + Addresses() + "}");
+        }
+        intro = Intro::Asking;
+        return true;
+    case Intro::Asking: {
+        if (!answered()) {
+            return true;
+        }
+        const HttpAnswer answer = asking.get();
+        if (settings.hosting) {
+            if (answer.status == 200 && !JsonText(answer.body, "code").empty()) {
+                code = Spaced(JsonText(answer.body, "code"));
+                secret = JsonText(answer.body, "secret");
+                waiting = "Match code " + code + ": waiting for the other player";
+                fprintf(stderr, "online: the match's code is %s%s\n", code.c_str(), seenAs.empty() ? "" : (" (seen at " + seenAs + ")").c_str());
+                intro = Intro::Polling;
+            } else {
+                fprintf(stderr, "online: no code: the online service did not answer (%d)\n", answer.status);
+                intro = Intro::Off; // (the host's address still works)
+            }
+            return true;
+        }
+        if (answer.status == 200) {
+            for (const std::string &text : JsonList(answer.body, "addresses")) {
+                std::string host;
+                int port = 0;
+                NetAddress address;
+                std::string ignored;
+                UdpSocket::Split(text, host, port);
+                if (port && UdpSocket::Resolve(host, port, address, ignored)) {
+                    candidates.push_back(address);
+                }
+            }
+            if (candidates.empty()) {
+                error = "The host of that match can't be reached.";
+                return false;
+            }
+            fprintf(stderr, "online: match %s: trying %zu of the host's addresses\n", Spaced(joinCode).c_str(), candidates.size());
+            began = now; // (30 seconds from here to hear from the host)
+            intro = Intro::Done;
+            return true;
+        }
+        error = answer.status == 404   ? "There's no match with the code " + Spaced(joinCode) + " (codes last 30 minutes)."
+                : answer.status == 409 ? JsonText(answer.body, "error")
+                                       : "Couldn't reach the online service (is this machine on the internet?).";
+        return false;
+    }
+    case Intro::Polling:
+        // (hosting: asked every second and a half until someone has joined; then their addresses are sent to)
+        if (asking.valid()) {
+            if (!answered()) {
+                return true;
+            }
+            const HttpAnswer answer = asking.get();
+            if (answer.status == 200 && JsonTrue(answer.body, "joined")) {
+                for (const std::string &text : JsonList(answer.body, "addresses")) {
+                    std::string host;
+                    int port = 0;
+                    NetAddress address;
+                    std::string ignored;
+                    UdpSocket::Split(text, host, port);
+                    if (port && UdpSocket::Resolve(host, port, address, ignored)) {
+                        candidates.push_back(address);
+                    }
+                }
+                intro = Intro::Done;
+                return true;
+            }
+        }
+        if (now - askedAt > 1500) {
+            ask("GET", "/v1/host/" + code.substr(0, 3) + code.substr(4) + "?secret=" + secret, "");
+        }
+        return true;
+    }
     return true;
 }
 
@@ -333,10 +717,13 @@ int Netplay::Waiting(Port &port, std::string &error) {
     uint8_t packet[2048];
     NetAddress from;
     const uint64_t now = NowMs();
+    if (!Introduce(now, error)) {
+        return -1;
+    }
     if (settings.hosting) {
         int got;
         while ((got = socket.Receive(packet, sizeof(packet), from)) >= 0) {
-            if (got < 5 || memcmp(packet, kMagic, 4)) {
+            if (TakeStun(packet, got) || got < 5 || memcmp(packet, kMagic, 4)) {
                 continue;
             }
             Reader in(packet, static_cast<size_t>(got));
@@ -382,20 +769,38 @@ int Netplay::Waiting(Port &port, std::string &error) {
             Send(greeting);
             sent = now;
         }
+        // (someone joined by the code: packets their way, which open this side's router to their hello)
+        if (!found && !candidates.empty() && now - punchedAt > 250) {
+            Writer punch(kPunch);
+            for (const NetAddress &to : candidates) {
+                SendTo(to, punch.out);
+            }
+            punchedAt = now;
+        }
         return 0;
     }
-    // Joining: the hello every quarter second until the welcome comes (for 30 seconds)
+    // Joining: the hello every quarter second to each of the host's addresses until the welcome comes (for 30 seconds)
+    if (intro != Intro::Off && intro != Intro::Done) {
+        int got;
+        while ((got = socket.Receive(packet, sizeof(packet), from)) >= 0) {
+            TakeStun(packet, got);
+        }
+        return 0;
+    }
     if (now - began > 30000) {
-        error = "The host did not answer. Is it waiting, and can this machine reach it on UDP port " + std::to_string(joinPort) + "?";
+        error = joinCode.empty() ? "The host did not answer. Is it waiting, and can this machine reach it on UDP port " + std::to_string(joinPort) + "?"
+                                 : "The host of match " + Spaced(joinCode) + " couldn't be reached through the two networks' routers.";
         return -1;
     }
     if (now - sent > 250) {
-        Send(greeting);
+        for (const NetAddress &to : candidates) {
+            SendTo(to, greeting);
+        }
         sent = now;
     }
     int got;
     while ((got = socket.Receive(packet, sizeof(packet), from)) >= 0) {
-        if (got < 5 || memcmp(packet, kMagic, 4)) {
+        if (TakeStun(packet, got) || got < 5 || memcmp(packet, kMagic, 4)) {
             continue;
         }
         Reader in(packet, static_cast<size_t>(got));
@@ -520,7 +925,7 @@ void Netplay::Take(const uint8_t *data, size_t size) {
 void Netplay::Pump() {
     const uint64_t now = NowMs();
     while (!late.empty() && late.front().due <= now) {
-        socket.Send(peer, late.front().data.data(), late.front().data.size());
+        socket.Send(late.front().to, late.front().data.data(), late.front().data.size());
         late.pop_front();
     }
 }
