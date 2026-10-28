@@ -313,6 +313,10 @@ void SetFeatureValue(const char *name, int value) {
     KeepFirstPage(name, on);
 }
 
+void SetFeatureForNow(const char *name, int value) {
+    g_on[name] = value;
+}
+
 void ResetFeatures() {
     // (every feature as the launcher's default preset, Enhanced, has it)
     const std::vector<recomp::FeatureInfo> features = FeatureList();

@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+- **Online play, a first version** (#70): `--host [PORT]` and `--join ADDRESS[:PORT]` (after the launcher's
+  `--play ID --`) play a match between two machines over UDP, with rollback: each side's own controls held back 2
+  frames (`--net-delay`), the other's guessed up to 8 frames and the frames guessed wrong run again unseen and
+  unheard (`port/netplay.h`). The two make sure they are the same game and build; the joining side takes the
+  host's board settings and the features that change play, for the match only; each side keeps time with the
+  other; and every 60 frames they compare a hash of the game, stopping on a desync. The menu, save states, speed,
+  run-ahead and the other modes are off during a match. `make GAME=<id> check-online` (`tools/check_online.sh`)
+  plays two copies against each other on one machine over a bad connection made up (`--net-fake`), and replays the
+  host's record of both players' controls (`--record`) without the network to check the match is what they did
+  (`--hash-no-sound`: the state hash without the sound side, as online play's); every game passes.
 - **Getting ready for online play** (#70): `make GAME=<id> check-rollback` (`tools/check_rollback.sh`,
   `--rollback-test SEED`) runs made-up play as online play's rollback would, the other players' controls late and
   guessed and the frames guessed wrong put back and run again, and checks that it goes exactly as without. Every
