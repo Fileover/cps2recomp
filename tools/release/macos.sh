@@ -10,7 +10,8 @@
 set -eu
 . "$(dirname "$0")/lib.sh"
 BUILD="$ROOT/build/release-macos"
-ARCH="-DCMAKE_OSX_DEPLOYMENT_TARGET=13.0 -DCMAKE_OSX_ARCHITECTURES=arm64;x86_64"
+# (MAC_ARCHS=arm64: Apple silicon alone, for CI's pull requests, which are not releases)
+ARCH="-DCMAKE_OSX_DEPLOYMENT_TARGET=13.0 -DCMAKE_OSX_ARCHITECTURES=${MAC_ARCHS:-arm64;x86_64}"
 sdl_static macos $ARCH
 build_programs "$BUILD" $ARCH -DCMAKE_PREFIX_PATH="$DEPS/sdl-macos"
 

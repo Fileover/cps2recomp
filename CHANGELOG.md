@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+- **CI is quicker**: SDL 3, librashader and the shader presets are built once and kept between runs (by the scripts
+  that make them), the compiler's objects too (ccache); a pull request's Mac build is Apple silicon alone
+  (`MAC_ARCHS`); a change of words only (the README, `docs/`) runs the audit and builds nothing; and a pull request's
+  older run stops when a newer commit comes.
+
 ## 1.0.0
 
 The first full release, no longer a beta. **Online play** for every game: rollback netcode, matches hosted with a code
