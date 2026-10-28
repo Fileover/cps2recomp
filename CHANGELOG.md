@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- **Online play with a code, anywhere**: Host gives a match code (`K7Q-M2X`) that the other player types into Join;
+  nothing needs forwarding on either router. A small service (`online/`, a Cloudflare Worker) introduces the two:
+  each game asks a STUN server what address the internet sees its socket at, the host registers with the service and
+  is given the code, and the other player, giving the code, is told the host's addresses and the host theirs; then
+  both send to each other's until one answers (UDP hole punching). Nothing of the match goes through the service.
+  `--join` takes a code or an address; `--net-service URL` (or `off`). The game asks the service with the system's
+  curl, as the launcher's updates do (no console window on Windows).
 - **Online play from the launcher**: a game's page has an **Online** card under Play, with **Host** (and the
   addresses this machine can be joined at: the home network's, Tailscale's) and **Join** (the host's address, kept
   for next time). The game's window opens at once and says it is waiting for the other player, or joining the host,

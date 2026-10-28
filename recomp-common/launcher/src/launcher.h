@@ -71,6 +71,7 @@ struct Online {
     const char *host_argument = nullptr; // "--host"
     const char *join_argument = nullptr; // "--join"
     int port = 0;                        // the UDP port the host waits on, as the card says it (0: none said)
+    bool codes = false;                  // the game gives a host a code to hand out, which Join takes as well as an address
     const char *detail = "";             // the card's first lines: what a match is
 };
 

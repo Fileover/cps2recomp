@@ -1461,7 +1461,9 @@ void Usage() {
             "                         and guessed, and the frames guessed wrong run again (--hash-log must not change)\n"
             "  --host [PORT]          online play: wait for the other player (on UDP port PORT, 7845 unless said);\n"
             "                         the host is player 1, and its board settings and play features are the match's\n"
-            "  --join ADDRESS[:PORT]  online play: go to the host at ADDRESS (player 2)\n"
+            "  --join ADDRESS[:PORT]  online play: go to the host at ADDRESS (player 2), or CODE: the match the host's\n"
+            "                         code names (the online service says where the host is)\n"
+            "  --net-service URL      the online service that gives hosts codes (online/), or off\n"
             "  --net-delay N          (hosting) frames each player's controls are held back, 2 unless said (0-8)\n"
             "  --net-fake MS[:JIT[:LOSS]]  (tests) each packet sent MS ms late, give or take JIT, LOSS in 100 lost\n"
             "  --test-switch FROM:TO  the operator's test switch held from frame FROM to TO\n"
@@ -1586,6 +1588,8 @@ bool ParseArgs(int argc, char **argv, port::Options &o) {
         } else if (a == "--join") {
             o.online = true;
             o.net.address = next();
+        } else if (a == "--net-service") {
+            o.net.service = next();
         } else if (a == "--net-delay") {
             o.net.delay = atoi(next());
         } else if (a == "--net-fake") {
