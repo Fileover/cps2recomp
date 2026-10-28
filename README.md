@@ -257,6 +257,8 @@ cps2recomp-launcher --play sfa3 -- --join K7Q-M2X          # the other player: t
 - **Coming back after a drop**: if the other player's game closes or their connection drops, the host's game stays
   open and waits for them with the same code; a joining player whose connection dropped is taken back to the host by
   itself. The two games then start over together from the title. (The host closing their game ends the match.)
+- **Win streaks**: in the fighting games, a player who wins two or more matches in a row against the other has it
+  said under their life bar ("STREAK 3"), counted from when both have pressed Start, until the streak ends.
 - **Leaving a match**: Esc, or the gamepad's menu button, asks **Leave the match?** over the game (which goes on);
   Confirm leaves, Back stays.
 - **Off during a match**: the cheats (on both sides, for a fair match), the in-game menu, save states, pause, the speed, run-ahead, the training mode and the

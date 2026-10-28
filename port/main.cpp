@@ -11,6 +11,7 @@
 #include "../runtime/state.h"
 #include "hud.h"
 #include "../runtime/board.h"
+#include "../fight/battle.h"
 #include "png_write.h"
 #include "present.h"
 #include "../runtime/spare.h"
@@ -786,6 +787,24 @@ void Port::Shown(std::vector<uint32_t> &pixels, std::vector<SDL_Rect> *panels) c
     if (*zoom.Label()) {
         status(zoom.Label(), said * 14);
     }
+    // (online: a win streak of two or more under its side's life bar)
+    if (net && !connecting) {
+        const recomp::text::Canvas canvas{pixels.data(), across, Video::kHeight};
+        for (int side = 0; side < 2; side++) {
+            if (streak[side] < 2) {
+                continue;
+            }
+            char text[32];
+            snprintf(text, sizeof(text), "STREAK %d", streak[side]);
+            const float width = recomp::text::TextWidth(text, 1);
+            const float x = side == 0 ? 10.0f : across - 10.0f - width, y = 38.0f;
+            canvas.Fill(x - 3, y - 2, width + 6, 12, {20, 22, 30, 220});
+            canvas.Text(x, y, 1, 0, {255, 210, 80, 255}, text);
+            if (panels) {
+                panels->push_back({static_cast<int>(x) - 3, static_cast<int>(y) - 2, static_cast<int>(width) + 7, 12});
+            }
+        }
+    }
     // (online: Esc's question, in the middle, over the game, which goes on; the port's own, not the readout, which the
     // game's sources set every frame)
     if (net && leaving) {
@@ -1234,6 +1253,36 @@ void Port::RunAhead() {
     memcpy(machine->players, held, sizeof(held));
 }
 
+// Online: a round's result, the frame it comes (once: a second's quiet after it before the next, so that a frame run
+// again in a rollback is not counted twice), and a match won when a player has won its rounds
+void Port::Streaks() {
+    const int result = battle::RoundResultNow();
+    if (result < 0) {
+        return; // (not a fighting game)
+    }
+    if (result == 0) {
+        if (++roundQuiet >= 60) {
+            roundCounted = false;
+        }
+        return;
+    }
+    roundQuiet = 0;
+    if (roundCounted) {
+        return;
+    }
+    roundCounted = true;
+    if (result == 3 || !cameIn || !otherIn) {
+        return; // (a draw; or a fight against the computer, before both have come in)
+    }
+    const int winner = result - 1;
+    if (++roundsWon[winner] >= battle::RoundsToWin()) {
+        streak[winner]++;
+        streak[1 - winner] = 0;
+        roundsWon[0] = roundsWon[1] = 0;
+        fprintf(stderr, "online: player %d won the match (%d in a row)\n", winner + 1, streak[winner]);
+    }
+}
+
 // Online play (netplay.h): the other side found and agreed with before the first frame; with a window, a step a tick
 // (Tick), the wait shown on the screen, and without, here
 bool Port::StartOnline(std::string &error) {
@@ -1287,7 +1336,9 @@ void Port::Again(const std::string &why) {
 
 void Port::Matched() {
     connecting = false;
-    cameIn = false;
+    cameIn = otherIn = false;
+    streak[0] = streak[1] = roundsWon[0] = roundsWon[1] = 0;
+    roundCounted = false;
     rejoin.clear();
     frame = 0; // (the match's frames count from its start, on both sides)
     // (the hashes compared leave out the picture: frames run again are not drawn)
@@ -1399,6 +1450,8 @@ void Port::RunFrame() {
     if (net) {
         net->Frame(*this, pressed[0]); // (this side's player plays with player 1's controls)
         cameIn = cameIn || (pressed[0] & kStart);
+        otherIn = otherIn || (machine->players[1 - net->Local()] & kStart);
+        Streaks();
     } else if (opt.rollbackTest) {
         RollbackFrame(pressed);
     } else {

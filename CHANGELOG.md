@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- **Online: win streaks.** In the fighting games, "STREAK N" under a side's life bar once it has won two or more
+  matches in a row against the other player (counted when both have pressed Start; a match is won with
+  `battle::Description::roundsToWin` rounds, 2 unless a game says: X-Men vs. Street Fighter's tag match, 1). The round's
+  result comes from the fighting toolkit (`battle::RoundResultNow`); each is counted once, a second's quiet before
+  the next, so a frame rollback runs again is not counted twice. Both machines count alike.
 - **Online: the cheats are off during a match**, on both sides (no damage for the host's player made it no match);
   the host's Game and Board features still carry over. **Join with a code** on the launcher's Online page: a code for
   a match in any of the games, Join; the service says which game it is for (`GET /v1/code/CODE`) and the launcher
