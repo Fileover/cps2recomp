@@ -4,10 +4,9 @@
 // Marvel Super Heroes vs. Street Fighter: the training session is the toolkit's (fight/session.h); this says where the game keeps
 // what it needs. What the players do (each player's step of a fight, for the frame data; a hit landing; the boxes as
 // the game's hit tests read them) is told from the game's own code by the engine's shared code (fight/marvel.h), at
-// the character's step (00BE56, once a step for each of the four, the point characters first of their sides). A
-// side's two characters take turns in the first two records (a tag or a knockout swaps the records: mshvsf.h), so the
-// session follows the character on point; the one resting is looked after here (its health refilled with the point
-// character's).
+// the character's step (00BE56, once a step for each of the four, the first characters first). A side's
+// two characters keep records of their own, and the game says which is on point (mshvsf.h), so the session follows the
+// character on point; the one resting is looked after here (its health refilled with the point character's).
 #include "alternative.h"
 #include "fight.h"
 #include "marvel.h"

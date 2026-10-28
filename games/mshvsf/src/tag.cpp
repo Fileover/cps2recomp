@@ -20,8 +20,8 @@ namespace {
     // A byte of each choosing record (kChoosing): the picks taken, 0-2 (counted up as each is taken: 00A66E; traced
     // through choosing). Its first byte, the record's step, is 0 while the side is not choosing.
     constexpr uint32_t kPicksTaken = 0x03;
-    // A byte of the point character's record (FF3800, FF3C00): which of the side's picks it is (0 the first, 1 the second),
-    // swapped at a tag or a knock-out with the records' contents (traced through a tag: HP+HK, 14 frames to the swap)
+    // A byte of a character's record (FF3800, FF3C00): which of the side's picks it is (0 the first, 1 the second);
+    // read from the record on point (the records are not swapped at a tag: traced through the tag-team movies)
     constexpr uint32_t kWhichPick = 0x260;
 } // namespace
 

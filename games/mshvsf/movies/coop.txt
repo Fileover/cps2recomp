@@ -1,5 +1,5 @@
 # cps2recomp input movie: frame player1 player2 player3 player4 (pressed bits, hex)
-# co-op vs. computer: P2's Start; P1 chooses first, P2 second; P2 tags in, P1 tags back, a team super (P1 on the right, facing left), then P1 fights on. Run with --features free_play,tag_team=1 --poke FF4214=03 (the gauge full)
+# co-op vs. computer: P2's Start; P1 chooses first, P2 second; P2 tags in, P1 tags back, a team super (P1 on the right, facing left), then P1 fights on. Run with --features free_play,tag_team=1 --poke FF3A54=03 (the gauge full)
 0 0000 0000 0000 0000
 1200 0000 0400 0000 0000
 1206 0000 0000 0000 0000

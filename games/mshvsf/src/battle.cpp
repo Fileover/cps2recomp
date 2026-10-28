@@ -3,7 +3,7 @@
 //
 // Marvel Super Heroes vs. Street Fighter: the fighting modes of the menu's "Alternative modes" page (survival, the endless battle,
 // the ring out) are the toolkit's (fight/battle.h); this says where the game keeps what they need. A side is a team of
-// two here: the modes follow the character on point (the first two records, mshvsf.h), and a match is one round, won
+// two here: the modes follow the character on point (the record the game says, mshvsf.h), and a match is one round, won
 // when both of a side's characters are down. The ring out's own movements at a character's step are the engine's
 // shared code (fight/marvel.h, at the hook training.cpp places).
 #include "alternative.h"
