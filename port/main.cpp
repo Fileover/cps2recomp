@@ -691,7 +691,8 @@ bool Port::Tick() {
     }
     if (FastForward()) {
         // The game's sources are taking the game somewhere: as fast as it goes, a slice at a time
-        for (int n = 0; n < 120 && FastForward(); n++) {
+        // (no further than --frames asks)
+        for (int n = 0; n < 120 && FastForward() && (opt.frames == 0 || frame < opt.frames); n++) {
             RunFrame();
             machine->audio.clear();
         }
