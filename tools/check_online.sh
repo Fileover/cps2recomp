@@ -5,7 +5,8 @@
 # Online play (issue #70, port/netplay.h) between two copies of the game on this machine: one hosts, the other
 # joins it over localhost, each with made-up play for its own player, every packet sent late (50 ms, give or take 25)
 # and one in twenty lost (--net-fake), so that the guesses go wrong and frames are rolled back. The host has every
-# feature that changes play on and the joining side none, so the joining side must take the host's. Both write a
+# feature that changes play on and the joining side none, so the joining side must take the host's (and both turn
+# off the cheats). Both write a
 # frame's state hash once it has both players' real controls (--hash-log); the two logs must be the same, and
 # neither side may stop on a desync. And the host's record of both players' controls (--record), replayed without the
 # network, must give the same hashes: each player's controls drove their own player. At the board's pace: FRAMES
@@ -25,6 +26,9 @@ rm -f "$work/online-host.txt" "$work/online-join.txt" "$work/online-host.eeprom"
 play=$("build/$GAME/$GAME" --list-features 2>&1 | awk -F'\t' '($2=="Game"||$2=="Cheats"||$2=="Display") && NF==5 &&
     $1 !~ /^(display_|window_size|run_ahead|custom_soundtrack|widescreen_walls|custom_colours)/ {print $1}' | paste -sd, -)
 play="${play:+$play,}widescreen"
+# (the match has them but for the cheats, which are off on both sides: the replay is given the same)
+cheats=$("build/$GAME/$GAME" --list-features 2>&1 | awk -F'\t' '$2=="Cheats" {print $1}')
+match=$(printf '%s\n' "$play" | tr ',' '\n' | grep -vxF "$cheats" | paste -sd, -)
 port=$((7900 + RANDOM % 1000))
 side() { # host | join, then the program's arguments
     name=$1; shift
@@ -52,7 +56,7 @@ else
 fi
 # And the match is what the game does with those controls: both players' (--record), replayed without the network
 : > "$work/online-replay.ini"
-"build/$GAME/$GAME" --rom "$ROM" --headless --frames "$lines" --settings "$work/online-replay.ini" --features "$play" \
+"build/$GAME/$GAME" --rom "$ROM" --headless --frames "$lines" --settings "$work/online-replay.ini" --features "$match" \
     --movie "$work/online-host.mov" --hash-log "$work/online-replay.txt" --hash-no-picture --hash-no-sound 2> /dev/null
 if cmp -s <(head -n "$lines" "$work/online-host.txt") <(head -n "$lines" "$work/online-replay.txt"); then
     echo "ok: the match the same as both players' controls replayed without the network"
