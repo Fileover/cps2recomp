@@ -9,6 +9,12 @@ ARM64 included) and Windows, in one download with one launcher.** Each game's pr
 into C++ and runs on a machine written for this project, not an emulator. The fighting games add a full training
 mode, online play with rollback, widescreen and new modes; the beat-'em-ups take three players at once.
 
+![Training mode in Street Fighter Alpha 2, in widescreen: hit boxes, input displays, the damage readout and the frame meter](docs/screenshots/sfa2/training.gif)
+
+![The model viewer: a character by itself, at any size, going through its animations](docs/screenshots/sfa2/model-viewer.gif)
+
+![The colour editor: one character in nine colourings of your own](docs/screenshots/colour-editor-3x3.png)
+
 **[Get started →](#getting-started)**
 
 > **Beta.** Every game's code is checked instruction by instruction, but the games have been played on few machines
@@ -16,8 +22,6 @@ mode, online play with rollback, widescreen and new modes; the beat-'em-ups take
 
 **No game files are included.** You need your own copy of each game: its arcade ROM set (a CPS-2 game's with its key
 file). Only the version named below works for each game, and this project cannot help you get one.
-
-![The launcher: every game whose ROM set you have, ready to play](docs/screenshots/launcher-games.png)
 
 ## The games
 
@@ -97,6 +101,8 @@ each other.
 
 ## Getting started
 
+![The launcher: every game whose ROM set you have, ready to play](docs/screenshots/launcher-games.png)
+
 1. Download the build for your system from the [releases page](https://github.com/tmcleroy/cps2recomp/releases) and
    unpack it.
 2. Open the launcher (`CPS-2 Recomp.app`, `cps2recomp-launcher`). On its Games page, **Choose folder…** and pick the
@@ -160,8 +166,6 @@ from any game, ever, and never a key). Security reports go by [SECURITY.md](SECU
 | --- | --- |
 | [satrecomp](https://github.com/tmcleroy/satrecomp) | The same kind of toolkit for Sega Saturn games |
 | [recomp-common](https://github.com/tmcleroy/recomp-common) | The in-game menu, settings and launcher this project and satrecomp share |
-| [Muscle March Recomp](https://github.com/tmcleroy/muscle-march-recomp) | A native port of *Muscle March* (WiiWare), by the same author |
-| [doaxvb-re](https://github.com/NoRain211/doaxvb-re) | A native Windows port of *Dead or Alive Xtreme Beach Volleyball* (Xbox), by NoRain211 |
 
 ## License and credits
 
