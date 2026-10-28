@@ -523,6 +523,22 @@ std::vector<size_t> App::titled() const {
     return list;
 }
 
+bool App::installed_only() const {
+    return collection_ && prefs_.get("games", "installed_only") == "1" && !titled().empty();
+}
+
+bool App::shown(size_t which) const {
+    const Slot& one = *slots_[which];
+    if (!one.has_program()) {
+        return false;
+    }
+    if (!installed_only()) {
+        return true;
+    }
+    std::lock_guard<std::mutex> lock(mutex_);
+    return !one.file_path.empty() && (one.checking || one.file.usable());
+}
+
 int App::fixed_pages() const {
     return collection_ ? (collection_->multi.empty() ? 3 : 4) : 0;
 }
@@ -1618,10 +1634,29 @@ void App::library_page(float width) {
     ui::gap(10);
     Card games(width);
     bool first = true;
+    // Only the games the player has, for one who plays one or two of them (once one is set up)
+    if (!titled().empty()) {
+        const bool only = installed_only();
+        size_t hidden = 0;
+        for (size_t which = 0; which < slots_.size(); which++) {
+            hidden += slots_[which]->has_program() && !shown(which);
+        }
+        std::string detail = !only ? std::string("Leave out the games you have not set up, here and on the Features and Controllers pages.")
+                             : hidden == 0 ? std::string("Every game is set up.")
+                                           : std::to_string(hidden) + (hidden == 1 ? " game you have not set up is" : " games you have not set up are") +
+                                                 " left out. Choose folder… above still finds them.";
+        row(width, "Only the games you have", detail.c_str(), 42.0f, 24.0f, [&] {
+            if (ui::toggle("##installed-only", only)) {
+                prefs_.set("games", "installed_only", only ? "0" : "1");
+                prefs_.save();
+            }
+        });
+        first = false;
+    }
     for (size_t which : order_) {
         Slot& one = *slots_[which];
-        if (!one.has_program()) {
-            continue;  // (not in this build)
+        if (!shown(which)) {
+            continue;  // (not in this build, or not set up and left out)
         }
         if (!first) {
             inset_separator(width);
@@ -2309,20 +2344,31 @@ void App::features_page(float width) {
     for (size_t which = 0; which < slots_.size(); which++) {
         values[which] = recomp::FeatureValues(slots_[which]->settings, slots_[which]->features);
     }
+    // (the games shown: with only the player's games, a feature none of them has is left out, and the notes name
+    // theirs alone; what is chosen is still set for every game that has it)
     size_t here = 0;
-    for (const auto& one : slots_) {
-        here += one->has_program();
+    for (size_t which = 0; which < slots_.size(); which++) {
+        here += shown(which);
     }
     std::vector<FeatureRow> rows;
     for (size_t i = 0; i < shared_.size(); i++) {
         const Shared& shared = shared_[i];
-        int value = values[shared.where[0].first][shared.where[0].second];
-        bool differ = std::any_of(shared.where.begin(), shared.where.end(), [&](const auto& at) { return values[at.first][at.second] != value; });
+        std::vector<std::pair<size_t, size_t>> where;
+        for (const auto& at : shared.where) {
+            if (shown(at.first)) {
+                where.push_back(at);
+            }
+        }
+        if (where.empty()) {
+            continue;
+        }
+        int value = values[where[0].first][where[0].second];
+        bool differ = std::any_of(where.begin(), where.end(), [&](const auto& at) { return values[at.first][at.second] != value; });
         std::string note;
-        if (shared.where.size() < here) {
+        if (where.size() < here) {
             note = "Only in ";
-            for (size_t k = 0; k < shared.where.size(); k++) {
-                note += (k == 0 ? "" : k + 1 == shared.where.size() ? " and " : ", ") + slots_[shared.where[k].first]->name;
+            for (size_t k = 0; k < where.size(); k++) {
+                note += (k == 0 ? "" : k + 1 == where.size() ? " and " : ", ") + slots_[where[k].first]->name;
             }
             note += ".";
         }
@@ -2739,9 +2785,12 @@ void App::controllers_page(float width) {
         // A collection's: every game's layout, or a game's, which may be one of its own
         std::vector<size_t> own_able;
         for (size_t which : order_) {
-            if (has_own_layout(which) && slots_[which]->has_program()) {
+            if (has_own_layout(which) && shown(which)) {
                 own_able.push_back(which);
             }
+        }
+        if (bind_slot_ >= 0 && !shown(static_cast<size_t>(bind_slot_))) {
+            bind_slot_ = -1;  // (a game left out since)
         }
         if (!own_able.empty()) {
             Card games(width);
