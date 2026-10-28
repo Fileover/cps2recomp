@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- **The README, much shorter**, with a page for each big feature: `docs/TRAINING.md`, `ONLINE.md`, `MODES.md`,
+  `PICTURE.md`, `SOUNDTRACK.md`, `LAUNCHER.md`, with screenshots (the Alternative modes menu, survival, ring out, the tag
+  team battle, the stage viewer, the launcher's Games, Features, Multi game and Online pages, taken anew). **The lobby
+  follows your name** (recomp-common #30): with Your name set, a match you host is listed; without, it's joined only by
+  its code. The Online card's separate switch is gone.
 - **Another game: Marvel vs. Capcom: Clash of Super Heroes** (`games/mvsc`, issue #135; ROM set `mvsc`, *Marvel Vs.
   Capcom: Clash of Super Heroes*, Europe 980123, the parent set and the one competitive play uses), the last Marvel game
   on the board, made from Marvel Super Heroes vs. Street Fighter's program and on the same shared engine

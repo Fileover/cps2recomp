@@ -29,4 +29,7 @@ infinite time).
 Super Puzzle Fighter II Turbo has a training mode of its own: an attack readout, a landing guide, an input display, a
 dummy that sends counter gems to cancel, and crash gems as you choose.
 
-![Training mode in Street Fighter Alpha 2: hit boxes, input display, combo readout and the frame meter](screenshots/sfa2/training.png)
+| | |
+| --- | --- |
+| ![Training mode in Street Fighter Alpha 2: hit boxes, input display, combo readout and the frame meter](screenshots/sfa2/training.png) | ![Training mode in Vampire Savior](screenshots/vampire_savior/training.png) |
+| ![Training mode in Marvel vs. Capcom](screenshots/mvsc/training.png) | ![Training mode in Super Puzzle Fighter II Turbo](screenshots/puzzle_fighter/training.png) |

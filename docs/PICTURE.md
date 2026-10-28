@@ -8,6 +8,8 @@ already holds and never showed; nothing is stretched. It's a switch on the launc
 and on the in-game menu's Display page. It's **off unless you switch it on**, because it changes how the game plays:
 the players can go to the wide picture's edges.
 
+![Widescreen in Street Fighter Alpha 2: Ryu and Ken at Sagat's stage, more of it on each side](screenshots/sfa2/widescreen.png)
+
 **Invisible walls**, on the Display page, keeps the 16:9 picture and plays the game exactly as the board does: the
 players are stopped where the board's picture ends, by walls that aren't seen.
 

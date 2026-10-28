@@ -2,6 +2,8 @@
 
 ## Its pages
 
+![The launcher's Games page](screenshots/launcher-games.png)
+
 Each game you have a ROM set for gets a page of its own in the sidebar: its Display switches (full screen,
 widescreen), Play, and the features only it has. The **Features** page has what the games share (free play,
 cheats, run-ahead, the picture, training mode's displays and the dummy, and the rest), set for every game at
@@ -14,6 +16,8 @@ The games are in your order: drag a game's row in the sidebar up or down to keep
 the same way. Playing only one or two of the games? Switch on **Only the games you have** on the Games page, and the
 others are left out of it and of the Features and Controllers pages (**Choose folder…** still finds them). On a small screen, or with large text, the launcher closes up to fit: a narrower sidebar whose list
 scrolls, and each row's buttons under its words.
+
+![The Features page: what the games share, set for all of them at once](screenshots/launcher-features.png)
 
 ## Updates
 

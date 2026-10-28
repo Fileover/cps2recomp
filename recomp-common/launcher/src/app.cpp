@@ -1575,40 +1575,30 @@ void App::online_card(size_t which, float width, bool ready) {
                                       : "Waits for the other player, who joins this machine at " + (here.empty() ? std::string("its address") : here) + port +
                                             ". Over the internet: this network's public address, with that port forwarded to this machine.";
     const bool lobby = online.lobby && online.list_argument;
-    const bool listed = lobby && prefs_.get("online", "listed") == "1";
+    // (a match is in the lobby when the player has a name for it to be listed under; without one, only its code joins it)
+    const bool listed = lobby && online.name_argument && online_name_[0];
     row(width, "Host a match", detail.c_str(), 130.0f, 36.0f, [&] {
         if (ui::button("Host", Kind::Secondary, 130.0f, ready)) {
             std::vector<std::string> args = {online.host_argument};
             if (listed) {
                 args.push_back(online.list_argument);
-                if (online.name_argument && online_name_[0]) {
-                    args.push_back(online.name_argument);
-                    args.push_back(online_name_);
-                }
+                args.push_back(online.name_argument);
+                args.push_back(online_name_);
             }
             play(which, args);
         }
     });
-    if (lobby) {
+    if (lobby && online.name_argument) {
         inset_separator(width);
-        row(width, "List my matches in the lobby",
-            "A match you host shows in Open matches on other players' launchers, under your name, until someone joins it. Off: only "
-            "those you give the code to can join.",
-            42.0f, 24.0f, [&] {
-                if (ui::toggle("##online_listed", listed)) {
-                    prefs_.set("online", "listed", listed ? "0" : "1");
-                    prefs_.save();
-                }
-            });
-        if (listed && online.name_argument) {
-            inset_separator(width);
-            row(width, "Your name", "How the lobby shows the matches you host.", 190.0f, 36.0f, [&] {
+        row(width, "Your name",
+            "With a name, the matches you host are listed in the lobby under it until someone joins. Without one, only those you "
+            "give the code to can join.",
+            190.0f, 36.0f, [&] {
                 if (ui::text_field("##online_name", online_name_, sizeof(online_name_), "Your name", 190.0f)) {
                     prefs_.set("online", "name", online_name_);
                     prefs_.save();
                 }
             });
-        }
     }
     inset_separator(width);
     row(width, "Join a match",
@@ -1819,7 +1809,7 @@ void App::online_page(float width) {
         const bool asking = join_lookup_.valid();
         row(width, "Code", join_said_.empty() ? "The code a host gave you, for a match in any of the games." : join_said_.c_str(), 330.0f, 36.0f,
             [&] {
-                if (ui::text_field("##join_code", join_code_, sizeof(join_code_), "K7Q-M2X", 190.0f)) {
+                if (ui::text_field("##join_code", join_code_, sizeof(join_code_), "The host's code", 190.0f)) {
                     join_said_.clear();
                     join_needs_ = -1;
                 }
@@ -1839,9 +1829,10 @@ void App::online_page(float width) {
         join.end();
     }
     ui::gap(24);
-    layout::label("HOST IN THE LOBBY");
+    layout::label("HOST A MATCH");
     Card host(width);
-    row(width, "Your name", "How the lobby shows the matches you host.", 190.0f, 36.0f, [&] {
+    row(width, "Your name", "With a name, the matches you host are listed in the lobby under it. Without one, they're joined only by their code.",
+        190.0f, 36.0f, [&] {
         if (ui::text_field("##online_page_name", online_name_, sizeof(online_name_), "Your name", 190.0f)) {
             prefs_.set("online", "name", online_name_);
             prefs_.save();
@@ -1862,7 +1853,7 @@ void App::online_page(float width) {
         }
         const size_t which = playable[static_cast<size_t>(chosen)];
         const launcher::Online& online = slots_[which]->about->online;
-        row(width, "Host a match", "In the game chosen, listed in the lobby under your name until someone joins it; the game shows its code too.", 400.0f,
+        row(width, "Host a match", "In the game chosen. The game shows the match's code to give the other player.", 400.0f,
             36.0f, [&] {
                 if (ui::dropdown("##online_game", names, chosen, 260.0f)) {
                     prefs_.set("online", "game", slots_[playable[static_cast<size_t>(chosen)]]->id);
@@ -1871,10 +1862,8 @@ void App::online_page(float width) {
                 ImGui::SameLine(0.0f, px(10));
                 if (ui::button("Host", Kind::Primary, 130.0f)) {
                     std::vector<std::string> args = {online.host_argument};
-                    if (online.list_argument) {
+                    if (online.list_argument && online.name_argument && online_name_[0]) {
                         args.push_back(online.list_argument);
-                    }
-                    if (online.name_argument && online_name_[0]) {
                         args.push_back(online.name_argument);
                         args.push_back(online_name_);
                     }

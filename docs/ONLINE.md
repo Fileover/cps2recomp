@@ -1,31 +1,28 @@
 # Online play
 
-Two players, each on their own machine, play a match with **rollback**: your own controls answer at once, whatever
-the distance. Any mix of macOS, Linux, the Steam Deck and Windows can play each other.
+Two players, each on their own machine, play a match with **rollback** netcode. Any mix of macOS, Linux, the Steam
+Deck and Windows can play each other.
+
+![The launcher's Online page: open matches, joining with a code, and hosting](screenshots/launcher-online.png)
 
 ## Starting a match
 
-Each player needs the game and its ROM set. On the game's page in the launcher, under Play, the **Online** card has
-**Host** and **Join**. The host
-presses Host, and their game shows a **match code** (`K7Q-M2X`); the other player types it into Join. Nothing needs
-setting up on either router. The host is player 1. The game's window says it is waiting until the other player comes
-(Esc gives up). From a terminal:
+Each player needs the game and its ROM set. The launcher's **Online** page (in the sidebar) has it all:
+
+- **Open matches**: the matches other players are hosting in the lobby, in every game, each with **Join**. A match in a
+  game whose ROM set you haven't added is greyed, with **Add…** to add it.
+- **Join with a code**: type the code a host gave you and press **Join**. The launcher starts the game the match is in.
+- **Host a match**: choose a game and press **Host**. The game shows the match's code to give the other player. If
+  you've set **Your name**, the match is also listed in the lobby under it until someone joins; without a name, only
+  those you give the code to can join.
+
+Each game's own page has the same under Play, in its **Online** card. Nothing needs setting up on either router. The
+host is player 1. The game's window says it is waiting until the other player comes (Esc gives up). From a terminal:
 
 ```sh
 cps2recomp-launcher --play sfa3 -- --host                  # the host: shows a code, waits for the other player
-cps2recomp-launcher --play sfa3 -- --join K7Q-M2X          # the other player: the host's code (or address)
+cps2recomp-launcher --play sfa3 -- --join CODE             # the other player: the host's code (or address)
 ```
-
-## The Online page and the lobby
-
-- **Join with a code** on the launcher's Online page: type a code a host gave you, for a match in any of the games,
-  and press Join: the launcher starts the game the match is in.
-- **The lobby** (opt-in): switch on **List my matches in the lobby** on the Online card and give **Your name**, and the
-  matches you host are listed under **Open matches** on every other player's card for that game, until someone joins;
-  they press Join. Matches not listed are joined only with their code.
-- **The Online page** in the launcher's sidebar shows every game's open matches at once, each with Join, and hosts a
-  match in the lobby in whichever of your games you choose. A match in a game whose ROM set you haven't added is shown
-  greyed, with **Add…** to go and add it.
 
 ## How it connects
 

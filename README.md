@@ -17,13 +17,6 @@ mode, online play with rollback, widescreen and new modes; the beat-'em-ups take
 **No game files are included.** You need your own copy of each game: its arcade ROM set (a CPS-2 game's with its key
 file). Only the version named below works for each game, and this project cannot help you get one.
 
-This project is not affiliated with, endorsed by, or sponsored by Capcom or Marvel. *Street Fighter*, *Super Puzzle
-Fighter*, *Super Gem Fighter*, *Pocket Fighter*, *Vampire Savior*, *Vampire Hunter*, *Darkstalkers*, *Mega Man*,
-*Strider* and *Captain Commando* are trademarks of Capcom Co., Ltd.; *X-Men*, *Marvel Super Heroes* and their
-characters are trademarks of Marvel Characters, Inc.; *Alien vs. Predator* and *Cadillacs and Dinosaurs* are
-trademarks of their owners; "CPS-1", "CPS-2" and "QSound" are names and trademarks of their owners, used here only to
-say what the programs work with.
-
 ![The launcher: every game whose ROM set you have, ready to play](docs/screenshots/launcher-games.png)
 
 ## The games
@@ -68,12 +61,12 @@ Every fighting game has a full training mode, from the in-game menu:
 
 ## Online play
 
-Play anyone, anywhere, with **rollback**: your own controls answer at once, whatever the distance. Any mix of macOS,
-Linux, the Steam Deck and Windows can play each other.
+Two players on two machines, with **rollback** netcode. Any mix of macOS, Linux, the Steam Deck and Windows can play
+each other.
 
-- **Host** a match and give the other player its **code** (`K7Q-M2X`), or list it in the **lobby** under your name.
-  The other player types the code, or picks the match from **Open matches**, on the launcher's **Online** page.
-  Nothing needs setting up on either router.
+- **Host** a match and give the other player its **code**: they type it on the launcher's **Online** page. If you've
+  set your name, the match is also listed in the **lobby**, where anyone can pick it from **Open matches**. Nothing
+  needs setting up on either router.
 - Each player presses Start to come in, as at the arcade. The match uses the host's board settings (difficulty,
   timer, rounds); cheats are off.
 - **On screen:** the ping (and the input delay, if you like), and the **win streak** of a player who keeps winning.
@@ -184,3 +177,10 @@ from any game, ever, and never a key). Security reports go by [SECURITY.md](SECU
   licenses.
 
 The repository holds no game data and nothing derived from it.
+
+This project is not affiliated with, endorsed by, or sponsored by Capcom or Marvel. *Street Fighter*, *Super Puzzle
+Fighter*, *Super Gem Fighter*, *Pocket Fighter*, *Vampire Savior*, *Vampire Hunter*, *Darkstalkers*, *Mega Man*,
+*Strider* and *Captain Commando* are trademarks of Capcom Co., Ltd.; *X-Men*, *Marvel Super Heroes* and their
+characters are trademarks of Marvel Characters, Inc.; *Alien vs. Predator* and *Cadillacs and Dinosaurs* are
+trademarks of their owners; "CPS-1", "CPS-2" and "QSound" are names and trademarks of their owners, used here only to
+say what the programs work with.
