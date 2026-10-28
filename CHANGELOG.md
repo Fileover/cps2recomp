@@ -14,6 +14,22 @@
   Street Fighter the players could be kept in by the wrong edge for that frame.
 - **Fixed: Puzzle Fighter's "Player 1 wins quickly" after loading a save state** could send its counter gems a
   pair late (or twice): the step it watches is in the save state.
+- **Shader and Zoom on the Multi game page**: the Endless battle card has **Shader** (every game through the same
+  shader, or each as its own Display page has it) and **Zoom** (**Both fighters**: every game's camera on the two
+  fighters from the start, `--zoom 1:3`), for that run only. One shader for every game for good is the launcher's
+  Features page's Shader, as before.
+
+- **Zooming with a shader closes in on the monitor**: zoomed, the shader draws the whole picture and the camera
+  closes in on what it drew, scanlines, mask and all, sharp, as a camera would on a monitor (it was given the zoomed
+  picture, blended up to the board's size, which looked muddy). The readout's panels stay where they are, at their
+  size, without the shader.
+
+## 0.4.0-beta.8
+
+Shaders: the Display page's Shader draws the picture through a RetroArch slang preset (CRT, CRT Lottes, CRT Royale,
+CRT Guest, CRT Light, four kinds of scanlines, xBRZ, ScaleFX or your own), on macOS, Linux (the Steam Deck and Steam
+Machine too) and Windows, with the launcher choosing which the in-game menu goes through. The speed's line at the
+bottom goes after a few seconds.
 
 - **Shaders on Linux** (the Steam Deck and Steam Machine too): the Linux releases carry `librashader.so` (built from
   source by `tools/librashader.sh`, now for Linux as well; the build image has Rust) and the presets beside the

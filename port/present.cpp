@@ -345,14 +345,13 @@ void Presenter::Draw(SDL_GPUCommandBuffer *commands, SDL_GPUTexture *target, con
 
 void Presenter::Show(const uint32_t *pixels, int width, int height, const SDL_FRect &where, const Zoomed *zoomed, bool shade) {
     if (m_shading) {
-        // Zoomed, the picture the preset is given is what the camera sees at the board's size (the part shown,
-        // blended up to it, with the readout's panels over it where they are), so that the preset draws its
-        // scanlines and the rest over the picture as it is shown, as a monitor would
-        if (zoomed) {
+        // Zoomed, the preset draws the whole picture and the camera closes in on what it drew, scanlines and all,
+        // as on a monitor (shading.h); the menu, not through the preset, is given what the camera sees
+        if (zoomed && !shade) {
             Compose(pixels, width, height, *zoomed, m_composed);
             pixels = m_composed.data();
         }
-        m_shading->Show(pixels, width, height, where, shade);
+        m_shading->Show(pixels, width, height, where, shade, shade ? zoomed : nullptr);
         return;
     }
     if (m_device) {

@@ -2,6 +2,7 @@
 // Copyright (C) 2026 Tommy McLeroy. Part of cps2recomp.
 
 #include "shading.h"
+#include "present.h"
 
 #include <algorithm>
 #include <cmath>
@@ -226,12 +227,12 @@ void Shading::Close() {
         if (m_chain) {
             TheLibrary(error)->chain_free(Chain(m_chain));
         }
-        for (GLuint *texture : {&m_picture, &m_drawn}) {
+        for (GLuint *texture : {&m_picture, &m_drawn, &m_readout}) {
             if (*texture) {
                 gl.DeleteTextures(1, texture);
             }
         }
-        for (GLuint *frame : {&m_pictureFrame, &m_drawnFrame}) {
+        for (GLuint *frame : {&m_pictureFrame, &m_drawnFrame, &m_readoutFrame}) {
             if (*frame) {
                 gl.DeleteFramebuffers(1, frame);
             }
@@ -241,7 +242,7 @@ void Shading::Close() {
     m_chain = nullptr;
     m_context = nullptr;
     m_preset.clear();
-    m_picture = m_drawn = m_pictureFrame = m_drawnFrame = 0;
+    m_picture = m_drawn = m_readout = m_pictureFrame = m_drawnFrame = m_readoutFrame = 0;
     m_width = m_height = m_drawnWidth = m_drawnHeight = 0;
 }
 
@@ -278,7 +279,7 @@ void Shading::Size(int &width, int &height) const {
     SDL_GetWindowSizeInPixels(m_window, &width, &height);
 }
 
-void Shading::Show(const uint32_t *pixels, int width, int height, const SDL_FRect &where, bool shade) {
+void Shading::Show(const uint32_t *pixels, int width, int height, const SDL_FRect &where, bool shade, const Zoomed *zoomed) {
     std::string error;
     const Library *library = TheLibrary(error);
     if (!m_context || !library) {
@@ -287,13 +288,18 @@ void Shading::Show(const uint32_t *pixels, int width, int height, const SDL_FRec
     SDL_GL_MakeCurrent(m_window, m_context);
     if (!m_picture || width != m_width || height != m_height) {
         MakeTexture(m_picture, m_pictureFrame, width, height, GL_LINEAR);
+        MakeTexture(m_readout, m_readoutFrame, width, height, GL_NEAREST);
         m_width = width;
         m_height = height;
     }
-    gl.BindTexture(GL_TEXTURE_2D, m_picture);
     gl.PixelStorei(GL_UNPACK_ALIGNMENT, 4);
     gl.PixelStorei(GL_UNPACK_ROW_LENGTH, width);
+    gl.BindTexture(GL_TEXTURE_2D, m_picture);
     gl.TexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
+    if (zoomed && !zoomed->keep.empty()) {
+        gl.BindTexture(GL_TEXTURE_2D, m_readout);
+        gl.TexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, pixels + static_cast<size_t>(width) * height);
+    }
     gl.BindTexture(GL_TEXTURE_2D, 0);
 
     int windowWidth = 0, windowHeight = 0;
@@ -334,7 +340,34 @@ void Shading::Show(const uint32_t *pixels, int width, int height, const SDL_FRec
         if (failed.empty()) {
             gl.BindFramebuffer(GL_READ_FRAMEBUFFER, m_drawnFrame);
             // (librashader's picture has its first row at the texture's start too, as it was given it)
-            gl.BlitFramebuffer(0, 0, drawnWidth, drawnHeight, left, top, right, foot, GL_COLOR_BUFFER_BIT, GL_NEAREST);
+            if (!zoomed) {
+                gl.BlitFramebuffer(0, 0, drawnWidth, drawnHeight, left, top, right, foot, GL_COLOR_BUFFER_BIT, GL_NEAREST);
+            } else {
+                // Of what the preset drew, the part `view` (only what is on the picture: past its edges is black),
+                // enlarged to fill `where`
+                const SDL_FRect &view = zoomed->view;
+                const float x0 = std::max(view.x, 0.0f), y0 = std::max(view.y, 0.0f);
+                const float x1 = std::min(view.x + view.w, static_cast<float>(width)), y1 = std::min(view.y + view.h, static_cast<float>(height));
+                if (x1 > x0 && y1 > y0) {
+                    const float acrossFrom = static_cast<float>(drawnWidth) / width, downFrom = static_cast<float>(drawnHeight) / height;
+                    const float across = where.w / view.w, down = where.h / view.h;
+                    gl.BlitFramebuffer(static_cast<int>(std::lround(x0 * acrossFrom)), static_cast<int>(std::lround(y0 * downFrom)),
+                                       static_cast<int>(std::lround(x1 * acrossFrom)), static_cast<int>(std::lround(y1 * downFrom)),
+                                       static_cast<int>(std::lround(where.x + (x0 - view.x) * across)),
+                                       windowHeight - static_cast<int>(std::lround(where.y + (y0 - view.y) * down)),
+                                       static_cast<int>(std::lround(where.x + (x1 - view.x) * across)),
+                                       windowHeight - static_cast<int>(std::lround(where.y + (y1 - view.y) * down)), GL_COLOR_BUFFER_BIT, GL_LINEAR);
+                }
+                // (the readout's panels where they are and at their size, not through the preset)
+                gl.BindFramebuffer(GL_READ_FRAMEBUFFER, m_readoutFrame);
+                const float across = where.w / width, down = where.h / height;
+                for (const SDL_Rect &keep : zoomed->keep) {
+                    gl.BlitFramebuffer(keep.x, keep.y, keep.x + keep.w, keep.y + keep.h, static_cast<int>(std::lround(where.x + keep.x * across)),
+                                       windowHeight - static_cast<int>(std::lround(where.y + keep.y * down)),
+                                       static_cast<int>(std::lround(where.x + (keep.x + keep.w) * across)),
+                                       windowHeight - static_cast<int>(std::lround(where.y + (keep.y + keep.h) * down)), GL_COLOR_BUFFER_BIT, GL_NEAREST);
+                }
+            }
         } else if (m_frame == 1) {
             fprintf(stderr, "shader: %s\n", failed.c_str());
         }

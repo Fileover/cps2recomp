@@ -81,8 +81,14 @@ Each game's page has all it does, with pictures.
   edges (the Display page's **Shader**). **Your own** takes any RetroArch slang preset (`.slangp`) you put in a
   `shaders` folder beside the game's settings, with the files it names (a few need a newer OpenGL than macOS has; Linux and Windows have it).
   Under Shader on the launcher's Features page, **In the game's menu** → **Choose** keeps the in-game menu's list to
-  your favourites. The menu is drawn over the picture without the shader. A shader that cannot be made leaves the
+  your favourites. Zoomed in, the camera closes in on the shaded picture, scanlines and all, as on a monitor. The menu is drawn over the picture without the shader. A shader that cannot be made leaves the
   picture as it was.
+
+  | | | |
+  | --- | --- | --- |
+  | ![No shader](docs/screenshots/shaders/off.png)<br>Off | ![CRT (crt-geom-mini)](docs/screenshots/shaders/crt-geom-mini.png)<br>CRT | ![CRT Royale](docs/screenshots/shaders/crt-royale.png)<br>CRT Royale |
+  | ![CRT Lottes](docs/screenshots/shaders/crt-lottes.png)<br>CRT Lottes | ![Scanlines, light](docs/screenshots/shaders/scanline-fract.png)<br>Scanlines, light | ![xBRZ](docs/screenshots/shaders/xbrz.png)<br>xBRZ |
+
 - **The board's operator settings** (difficulty, damage, timer speed, game speed, rounds and the rest), each as
   the board is set unless you choose, and the game's own test menu.
 - **Straight to the title**: at a start or a reset, everything before the title runs unseen.
@@ -120,7 +126,8 @@ next game's stages, and round again after the last: choose the games (every figh
 or **Scroll**, going by in order at the speed you choose), the **Screen** (every game full screen, every game in a
 window, or as each game is set), the **Picture** (every game widescreen, every game 4:3, or as each game is set) and
 the rest of the Display page every game has (**Invisible walls**, **Scaling**, **Picture shape**, **Window size**,
-each also as each game is set), then **Start**. These are for that run only: each game's own settings stay as they
+**Shader**, each also as each game is set) and the **Zoom** (**Both fighters**: in every game the camera follows the
+two fighters, as close as they allow), then **Start**. These are for that run only: each game's own settings stay as they
 were. In a window, each game opens where the one before it was and as large, wherever you moved it. Touch
 the controls to take a fighter over. While it plays, **N** (or a gamepad's left shoulder) fades out to the next game
 and **F** (or the left trigger) held fast-forwards at four times the speed; the page lists them under **While it
