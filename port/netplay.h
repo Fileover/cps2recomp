@@ -75,6 +75,7 @@ public:
         int port = kDefaultPort;
         int delay = kDefaultDelay;
         std::string service = kService; // (--net-service URL; "off": none, the host's address only)
+        std::string renewCode, renewSecret; // (hosting again after the other player left: the code they know, kept)
         // (tests: each packet sent late by this many ms, give or take `jitter`, and this many in a hundred lost)
         int fakeLag = 0, fakeJitter = 0, fakeLoss = 0;
     };
@@ -87,6 +88,16 @@ public:
     int Waiting(Port &port, std::string &error);
     std::string waiting; // what is being waited for ("Waiting for the other player...")
     std::string code;    // (hosting) the match's code, once the service has given one, as said ("K7Q-M2X")
+    const std::string &Secret() const {
+        return secret;
+    }
+    bool Hosting() const {
+        return settings.hosting;
+    }
+    // The time a packet takes there and back (ms; the frame's wait for it to be read taken off), and how long since the
+    // other side was last heard
+    int Ping() const;
+    uint64_t Silent() const;
     // This side's player (0: player 1)
     int Local() const {
         return local;
@@ -99,6 +110,7 @@ public:
     // Why the match is over ("" while it goes on); and whether that is a failure (a desync, the other side lost)
     std::string ended;
     bool failed = false;
+    bool left = false, lost = false; // (... because the other side left, or went silent: a window waits for them again)
     // The match is over on this side: the other side is told
     void Leave();
     // A line on how it is going (ping, rollbacks), every few seconds, to stderr
@@ -114,6 +126,15 @@ private:
     bool found = false; // (hosting: the other player has said hello)
     int joinPort = 0;
     void StartAt(int frames);
+    // The game as the match begins: the host's, sent to the joining side in pieces (compressed), which it takes as
+    // its own; so the two begin exactly alike, the first time and after a reconnect
+    static constexpr size_t kChunk = 1024;
+    std::vector<uint8_t> state;   // (compressed)
+    size_t stateSize = 0;         // (as it was)
+    uint32_t chunks = 0, chunksHad = 0; // its pieces, and how many the other side has (hosting) or this side has (joining)
+    uint64_t chunkSent = 0;
+    bool welcomed = false;        // (joining: the welcome has come, the state is coming)
+    std::vector<bool> had;        // (joining: the pieces that have come)
     // The introduction (online/): this side's address as the internet sees it (asked of STUN servers, from the
     // socket the match uses), then the service asked for a code (hosting) or the host's addresses (joining by code),
     // then (hosting) asked until someone has joined; then each side sends to the other's addresses (a host's
