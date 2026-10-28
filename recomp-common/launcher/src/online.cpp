@@ -2,7 +2,7 @@
 // Copyright (C) 2026 Tommy McLeroy. Part of recomp-common: https://github.com/tmcleroy/recomp-common
 #include "online.h"
 
-#include "process.h"
+#include "run_program.h"
 
 #ifdef _WIN32
 #include <winsock2.h>
