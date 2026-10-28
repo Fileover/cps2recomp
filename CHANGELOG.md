@@ -8,7 +8,7 @@
   which goes on; Confirm leaves, Back stays (drawn by the port, over the readout, which the fighting games' sources
   set every frame). The Online page shows Open matches first. **PRESS START TO JOIN**
   at the bottom until this side's player has pressed Start in the match. On the Online page, matches in a game whose
-  ROM set isn't added are greyed, with **Add…** to its page, and those of a game this launcher hasn't are greyed too.
+  ROM set isn't added are greyed, with **Add…** to choose it, and those of a game this launcher hasn't are greyed too.
 - **The launcher's Online page**: after Multi game in the sidebar, every game's open matches in the lobby, each with
   its game and Join, and **Host in the lobby** in any of your games, under your name (recomp-common's
   `Collection::lobby`). The service keeps one lobby for every game now: `GET /v1/lobby?protocol=N` lists them all,

@@ -1720,7 +1720,8 @@ void App::online_page(float width) {
                 inset_separator(width);
             }
             first = false;
-            // (a game whose file isn't chosen yet: greyed, and Add, to its page, where it is chosen)
+            // (a game whose file isn't chosen yet: greyed, and Add…, which chooses it as the Games page's Choose… does: it has
+            // no page of its own until then)
             bool file;
             {
                 std::lock_guard<std::mutex> lock(mutex_);
@@ -1733,8 +1734,13 @@ void App::online_page(float width) {
                 width, match.name.c_str(), detail.c_str(), 130.0f, 36.0f,
                 [&] {
                     if (!file) {
-                        if (ui::button("Add…", Kind::Secondary, 130.0f)) {
-                            set_page(one.id);
+                        if (ui::button("Add…", Kind::Secondary, 130.0f, !one.checking)) {
+                            // (the system's file dialog wants a mouse or a keyboard)
+                            if (ui::gamepad_in_use()) {
+                                open_browser(which, false);
+                            } else {
+                                choose_game_file(which);
+                            }
                         }
                     } else if (ui::button("Join", Kind::Secondary, 130.0f, ready)) {
                         play(which, {one.about->online.join_argument, match.code});
