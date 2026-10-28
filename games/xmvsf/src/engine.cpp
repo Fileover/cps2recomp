@@ -11,24 +11,7 @@
 
 namespace cps2recomp {
 
-namespace {
-    using namespace xmvsf;
-
-    // A frame put in a player's record as 001AE6 puts it: a word for its picture, then (after its time) the picture,
-    // two words more, and the number of its set of boxes in the character's table of them (16 bytes a set, the long at
-    // the record's +68)
-    void CopyFrame(Machine &machine, uint32_t player, uint32_t frame) {
-        const auto long_ = [&](uint32_t at) { return (static_cast<uint32_t>(machine.Read16(at)) << 16) | machine.Read16(at + 2); };
-        SetRam16(player + 0x3C, machine.Read16(frame));
-        SetRam32(player + 0x40, long_(frame + 0x04));
-        SetRam32(player + 0x62, long_(frame + 0x08));
-        SetRam16(player + 0x66, machine.Read16(frame + 0x0C));
-        const uint32_t boxes = Ram32(player + 0x68) + static_cast<uint32_t>(machine.Read16(frame + 0x0E)) * 16;
-        for (uint32_t at = 0; at < 16; at += 4) {
-            SetRam32(player + 0x70 + at, long_(boxes + at));
-        }
-    }
-} // namespace
+using namespace xmvsf;
 
 void DescribeEngine() {
     marvel::Engine e;
@@ -85,7 +68,7 @@ void DescribeEngine() {
     e.frameBytes = 0x10;
     e.groups = 26;
     e.perGroup = 96;
-    e.copyFrame = CopyFrame;
+    e.copyFrame = marvel::CopyFrameBoxSets; // (001AE6)
     marvel::Describe(e);
 }
 

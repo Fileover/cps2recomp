@@ -31,6 +31,9 @@ struct Description {
     // --- the game's memory ---
     uint32_t player1 = 0xFF8400, playerSize = 0x400, x = 0x10;
     bool xLong = false; // (a long with 16 bits of fraction, not a word)
+    // A tag-team game that keeps a side's two characters in records of their own (not swapped at a tag): the record of
+    // the side's character on point now (none: player1 and the one after it)
+    uint32_t (*playerAt)(int n) = nullptr;
     // Health: words, what the player has and (0: none) the most it can have back; the most in all; and (0: none) what
     // its bar shows, which a refill sets too
     uint32_t health = 0, healthCeiling = 0;

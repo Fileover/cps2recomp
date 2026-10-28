@@ -17,6 +17,7 @@ the build tells you which one is missing or different.
 | [Super Gem Fighter Mini Mix](../games/pocket_fighter/README.md) | `pocket_fighter` | `sgemf` (USA 970904) |
 | [Marvel Super Heroes](../games/msh/README.md) | `msh` | `msh` (Europe 951024) |
 | [X-Men vs. Street Fighter](../games/xmvsf/README.md) | `xmvsf` | `xmvsf` (Europe 961004) |
+| [Marvel Super Heroes vs. Street Fighter](../games/mshvsf/README.md) | `mshvsf` | `mshvsf` (Europe 970625) |
 | [Super Puzzle Fighter II Turbo](../games/puzzle_fighter/README.md) | `puzzle_fighter` | `spf2t` (Europe 960529) |
 
 ## macOS

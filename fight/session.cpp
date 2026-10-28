@@ -40,7 +40,7 @@ namespace {
     uint16_t g_heldOver = 0;         //   and what it held as it chose for player 1, not passed on until let go
 
     uint32_t Player(int n) {
-        return d.player1 + static_cast<uint32_t>(n) * d.playerSize;
+        return d.playerAt ? d.playerAt(n) : d.player1 + static_cast<uint32_t>(n) * d.playerSize;
     }
     int X(int n) {
         return d.xLong ? static_cast<int>(Ram32(Player(n) + d.x) >> 16) : static_cast<int16_t>(Ram16(Player(n) + d.x));

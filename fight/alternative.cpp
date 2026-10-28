@@ -61,7 +61,7 @@ namespace {
         return d.wideMargin ? d.wideMargin() : 0;
     }
     uint32_t Player(int n) {
-        return d.player1 + static_cast<uint32_t>(n) * d.playerSize;
+        return d.playerAt ? d.playerAt(n) : d.player1 + static_cast<uint32_t>(n) * d.playerSize;
     }
 
     void Fast(bool on) {

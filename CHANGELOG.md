@@ -2,6 +2,26 @@
 
 ## Unreleased
 
+- **Another game: Marvel Super Heroes vs. Street Fighter** (`games/mshvsf`, issue #135; ROM set `mshvsf`, *Marvel
+  Super Heroes Vs. Street Fighter*, Europe 970625, the parent set and the one competitive play uses), X-Men vs. Street
+  Fighter's sequel, on the Marvel games' shared engine (`fight/marvel.h`). The game as the board plays it, translated
+  whole (its 68000 program, and its sound program, Capcom's driver 1.31) and checked, with everything the other Marvel
+  games have: a **training mode** (hit boxes, frame data, its meter and log, input display, combo readout, health and
+  gauge refills, the partner refilled too, a dummy that records, replays and guards, start over, any of the twelve
+  stages), the **alternative modes** (attract mode three ways, the stage viewer and its infinite stage, the model viewer,
+  the colour editor, survival, endless battle, ring out), **tag-team co-op and 2 vs 2** for up to four people,
+  **widescreen** and invisible walls, the **zoom**, **custom colours** (files, PalMod's mvs.06a, the editor), the
+  **hidden characters** with no code (Start held as Captain America, Spider-Man, Blackheart, Zangief, Sakura, Dan or
+  Akuma is chosen: U.S. Agent, Armored Spider-Man, Mephisto, Mech-Zangief, Dark Sakura, Shadow, Cyber-Akuma), and the
+  features every game has: free play (the game's own), straight to the title, the board's settings (the Board page,
+  with its Mode select), cheats, save states, run-ahead, arcade timing and a custom soundtrack (its music named)
+  ([its progress](games/mshvsf/PROGRESS.md)).
+- **The Marvel engine takes a game that keeps a tag team's characters in records of their own** (`fight/marvel.h`,
+  with `playerAt` in `fight/session.h`, `fight/alternative.h` and `fight/battle.h`): Marvel Super Heroes vs. Street
+  Fighter does not swap the records at a tag, as X-Men vs. Street Fighter does, but keeps which is on point; and a
+  camera whose step works on a copy of its place (`cameraWorkX`/`Y`), kept between its ends in two pieces. The frame
+  copy X-Men vs. Street Fighter and its sequel share is the toolkit's (`marvel::CopyFrameBoxSets`). Marvel Super
+  Heroes and X-Men vs. Street Fighter run exactly as before (the same hash logs over their ladders and every mode).
 - **Online play from the launcher**: a game's page has an **Online** card under Play, with **Host** (and the
   addresses this machine can be joined at: the home network's, Tailscale's) and **Join** (the host's address, kept
   for next time). The game's window opens at once and says it is waiting for the other player, or joining the host,
