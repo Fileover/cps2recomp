@@ -12,6 +12,11 @@
 //                                                                  the player who left to come back to: Netplay's reconnect)
 //   GET  /v1/host/CODE?secret=S                                    -> {joined: false} | {joined: true, addresses}
 //   POST /v1/join/CODE           {game, build, addresses}          -> {addresses} | 404 | 409 {error}
+//   GET  /v1/lobby/GAME?protocol=N                                 -> {matches: [{code, name, waiting}]}
+//
+// A host that asks for it (`listed`, with a `name` and its `protocol`) is in the lobby of its game, a Durable Object of
+// its own (Lobby): there while it is asking whether someone has joined (seen in the last 10 seconds), and until
+// someone has.
 //
 // `addresses` are "IP:PORT" strings (IPv4, or [IPv6]:PORT), at most 8: each side's own, as STUN and its network say them.
 
@@ -48,6 +53,14 @@ function cleanText(text) {
   return typeof text === "string" ? text.slice(0, 64) : "";
 }
 
+// A player's name as the lobby shows it: printable, at most 24 characters
+function cleanName(text) {
+  const name = typeof text === "string" ? text.replace(/[\u0000-\u001f\u007f]/g, "").trim().slice(0, 24) : "";
+  return name || "A player";
+}
+
+const kSeen = 10 * 1000; // (a listed host that has not asked for this long is not shown)
+
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
@@ -68,7 +81,7 @@ export default {
       const again = typeof asked.code === "string" ? cleanCode(asked.code) : null;
       if (again && typeof asked.secret === "string") {
         const match = env.MATCHES.get(env.MATCHES.idFromName(again));
-        const answer = await match.fetch("https://match/host", { method: "POST", body: text });
+        const answer = await match.fetch(`https://match/host?code=${again}`, { method: "POST", body: text });
         if (answer.ok) {
           return json({ code: again, secret: asked.secret });
         }
@@ -77,13 +90,17 @@ export default {
       for (let tries = 0; tries < 5; tries++) {
         const code = newCode();
         const match = env.MATCHES.get(env.MATCHES.idFromName(code));
-        const answer = await match.fetch("https://match/host", { method: "POST", body: JSON.stringify({ ...asked, code: undefined, secret: undefined }) });
+        const answer = await match.fetch(`https://match/host?code=${code}`, { method: "POST", body: JSON.stringify({ ...asked, code: undefined, secret: undefined }) });
         if (answer.status !== 409) {
           const body = await answer.json();
           return json(answer.ok ? { code, secret: body.secret } : body, answer.status);
         }
       }
       return json({ error: "no code free" }, 503);
+    }
+    if (request.method === "GET" && parts[1] === "lobby" && parts.length === 3) {
+      const lobby = env.LOBBIES.get(env.LOBBIES.idFromName(cleanText(parts[2])));
+      return lobby.fetch(`https://lobby/list?protocol=${encodeURIComponent(url.searchParams.get("protocol") || "")}`);
     }
     const code = parts.length === 3 ? cleanCode(parts[2]) : null;
     if (!code) {
@@ -101,8 +118,21 @@ export default {
 };
 
 export class Match {
-  constructor(state) {
+  constructor(state, env) {
     this.state = state;
+    this.env = env;
+  }
+
+  // (the game's lobby told: added, still there, or gone)
+  async lobby(match, what, code) {
+    if (!match || !match.listed) {
+      return;
+    }
+    const lobby = this.env.LOBBIES.get(this.env.LOBBIES.idFromName(match.game));
+    await lobby.fetch(`https://lobby/${what}`, {
+      method: "POST",
+      body: JSON.stringify({ code, name: match.name, protocol: match.protocol, made: match.made }),
+    });
   }
 
   async fetch(request) {
@@ -125,9 +155,11 @@ export class Match {
         return json({ error: "in use" }, 409);
       }
       const secret = typeof body.secret === "string" && /^[0-9a-f-]{36}$/.test(body.secret) ? body.secret : crypto.randomUUID();
-      match = { made: now, secret, game: cleanText(body.game), build: cleanText(body.build), host: cleanAddresses(body.addresses), joiner: null };
+      match = { made: now, secret, game: cleanText(body.game), build: cleanText(body.build), host: cleanAddresses(body.addresses), joiner: null,
+                listed: body.listed === true, name: cleanName(body.name), protocol: Number(body.protocol) || 0, code: url.searchParams.get("code") || "" };
       await this.state.storage.put("match", match);
       await this.state.storage.setAlarm(now + kLifetime);
+      await this.lobby(match, "seen", match.code);
       return json({ secret });
     }
     if (!match) {
@@ -136,6 +168,9 @@ export class Match {
     if (url.pathname === "/poll") {
       if (url.searchParams.get("secret") !== match.secret) {
         return json({ error: "no such code" }, 404);
+      }
+      if (!match.joiner) {
+        await this.lobby(match, "seen", match.code);
       }
       return json(match.joiner ? { joined: true, addresses: match.joiner } : { joined: false });
     }
@@ -157,12 +192,57 @@ export class Match {
       }
       match.joiner = cleanAddresses(body.addresses);
       await this.state.storage.put("match", match);
+      await this.lobby(match, "gone", match.code);
       return json({ addresses: match.host });
     }
     return json({ error: "not here" }, 404);
   }
 
   async alarm() {
+    const match = await this.state.storage.get("match");
+    await this.lobby(match, "gone", match && match.code);
     await this.state.storage.deleteAll();
+  }
+}
+
+// A game's open matches: the listed hosts still asking (kSeen), each by its code
+export class Lobby {
+  constructor(state) {
+    this.state = state;
+  }
+
+  async fetch(request) {
+    const url = new URL(request.url);
+    const now = Date.now();
+    const matches = (await this.state.storage.get("matches")) || {};
+    if (url.pathname === "/list") {
+      const protocol = Number(url.searchParams.get("protocol")) || 0;
+      let changed = false;
+      const shown = [];
+      for (const [code, m] of Object.entries(matches)) {
+        if (now - m.seen > kSeen) {
+          delete matches[code];
+          changed = true;
+        } else if (m.protocol === protocol) {
+          shown.push({ code, name: m.name, waiting: Math.round((now - m.made) / 1000) });
+        }
+      }
+      if (changed) {
+        await this.state.storage.put("matches", matches);
+      }
+      shown.sort((a, b) => a.waiting - b.waiting);
+      return json({ matches: shown.slice(0, 50) });
+    }
+    const body = JSON.parse(await request.text());
+    if (!body.code) {
+      return json({});
+    }
+    if (url.pathname === "/seen") {
+      matches[body.code] = { name: body.name, protocol: body.protocol, made: body.made, seen: now };
+    } else if (url.pathname === "/gone") {
+      delete matches[body.code];
+    }
+    await this.state.storage.put("matches", matches);
+    return json({});
   }
 }

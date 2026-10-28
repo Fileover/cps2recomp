@@ -73,6 +73,12 @@ struct Online {
     int port = 0;                        // the UDP port the host waits on, as the card says it (0: none said)
     bool codes = false;                  // the game gives a host a code to hand out, which Join takes as well as an address
     const char *detail = "";             // the card's first lines: what a match is
+    // A lobby: the matches hosts have listed, shown on the card to join with a press. `lobby` is the URL of the
+    // game's list (JSON: {"matches": [{"code", "name", "waiting"}]}); a host lists its match when the player has
+    // switched that on, with `list_argument`, and its name with `name_argument NAME`. nullptr: no lobby.
+    const char *lobby = nullptr;
+    const char *list_argument = nullptr; // "--net-list"
+    const char *name_argument = nullptr; // "--net-name"
 };
 
 struct InfoRow {
@@ -239,6 +245,16 @@ struct Collection {
     // Modes that play several of the games one after another (none: no Multi game page)
     std::vector<MultiMode> multi;
     const char *multi_intro = "";  // the Multi game page's first lines
+    // Online play's lobby for every game (a game's own is its Online card's: Online::lobby): the URL of every game's
+    // open matches ({"matches": [{"game", "code", "name", "waiting"}]}, `game` a CollectionGame's id). With it, an
+    // Online page after Multi game: every game's open matches to join, and a match to host in the lobby in any of
+    // the games (with its Online's list and name arguments). nullptr: no page.
+    const char *lobby = nullptr;
+    const char *online_intro = ""; // the Online page's first lines
+    const char *file_name = "game file"; // what a game's file is called, as the Online page says it ("ROM set")
+    // The category of the features the Online page shows too, as the Features page does (what a match shows: the
+    // ping...), or nullptr
+    const char *online_features = nullptr;
 };
 
 // A collection's own file defines this (and not describe()).

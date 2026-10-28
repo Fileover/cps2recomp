@@ -59,6 +59,9 @@ private:
 class Netplay {
 public:
     static constexpr int kDefaultPort = 7845;
+    // The packets' layout (2: the host's state sent at the start); two copies must have the same to play, and the
+    // lobby shows only matches of this one (the launcher asks with it too)
+    static constexpr int kProtocol = 2;
     static constexpr int kMostAhead = 8;   // frames run on guessed controls at most
     static constexpr int kKept = 16;       // states kept (more than the most a rollback goes back)
     static constexpr int kInputs = 128;    // controls kept, each side's
@@ -76,6 +79,8 @@ public:
         int delay = kDefaultDelay;
         std::string service = kService; // (--net-service URL; "off": none, the host's address only)
         std::string renewCode, renewSecret; // (hosting again after the other player left: the code they know, kept)
+        bool listed = false;  // (--net-list) the match in the lobby: on the Online card's list of open matches
+        std::string name;     // (--net-name) ... under this name
         // (tests: each packet sent late by this many ms, give or take `jitter`, and this many in a hundred lost)
         int fakeLag = 0, fakeJitter = 0, fakeLoss = 0;
     };
@@ -93,6 +98,9 @@ public:
     }
     bool Hosting() const {
         return settings.hosting;
+    }
+    bool Listed() const {
+        return settings.listed;
     }
     // The time a packet takes there and back (ms; the frame's wait for it to be read taken off), and how long since the
     // other side was last heard

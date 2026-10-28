@@ -2,6 +2,8 @@
 // Copyright (C) 2026 Tommy McLeroy. Part of recomp-common: https://github.com/tmcleroy/recomp-common
 #include "online.h"
 
+#include "run_program.h"
+
 #ifdef _WIN32
 #include <winsock2.h>
 #include <iphlpapi.h>
@@ -15,6 +17,8 @@
 
 #include <algorithm>
 #include <cstdint>
+#include <cstdlib>
+#include <cstring>
 
 namespace launcher {
 
@@ -104,6 +108,47 @@ std::vector<LocalAddress> local_addresses() {
         return rank(a.kind) < rank(b.kind);
     });
     return list;
+}
+
+bool fetch_lobby(const std::string& url, std::vector<OpenMatch>& matches) {
+    std::string json;
+    if (run_program(curl_program(), {"-sS", "--max-time", "8", url}, &json) != 0 || json.find("\"matches\"") == std::string::npos) {
+        return false;
+    }
+    // {"matches":[{"code":"K7QM2X","name":"...","waiting":12}, ...]}: the service's answer (cps2recomp's online/)
+    const auto text = [&](size_t from, const char* key, size_t end) {
+        std::string out;
+        const size_t at = json.find(std::string("\"") + key + "\":\"", from);
+        if (at == std::string::npos || at > end) {
+            return out;
+        }
+        for (size_t i = at + std::strlen(key) + 4; i < end && json[i] != '"'; i++) {
+            if (json[i] == '\\' && i + 1 < end) {
+                i++;
+            }
+            out += json[i];
+        }
+        return out;
+    };
+    matches.clear();
+    for (size_t at = json.find('{', json.find('[')); at != std::string::npos;) {
+        const size_t end = json.find('}', at);
+        if (end == std::string::npos) {
+            break;
+        }
+        OpenMatch match;
+        match.game = text(at, "game", end);
+        match.title = text(at, "title", end);
+        match.code = text(at, "code", end);
+        match.name = text(at, "name", end);
+        const size_t waiting = json.find("\"waiting\":", at);
+        match.waiting = waiting != std::string::npos && waiting < end ? std::atoi(json.c_str() + waiting + 10) : 0;
+        if (!match.code.empty()) {
+            matches.push_back(match);
+        }
+        at = json.find('{', end);
+    }
+    return true;
 }
 
 }  // namespace launcher

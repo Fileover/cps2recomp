@@ -628,13 +628,24 @@ bool Port::Tick() {
             return false;
         }
         if (state == 0) {
-            static const char *const kDots[] = {"", ".", "..", "..."};
+            // (short lines, each its own panel: one wider than the picture is not drawn; the dots padded so that the
+            // line keeps its width; the code in green)
+            static const char *const kDots[] = {"   ", ".  ", ".. ", "..."};
             std::vector<HudLine> lines;
             if (!rejoin.empty()) {
-                lines.push_back({0.5f, 0.36f, 0, rejoin});
+                lines.push_back({0.5f, 0, 0, rejoin});
             }
-            lines.push_back({0.5f, rejoin.empty() ? 0.42f : 0.48f, 0, net->waiting + kDots[(tick / 30) % 4]});
-            lines.push_back({0.5f, rejoin.empty() ? 0.56f : 0.6f, 0, rejoin.empty() ? "Esc: give up" : "Esc: quit"});
+            lines.push_back({0.5f, 0, 0, net->waiting + kDots[(tick / 30) % 4]});
+            if (!net->code.empty()) {
+                lines.push_back({0.5f, 0, 0, "Match code " + net->code, 96, 230, 120});
+                if (net->Listed()) {
+                    lines.push_back({0.5f, 0, 0, "Listed in the lobby"});
+                }
+            }
+            lines.push_back({0.5f, 0, 0, rejoin.empty() ? "Esc: give up" : "Esc: quit"});
+            for (size_t n = 0; n < lines.size(); n++) {
+                lines[n].y = 0.5f + (static_cast<float>(n) - (lines.size() - 1) / 2.0f) * 0.1f;
+            }
             SetHud(lines);
             return false;
         }
@@ -1533,6 +1544,8 @@ void Usage() {
             "  --join ADDRESS[:PORT]  online play: go to the host at ADDRESS (player 2), or CODE: the match the host's\n"
             "                         code names (the online service says where the host is)\n"
             "  --net-service URL      the online service that gives hosts codes (online/), or off\n"
+            "  --net-list             (hosting) the match in the lobby, the Online card's list of open matches\n"
+            "  --net-name NAME        ... under this name\n"
             "  --net-delay N          (hosting) frames each player's controls are held back, 2 unless said (0-8)\n"
             "  --net-fake MS[:JIT[:LOSS]]  (tests) each packet sent MS ms late, give or take JIT, LOSS in 100 lost\n"
             "  --test-switch FROM:TO  the operator's test switch held from frame FROM to TO\n"
@@ -1657,6 +1670,10 @@ bool ParseArgs(int argc, char **argv, port::Options &o) {
         } else if (a == "--join") {
             o.online = true;
             o.net.address = next();
+        } else if (a == "--net-list") {
+            o.net.listed = true;
+        } else if (a == "--net-name") {
+            o.net.name = next();
         } else if (a == "--net-service") {
             o.net.service = next();
         } else if (a == "--net-delay") {

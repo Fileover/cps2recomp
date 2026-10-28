@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- **Online: the wait said in short lines**, the match code on a line of its own in green and "Listed in the lobby"
+  under it (a readout line can now have a colour: `HudLine`'s `r`, `g`, `b`). The one long line flickered: with its
+  dots it grew wider than the picture, and a line wider than the picture is not drawn.
+- **A lobby for online play** (opt-in): on the Online card, **List my matches in the lobby** and **Your name**; a
+  listed host's match shows under **Open matches** on other players' cards for the same game (and the same protocol),
+  to join with a press, until someone has joined it or its host stops waiting. The service keeps each game's list in a
+  Durable Object of its own (`GET /v1/lobby/GAME`); the game lists itself with `--net-list` and `--net-name NAME`.
 - **Only the games you have**: a switch on the launcher's Games page (once a game is set up; off unless you switch it
   on) leaves the games you have not set up out of the Games page, the Features page (their features, and their names
   in its notes) and the Controllers page, for a player who plays one or two of them. **Choose folder…** still finds
