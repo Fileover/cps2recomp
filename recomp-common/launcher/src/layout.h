@@ -35,9 +35,10 @@ private:
 };
 
 // A card row: label and detail on the left, a control on the right. In a narrow window, where the words would have
-// too little room beside the control, the control goes under them.
+// too little room beside the control, the control goes under them. `dim`: its words greyed (a row that can't be used
+// yet: a game that isn't there, say)
 template <typename Control>
-void row(float width, const char* label, const char* detail, float control_width, float control_height, Control control) {
+void row(float width, const char* label, const char* detail, float control_width, float control_height, Control control, bool dim = false) {
     using ui::px;
     const ui::Palette& p = ui::palette();
     ImVec2 top = ImGui::GetCursorScreenPos();
@@ -49,10 +50,10 @@ void row(float width, const char* label, const char* detail, float control_width
     if (under) {
         text_width = width - pad * 2;
     }
-    ui::text(label, ui::Font::Regular, ui::size::kBody, p.text, text_width);
+    ui::text(label, ui::Font::Regular, ui::size::kBody, dim ? p.tertiary : p.text, text_width);
     if (detail && *detail) {
         ui::gap(3);
-        ui::text(detail, ui::Font::Regular, ui::size::kDetail, p.secondary, text_width);
+        ui::text(detail, ui::Font::Regular, ui::size::kDetail, dim ? p.tertiary : p.secondary, text_width);
     }
     ImGui::EndGroup();
     float bottom = ImGui::GetItemRectMax().y + px(14);

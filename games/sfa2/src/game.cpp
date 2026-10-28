@@ -127,6 +127,10 @@ void RegisterGame() {
     };
     // Its own, never set for the other games by the collection's launcher: the records, and the animations' numbers
     OwnFeatures({"survival_best", "ringout_best", "model_animation", "colours_animation"});
+    // (and the board's damage levels, where this game names them otherwise: family.h)
+    if (sfa2::family::kDamageLevelsOwn) {
+        OwnFeatures({"board_damage"});
+    }
 }
 
 } // namespace cps2recomp

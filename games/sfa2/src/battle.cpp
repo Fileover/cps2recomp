@@ -25,8 +25,8 @@ namespace {
     // The characters fought with and against: the eighteen (the other forms of six of them are left to the
     // menu's own choices)
     constexpr int kFighters = kStages;
-    constexpr uint32_t kCameraX = 0xFF8290, kCameraY = 0xFF8294;
-    constexpr uint32_t kHalfWidth = 0x12A, kPlayersIn = 0xFF80A8, kSpeedUp = 0x44;
+    constexpr uint32_t kCameraX = At(0xFF8290), kCameraY = At(0xFF8294);
+    constexpr uint32_t kHalfWidth = 0x12A, kPlayersIn = At(0xFF80A8), kSpeedUp = 0x44;
     constexpr int kPlayerRecords = 4;
 
     // The panel and the stage's pieces: everything but the fighters
@@ -38,7 +38,7 @@ namespace {
 
 void RegisterBattle() {
     battle::Description d;
-    d.result = 0xFF810C;
+    d.result = At(0xFF810C);
     d.cameraX = kCameraX;
     d.cameraY = kCameraY;
     d.player1 = kPlayer1;
@@ -52,7 +52,7 @@ void RegisterBattle() {
     d.y = kY;
     d.character = kCharacter;
     d.colours = kColourChoice;
-    d.random = 0xFF80AE; // (01975A)
+    d.random = At(0xFF80AE); // (01975A)
     d.randomNext = battle::CapcomRandomNext;
     d.computer = kComputer;
     d.control = kControl;
@@ -96,7 +96,7 @@ void RegisterBattle() {
     d.difficulty = TagDifficulty;
     d.attackComing = [](Machine &machine, int side) { return AttackInRange(machine.cpu, Player(side)); };
     d.computerPlaysModes = true; // (the game's computer plays the tag style and the ring out itself: the modes' tactics, computer.cpp)
-    d.difficultyNow = [] { return static_cast<int>(Ram8(0xFF80BE)); }; // (the game's copy of the board's, taken as a game begins)
+    d.difficultyNow = [] { return static_cast<int>(Ram8(At(0xFF80BE))); }; // (the game's copy of the board's, taken as a game begins)
     d.canTag = CanTag;
     d.tagIn = TagIn;
     d.taggedIn = TaggedIn;

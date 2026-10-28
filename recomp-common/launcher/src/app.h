@@ -13,6 +13,7 @@
 
 #include <atomic>
 #include <filesystem>
+#include <future>
 #include <memory>
 #include <mutex>
 #include <string>
@@ -21,6 +22,7 @@
 
 #include "game_process.h"
 #include "launcher.h"
+#include "online.h"
 #include "settings.h"
 #ifdef LAUNCHER_UPDATE_REPO
 #include "update.h"
@@ -29,7 +31,7 @@
 // The launcher's own pages. A port's: Game, Features, Controllers. A collection's: Games (Library), Features and
 // Controllers (for all the games), Multi game (if it has modes that play several games: launcher.h, MultiMode), then
 // one page for each game whose file is chosen (Title).
-enum class Page { Game, Features, Controllers, Library, Title, Multi, Count };
+enum class Page { Game, Features, Controllers, Library, Title, Multi, Online, Count };
 
 // --play: straight into the game set up earlier (a collection's: --play ID), with `extra` after the launcher's
 // own arguments for it; the exit code
@@ -112,6 +114,12 @@ private:
     // The collection's games that have a page of their own (their program here, their file chosen and usable), in
     // the player's order
     std::vector<size_t> titled() const;
+    // With "Only the games you have" on (launcher.ini [games] installed_only) and at least one game set up, the
+    // Games, Features and Controllers pages leave out the collection's games whose file has not been chosen
+    bool installed_only() const;
+    // A collection's game on those pages: in this build and, with installed_only(), its file chosen (being
+    // checked, or usable)
+    bool shown(size_t which) const;
     // The collection's pages before its games': Games, Features, Controllers and, with modes for it, Multi game
     int fixed_pages() const;
     // A collection's games in the player's order: launcher.ini, [games] order (their ids; a game not in it comes
@@ -180,11 +188,21 @@ private:
     void menu_choices(float width, const FeatureRow& feature, std::vector<bool> offered, SetOffered set_offered);
     void set_menu_choices(Slot& one, size_t index, const std::vector<bool>& offered);
     template <typename Set, typename Offered, typename SetOffered>
-    void feature_list(float width, const std::vector<FeatureRow>& rows, const char* none, Set set, Offered offered, SetOffered set_offered);
+    void feature_list(float width, const std::vector<FeatureRow>& rows, const char* none, Set set, Offered offered, SetOffered set_offered,
+                      bool whole = true);
     void file_card(size_t which, float width);
     void display_cards(size_t which, float width);
     void play_button(size_t which, float width);
     void online_card(size_t which, float width, bool ready);
+    void lobby_card(size_t which, float width, bool ready);
+    // The Online page (a collection with a lobby: Collection::lobby): host in the lobby in any game, and every game's
+    // open matches
+    void online_page(float width);
+    void load_online();
+    // The lobby's list from `url`, fetched again every five seconds while it is shown
+    void follow_lobby(const std::string& url);
+    // A game that can be started now (its file chosen and good, its program there, not running)
+    bool can_play(size_t which) const;
     void files_card(float width);
 
     // The Multi game page (a collection's MultiModes): a mode's choices and games, and the run of one
@@ -250,6 +268,18 @@ private:
     char online_address_[256] = {};  // the Online card's Join address (launcher.ini [online] address)
     bool online_loaded_ = false;
     std::vector<std::string> online_here_;  // this machine's addresses, as the Host row says them
+    char online_name_[64] = {};
+    // (the Online page's Join with a code: what is typed, the lookup of which game it is for, and what it said)
+    char join_code_[32] = {};
+    std::future<launcher::CodeLookup> join_lookup_;
+    std::string join_said_;
+    int join_needs_ = -1;  // (a game whose file must be chosen first: Add…)  // the player's name, as the lobby shows a match they host ([online] name)
+    // (the lobby's list: fetched every few seconds while the card is shown, on another thread)
+    std::future<std::pair<bool, std::vector<launcher::OpenMatch>>> lobby_fetch_;
+    std::vector<launcher::OpenMatch> lobby_;
+    std::string lobby_url_;
+    bool lobby_failed_ = false;
+    Uint64 lobby_at_ = 0;
 #ifdef LAUNCHER_UPDATE_REPO
     std::unique_ptr<launcher::Updater> updater_;
     bool relaunched_ = false;  // (the new version has been started: this one quits)

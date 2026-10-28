@@ -4,7 +4,8 @@
 #
 # A release's checks (docs/RELEASING.md, step 1): for every game (games/*, or GAMES="a b"), with its ROM set in
 # rom/<id>/: its build, check, check-blocks, check-release over its ladder movie if it has one (40,000 frames;
-# Puzzle Fighter's 66,000), check-rewrites and check-widescreen if it has them; then the repository's make check.
+# Puzzle Fighter's 66,000), check-rewrites and check-widescreen if it has them, check-rollback and check-online (what
+# online play needs of every game: docs/TOOLKIT.md, Online play); then the repository's make check.
 # A game's steps one after another (two builds of one game must never run together), JOBS games at once (3: a
 # check-rewrites runs several of its own at once too; each game has its build/<id>/ and work/<id>/). Each step's
 # output is in build/release-checks/; a line for each step as it ends, and at the end the ones that failed. About
@@ -48,6 +49,8 @@ if [ "${1:-}" = --game ]; then
     fi
     [ -f "games/$game/check_rewrites.sh" ] && step "$game" rewrites check-rewrites
     [ -f "games/$game/check_widescreen.sh" ] && step "$game" widescreen check-widescreen
+    step "$game" rollback check-rollback FRAMES=6000
+    step "$game" online check-online FRAMES=3000
     exit $failed
 fi
 

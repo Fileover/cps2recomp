@@ -4,10 +4,11 @@
 #
 # Checks the game's rewritten routines (src/) against the code they replace: every call of each, over the
 # game's movies, run both ways and compared (docs/READABLE.md). Inner rewrites are only called by
-# outer ones, so each movie is run again with the outer ones left out. Run from the repository's top.
-GAME=sfa2
+# outer ones, so each movie is run again with the outer ones left out. Run from the repository's top. A game made
+# from Alpha 2's program that builds these sources too (Zero 2 Alpha) runs it with its own name: check_rewrites.sh GAME
+GAME=${1:-sfa2}
 port=${B:-build/$GAME}/$GAME
-movies=games/$GAME/movies
+movies=games/sfa2/movies
 status=0
 . tools/at-once.sh
 check() { # movie, frames, features, rewrites to leave out, more of the port's options
@@ -21,7 +22,7 @@ check() { # movie, frames, features, rewrites to leave out, more of the port's o
 run() {
     at_once check "$@"
 }
-for skip in "" $(sh games/$GAME/layers.sh); do
+for skip in "" $(sh games/sfa2/layers.sh); do
     run versus 3000 free_play "$skip"
     run versus_attacks 7800 free_play "$skip"
     run versus_attacks 7800 free_play,full_gauge,full_gauge_2 "$skip"
@@ -33,7 +34,9 @@ for skip in "" $(sh games/$GAME/layers.sh); do
     run throw_tech 5000 free_play "$skip"
     run versus_attacks 4000 free_play "$skip" "--poke FF8482=0A"
     run wall_jump 6000 free_play "$skip" "--poke FF8482=04"
-    for who in 09 07 03; do # (Rose, Guy, Charlie: their hits' reactions)
+    # (Rose, Guy, Charlie: their hits' reactions; and the characters a game made from this program adds, which its
+    # check names in CHARACTERS)
+    for who in 09 07 03 $CHARACTERS; do
         run versus_attacks 7800 free_play,full_gauge "$skip" "--poke FF8482=$who"
     done
     run ladder 30000 free_play "$skip"
@@ -42,7 +45,7 @@ done
 # against itself) with its level held low, middling and high, and each tier of its tactics. The players' routines
 # are left out (layers.sh's last line), so that the game's own code calls the computer's (PlayerInControl calls
 # ComputerThinks, the action routines Chance and BrokenOff).
-deep=$(sh games/$GAME/layers.sh | tail -1)
+deep=$(sh games/sfa2/layers.sh | tail -1)
 computers="ComputerThinks|AnswerNow|BrokenOff|Reactions|Chance"
 # (in the tag style and the ring out the computer plays the modes' tactics of the port's, not the game's alone: the
 # movies of those modes are checked with no side playing them, CPS2RECOMP_COACH=0; as each movie says, the battle's
@@ -76,5 +79,5 @@ unset CPS2RECOMP_COACH CPS2RECOMP_BATTLE_SEED
 # clock and the damage (and what encloses them), so those are left out, and the players' routines are checked
 run training_rise 5500 free_play,dummy_getup=1 "RoundFrame,PlayersStep,PlayerFighting,RoundFighting,AllHitTests,PlayersAgainstPlayers,HitTest,TakeDamage" "--keys 3:ftraining_stage=1,5:ctraining_start"
 at_once_wait || status=1
-[ $status -eq 0 ] && echo "ok: every rewrite does what the game's code does" || echo "FAILED"
+[ $status -eq 0 ] && echo "ok: every rewrite does what $GAME's code does" || echo "FAILED"
 exit $status

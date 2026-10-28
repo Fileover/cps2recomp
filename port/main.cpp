@@ -11,6 +11,7 @@
 #include "../runtime/state.h"
 #include "hud.h"
 #include "../runtime/board.h"
+#include "../fight/battle.h"
 #include "png_write.h"
 #include "present.h"
 #include "../runtime/spare.h"
@@ -168,6 +169,15 @@ void RegisterPortFeatures() {
                                   kFeatureMenuChoices,
                                   {"Off", "CRT", "CRT Lottes", "CRT Royale", "CRT Guest", "CRT Light", "Scanlines: light",
                                    "Scanlines: strong", "Scanlines: OSSC", "Scanlines: dark", "xBRZ", "ScaleFX", "Your own"}});
+    // (online play's readout, each player's own: Port::Shown)
+    TheGame().features.push_back({"online_ping", "Online", "Ping",
+                                  "During an online match, the time a packet takes to the other player and back, at the bottom of "
+                                  "the picture (\"PING 42 ms\").",
+                                  kFeatureEnhanced});
+    TheGame().features.push_back({"online_delay", "Online", "Input delay",
+                                  "During an online match, how many frames each player's own controls are held back, at the bottom "
+                                  "of the picture (\"DELAY 2\"): the host chooses it.",
+                                  0});
     TheGame().features.push_back({"window_size", "Display", "Window size",
                                   "How large the window opens, in times the board's 224 lines (it can be made any size by "
                                   "dragging its edges; full screen is on the launcher's first page and F11).",
@@ -519,8 +529,8 @@ void Port::RunCommand(size_t index) {
 }
 
 void Port::Key(char key, unsigned n) {
-    if (net && key != 'z' && key != 'm') {
-        return; // (online: only the zoom, each player's own)
+    if (net && key != 'z' && key != 'm' && key != 'l') {
+        return; // (online: only the zoom, each player's own, and the leave question)
     }
     switch (key) {
     case 'p':
@@ -536,6 +546,7 @@ void Port::Key(char key, unsigned n) {
     case '-': menu.Faster(-1); break;
     case '=': menu.Faster(1); break;
     case 'h': hurry = !hurry; break; // (tests: the frontend sets it while F is held)
+    case 'l': leaving = net && !leaving; break; // (tests: online, Esc's "Leave the match?")
     case 'z': // (tests: the zoom pressed for player n + 1; 2: for both)
         if (n == Zoom::kBoth) {
             zoom.Both();
@@ -628,13 +639,24 @@ bool Port::Tick() {
             return false;
         }
         if (state == 0) {
-            static const char *const kDots[] = {"", ".", "..", "..."};
+            // (short lines, each its own panel: one wider than the picture is not drawn; the dots padded so that the
+            // line keeps its width; the code in green)
+            static const char *const kDots[] = {"   ", ".  ", ".. ", "..."};
             std::vector<HudLine> lines;
             if (!rejoin.empty()) {
-                lines.push_back({0.5f, 0.36f, 0, rejoin});
+                lines.push_back({0.5f, 0, 0, rejoin});
             }
-            lines.push_back({0.5f, rejoin.empty() ? 0.42f : 0.48f, 0, net->waiting + kDots[(tick / 30) % 4]});
-            lines.push_back({0.5f, rejoin.empty() ? 0.56f : 0.6f, 0, rejoin.empty() ? "Esc: give up" : "Esc: quit"});
+            lines.push_back({0.5f, 0, 0, net->waiting + kDots[(tick / 30) % 4]});
+            if (!net->code.empty()) {
+                lines.push_back({0.5f, 0, 0, "Match code " + net->code, 96, 230, 120});
+                if (net->Listed()) {
+                    lines.push_back({0.5f, 0, 0, "Listed in the lobby"});
+                }
+            }
+            lines.push_back({0.5f, 0, 0, rejoin.empty() ? "Esc: give up" : "Esc: quit"});
+            for (size_t n = 0; n < lines.size(); n++) {
+                lines[n].y = 0.5f + (static_cast<float>(n) - (lines.size() - 1) / 2.0f) * 0.1f;
+            }
             SetHud(lines);
             return false;
         }
@@ -740,20 +762,70 @@ void Port::Shown(std::vector<uint32_t> &pixels, std::vector<SDL_Rect> *panels) c
         }
         status(text, 0);
     }
-    // (online: the ping, or that the other side has gone quiet)
-    const bool match = net && !connecting;
-    if (match) {
-        char text[64];
+    // (online: the ping and the input delay, as the Display page has them, or that the other side has gone quiet; and
+    // above, until this side's player has pressed Start, that it lets them in)
+    int said = told ? 1 : 0;
+    if (net && !connecting) {
+        char text[64] = "";
         if (net->Silent() > 1000) {
             snprintf(text, sizeof(text), "WAITING FOR THE OTHER PLAYER");
-        } else {
+        } else if (FeatureOn("online_ping") && FeatureOn("online_delay")) {
+            snprintf(text, sizeof(text), "PING %d ms   DELAY %d", net->Ping(), net->Delay());
+        } else if (FeatureOn("online_ping")) {
             snprintf(text, sizeof(text), "PING %d ms", net->Ping());
+        } else if (FeatureOn("online_delay")) {
+            snprintf(text, sizeof(text), "DELAY %d", net->Delay());
         }
-        status(text, told ? 14 : 0);
+        if (*text) {
+            status(text, said++ * 14);
+        }
+        if (!cameIn) {
+            status("PRESS START TO JOIN", said++ * 14);
+        }
     }
     // (what the camera's zoom was set to, for a few seconds: above that if both are said)
     if (*zoom.Label()) {
-        status(zoom.Label(), (told + match) * 14);
+        status(zoom.Label(), said * 14);
+    }
+    // (online: a win streak of two or more under its side's life bar)
+    if (net && !connecting) {
+        const recomp::text::Canvas canvas{pixels.data(), across, Video::kHeight};
+        for (int side = 0; side < 2; side++) {
+            if (streak[side] < 2) {
+                continue;
+            }
+            char text[32];
+            snprintf(text, sizeof(text), "STREAK %d", streak[side]);
+            const float width = recomp::text::TextWidth(text, 1);
+            const float x = side == 0 ? 10.0f : across - 10.0f - width, y = 38.0f;
+            canvas.Fill(x - 3, y - 2, width + 6, 12, {20, 22, 30, 220});
+            canvas.Text(x, y, 1, 0, {255, 210, 80, 255}, text);
+            if (panels) {
+                panels->push_back({static_cast<int>(x) - 3, static_cast<int>(y) - 2, static_cast<int>(width) + 7, 12});
+            }
+        }
+    }
+    // (online: Esc's question, in the middle, over the game, which goes on; the port's own, not the readout, which the
+    // game's sources set every frame)
+    if (net && leaving) {
+        const recomp::text::Canvas canvas{pixels.data(), across, Video::kHeight};
+        const struct {
+            const char *text;
+            recomp::text::Color colour;
+        } lines[] = {{"Leave the match?", {255, 255, 255, 255}},
+                     {"Confirm (A, Enter): leave", {255, 130, 120, 255}},
+                     {"Back (B, Backspace, Esc): stay", {255, 255, 255, 255}}};
+        float y = Video::kHeight / 2.0f - 30;
+        for (const auto &line : lines) {
+            const float width = recomp::text::TextWidth(line.text, 1);
+            const float x = (across - width) / 2;
+            canvas.Fill(x - 6, y - 4, width + 12, 16, {20, 22, 30, 235});
+            canvas.Text(x, y, 1, 0, line.colour, line.text);
+            if (panels) {
+                panels->push_back({static_cast<int>(x) - 6, static_cast<int>(y) - 4, static_cast<int>(width) + 13, 16});
+            }
+            y += 22;
+        }
     }
 }
 
@@ -1181,6 +1253,36 @@ void Port::RunAhead() {
     memcpy(machine->players, held, sizeof(held));
 }
 
+// Online: a round's result, the frame it comes (once: a second's quiet after it before the next, so that a frame run
+// again in a rollback is not counted twice), and a match won when a player has won its rounds
+void Port::Streaks() {
+    const int result = battle::RoundResultNow();
+    if (result < 0) {
+        return; // (not a fighting game)
+    }
+    if (result == 0) {
+        if (++roundQuiet >= 60) {
+            roundCounted = false;
+        }
+        return;
+    }
+    roundQuiet = 0;
+    if (roundCounted) {
+        return;
+    }
+    roundCounted = true;
+    if (result == 3 || !cameIn || !otherIn) {
+        return; // (a draw; or a fight against the computer, before both have come in)
+    }
+    const int winner = result - 1;
+    if (++roundsWon[winner] >= battle::RoundsToWin()) {
+        streak[winner]++;
+        streak[1 - winner] = 0;
+        roundsWon[0] = roundsWon[1] = 0;
+        fprintf(stderr, "online: player %d won the match (%d in a row)\n", winner + 1, streak[winner]);
+    }
+}
+
 // Online play (netplay.h): the other side found and agreed with before the first frame; with a window, a step a tick
 // (Tick), the wait shown on the screen, and without, here
 bool Port::StartOnline(std::string &error) {
@@ -1234,6 +1336,9 @@ void Port::Again(const std::string &why) {
 
 void Port::Matched() {
     connecting = false;
+    cameIn = otherIn = false;
+    streak[0] = streak[1] = roundsWon[0] = roundsWon[1] = 0;
+    roundCounted = false;
     rejoin.clear();
     frame = 0; // (the match's frames count from its start, on both sides)
     // (the hashes compared leave out the picture: frames run again are not drawn)
@@ -1344,6 +1449,9 @@ void Port::RunFrame() {
     }
     if (net) {
         net->Frame(*this, pressed[0]); // (this side's player plays with player 1's controls)
+        cameIn = cameIn || (pressed[0] & kStart);
+        otherIn = otherIn || (machine->players[1 - net->Local()] & kStart);
+        Streaks();
     } else if (opt.rollbackTest) {
         RollbackFrame(pressed);
     } else {
@@ -1533,6 +1641,8 @@ void Usage() {
             "  --join ADDRESS[:PORT]  online play: go to the host at ADDRESS (player 2), or CODE: the match the host's\n"
             "                         code names (the online service says where the host is)\n"
             "  --net-service URL      the online service that gives hosts codes (online/), or off\n"
+            "  --net-list             (hosting) the match in the lobby, the Online card's list of open matches\n"
+            "  --net-name NAME        ... under this name\n"
             "  --net-delay N          (hosting) frames each player's controls are held back, 2 unless said (0-8)\n"
             "  --net-fake MS[:JIT[:LOSS]]  (tests) each packet sent MS ms late, give or take JIT, LOSS in 100 lost\n"
             "  --test-switch FROM:TO  the operator's test switch held from frame FROM to TO\n"
@@ -1657,6 +1767,10 @@ bool ParseArgs(int argc, char **argv, port::Options &o) {
         } else if (a == "--join") {
             o.online = true;
             o.net.address = next();
+        } else if (a == "--net-list") {
+            o.net.listed = true;
+        } else if (a == "--net-name") {
+            o.net.name = next();
         } else if (a == "--net-service") {
             o.net.service = next();
         } else if (a == "--net-delay") {

@@ -14,16 +14,18 @@
 # walls on and with neither, and the game's memory, video and object memory and registers are compared every 4,000
 # frames (the frame hash would not do: it takes the picture in, which is meant to differ). And the stages are walked
 # to their ends with the walls on: there the wide view keeps to the stage, and its 128 columns beyond the board's
-# picture are looked at for unpainted columns as above. Run from the repository's top.
-GAME=sfa2
+# picture are looked at for unpainted columns as above. Run from the repository's top. A game made from Alpha 2's
+# program that builds these sources too (Zero 2 Alpha) runs it with its own name: check_widescreen.sh GAME
+GAME=${1:-sfa2}
 port=${B:-build/$GAME}/$GAME
+HOME_VAR=$(echo "$GAME" | tr a-z A-Z)_HOME
 status=0
 dir=$(mktemp -d)
 for stage in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18; do
-    SFA2_HOME=$dir/home_s$stage SFA2_WIDE_CHECK=1 $port --rom "${ROM:-rom/$GAME}" --headless --frames 3300 --features free_play,widescreen --movie games/$GAME/movies/corners.txt \
+    env $HOME_VAR=$dir/home_s$stage SFA2_WIDE_CHECK=1 $port --rom "${ROM:-rom/$GAME}" --headless --frames 3300 --features free_play,widescreen --movie games/sfa2/movies/corners.txt \
         --keys "3:ftraining_stage=$stage,5:ctraining_start" --shot-every 1100:$dir/s${stage}_ 2> $dir/plan$stage.txt > /dev/null &
-    SFA2_HOME=$dir/home_w$stage $port --rom "${ROM:-rom/$GAME}" --headless --frames 3300 --features free_play,widescreen,widescreen_walls \
-        --movie games/$GAME/movies/corners.txt --keys "3:ftraining_stage=$stage,5:ctraining_start" --shot-every 1100:$dir/w${stage}_ > /dev/null 2>&1 &
+    env $HOME_VAR=$dir/home_w$stage $port --rom "${ROM:-rom/$GAME}" --headless --frames 3300 --features free_play,widescreen,widescreen_walls \
+        --movie games/sfa2/movies/corners.txt --keys "3:ftraining_stage=$stage,5:ctraining_start" --shot-every 1100:$dir/w${stage}_ > /dev/null 2>&1 &
     [ $((stage % 6)) -eq 0 ] && wait
 done
 wait
@@ -98,7 +100,7 @@ for frame in 4000 8000 12000 16000 20000 24000 28000; do
     for run in off walls; do
         features=free_play,no_damage,one_hit
         [ $run = walls ] && features=$features,widescreen,widescreen_walls
-        SFA2_HOME=$dir/home_$run$frame $port --rom "${ROM:-rom/$GAME}" --headless --frames $((frame + 2)) --movie games/$GAME/movies/ladder.txt \
+        env $HOME_VAR=$dir/home_$run$frame $port --rom "${ROM:-rom/$GAME}" --headless --frames $((frame + 2)) --movie games/sfa2/movies/ladder.txt \
             --features $features --dump-ram $frame:$dir/$run$frame.bin > /dev/null 2>&1 &
     done
     wait
@@ -108,7 +110,7 @@ for frame in 4000 8000 12000 16000 20000 24000 28000; do
 done
 [ $differ -eq 0 ] && echo "invisible walls: the game's memory and registers are the board's at 7 places of the ladder" || status=1
 rm -rf "$dir"
-out=$($port --rom "${ROM:-rom/$GAME}" --headless --frames 30000 --movie games/$GAME/movies/ladder.txt --features free_play,no_damage,one_hit,widescreen --stats 2>&1) || status=1
+out=$($port --rom "${ROM:-rom/$GAME}" --headless --frames 30000 --movie games/sfa2/movies/ladder.txt --features free_play,no_damage,one_hit,widescreen --stats 2>&1) || status=1
 echo "$out" | grep "ran in the interpreter"
 [ $status -eq 0 ] && echo "ok: widescreen" || echo "FAILED"
 exit $status

@@ -10,7 +10,7 @@
 //
 // --host [PORT] waits for the other player; --join ADDRESS[:PORT] goes to them. The host is player 1. Before the
 // first frame the two make sure they are the same game, and the joining side takes the host's board settings
-// (the settings memory) and the features that change play (Game, Board and Cheats, and widescreen); the rest of
+// (the settings memory) and the features that change play (Game and Board, and widescreen); the cheats and the rest of
 // the alternative modes, training, run-ahead and the like stay off. Every so often each sends the other a hash of
 // the game as it was at a frame both have the real controls for; if the two differ, the games have come apart
 // (a desync), and the match stops, saying so.
@@ -59,6 +59,9 @@ private:
 class Netplay {
 public:
     static constexpr int kDefaultPort = 7845;
+    // The packets' layout (2: the host's state sent at the start); two copies must have the same to play, and the
+    // lobby shows only matches of this one (the launcher asks with it too)
+    static constexpr int kProtocol = 2;
     static constexpr int kMostAhead = 8;   // frames run on guessed controls at most
     static constexpr int kKept = 16;       // states kept (more than the most a rollback goes back)
     static constexpr int kInputs = 128;    // controls kept, each side's
@@ -76,6 +79,8 @@ public:
         int delay = kDefaultDelay;
         std::string service = kService; // (--net-service URL; "off": none, the host's address only)
         std::string renewCode, renewSecret; // (hosting again after the other player left: the code they know, kept)
+        bool listed = false;  // (--net-list) the match in the lobby: on the Online card's list of open matches
+        std::string name;     // (--net-name) ... under this name
         // (tests: each packet sent late by this many ms, give or take `jitter`, and this many in a hundred lost)
         int fakeLag = 0, fakeJitter = 0, fakeLoss = 0;
     };
@@ -94,9 +99,15 @@ public:
     bool Hosting() const {
         return settings.hosting;
     }
+    bool Listed() const {
+        return settings.listed;
+    }
     // The time a packet takes there and back (ms; the frame's wait for it to be read taken off), and how long since the
     // other side was last heard
     int Ping() const;
+    int Delay() const {
+        return delay;
+    }
     uint64_t Silent() const;
     // This side's player (0: player 1)
     int Local() const {

@@ -76,7 +76,7 @@ namespace {
     // How the game lets an attack be guarded, by its kind (its entry's byte +0D): bit 0 standing, bit 1 crouching
     // (the table at 011438; another at 011456 for attacks from the air)
     uint8_t GuardBits(M68K &c, uint32_t attacker, uint8_t kind) {
-        const uint32_t table = Mem8(c, attacker + kInAir) ? 0x011456 : 0x011438;
+        const uint32_t table = Mem8(c, attacker + kInAir) ? At(0x011456) : At(0x011438);
         return kind < 0x1E ? Mem8(c, table + kind) : 3;
     }
 } // namespace

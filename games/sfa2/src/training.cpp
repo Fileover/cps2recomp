@@ -34,10 +34,10 @@ namespace {
     constexpr uint16_t kStageLeft = 280, kStageRight = 1000, kCameraLeft = 256, kCameraRight = 640;
     constexpr uint16_t kStartX[2] = {544, 736};
     constexpr uint16_t kCornerApart = 100;
-    constexpr uint32_t kCameraCopies[] = {0xFF8026, 0xFF82A0, 0xFF82A8, 0xFF8290};
-    constexpr uint32_t kCameraX = 0xFF8290, kCameraY = 0xFF8294;
+    constexpr uint32_t kCameraCopies[] = {At(0xFF8026), At(0xFF82A0), At(0xFF82A8), At(0xFF8290)};
+    constexpr uint32_t kCameraX = At(0xFF8290), kCameraY = At(0xFF8294);
     constexpr int kPictureFloor = 239; // the picture's line that height 0 is on, the camera at the bottom (a player on the floor is at kGround, 40: its feet on line 199, measured)
-    constexpr uint32_t kPlayersChosen = 0xFF80AC;
+    constexpr uint32_t kPlayersChosen = At(0xFF80AC);
 
     // A round's fighting, for the aids: both players in it and nobody over the most health
     bool Fighting() {
@@ -62,12 +62,9 @@ namespace {
         return false;
     }
 
-    // The hidden characters: the other forms the board has (kCharacterNames 18-23) of the characters on the screen
-    // they are chosen from, as the "Hidden characters" feature gives them for one who chooses the first form. (Gen's
-    // other form is left out: it is the style he changes to in a fight.)
-    constexpr struct {
-        uint8_t first, other;
-    } kHiddenForms[] = {{0, 23}, {2, 20}, {4, 18}, {15, 22}, {16, 21}};
+    // The hidden characters: the other forms the board has of the characters on the screen they are chosen from, as
+    // the "Hidden characters" feature gives them for one who chooses the first form (family.h)
+    using family::kHiddenForms;
     bool HiddenFormFor(int n) {
         const int who = FeatureValue("hidden_forms"); // 1 player 1, 2 player 2, 3 both
         return (who & (1 << n)) != 0;
@@ -311,12 +308,11 @@ int HiddenFormOf(int n, int character) {
 void RegisterTraining() {
     Game &game = TheGame();
     AddHook(kPlayerDispatch, "PlayerStep", PlayerStep);
-    AddHook(0x00797C, "ChooseStage", ChooseStage);
-    AddHook(0x007914, "ChooseCharacters", ChooseCharacters);
-    AddHook(0x0628D8, "CharacterChosen", CharacterChosen);
+    AddHook(At(0x00797C), "ChooseStage", ChooseStage);
+    AddHook(At(0x007914), "ChooseCharacters", ChooseCharacters);
+    AddHook(At(0x0628D8), "CharacterChosen", CharacterChosen);
     game.features.push_back({"hidden_forms", "Game", "Hidden characters",
-                             "Choosing Ryu, Akuma, Chun-Li, Dhalsim or Zangief gives their hidden form instead: Evil Ryu, Shin "
-                             "Akuma, the classic Chun-Li, and Dhalsim's and Zangief's other forms. For player 1, player 2 or both.",
+                             family::kHiddenWords,
                              0, {"Off", "Player 1", "Player 2", "Both"}});
     session::Description d;
     d.player1 = kPlayer1;

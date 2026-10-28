@@ -53,7 +53,8 @@ code is not part of that source: it is made from the player's own ROM sets by th
    tree, about seven minutes a game; or `tools/seed_entries.sh <another tree>`, which takes what that tree found),
    `tools/release/checks.sh` passes (about 40 minutes, three games at once: `JOBS`): for every game its build,
    `check`, `check-blocks`, `check-release` over its ladder movie (40,000 frames; Puzzle Fighter's 66,000),
-   `check-rewrites` and `check-widescreen` where it has them, then `make check`. It stops at once if a game's code has not been
+   `check-rewrites` and `check-widescreen` where it has them, `check-rollback` and `check-online` (what online play
+   needs of every game: [TOOLKIT.md](TOOLKIT.md), Online play), then `make check`. It stops at once if a game's code has not been
    found: a tree that has not, translating from guesses, fails `check` and `check-blocks` for that alone. Put
    its lines in the pull request. Merge it.
 2. On `main`: `git tag -a vX.Y.Z -m "X.Y.Z"` and `git push origin vX.Y.Z`.
@@ -75,7 +76,8 @@ code is not part of that source: it is made from the player's own ROM sets by th
 
 ## A new game
 
-A game is a folder in `games/` (the toolkit's [TOOLKIT.md](TOOLKIT.md) says what goes in it). Before it is
+A game is a folder in `games/` (the toolkit's [TOOLKIT.md](TOOLKIT.md) says what goes in it, and what online play
+needs of it: everything its sources keep between frames in its save state; `check-rollback` and `check-online` pass). Before it is
 committed here, the repository being public: the same legal audit as the others (nothing from the game, the key
 from the player's own set, its names and pictures used only to say what it works with), every source file with
 its licence line (`make audit`), and its README in `games/<id>/` with the main README's table of games. The

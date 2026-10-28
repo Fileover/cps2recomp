@@ -67,11 +67,11 @@ void RegisterColours() {
     d.ranges = Ranges;
     // The last but one of the set's program files has every character's colours (and other palettes, stages,
     // faces); PalMod never changes its first part, which is the game's data
-    d.romFile = "sz2u.07";
+    d.romFile = family::kColoursFile;
     d.romFileAt = 0x200000;
     d.romFileSize = 0x80000;
     d.same = {0x200000, 0x220000};
-    d.romFileWhose = "the USA set's, 960430";
+    d.romFileWhose = family::kColoursFileWhose;
     d.featureDescription = "Characters in the colours of the files in the \"palettes\" folder in the game's data folder: "
                            "an sz2u.07 changed with PalMod, and text files, one a character (Sakura.txt), which go before "
                            "it. With no files the game's own colours. They are taken when a player is coloured: at the "
