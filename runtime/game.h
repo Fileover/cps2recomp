@@ -186,6 +186,7 @@ struct HudLine {
     float x, y;       // where, as parts of the picture's width and height (0-1)
     int align;        // -1: the text starts at x; 0: is centred on it; 1: ends at it
     std::string text;
+    uint8_t r = 255, g = 255, b = 255; // (its colour: white unless said)
     bool operator==(const HudLine &) const = default;
 };
 void SetHud(std::vector<HudLine> lines);

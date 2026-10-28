@@ -34,7 +34,7 @@ std::vector<HudPanel> HudPanels(int width, int height) {
         }
         panel.pixels.assign(static_cast<size_t>(panel.width) * panel.height, 0xFF000000u | (30 << 16) | (22 << 8) | 20);
         const Canvas canvas{panel.pixels.data(), panel.width, panel.height};
-        canvas.Text(static_cast<float>(pad), static_cast<float>(pad), d, 0, {255, 255, 255, 255}, line.text.c_str());
+        canvas.Text(static_cast<float>(pad), static_cast<float>(pad), d, 0, {line.r, line.g, line.b, 255}, line.text.c_str());
         panels.push_back(std::move(panel));
     }
     return panels;

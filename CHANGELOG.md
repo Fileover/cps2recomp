@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- **Online: the wait said in short lines**, the match code on a line of its own in green and "Listed in the lobby"
+  under it (a readout line can now have a colour: `HudLine`'s `r`, `g`, `b`). The one long line flickered: with its
+  dots it grew wider than the picture, and a line wider than the picture is not drawn.
 - **A lobby for online play** (opt-in): on the Online card, **List my matches in the lobby** and **Your name**; a
   listed host's match shows under **Open matches** on other players' cards for the same game (and the same protocol),
   to join with a press, until someone has joined it or its host stops waiting. The service keeps each game's list in a

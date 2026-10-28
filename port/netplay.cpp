@@ -677,8 +677,7 @@ bool Netplay::Introduce(uint64_t now, std::string &error) {
             if (answer.status == 200 && !JsonText(answer.body, "code").empty()) {
                 code = Spaced(JsonText(answer.body, "code"));
                 secret = JsonText(answer.body, "secret");
-                waiting = std::string(settings.listed ? "In the lobby, " : "") + "match code " + code + ": waiting for the other player";
-                waiting[0] = static_cast<char>(toupper(static_cast<unsigned char>(waiting[0])));
+                waiting = "Waiting for the other player"; // (the code said under it, and the lobby: Port::Tick)
                 fprintf(stderr, "online: the match's code is %s%s\n", code.c_str(), seenAs.empty() ? "" : (" (seen at " + seenAs + ")").c_str());
                 intro = Intro::Polling;
             } else {

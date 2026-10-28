@@ -99,6 +99,9 @@ public:
     bool Hosting() const {
         return settings.hosting;
     }
+    bool Listed() const {
+        return settings.listed;
+    }
     // The time a packet takes there and back (ms; the frame's wait for it to be read taken off), and how long since the
     // other side was last heard
     int Ping() const;
