@@ -224,6 +224,8 @@ cps2recomp-launcher --play sfa3 -- --join K7Q-M2X          # the other player: t
 - **The lobby** (opt-in): switch on **List my matches in the lobby** on the Online card and give **Your name**, and the
   matches you host are listed under **Open matches** on every other player's card for that game, until someone joins;
   they press Join. Matches not listed are joined only with their code.
+- **The Online page** in the launcher's sidebar shows every game's open matches at once, each with Join, and hosts a
+  match in the lobby in whichever of your games you choose.
 - **How the code works**: a small service of ours introduces the two games, telling each where the other can be
   reached, and they then connect straight to each other through their routers; none of the match goes through it
   ([online/README.md](online/README.md)). A code lasts 30 minutes and is good for one match.

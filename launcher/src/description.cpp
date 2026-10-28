@@ -287,6 +287,11 @@ const launcher::Collection& launcher::describe_collection() {
         // The Multi game page: the fighting games' endless battle (fight/battle.h), each game's every stage once and
         // then the next game's (--multi endless:shuffle:SECONDS or endless:scroll:SPEED)
         c.multi_intro = "Several games played one after another, as long as you like. Choose the games and how they are played, then Start.";
+        // (online play's lobby, every game's: online/, Netplay::kService, kProtocol)
+        static const std::string lobby = std::string(port::Netplay::kService) + "/v1/lobby?protocol=" + std::to_string(port::Netplay::kProtocol);
+        c.lobby = lobby.c_str();
+        c.online_intro = "Play someone on another machine: join a match a player is hosting, or host one in any of your games for others to "
+                         "join. A game's own page has its Online card too, for a match with a code only the people you give it to know.";
         launcher::MultiMode endless;
         endless.key = "endless";
         endless.title = "Endless battle";

@@ -18,9 +18,10 @@ How the two meet:
 4. Each side sends to every address of the other's. The host's packets open its router to the other's, whose hellos
    then come through (UDP hole punching); the first address that answers is the match's.
 
-A host that asks for it (`--net-list`, with `--net-name`) is also in its game's **lobby**, `GET /v1/lobby/GAME?protocol=N`:
-a Durable Object for each game, keeping the listed matches whose host has asked about them in the last 10 seconds,
-until someone joins. The launcher's Online card shows it as Open matches.
+A host that asks for it (`--net-list`, with `--net-name`) is also in the **lobby**: a Durable Object keeping every
+game's listed matches whose host has asked about them in the last 10 seconds, until someone joins.
+`GET /v1/lobby?protocol=N` lists them all, each with its game (the launcher's Online page); `GET /v1/lobby/GAME?protocol=N`
+one game's (a game page's Online card).
 
 Two routers that each give every destination a port of its own ("symmetric" NAT, as some mobile networks do) can't be
 met this way; a relay would be needed, which the service doesn't have yet. Then the host's address, with its port

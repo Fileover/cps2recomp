@@ -13,9 +13,10 @@
 //   GET  /v1/host/CODE?secret=S                                    -> {joined: false} | {joined: true, addresses}
 //   POST /v1/join/CODE           {game, build, addresses}          -> {addresses} | 404 | 409 {error}
 //   GET  /v1/lobby/GAME?protocol=N                                 -> {matches: [{code, name, waiting}]}
+//   GET  /v1/lobby?protocol=N                                      -> {matches: [{game, code, name, waiting}]}  (every game's)
 //
-// A host that asks for it (`listed`, with a `name` and its `protocol`) is in the lobby of its game, a Durable Object of
-// its own (Lobby): there while it is asking whether someone has joined (seen in the last 10 seconds), and until
+// A host that asks for it (`listed`, with a `name` and its `protocol`) is in the lobby, a Durable Object (Lobby) that
+// keeps every game's: there while it is asking whether someone has joined (seen in the last 10 seconds), and until
 // someone has.
 //
 // `addresses` are "IP:PORT" strings (IPv4, or [IPv6]:PORT), at most 8: each side's own, as STUN and its network say them.
@@ -98,9 +99,10 @@ export default {
       }
       return json({ error: "no code free" }, 503);
     }
-    if (request.method === "GET" && parts[1] === "lobby" && parts.length === 3) {
-      const lobby = env.LOBBIES.get(env.LOBBIES.idFromName(cleanText(parts[2])));
-      return lobby.fetch(`https://lobby/list?protocol=${encodeURIComponent(url.searchParams.get("protocol") || "")}`);
+    if (request.method === "GET" && parts[1] === "lobby" && (parts.length === 2 || parts.length === 3)) {
+      const lobby = env.LOBBIES.get(env.LOBBIES.idFromName("all"));
+      const game = parts.length === 3 ? `&game=${encodeURIComponent(cleanText(parts[2]))}` : "";
+      return lobby.fetch(`https://lobby/list?protocol=${encodeURIComponent(url.searchParams.get("protocol") || "")}${game}`);
     }
     const code = parts.length === 3 ? cleanCode(parts[2]) : null;
     if (!code) {
@@ -128,10 +130,10 @@ export class Match {
     if (!match || !match.listed) {
       return;
     }
-    const lobby = this.env.LOBBIES.get(this.env.LOBBIES.idFromName(match.game));
+    const lobby = this.env.LOBBIES.get(this.env.LOBBIES.idFromName("all"));
     await lobby.fetch(`https://lobby/${what}`, {
       method: "POST",
-      body: JSON.stringify({ code, name: match.name, protocol: match.protocol, made: match.made }),
+      body: JSON.stringify({ code, game: match.game, name: match.name, protocol: match.protocol, made: match.made }),
     });
   }
 
@@ -205,7 +207,7 @@ export class Match {
   }
 }
 
-// A game's open matches: the listed hosts still asking (kSeen), each by its code
+// The open matches, every game's: the listed hosts still asking (kSeen), each by its code
 export class Lobby {
   constructor(state) {
     this.state = state;
@@ -217,28 +219,29 @@ export class Lobby {
     const matches = (await this.state.storage.get("matches")) || {};
     if (url.pathname === "/list") {
       const protocol = Number(url.searchParams.get("protocol")) || 0;
+      const game = url.searchParams.get("game");
       let changed = false;
       const shown = [];
       for (const [code, m] of Object.entries(matches)) {
         if (now - m.seen > kSeen) {
           delete matches[code];
           changed = true;
-        } else if (m.protocol === protocol) {
-          shown.push({ code, name: m.name, waiting: Math.round((now - m.made) / 1000) });
+        } else if (m.protocol === protocol && (!game || m.game === game)) {
+          shown.push({ game: m.game, code, name: m.name, waiting: Math.round((now - m.made) / 1000) });
         }
       }
       if (changed) {
         await this.state.storage.put("matches", matches);
       }
       shown.sort((a, b) => a.waiting - b.waiting);
-      return json({ matches: shown.slice(0, 50) });
+      return json({ matches: shown.slice(0, 200) });
     }
     const body = JSON.parse(await request.text());
     if (!body.code) {
       return json({});
     }
     if (url.pathname === "/seen") {
-      matches[body.code] = { name: body.name, protocol: body.protocol, made: body.made, seen: now };
+      matches[body.code] = { game: body.game, name: body.name, protocol: body.protocol, made: body.made, seen: now };
     } else if (url.pathname === "/gone") {
       delete matches[body.code];
     }

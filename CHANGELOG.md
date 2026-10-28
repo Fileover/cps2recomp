@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- **The launcher's Online page**: after Multi game in the sidebar, every game's open matches in the lobby, each with
+  its game and Join, and **Host in the lobby** in any of your games, under your name (recomp-common's
+  `Collection::lobby`). The service keeps one lobby for every game now: `GET /v1/lobby?protocol=N` lists them all,
+  each with its game; `GET /v1/lobby/GAME` still lists one game's.
 - **Online: the wait said in short lines**, the match code on a line of its own in green and "Listed in the lobby"
   under it (a readout line can now have a colour: `HudLine`'s `r`, `g`, `b`). The one long line flickered: with its
   dots it grew wider than the picture, and a line wider than the picture is not drawn.

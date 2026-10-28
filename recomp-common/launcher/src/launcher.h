@@ -245,6 +245,12 @@ struct Collection {
     // Modes that play several of the games one after another (none: no Multi game page)
     std::vector<MultiMode> multi;
     const char *multi_intro = "";  // the Multi game page's first lines
+    // Online play's lobby for every game (a game's own is its Online card's: Online::lobby): the URL of every game's
+    // open matches ({"matches": [{"game", "code", "name", "waiting"}]}, `game` a CollectionGame's id). With it, an
+    // Online page after Multi game: every game's open matches to join, and a match to host in the lobby in any of
+    // the games (with its Online's list and name arguments). nullptr: no page.
+    const char *lobby = nullptr;
+    const char *online_intro = ""; // the Online page's first lines
 };
 
 // A collection's own file defines this (and not describe()).
