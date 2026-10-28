@@ -89,7 +89,7 @@ namespace {
     constexpr uint16_t kAnyButton = kLeft | kRight | kUp | kDown | kPunch1 | kPunch2 | kPunch3 | kKick1 | kKick2 | kKick3;
 
     uint32_t Player(int n) {
-        return d.player1 + static_cast<uint32_t>(n) * d.playerSize;
+        return d.playerAt ? d.playerAt(n) : d.player1 + static_cast<uint32_t>(n) * d.playerSize;
     }
     int CameraX() {
         return static_cast<int16_t>(Ram16(d.cameraXAt ? d.cameraXAt() : d.cameraX));
@@ -127,7 +127,9 @@ namespace {
     void SetComputer(int n, bool computer) {
         const uint8_t value = static_cast<uint8_t>(computer != d.computerIsZero ? 1 : 0);
         SetRam8(Player(n) + d.computer, value);
-        if (d.partner) {
+        if (d.partnerAt) {
+            SetRam8(d.partnerAt(n) + d.computer, value);
+        } else if (d.partner) {
             SetRam8(Player(n) + d.partner + d.computer, value);
         }
     }

@@ -57,6 +57,9 @@ struct Description {
     // The players' records, and where each stands across (a word, or a long with 16 bits of fraction)
     uint32_t player1 = 0xFF8400, playerSize = 0x400, x = 0x10;
     bool xLong = false;
+    // ... or, for a tag-team game that keeps a side's two characters in records of their own, the record of the side's
+    // character on point now (none: player1 and the one after it)
+    uint32_t (*playerAt)(int n) = nullptr;
     // The button that chooses a character, and whether both Starts are pressed at once on the way to a round (else
     // player 1's until it is in, then player 2's)
     uint16_t choose = kPunch1;

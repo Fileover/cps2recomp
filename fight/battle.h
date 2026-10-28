@@ -97,6 +97,10 @@ struct Description {
     // players' first, their objects' places across (longs, 16 bits of fraction) at `x`
     uint32_t player1 = 0, playerSize = 0;
     int playerRecords = 0;
+    // A tag-team game that keeps a side's two characters in records of their own (not swapped at a tag): the records
+    // of the side's character on point now and of its partner (none: player1 and the one after it, and `partner` on)
+    uint32_t (*playerAt)(int n) = nullptr;
+    uint32_t (*partnerAt)(int n) = nullptr;
     uint32_t thrown = 0, thrownSize = 0;
     int thrownRecords = 0;
     uint32_t active = 0, x = 0, y = 0;
