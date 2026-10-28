@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- **What online play needs of every game, written down and checked**: `docs/TOOLKIT.md`'s "Online play: what every
+  game must keep to" (everything a game's sources keep between frames in its save state; play-changing features in
+  Game, Board or Cheats), pointed to from `CONTRIBUTING.md` and `docs/RELEASING.md`; a release's checks
+  (`tools/release/checks.sh`) run `check-rollback` and `check-online` for every game.
 - **Online: the ping and the input delay, each a switch** (each player's own), on the launcher's Online page under In
   a match and on the Features page (their category, Online): **Ping** (on in Enhanced) and **Input delay** ("DELAY 2",
   off unless chosen). The leave prompt: in a match, Esc (or the menu's button) asks **Leave the match?** over the game,
