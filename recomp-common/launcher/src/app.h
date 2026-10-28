@@ -13,6 +13,7 @@
 
 #include <atomic>
 #include <filesystem>
+#include <future>
 #include <memory>
 #include <mutex>
 #include <string>
@@ -21,6 +22,7 @@
 
 #include "game_process.h"
 #include "launcher.h"
+#include "online.h"
 #include "settings.h"
 #ifdef LAUNCHER_UPDATE_REPO
 #include "update.h"
@@ -185,6 +187,7 @@ private:
     void display_cards(size_t which, float width);
     void play_button(size_t which, float width);
     void online_card(size_t which, float width, bool ready);
+    void lobby_card(size_t which, float width, bool ready);
     void files_card(float width);
 
     // The Multi game page (a collection's MultiModes): a mode's choices and games, and the run of one
@@ -250,6 +253,13 @@ private:
     char online_address_[256] = {};  // the Online card's Join address (launcher.ini [online] address)
     bool online_loaded_ = false;
     std::vector<std::string> online_here_;  // this machine's addresses, as the Host row says them
+    char online_name_[64] = {};  // the player's name, as the lobby shows a match they host ([online] name)
+    // (the lobby's list: fetched every few seconds while the card is shown, on another thread)
+    std::future<std::pair<bool, std::vector<launcher::OpenMatch>>> lobby_fetch_;
+    std::vector<launcher::OpenMatch> lobby_;
+    std::string lobby_url_;
+    bool lobby_failed_ = false;
+    Uint64 lobby_at_ = 0;
 #ifdef LAUNCHER_UPDATE_REPO
     std::unique_ptr<launcher::Updater> updater_;
     bool relaunched_ = false;  // (the new version has been started: this one quits)

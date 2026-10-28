@@ -7,6 +7,14 @@ compatibility_date = "2026-10-01"
 name = "MATCHES"
 class_name = "Match"
 
+[[durable_objects.bindings]]
+name = "LOBBIES"
+class_name = "Lobby"
+
 [[migrations]]
 tag = "v1"
 new_sqlite_classes = ["Match"]
+
+[[migrations]]
+tag = "v2"
+new_sqlite_classes = ["Lobby"]

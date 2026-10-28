@@ -43,7 +43,7 @@ namespace {
 
     // The packets: "C2NP", what kind, then the kind's fields, little-endian
     constexpr uint8_t kMagic[4] = {'C', '2', 'N', 'P'};
-    constexpr uint16_t kProtocol = 2; // (2: the host's state sent at the start)
+    constexpr uint16_t kProtocol = Netplay::kProtocol;
     enum Kind : uint8_t {
         kHello = 1,   // joining -> host: the protocol, the game and its build
         kWelcome = 2, // host -> joining: the delay, the board settings, the features that change play
@@ -648,7 +648,21 @@ bool Netplay::Introduce(uint64_t now, std::string &error) {
         if (settings.hosting) {
             const std::string again = settings.renewCode.empty() ? ""
                                       : "\"code\":\"" + settings.renewCode + "\",\"secret\":\"" + settings.renewSecret + "\",";
-            ask("POST", "/v1/host", "{" + again + about + ",\"addresses\":" + Addresses() + "}");
+            std::string listed;
+            if (settings.listed) {
+                // (the name, as JSON text: quotes and backslashes escaped, control characters left out)
+                std::string name;
+                for (const char c : settings.name) {
+                    if (c == '"' || c == '\\') {
+                        name += '\\';
+                    }
+                    if (static_cast<unsigned char>(c) >= 0x20) {
+                        name += c;
+                    }
+                }
+                listed = ",\"listed\":true,\"name\":\"" + name + "\",\"protocol\":" + std::to_string(kProtocol);
+            }
+            ask("POST", "/v1/host", "{" + again + about + listed + ",\"addresses\":" + Addresses() + "}");
         } else {
             ask("POST", "/v1/join/" + joinCode, "{" + about + ",\"addresses\":" + Addresses() + "}");
         }
@@ -663,7 +677,8 @@ bool Netplay::Introduce(uint64_t now, std::string &error) {
             if (answer.status == 200 && !JsonText(answer.body, "code").empty()) {
                 code = Spaced(JsonText(answer.body, "code"));
                 secret = JsonText(answer.body, "secret");
-                waiting = "Match code " + code + ": waiting for the other player";
+                waiting = std::string(settings.listed ? "In the lobby, " : "") + "match code " + code + ": waiting for the other player";
+                waiting[0] = static_cast<char>(toupper(static_cast<unsigned char>(waiting[0])));
                 fprintf(stderr, "online: the match's code is %s%s\n", code.c_str(), seenAs.empty() ? "" : (" (seen at " + seenAs + ")").c_str());
                 intro = Intro::Polling;
             } else {

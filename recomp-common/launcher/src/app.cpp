@@ -4,6 +4,7 @@
 
 #include <algorithm>
 #include <cctype>
+#include <chrono>
 #include <cmath>
 #include <cstdio>
 #include <cstdlib>
@@ -1532,6 +1533,7 @@ void App::online_card(size_t which, float width, bool ready) {
     if (!online_loaded_) {
         online_loaded_ = true;
         std::snprintf(online_address_, sizeof(online_address_), "%s", prefs_.get("online", "address").c_str());
+        std::snprintf(online_name_, sizeof(online_name_), "%s", prefs_.get("online", "name").c_str());
         for (const launcher::LocalAddress& here : launcher::local_addresses()) {
             online_here_.push_back(here.kind.empty() ? here.address : here.address + " (" + here.kind + ")");
         }
@@ -1553,11 +1555,42 @@ void App::online_card(size_t which, float width, bool ready) {
                                             (here.empty() ? std::string("this machine's address") : here) + port + "."
                                       : "Waits for the other player, who joins this machine at " + (here.empty() ? std::string("its address") : here) + port +
                                             ". Over the internet: this network's public address, with that port forwarded to this machine.";
+    const bool lobby = online.lobby && online.list_argument;
+    const bool listed = lobby && prefs_.get("online", "listed") == "1";
     row(width, "Host a match", detail.c_str(), 130.0f, 36.0f, [&] {
         if (ui::button("Host", Kind::Secondary, 130.0f, ready)) {
-            play(which, {online.host_argument});
+            std::vector<std::string> args = {online.host_argument};
+            if (listed) {
+                args.push_back(online.list_argument);
+                if (online.name_argument && online_name_[0]) {
+                    args.push_back(online.name_argument);
+                    args.push_back(online_name_);
+                }
+            }
+            play(which, args);
         }
     });
+    if (lobby) {
+        inset_separator(width);
+        row(width, "List my matches in the lobby",
+            "A match you host shows in Open matches on other players' launchers, under your name, until someone joins it. Off: only "
+            "those you give the code to can join.",
+            42.0f, 24.0f, [&] {
+                if (ui::toggle("##online_listed", listed)) {
+                    prefs_.set("online", "listed", listed ? "0" : "1");
+                    prefs_.save();
+                }
+            });
+        if (listed && online.name_argument) {
+            inset_separator(width);
+            row(width, "Your name", "How the lobby shows the matches you host.", 190.0f, 36.0f, [&] {
+                if (ui::text_field("##online_name", online_name_, sizeof(online_name_), "Your name", 190.0f)) {
+                    prefs_.set("online", "name", online_name_);
+                    prefs_.save();
+                }
+            });
+        }
+    }
     inset_separator(width);
     row(width, "Join a match",
         online.codes ? "The code the host's game shows, or the host's address." : "The host's address, as their Online card says it (ADDRESS, or ADDRESS:PORT).",
@@ -1574,6 +1607,66 @@ void App::online_card(size_t which, float width, bool ready) {
             play(which, {online.join_argument, address});
         }
     });
+    card.end();
+    if (lobby) {
+        lobby_card(which, width, ready);
+    }
+}
+
+// The lobby's open matches for the game, fetched every five seconds while they are shown
+void App::lobby_card(size_t which, float width, bool ready) {
+    const ui::Palette& p = ui::palette();
+    Slot& one = *slots_[which];
+    const launcher::Online& online = one.about->online;
+    const Uint64 now = SDL_GetTicks();
+    if (lobby_fetch_.valid() && lobby_fetch_.wait_for(std::chrono::seconds(0)) == std::future_status::ready) {
+        auto [ok, matches] = lobby_fetch_.get();
+        lobby_failed_ = !ok;
+        if (ok) {
+            lobby_ = std::move(matches);
+        }
+        lobby_at_ = now;
+    }
+    if (lobby_url_ != online.lobby) {
+        lobby_url_ = online.lobby;
+        lobby_.clear();
+        lobby_failed_ = false;
+        lobby_at_ = 0;
+    }
+    if (!lobby_fetch_.valid() && (lobby_at_ == 0 || now - lobby_at_ > 5000)) {
+        lobby_fetch_ = std::async(std::launch::async, [url = lobby_url_] {
+            std::vector<launcher::OpenMatch> matches;
+            const bool ok = launcher::fetch_lobby(url, matches);
+            return std::make_pair(ok, matches);
+        });
+    }
+    ui::gap(24);
+    ui::text("OPEN MATCHES", Font::Semibold, ui::size::kDetail, p.secondary);
+    ui::gap(6);
+    ui::text("Matches players are hosting in the lobby now. Join one to play its host.", Font::Regular, ui::size::kDetail, p.secondary, width);
+    ui::gap(10);
+    Card card(width);
+    if (lobby_.empty()) {
+        const char* empty = lobby_failed_       ? "Couldn't reach the online service."
+                            : lobby_at_ == 0    ? "Looking…"
+                                                : "None right now. They show here as players host them in the lobby.";
+        row(width, empty, "", 0.0f, 24.0f, [] {});
+    }
+    for (size_t n = 0; n < lobby_.size(); n++) {
+        const launcher::OpenMatch& match = lobby_[n];
+        if (n > 0) {
+            inset_separator(width);
+        }
+        const int minutes = match.waiting / 60;
+        std::string waited = minutes < 1 ? "Waiting for a player" : "Waiting " + std::to_string(minutes) + " min";
+        ImGui::PushID(static_cast<int>(n));
+        row(width, match.name.c_str(), waited.c_str(), 130.0f, 36.0f, [&] {
+            if (ui::button("Join", Kind::Secondary, 130.0f, ready)) {
+                play(which, {online.join_argument, match.code});
+            }
+        });
+        ImGui::PopID();
+    }
     card.end();
 }
 

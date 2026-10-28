@@ -73,6 +73,12 @@ struct Online {
     int port = 0;                        // the UDP port the host waits on, as the card says it (0: none said)
     bool codes = false;                  // the game gives a host a code to hand out, which Join takes as well as an address
     const char *detail = "";             // the card's first lines: what a match is
+    // A lobby: the matches hosts have listed, shown on the card to join with a press. `lobby` is the URL of the
+    // game's list (JSON: {"matches": [{"code", "name", "waiting"}]}); a host lists its match when the player has
+    // switched that on, with `list_argument`, and its name with `name_argument NAME`. nullptr: no lobby.
+    const char *lobby = nullptr;
+    const char *list_argument = nullptr; // "--net-list"
+    const char *name_argument = nullptr; // "--net-name"
 };
 
 struct InfoRow {
