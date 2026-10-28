@@ -126,7 +126,8 @@ next game's stages, and round again after the last: choose the games (every figh
 or **Scroll**, going by in order at the speed you choose), the **Screen** (every game full screen, every game in a
 window, or as each game is set), the **Picture** (every game widescreen, every game 4:3, or as each game is set) and
 the rest of the Display page every game has (**Invisible walls**, **Scaling**, **Picture shape**, **Window size**,
-each also as each game is set), then **Start**. These are for that run only: each game's own settings stay as they
+**Shader**, each also as each game is set) and the **Zoom** (**Both fighters**: in every game the camera follows the
+two fighters, as close as they allow), then **Start**. These are for that run only: each game's own settings stay as they
 were. In a window, each game opens where the one before it was and as large, wherever you moved it. Touch
 the controls to take a fighter over. While it plays, **N** (or a gamepad's left shoulder) fades out to the next game
 and **F** (or the left trigger) held fast-forwards at four times the speed; the page lists them under **While it
