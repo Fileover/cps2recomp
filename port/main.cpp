@@ -430,7 +430,7 @@ uint32_t Port::StateHash() const {
     add(m.ram.data(), m.ram.size());
     add(m.videoRam.data(), m.videoRam.size());
     add(m.objectRam.data(), m.objectRam.size());
-    if (net) {
+    if (net || opt.hashNoSound) {
         // (online: the sound side left out, as each player's custom soundtrack changes what it is asked, and the game
         // never reads back what it does)
     } else if (!opt.hashGame) {
@@ -441,7 +441,7 @@ uint32_t Port::StateHash() const {
         add(m.soundRam, 5);
         add(m.soundRam + 6, sizeof(m.soundRam) - 6);
     }
-    if (!opt.hashGame && !net) {
+    if (!opt.hashGame && !net && !opt.hashNoSound) {
         add(m.soundRam2, sizeof(m.soundRam2));
         add(m.soundCpu.r, sizeof(m.soundCpu.r));
         add(m.soundCpu.r2, sizeof(m.soundCpu.r2));
@@ -1195,7 +1195,7 @@ void Port::RunFrame() {
             std::copy(std::begin(autoPad), std::end(autoPad), pad);
         }
     }
-    if (!opt.movieRecord.empty() && memcmp(pad, lastRecorded, sizeof(pad)) != 0) {
+    if (!opt.movieRecord.empty() && !net && memcmp(pad, lastRecorded, sizeof(pad)) != 0) { // (online: Netplay records both players)
         std::copy(std::begin(pad), std::end(pad), recMovie.changes[frame].begin());
         memcpy(lastRecorded, pad, sizeof(pad));
     }
@@ -1413,6 +1413,7 @@ void Usage() {
             "  --hash-log FILE        a line per frame with a hash of the game's state\n"
             "  --hash-picture         ... of the picture only (to compare runs whose timing is not the same)\n"
             "  --hash-no-picture      ... of all but the picture (--rollback-test then draws only the frames shown)\n"
+            "  --hash-no-sound        ... and without the sound side, as online play's (to compare a match's --record)\n"
             "  --hash-game            ... without the Z80 and its own memory (to compare --sound driver and z80)\n"
 "  --renderer sdl|gpu     how the picture gets to the window: SDL's GPU API unless said (or not there)\n"
             "  --present-test F.png   (headless) the run's last picture drawn by the GPU path, no window, as the\n"
@@ -1512,6 +1513,8 @@ bool ParseArgs(int argc, char **argv, port::Options &o) {
             o.shotPrefix = colon == std::string::npos ? "shot_" : v.substr(colon + 1);
         } else if (a == "--hash-log") {
             o.hashLog = next();
+        } else if (a == "--hash-no-sound") {
+            o.hashNoSound = true;
         } else if (a == "--hash-no-picture") {
             o.hashNoPicture = true;
         } else if (a == "--hash-game") {

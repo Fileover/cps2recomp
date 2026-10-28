@@ -59,6 +59,7 @@ struct Options {
     bool headless = false, mute = false, unthrottled = false, fullscreen = false, stats = false;
     bool hashPicture = false; // --hash-log hashes the picture only
     bool hashNoPicture = false; // --hash-no-picture: the state hash without the picture
+    bool hashNoSound = false;   // --hash-no-sound: ... without the sound side (as online play's)
     bool hashGame = false;     // --hash-game: the state hash without the Z80 and its own memory (to compare --sound driver and z80)
     int cpuSpeed = 1;         // --cpu-speed
     std::string renderer;     // --renderer sdl|gpu (gpu unless said)

@@ -596,6 +596,13 @@ void Netplay::Frame(Port &port, uint16_t controls) {
     // The frames that now have the real controls: their hashes, to compare (and to the hash log)
     for (uint64_t at = confirmed; at < upTo; at++) {
         const Kept &k = kept[at % kKept];
+        if (!port.opt.movieRecord.empty()) {
+            // (--record: what both players held, as the frame had them, for the frames that have the real ones)
+            Movie::Pads pads{};
+            pads[local] = localInput[at % kInputs];
+            pads[remote] = remoteInput[at % kInputs];
+            port.recMovie.changes[at] = pads;
+        }
         if (port.hashFile) {
             fprintf(port.hashFile, "%llu %08x\n", static_cast<unsigned long long>(at + 1), k.hash);
         }

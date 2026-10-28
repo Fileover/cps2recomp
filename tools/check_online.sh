@@ -7,7 +7,9 @@
 # and one in twenty lost (--net-fake), so that the guesses go wrong and frames are rolled back. The host has every
 # feature that changes play on and the joining side none, so the joining side must take the host's. Both write a
 # frame's state hash once it has both players' real controls (--hash-log); the two logs must be the same, and
-# neither side may stop on a desync. At the board's pace: FRAMES (3000 unless said) take FRAMES / 60 seconds.
+# neither side may stop on a desync. And the host's record of both players' controls (--record), replayed without the
+# network, must give the same hashes: each player's controls drove their own player. At the board's pace: FRAMES
+# (3000 unless said) take FRAMES / 60 seconds.
 #
 #   GAME=<id> check_online.sh [FRAMES]   (make GAME=<id> check-online: from the repository's top, after `make`; ROM=your set)
 set -eu
@@ -29,7 +31,7 @@ side() { # host | join, then the program's arguments
     "build/$GAME/$GAME" --rom "$ROM" --headless --frames "$frames" --settings "$work/online-$name.ini" \
         --eeprom "$work/online-$name.eeprom" --hash-log "$work/online-$name.txt" --net-fake 50:25:5 "$@" 2> "$work/online-$name.err"
 }
-side host --auto 11:0:1 --features "$play" --host "$port" &
+side host --auto 11:0:1 --features "$play" --host "$port" --record "$work/online-host.mov" &
 host=$!
 sleep 0.5
 status=0
@@ -46,6 +48,16 @@ elif cmp -s <(head -n "$lines" "$work/online-host.txt") <(head -n "$lines" "$wor
     echo "ok: the two sides the same over $lines frames, with $play"
 else
     echo "FAILED: the two sides differ from frame $(diff <(head -n "$lines" "$work/online-host.txt") <(head -n "$lines" "$work/online-join.txt") | grep '^<' | head -1 | cut -d' ' -f2)"
+    status=1
+fi
+# And the match is what the game does with those controls: both players' (--record), replayed without the network
+: > "$work/online-replay.ini"
+"build/$GAME/$GAME" --rom "$ROM" --headless --frames "$lines" --settings "$work/online-replay.ini" --features "$play" \
+    --movie "$work/online-host.mov" --hash-log "$work/online-replay.txt" --hash-no-picture --hash-no-sound 2> /dev/null
+if cmp -s <(head -n "$lines" "$work/online-host.txt") <(head -n "$lines" "$work/online-replay.txt"); then
+    echo "ok: the match the same as both players' controls replayed without the network"
+else
+    echo "FAILED: the match and its replay differ from frame $(diff <(head -n "$lines" "$work/online-host.txt") <(head -n "$lines" "$work/online-replay.txt") | grep '^<' | head -1 | cut -d' ' -f2)"
     status=1
 fi
 for name in host join; do

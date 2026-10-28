@@ -56,7 +56,9 @@ over localhost, each with made-up play for its own player (`--auto`), and every 
 25, and one in twenty lost (`--net-fake 50:25:5`), so that guesses go wrong and frames are rolled back. The host has
 every feature that changes play on and the joining side none, so the joining side must take the host's. Each writes
 a frame's hash once it has both players' real controls (`--hash-log`), and the two logs must be the same; neither
-side may stop on a desync (exit 5). It runs at the board's pace, so 3000 frames take 50 seconds. Every game passes.
+side may stop on a desync (exit 5). The two agreeing is not enough (each could be playing the wrong player), so the
+host also records both players' controls as the match had them (`--record`), and they are replayed without the
+network (`--hash-no-picture --hash-no-sound`): the hashes must be the match's. It runs at the board's pace, so 3000 frames take 50 seconds. Every game passes.
 
 ## Input
 

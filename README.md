@@ -223,6 +223,8 @@ cps2recomp-launcher --play sfa3 -- --join 203.0.113.7      # the other player: t
   the internet, the host's public address with UDP port 7845 forwarded to it on the router (`--host 7900` and
   `--join ADDRESS:7900` for another port). A VPN such as [Tailscale](https://tailscale.com) gives each machine an
   address the other can always reach, with nothing to forward.
+- **Each player presses Start to come in**, as at the arcade: the first to press plays the computer until the other
+  presses theirs ("Here comes a new challenger").
 - **Each player plays with their own player 1 controls**, and hears and sees the game as their own settings have it
   (the Display page, the shader, the zoom, the custom soundtrack). The match takes the host's board settings
   (difficulty, timer, rounds...) and the host's features that change play (free play, the cheats, arcade timing,
