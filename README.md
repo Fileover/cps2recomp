@@ -35,6 +35,7 @@ their owners, used here only to say what the programs work with.
 | [**Super Street Fighter II Turbo**](games/ssf2t/README.md) (1994, *Super Street Fighter II X* in Japan) | `ssf2xjr1` (Japan 940223, the tournament revision) | A full training mode (hit boxes, frame data and a frame meter, input display, combo and stun readouts, a dummy that records, replays and guards), widescreen, survival, ring out, endless battle, a tag team battle (the CPU tagging as a person would), the stage and model viewers, a zoom that follows either fighter or keeps both in the picture, Akuma and the old characters with no code, custom colours |
 | [**Street Fighter Alpha**](games/sfa/README.md) (1995) | `sfa` (Europe 950727) | A full training mode (hit boxes, frame data and a frame meter, input display, combo and stun readouts, a dummy that records, replays and guards), widescreen, survival, ring out, endless battle, the stage and model viewers, a zoom that follows either fighter or keeps both in the picture, the hidden characters with no code, custom colours |
 | [**Street Fighter Alpha 2**](games/sfa2/README.md) (1996) | `sfa2u` (USA 960430) | A full training mode (hit and throw boxes, frame data and a frame meter, combo, stun and Custom Combo readouts, input display, a dummy that records, replays, guards and answers), widescreen, survival, ring out, endless battle, a team battle, knock-out or Marvel-style tag (2 vs 2 for four players), the CPU tagging and playing a ring out for the ring, the stage and model viewers, a zoom that follows either fighter or keeps both in the picture, the hidden characters, custom colours |
+| [**Street Fighter Zero 2 Alpha**](games/sfz2al/README.md) (1996) | `sfz2al` (Asia 960826, the revision played online) | Alpha 2's later revision, with the EX forms of Ryu, Ken, Sagat, M. Bison, Zangief and Dhalsim, Evil Ryu and the classic Chun-Li; everything Alpha 2's port has (its sources, checked against this game's code), all 28 characters in the model viewer and the colour editor |
 | [**Street Fighter Alpha 3**](games/sfa3/README.md) (1998) | `sfa3u` (USA 980904, the tournament revision) | A full training mode (hit and throw boxes, frame data and a frame meter, combo, stun and custom combo readouts, fixed damage, input display, a dummy that guards high or low, Alpha counters, techs throws, rises quickly and mashes out of stun), widescreen, survival, ring out, endless battle, a team battle, knock-out or Marvel-style tag (2 vs 2 for four players), the stage and model viewers, a zoom that follows either fighter or keeps both in the picture, Balrog, Juni and Juli with no code, custom colours |
 | [**Super Gem Fighter Mini Mix**](games/pocket_fighter/README.md) (1997, *Pocket Fighter*) | `sgemf` (USA 970904) | A full training mode (hit boxes, frame data and a frame meter, input display, combo and stun readouts, a dummy that records, replays and guards), widescreen, survival, ring out, endless battle, the stage and model viewers, a zoom that follows either fighter or keeps both in the picture, the hidden characters with no code, custom colours |
 | [**Marvel Super Heroes**](games/msh/README.md) (1995) | `msh` (Europe 951024) | One-on-one with the Infinity Gems; a full training mode (hit boxes, frame data and a frame meter, input display, combo readout, a dummy that records, replays and guards, every gem at hand), widescreen, survival, ring out, endless battle, the stage and model viewers, a zoom that follows either fighter or keeps both in the picture, Dr. Doom and Thanos with no code, custom colours |
@@ -109,7 +110,7 @@ Each game's page has all it does, with pictures.
 1. Download the build for your system from the [releases page](https://github.com/tmcleroy/cps2recomp/releases)
    and unpack it. Each release's page has the steps for macOS, Windows, Linux and the Steam devices.
 2. Open the launcher (`CPS-2 Recomp.app`, `cps2recomp-launcher`). On its Games page, **Choose folder…** and pick
-   the folder you keep your ROM sets in: it finds each game's by the set's name (`ssf2xjr1.zip`, `sfa.zip`, `sfa2u.zip`, `sfa3u.zip`,
+   the folder you keep your ROM sets in: it finds each game's by the set's name (`ssf2xjr1.zip`, `sfa.zip`, `sfa2u.zip`, `sfz2al.zip`, `sfa3u.zip`,
    `sgemf.zip`, `msh.zip`, `xmvsf.zip`, `spf2t.zip`, `vsavj.zip`, `vsav2.zip`, `vhunt2.zip`, `avspu.zip`, `dino.zip`, or a folder of the set's files). Or drop a set, or the folder, on the window, or choose each
    game's set on its own. They stay where they are.
 3. Press **Play** beside a game (the first of its two buttons, where a gamepad's ring lands). Several games can run at once, each in its own window.
@@ -204,7 +205,7 @@ sfa2 --soundtrack ~/music/sfa2-arranged          # a custom soundtrack's folder 
 sfa2 --help                                     # what a game's program takes
 ```
 
-The games' ids are `ssf2t`, `sfa`, `sfa2`, `sfa3`, `pocket_fighter`, `msh`, `xmvsf`, `puzzle_fighter`, `vampire_savior`, `vsav2`, `vhunt2`, `vsav_definitive`, `avsp` and `dino`. `--features` may be given more than once, and
+The games' ids are `ssf2t`, `sfa`, `sfa2`, `sfz2al`, `sfa3`, `pocket_fighter`, `msh`, `xmvsf`, `puzzle_fighter`, `vampire_savior`, `vsav2`, `vhunt2`, `vsav_definitive`, `avsp` and `dino`. `--features` may be given more than once, and
 a later one wins.
 
 ### Online play
@@ -307,7 +308,7 @@ top), to open the in-game menu; its "Quit game" row ends the game.
 ## What you need
 
 - The ROM set of each game you want to play (a CPS-2 game's with its key file): `ssf2xjr1` (*Super Street Fighter II
-  X: Grand Master Challenge*, Japan 940223), `sfa` (*Street Fighter Alpha: Warriors' Dreams*, Europe 950727), `sfa2u` (*Street Fighter Alpha 2*, USA 960430), `sfa3u` (*Street Fighter Alpha 3*, USA 980904),
+  X: Grand Master Challenge*, Japan 940223), `sfa` (*Street Fighter Alpha: Warriors' Dreams*, Europe 950727), `sfa2u` (*Street Fighter Alpha 2*, USA 960430), `sfz2al` (*Street Fighter Zero 2 Alpha*, Asia 960826), `sfa3u` (*Street Fighter Alpha 3*, USA 980904),
   `sgemf` (*Super Gem Fighter: Mini Mix*, USA 970904), `msh` (*Marvel Super Heroes*, Europe 951024), `xmvsf` (*X-Men Vs. Street Fighter*, Europe 961004), `spf2t` (*Super Puzzle Fighter II Turbo*, Europe 960529), `vsavj` (*Vampire Savior: The Lord of Vampire*,
   Japan 970519), `vsav2` (*Vampire Savior 2: The Lord of Vampire*, Japan 970913), `vhunt2` (*Vampire Hunter 2:
   Darkstalkers Revenge*, Japan 970929), `avspu` (*Alien vs. Predator*, USA 940520), `dino` (*Cadillacs and Dinosaurs*,
