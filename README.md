@@ -81,7 +81,7 @@ Each game's page has all it does, with pictures.
   edges (the Display page's **Shader**). **Your own** takes any RetroArch slang preset (`.slangp`) you put in a
   `shaders` folder beside the game's settings, with the files it names (a few need a newer OpenGL than macOS has; Linux and Windows have it).
   Under Shader on the launcher's Features page, **In the game's menu** → **Choose** keeps the in-game menu's list to
-  your favourites. The menu is drawn over the picture without the shader. A shader that cannot be made leaves the
+  your favourites. Zoomed in, the camera closes in on the shaded picture, scanlines and all, as on a monitor. The menu is drawn over the picture without the shader. A shader that cannot be made leaves the
   picture as it was.
 
   | | | |

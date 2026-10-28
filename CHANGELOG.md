@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- **Zooming with a shader closes in on the monitor**: zoomed, the shader draws the whole picture and the camera
+  closes in on what it drew, scanlines, mask and all, sharp, as a camera would on a monitor (it was given the zoomed
+  picture, blended up to the board's size, which looked muddy). The readout's panels stay where they are, at their
+  size, without the shader.
+
 ## 0.4.0-beta.8
 
 Shaders: the Display page's Shader draws the picture through a RetroArch slang preset (CRT, CRT Lottes, CRT Royale,
