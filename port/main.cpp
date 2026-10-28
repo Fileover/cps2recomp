@@ -528,8 +528,8 @@ void Port::RunCommand(size_t index) {
 }
 
 void Port::Key(char key, unsigned n) {
-    if (net && key != 'z' && key != 'm') {
-        return; // (online: only the zoom, each player's own)
+    if (net && key != 'z' && key != 'm' && key != 'l') {
+        return; // (online: only the zoom, each player's own, and the leave question)
     }
     switch (key) {
     case 'p':
@@ -545,6 +545,7 @@ void Port::Key(char key, unsigned n) {
     case '-': menu.Faster(-1); break;
     case '=': menu.Faster(1); break;
     case 'h': hurry = !hurry; break; // (tests: the frontend sets it while F is held)
+    case 'l': leaving = net && !leaving; break; // (tests: online, Esc's "Leave the match?")
     case 'z': // (tests: the zoom pressed for player n + 1; 2: for both)
         if (n == Zoom::kBoth) {
             zoom.Both();
@@ -676,15 +677,6 @@ bool Port::Tick() {
             }
             return false;
         }
-        // (Esc's question, over the game, which goes on)
-        static bool asked = false;
-        if (leaving != asked) {
-            asked = leaving;
-            SetHud(leaving ? std::vector<HudLine>{{0.5f, 0.42f, 0, "Leave the match?"},
-                                                 {0.5f, 0.54f, 0, "Confirm (A, Enter): leave", 255, 120, 110},
-                                                 {0.5f, 0.64f, 0, "Back (B, Backspace, Esc): stay"}}
-                           : std::vector<HudLine>{});
-        }
         RunFrame();
         for (int n = 0; n < 120 && FastForward() && net->Ready(frame); n++) {
             machine->audio.clear();
@@ -793,6 +785,28 @@ void Port::Shown(std::vector<uint32_t> &pixels, std::vector<SDL_Rect> *panels) c
     // (what the camera's zoom was set to, for a few seconds: above that if both are said)
     if (*zoom.Label()) {
         status(zoom.Label(), said * 14);
+    }
+    // (online: Esc's question, in the middle, over the game, which goes on; the port's own, not the readout, which the
+    // game's sources set every frame)
+    if (net && leaving) {
+        const recomp::text::Canvas canvas{pixels.data(), across, Video::kHeight};
+        const struct {
+            const char *text;
+            recomp::text::Color colour;
+        } lines[] = {{"Leave the match?", {255, 255, 255, 255}},
+                     {"Confirm (A, Enter): leave", {255, 130, 120, 255}},
+                     {"Back (B, Backspace, Esc): stay", {255, 255, 255, 255}}};
+        float y = Video::kHeight / 2.0f - 30;
+        for (const auto &line : lines) {
+            const float width = recomp::text::TextWidth(line.text, 1);
+            const float x = (across - width) / 2;
+            canvas.Fill(x - 6, y - 4, width + 12, 16, {20, 22, 30, 235});
+            canvas.Text(x, y, 1, 0, line.colour, line.text);
+            if (panels) {
+                panels->push_back({static_cast<int>(x) - 6, static_cast<int>(y) - 4, static_cast<int>(width) + 13, 16});
+            }
+            y += 22;
+        }
     }
 }
 
