@@ -201,7 +201,7 @@ menu shows the board's own values.
   Sets of other regions and revisions are refused: the port is made from this one version's program, and its
   features use addresses found in it.
 - One of: macOS 13 or later (Apple silicon or Intel); Linux x86_64 or SteamOS; Windows 10 or 11, 64-bit.
-- A gamepad or stick with six buttons is recommended (and one more for Start, for the hidden character).
+- A gamepad or stick with six buttons is recommended (and one more for Start, for the hidden characters).
 
 ## Playing
 
