@@ -153,8 +153,8 @@ void RegisterPortFeatures() {
                                   "a little wider than 4:3. Fill: the whole window or screen, stretched to it.",
                                   0, {"4:3", "Square pixels", "Fill"}});
     // (display_shader: Port::ShaderPreset, shading.h; the presets are in shaders/ beside the program, kShaderPresets.
-    // macOS only for now: only its app carries librashader, tools/librashader.sh)
-#ifdef __APPLE__
+    // macOS and Linux: only their releases carry librashader, tools/librashader.sh)
+#if defined(__APPLE__) || defined(__linux__)
     TheGame().features.push_back({"display_shader", "Display", "Shader",
                                   "The picture drawn through one of RetroArch's shaders. CRT: a curved arcade monitor. CRT "
                                   "Lottes and CRT Guest: flat monitors, sharp and bright. CRT Royale: the closest to a real "

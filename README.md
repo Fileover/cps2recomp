@@ -75,11 +75,11 @@ Each game's page has all it does, with pictures.
   without it.
 - **The picture your way**: sharp, whole pixels or smooth; 4:3, square pixels or the whole screen; full screen
   or a window of the size you choose; widescreen in the fighting games.
-- **Shaders** (macOS for now): the picture through one of RetroArch's shaders, by
+- **Shaders** (macOS and Linux, the Steam Deck included; not Windows yet): the picture through one of RetroArch's shaders, by
   [librashader](https://github.com/SnowflakePowered/librashader): a curved CRT, CRT Lottes, CRT Royale, CRT Guest or
   a light CRT; scanlines light, strong, as an OSSC draws them, or dark; or xBRZ and ScaleFX to smooth the pixels'
   edges (the Display page's **Shader**). **Your own** takes any RetroArch slang preset (`.slangp`) you put in a
-  `shaders` folder beside the game's settings, with the files it names (a few need a newer OpenGL than macOS has).
+  `shaders` folder beside the game's settings, with the files it names (a few need a newer OpenGL than macOS has; Linux has it).
   Under Shader on the launcher's Features page, **In the game's menu** → **Choose** keeps the in-game menu's list to
   your favourites. The menu is drawn over the picture without the shader. A shader that cannot be made leaves the
   picture as it was.

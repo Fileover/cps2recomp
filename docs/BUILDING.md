@@ -57,7 +57,9 @@ cmake -S SDL3-3.4.16 -B sdl-build -DCMAKE_INSTALL_PREFIX=$HOME/sdl3 && cmake --b
 CMAKE_PREFIX_PATH=$HOME/sdl3 make GAME=sfa2
 ```
 
-Then the same targets as on macOS (not the app bundles).
+Then the same targets as on macOS (not the app bundles). For the shaders, Rust (rustup.rs; the release image has
+it) and `tools/librashader.sh`, which makes `librashader.so` and the presets in `build/deps/librashader-linux-<processor>/`:
+put both beside the game.
 
 ## Windows
 

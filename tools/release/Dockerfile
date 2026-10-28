@@ -15,3 +15,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     $([ "$TARGETARCH" = arm64 ] || echo g++-mingw-w64-x86-64-posix gcc-mingw-w64-x86-64-posix \
         binutils-mingw-w64-x86-64 libz-mingw-w64-dev) \
     && rm -rf /var/lib/apt/lists/*
+# (Rust, for librashader: tools/librashader.sh; Ubuntu's rustup, which updates itself only through apt)
+ENV RUSTUP_HOME=/opt/rustup CARGO_HOME=/opt/cargo PATH=/opt/cargo/bin:$PATH
+RUN apt-get update && apt-get install -y --no-install-recommends rustup \
+    && rm -rf /var/lib/apt/lists/* && rustup toolchain install 1.99.1 --profile minimal --no-self-update && rustup default 1.99.1
