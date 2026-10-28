@@ -22,6 +22,20 @@
   camera whose step works on a copy of its place (`cameraWorkX`/`Y`), kept between its ends in two pieces. The frame
   copy X-Men vs. Street Fighter and its sequel share is the toolkit's (`marvel::CopyFrameBoxSets`). Marvel Super
   Heroes and X-Men vs. Street Fighter run exactly as before (the same hash logs over their ladders and every mode).
+- **Online: the ping on screen, and coming back after a drop.** "PING 42 ms" at the bottom all through a match
+  (the time there and back, the frame's wait to read a packet taken off), or "WAITING FOR THE OTHER PLAYER" when
+  they have been silent a second. When the other side leaves or goes silent, a host's window stays open and waits
+  for them again, with the same code (the service gives it back to the host that had it), and a joining side whose
+  connection dropped joins again every few seconds until it is back; both then start over from the board's reset.
+  Every match now begins with the host's game state sent whole to the joining side (compressed, in pieces, again
+  until all have come), so the two begin exactly alike however they got there.
+- **Online play with a code, anywhere**: Host gives a match code (`K7Q-M2X`) that the other player types into Join;
+  nothing needs forwarding on either router. A small service (`online/`, a Cloudflare Worker) introduces the two:
+  each game asks a STUN server what address the internet sees its socket at, the host registers with the service and
+  is given the code, and the other player, giving the code, is told the host's addresses and the host theirs; then
+  both send to each other's until one answers (UDP hole punching). Nothing of the match goes through the service.
+  `--join` takes a code or an address; `--net-service URL` (or `off`). The game asks the service with the system's
+  curl, as the launcher's updates do (no console window on Windows).
 - **Online play from the launcher**: a game's page has an **Online** card under Play, with **Host** (and the
   addresses this machine can be joined at: the home network's, Tailscale's) and **Join** (the host's address, kept
   for next time). The game's window opens at once and says it is waiting for the other player, or joining the host,

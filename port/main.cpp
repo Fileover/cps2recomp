@@ -601,11 +601,26 @@ bool Port::Tick() {
         at = comma == std::string::npos ? opt.keys.size() : comma + 1;
     }
     tick++;
+    if (opt.online && !net && !rejoin.empty()) {
+        // (joining again: a moment between tries)
+        SetHud({{0.5f, 0.36f, 0, rejoin}, {0.5f, 0.48f, 0, "Joining again in a moment"}, {0.5f, 0.6f, 0, "Esc: quit"}});
+        if (tick >= againAt) {
+            Again(rejoin);
+        }
+        return false;
+    }
     if (net && connecting) {
         // (the other player not here yet: said on the screen, as the readout, over the board's black picture)
         std::string error;
         const int state = net->Waiting(*this, error);
         if (state < 0) {
+            if (!rejoin.empty()) {
+                // (joining again: the host may not be back yet; tried every few seconds until Esc)
+                fprintf(stderr, "online: %s\n", error.c_str());
+                net.reset();
+                againAt = tick + 180;
+                return false;
+            }
             net->ended = error;
             net->failed = true;
             quit = true;
@@ -614,7 +629,13 @@ bool Port::Tick() {
         }
         if (state == 0) {
             static const char *const kDots[] = {"", ".", "..", "..."};
-            SetHud({{0.5f, 0.42f, 0, net->waiting + kDots[(tick / 30) % 4]}, {0.5f, 0.56f, 0, "Esc: give up"}});
+            std::vector<HudLine> lines;
+            if (!rejoin.empty()) {
+                lines.push_back({0.5f, 0.36f, 0, rejoin});
+            }
+            lines.push_back({0.5f, rejoin.empty() ? 0.42f : 0.48f, 0, net->waiting + kDots[(tick / 30) % 4]});
+            lines.push_back({0.5f, rejoin.empty() ? 0.56f : 0.6f, 0, rejoin.empty() ? "Esc: give up" : "Esc: quit"});
+            SetHud(lines);
             return false;
         }
         SetHud({});
@@ -624,7 +645,15 @@ bool Port::Tick() {
         // Online: a frame a tick when the other side's controls allow (and as fast as it goes while the game's
         // sources take it somewhere); no stopping, slowing or speeding up
         if (!net->Ready(frame)) {
-            quit = !net->ended.empty();
+            if (!net->ended.empty()) {
+                // (the other side gone: a window waits for them again; the host's leaving ends the joining side's)
+                const bool again = !opt.headless && (net->Hosting() ? net->left || net->lost : net->lost);
+                if (again) {
+                    Again(net->ended);
+                } else {
+                    quit = true;
+                }
+            }
             return false;
         }
         RunFrame();
@@ -711,9 +740,20 @@ void Port::Shown(std::vector<uint32_t> &pixels, std::vector<SDL_Rect> *panels) c
         }
         status(text, 0);
     }
+    // (online: the ping, or that the other side has gone quiet)
+    const bool match = net && !connecting;
+    if (match) {
+        char text[64];
+        if (net->Silent() > 1000) {
+            snprintf(text, sizeof(text), "WAITING FOR THE OTHER PLAYER");
+        } else {
+            snprintf(text, sizeof(text), "PING %d ms", net->Ping());
+        }
+        status(text, told ? 14 : 0);
+    }
     // (what the camera's zoom was set to, for a few seconds: above that if both are said)
     if (*zoom.Label()) {
-        status(zoom.Label(), told ? 14 : 0);
+        status(zoom.Label(), (told + match) * 14);
     }
 }
 
@@ -1165,8 +1205,37 @@ bool Port::StartOnline(std::string &error) {
     return true;
 }
 
+void Port::Again(const std::string &why) {
+    Netplay::Settings settings = opt.net;
+    if (net && net->Hosting()) {
+        // (the same code for them to come back with; and the game from the board's reset, which the other side is sent)
+        if (!net->code.empty()) {
+            settings.renewCode = net->code.substr(0, 3) + net->code.substr(4);
+            settings.renewSecret = net->Secret();
+        }
+        opt.net = settings;
+        EndSessionFeatures();
+        machine->Reset();
+        machine->audio.clear();
+    }
+    fprintf(stderr, "online: %s Waiting for the match again.\n", why.c_str());
+    rejoin = why;
+    frame = 0;
+    net.reset(); // (the socket closed: the host's port is free for the new one)
+    net = std::make_unique<Netplay>(settings);
+    connecting = true;
+    std::string error;
+    if (!net->Begin(*this, error)) {
+        fprintf(stderr, "online: %s\n", error.c_str());
+        net.reset();
+        againAt = tick + 180;
+    }
+}
+
 void Port::Matched() {
     connecting = false;
+    rejoin.clear();
+    frame = 0; // (the match's frames count from its start, on both sides)
     // (the hashes compared leave out the picture: frames run again are not drawn)
     opt.hashNoPicture = true;
     if (net->Local() != 0) {
@@ -1461,7 +1530,9 @@ void Usage() {
             "                         and guessed, and the frames guessed wrong run again (--hash-log must not change)\n"
             "  --host [PORT]          online play: wait for the other player (on UDP port PORT, 7845 unless said);\n"
             "                         the host is player 1, and its board settings and play features are the match's\n"
-            "  --join ADDRESS[:PORT]  online play: go to the host at ADDRESS (player 2)\n"
+            "  --join ADDRESS[:PORT]  online play: go to the host at ADDRESS (player 2), or CODE: the match the host's\n"
+            "                         code names (the online service says where the host is)\n"
+            "  --net-service URL      the online service that gives hosts codes (online/), or off\n"
             "  --net-delay N          (hosting) frames each player's controls are held back, 2 unless said (0-8)\n"
             "  --net-fake MS[:JIT[:LOSS]]  (tests) each packet sent MS ms late, give or take JIT, LOSS in 100 lost\n"
             "  --test-switch FROM:TO  the operator's test switch held from frame FROM to TO\n"
@@ -1586,6 +1657,8 @@ bool ParseArgs(int argc, char **argv, port::Options &o) {
         } else if (a == "--join") {
             o.online = true;
             o.net.address = next();
+        } else if (a == "--net-service") {
+            o.net.service = next();
         } else if (a == "--net-delay") {
             o.net.delay = atoi(next());
         } else if (a == "--net-fake") {

@@ -19,6 +19,7 @@
 #include <array>
 #include <cstdint>
 #include <deque>
+#include <future>
 #include <map>
 #include <string>
 #include <vector>
@@ -42,7 +43,10 @@ class UdpSocket {
 public:
     ~UdpSocket();
     bool Open(int port, std::string &error); // (0: any port)
-    static bool Resolve(const std::string &host, int port, NetAddress &address, std::string &error);
+    int LocalPort() const; // (the port it was given)
+    static bool Resolve(const std::string &host, int port, NetAddress &address, std::string &error, bool fourOnly = false);
+    // "ADDRESS", "ADDRESS:PORT", an IPv6 address, or "[IPv6]:PORT": the address and the port (`port` unless said)
+    static void Split(const std::string &text, std::string &host, int &port);
     void Send(const NetAddress &to, const uint8_t *data, size_t size);
     // A packet that has come (its size), or -1 for none yet
     int Receive(uint8_t *data, size_t size, NetAddress &from);
@@ -60,6 +64,9 @@ public:
     static constexpr int kInputs = 128;    // controls kept, each side's
     static constexpr int kHashEvery = 60;  // frames between the hashes compared
     static constexpr int kDefaultDelay = 2; // frames a player's own controls are held back (fewer rollbacks)
+    // The introduction service (online/): a host gets a code from it, and a player joining by the code is told where
+    // the host is, and the host where they are; the two then reach each other directly
+    static constexpr const char *kService = "https://cps2recomp-online.tmcleroy.workers.dev";
 
     // What --host, --join and the --net-* options asked for
     struct Settings {
@@ -67,6 +74,8 @@ public:
         std::string address; // (joining: the host's)
         int port = kDefaultPort;
         int delay = kDefaultDelay;
+        std::string service = kService; // (--net-service URL; "off": none, the host's address only)
+        std::string renewCode, renewSecret; // (hosting again after the other player left: the code they know, kept)
         // (tests: each packet sent late by this many ms, give or take `jitter`, and this many in a hundred lost)
         int fakeLag = 0, fakeJitter = 0, fakeLoss = 0;
     };
@@ -78,6 +87,17 @@ public:
     bool Begin(Port &port, std::string &error);
     int Waiting(Port &port, std::string &error);
     std::string waiting; // what is being waited for ("Waiting for the other player...")
+    std::string code;    // (hosting) the match's code, once the service has given one, as said ("K7Q-M2X")
+    const std::string &Secret() const {
+        return secret;
+    }
+    bool Hosting() const {
+        return settings.hosting;
+    }
+    // The time a packet takes there and back (ms; the frame's wait for it to be read taken off), and how long since the
+    // other side was last heard
+    int Ping() const;
+    uint64_t Silent() const;
     // This side's player (0: player 1)
     int Local() const {
         return local;
@@ -90,6 +110,7 @@ public:
     // Why the match is over ("" while it goes on); and whether that is a failure (a desync, the other side lost)
     std::string ended;
     bool failed = false;
+    bool left = false, lost = false; // (... because the other side left, or went silent: a window waits for them again)
     // The match is over on this side: the other side is told
     void Leave();
     // A line on how it is going (ping, rollbacks), every few seconds, to stderr
@@ -105,6 +126,38 @@ private:
     bool found = false; // (hosting: the other player has said hello)
     int joinPort = 0;
     void StartAt(int frames);
+    // The game as the match begins: the host's, sent to the joining side in pieces (compressed), which it takes as
+    // its own; so the two begin exactly alike, the first time and after a reconnect
+    static constexpr size_t kChunk = 1024;
+    std::vector<uint8_t> state;   // (compressed)
+    size_t stateSize = 0;         // (as it was)
+    uint32_t chunks = 0, chunksHad = 0; // its pieces, and how many the other side has (hosting) or this side has (joining)
+    uint64_t chunkSent = 0;
+    bool welcomed = false;        // (joining: the welcome has come, the state is coming)
+    std::vector<bool> had;        // (joining: the pieces that have come)
+    // The introduction (online/): this side's address as the internet sees it (asked of STUN servers, from the
+    // socket the match uses), then the service asked for a code (hosting) or the host's addresses (joining by code),
+    // then (hosting) asked until someone has joined; then each side sends to the other's addresses (a host's
+    // packets open the way through its router for the other's hello)
+    struct HttpAnswer {
+        int status = 0; // (0: no answer)
+        std::string body;
+    };
+    enum class Intro { Off, Stun, Asking, Polling, Done } intro = Intro::Off;
+    std::string joinCode; // (joining by a code: it, as typed)
+    std::future<std::vector<NetAddress>> stunLookup;
+    std::vector<NetAddress> stunServers;
+    std::array<uint8_t, 12> stunId{};
+    uint64_t stunBegan = 0, stunSent = 0;
+    std::string seenAs; // ("IP:PORT")
+    std::future<HttpAnswer> asking;
+    uint64_t askedAt = 0;
+    std::string secret;
+    std::vector<NetAddress> candidates; // the other side's addresses
+    uint64_t punchedAt = 0;
+    bool Introduce(uint64_t now, std::string &error);
+    bool TakeStun(const uint8_t *data, int size);
+    std::string Addresses() const; // (this side's, as JSON)
     NetAddress peer;
     int local = 0, remote = 1;
     int delay = kDefaultDelay;
@@ -139,11 +192,12 @@ private:
     uint64_t over = 0; // ... and how many took longer than a frame's time
 
     // (tests: packets held back, and when they go)
-    struct Late { uint64_t due; std::vector<uint8_t> data; };
+    struct Late { uint64_t due; NetAddress to; std::vector<uint8_t> data; };
     std::deque<Late> late;
     uint64_t random = 0x2545F4914F6CDD1Dull;
 
     void Send(const std::vector<uint8_t> &packet);
+    void SendTo(const NetAddress &to, const std::vector<uint8_t> &packet);
     void SendInputs();
     void Pump();
     void Take(const uint8_t *data, size_t size);
