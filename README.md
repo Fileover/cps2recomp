@@ -35,6 +35,7 @@ their owners, used here only to say what the programs work with.
 | [**Super Street Fighter II Turbo**](games/ssf2t/README.md) (1994, *Super Street Fighter II X* in Japan) | `ssf2xjr1` (Japan 940223, the tournament revision) | A full training mode (hit boxes, frame data and a frame meter, input display, combo and stun readouts, a dummy that records, replays and guards), widescreen, survival, ring out, endless battle, a tag team battle (the CPU tagging as a person would), the stage and model viewers, a zoom that follows either fighter or keeps both in the picture, Akuma and the old characters with no code, custom colours |
 | [**Street Fighter Alpha**](games/sfa/README.md) (1995) | `sfa` (Europe 950727) | A full training mode (hit boxes, frame data and a frame meter, input display, combo and stun readouts, a dummy that records, replays and guards), widescreen, survival, ring out, endless battle, the stage and model viewers, a zoom that follows either fighter or keeps both in the picture, the hidden characters with no code, custom colours |
 | [**Street Fighter Alpha 2**](games/sfa2/README.md) (1996) | `sfa2u` (USA 960430) | A full training mode (hit and throw boxes, frame data and a frame meter, combo, stun and Custom Combo readouts, input display, a dummy that records, replays, guards and answers), widescreen, survival, ring out, endless battle, a team battle, knock-out or Marvel-style tag (2 vs 2 for four players), the CPU tagging and playing a ring out for the ring, the stage and model viewers, a zoom that follows either fighter or keeps both in the picture, the hidden characters, custom colours |
+| [**Street Fighter Zero 2 Alpha**](games/sfz2al/README.md) (1996) | `sfz2al` (Asia 960826, the revision played online) | Alpha 2's later revision, with the EX forms of Ryu, Ken, Sagat, M. Bison, Zangief and Dhalsim, Evil Ryu and the classic Chun-Li; everything Alpha 2's port has (its sources, checked against this game's code), all 28 characters in the model viewer and the colour editor |
 | [**Street Fighter Alpha 3**](games/sfa3/README.md) (1998) | `sfa3u` (USA 980904, the tournament revision) | A full training mode (hit and throw boxes, frame data and a frame meter, combo, stun and custom combo readouts, fixed damage, input display, a dummy that guards high or low, Alpha counters, techs throws, rises quickly and mashes out of stun), widescreen, survival, ring out, endless battle, a team battle, knock-out or Marvel-style tag (2 vs 2 for four players), the stage and model viewers, a zoom that follows either fighter or keeps both in the picture, Balrog, Juni and Juli with no code, custom colours |
 | [**Super Gem Fighter Mini Mix**](games/pocket_fighter/README.md) (1997, *Pocket Fighter*) | `sgemf` (USA 970904) | A full training mode (hit boxes, frame data and a frame meter, input display, combo and stun readouts, a dummy that records, replays and guards), widescreen, survival, ring out, endless battle, the stage and model viewers, a zoom that follows either fighter or keeps both in the picture, the hidden characters with no code, custom colours |
 | [**Marvel Super Heroes**](games/msh/README.md) (1995) | `msh` (Europe 951024) | One-on-one with the Infinity Gems; a full training mode (hit boxes, frame data and a frame meter, input display, combo readout, a dummy that records, replays and guards, every gem at hand), widescreen, survival, ring out, endless battle, the stage and model viewers, a zoom that follows either fighter or keeps both in the picture, Dr. Doom and Thanos with no code, custom colours |
@@ -112,7 +113,7 @@ Each game's page has all it does, with pictures.
 1. Download the build for your system from the [releases page](https://github.com/tmcleroy/cps2recomp/releases)
    and unpack it. Each release's page has the steps for macOS, Windows, Linux and the Steam devices.
 2. Open the launcher (`CPS-2 Recomp.app`, `cps2recomp-launcher`). On its Games page, **Choose folder…** and pick
-   the folder you keep your ROM sets in: it finds each game's by the set's name (`ssf2xjr1.zip`, `sfa.zip`, `sfa2u.zip`, `sfa3u.zip`,
+   the folder you keep your ROM sets in: it finds each game's by the set's name (`ssf2xjr1.zip`, `sfa.zip`, `sfa2u.zip`, `sfz2al.zip`, `sfa3u.zip`,
    `sgemf.zip`, `msh.zip`, `xmvsf.zip`, `mshvsf.zip`, `mvsc.zip`, `spf2t.zip`, `vsavj.zip`, `vsav2.zip`, `vhunt2.zip`, `avspu.zip`, `dino.zip`, or a folder of the set's files). Or drop a set, or the folder, on the window, or choose each
    game's set on its own. They stay where they are.
 3. Press **Play** beside a game (the first of its two buttons, where a gamepad's ring lands). Several games can run at once, each in its own window.
@@ -143,7 +144,8 @@ game**.
 
 The games are in your order: drag a game's row in the sidebar up or down to keep the ones you play most at the top
 (with a gamepad or the keyboard, **Move up** and **Move down** on its page, under Play). The Games page lists them
-the same way. On a small screen, or with large text, the launcher closes up to fit: a narrower sidebar whose list
+the same way. Playing only one or two of the games? Switch on **Only the games you have** on the Games page, and the
+others are left out of it and of the Features and Controllers pages (**Choose folder…** still finds them). On a small screen, or with large text, the launcher closes up to fit: a narrower sidebar whose list
 scrolls, and each row's buttons under its words.
 
 While playing, Esc or `F1` (on a gamepad, the left stick's click, or Start and Select together) opens the
@@ -207,7 +209,7 @@ sfa2 --soundtrack ~/music/sfa2-arranged          # a custom soundtrack's folder 
 sfa2 --help                                     # what a game's program takes
 ```
 
-The games' ids are `ssf2t`, `sfa`, `sfa2`, `sfa3`, `pocket_fighter`, `msh`, `xmvsf`, `mshvsf`, `mvsc`, `puzzle_fighter`, `vampire_savior`, `vsav2`, `vhunt2`, `vsav_definitive`, `avsp` and `dino`. `--features` may be given more than once, and
+The games' ids are `ssf2t`, `sfa`, `sfa2`, `sfz2al`, `sfa3`, `pocket_fighter`, `msh`, `xmvsf`, `mshvsf`, `mvsc`, `puzzle_fighter`, `vampire_savior`, `vsav2`, `vhunt2`, `vsav_definitive`, `avsp` and `dino`. `--features` may be given more than once, and
 a later one wins.
 
 ### Online play
@@ -223,6 +225,14 @@ cps2recomp-launcher --play sfa3 -- --host                  # the host: shows a c
 cps2recomp-launcher --play sfa3 -- --join K7Q-M2X          # the other player: the host's code (or address)
 ```
 
+- **Join with a code** on the launcher's Online page: type a code a host gave you, for a match in any of the games,
+  and press Join: the launcher starts the game the match is in.
+- **The lobby** (opt-in): switch on **List my matches in the lobby** on the Online card and give **Your name**, and the
+  matches you host are listed under **Open matches** on every other player's card for that game, until someone joins;
+  they press Join. Matches not listed are joined only with their code.
+- **The Online page** in the launcher's sidebar shows every game's open matches at once, each with Join, and hosts a
+  match in the lobby in whichever of your games you choose. A match in a game whose ROM set you haven't added is shown
+  greyed, with **Add…** to go and add it.
 - **How the code works**: a small service of ours introduces the two games, telling each where the other can be
   reached, and they then connect straight to each other through their routers; none of the match goes through it
   ([online/README.md](online/README.md)). A code lasts 30 minutes and is good for one match.
@@ -234,7 +244,7 @@ cps2recomp-launcher --play sfa3 -- --join K7Q-M2X          # the other player: t
   presses theirs ("Here comes a new challenger").
 - **Each player plays with their own player 1 controls**, and hears and sees the game as their own settings have it
   (the Display page, the shader, the zoom, the custom soundtrack). The match takes the host's board settings
-  (difficulty, timer, rounds...) and the host's features that change play (free play, the cheats, arcade timing,
+  (difficulty, timer, rounds...) and the host's features that change play (free play, arcade timing,
   widescreen, hidden characters...), for the match only: the other player's own are left as they are.
 - **Rollback**: each side runs the game with both players' controls, its own player's held back 2 frames (as a
   board's game might be; `--net-delay N` on the host, 0 to 8), and the other player's guessed until they come. When
@@ -242,12 +252,19 @@ cps2recomp-launcher --play sfa3 -- --join K7Q-M2X          # the other player: t
   the time of one frame. Up to 8 frames are guessed; past that the game waits for the other side.
 - **The two games are checked against each other**: every second each side sends the other a fingerprint of the
   game; if they ever differ, the match stops and says so (a desync, which should not happen).
-- **The ping** is said at the bottom of the screen all through a match ("PING 42 ms"), and "WAITING FOR THE OTHER
-  PLAYER" if their game goes quiet for a moment.
+- **The ping** is said at the bottom of the screen all through a match ("PING 42 ms"), and the input delay too if you
+  like ("DELAY 2"): each is a switch, **Ping** (on) and **Input delay**, on the Online page under In a match (and on the
+  Features page).
+  "WAITING FOR THE OTHER PLAYER" shows if their game goes quiet for a moment, and **PRESS START TO JOIN** until you
+  have.
 - **Coming back after a drop**: if the other player's game closes or their connection drops, the host's game stays
   open and waits for them with the same code; a joining player whose connection dropped is taken back to the host by
   itself. The two games then start over together from the title. (The host closing their game ends the match.)
-- **Off during a match**: the in-game menu, save states, pause, the speed, run-ahead, the training mode and the
+- **Win streaks**: in the fighting games, a player who wins two or more matches in a row against the other has it
+  said under their life bar ("STREAK 3"), counted from when both have pressed Start, until the streak ends.
+- **Leaving a match**: Esc, or the gamepad's menu button, asks **Leave the match?** over the game (which goes on);
+  Confirm leaves, Back stays.
+- **Off during a match**: the cheats (on both sides, for a fair match), the in-game menu, save states, pause, the speed, run-ahead, the training mode and the
   other modes (endless battle, tag team, the viewers). A match ends when either player closes their game.
 
 ### A custom soundtrack
@@ -319,7 +336,7 @@ top), to open the in-game menu; its "Quit game" row ends the game.
 ## What you need
 
 - The ROM set of each game you want to play (a CPS-2 game's with its key file): `ssf2xjr1` (*Super Street Fighter II
-  X: Grand Master Challenge*, Japan 940223), `sfa` (*Street Fighter Alpha: Warriors' Dreams*, Europe 950727), `sfa2u` (*Street Fighter Alpha 2*, USA 960430), `sfa3u` (*Street Fighter Alpha 3*, USA 980904),
+  X: Grand Master Challenge*, Japan 940223), `sfa` (*Street Fighter Alpha: Warriors' Dreams*, Europe 950727), `sfa2u` (*Street Fighter Alpha 2*, USA 960430), `sfz2al` (*Street Fighter Zero 2 Alpha*, Asia 960826), `sfa3u` (*Street Fighter Alpha 3*, USA 980904),
   `sgemf` (*Super Gem Fighter: Mini Mix*, USA 970904), `msh` (*Marvel Super Heroes*, Europe 951024), `xmvsf` (*X-Men Vs. Street Fighter*, Europe 961004), `mshvsf` (*Marvel Super Heroes Vs. Street Fighter*, Europe 970625), `mvsc` (*Marvel Vs. Capcom: Clash of Super Heroes*, Europe 980123), `spf2t` (*Super Puzzle Fighter II Turbo*, Europe 960529), `vsavj` (*Vampire Savior: The Lord of Vampire*,
   Japan 970519), `vsav2` (*Vampire Savior 2: The Lord of Vampire*, Japan 970913), `vhunt2` (*Vampire Hunter 2:
   Darkstalkers Revenge*, Japan 970929), `avspu` (*Alien vs. Predator*, USA 940520), `dino` (*Cadillacs and Dinosaurs*,

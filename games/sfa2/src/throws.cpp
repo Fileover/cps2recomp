@@ -79,7 +79,7 @@ namespace {
         SetRam8(thrower + 0x285, 0);
         SetRam8(thrower + 0x28F, 0);
         SetRam16(other + kHeldBy, static_cast<uint16_t>(thrower));
-        Call(c, 0x01F93C);
+        Call(c, At(0x01F93C));
         c.d[0] = 0;
         for (const uint32_t record : {thrower, other}) {
             SetRam8(record + kAttackOut, 0);
@@ -90,7 +90,7 @@ namespace {
         SetRam16(other + 0x15A, 0);
         SetRam8(other + 0x299, 0);
         SetRam16(other + 0x29A, 0);
-        if (Mem8(c, other + kCharacter) == 0x15 || Mem8(c, other + kCharacter) == 0x16) {
+        if (family::Classic(other)) {
             SetRam8(other + 0x3A, 0);
         }
         Answer(c, true);
@@ -104,7 +104,7 @@ namespace {
             if (Mem16(c, thrower + kState) != 0x0200 || Mem8(c, thrower + kAction) != 0x0E) {
                 return Answer(c, false);
             }
-            if (!Mem8(c, thrower + kCustomCombo) && Ram8(Var(c, 0x10E))) {
+            if (!Mem8(c, thrower + kCustomCombo) && Ram8(Var(c, AtA5(0x10E)))) {
                 return Answer(c, false);
             }
             c.a[4] = static_cast<uint32_t>(static_cast<int16_t>(Mem16(c, thrower + kOpponent)));
@@ -123,10 +123,12 @@ namespace {
         if (Mem8(c, other + kNoThrow) || Mem8(c, other + kThrowProtection) || Mem16(c, other + kState) != 0x0200) {
             return Answer(c, false);
         }
-        if (Ram8(Var(c, 0x10E)) || Mem8(c, other + kInAir) || !HasBoxes(c, other)) {
+        if (Ram8(Var(c, AtA5(0x10E))) || Mem8(c, other + kInAir) || !HasBoxes(c, other)) {
             return Answer(c, false);
         }
-        if (!WithinReach(c, thrower, other, kFacesRight, true)) {
+        // (in the game's other modes of play, a byte of its own may say the other's box is turned about: family.h)
+        const uint32_t turnedBy = family::kThrowTurnedInModes && Ram16(Var(c, kPlayMode)) ? family::kThrowTurnedInModes : kFacesRight;
+        if (!WithinReach(c, thrower, other, turnedBy, true)) {
             return Answer(c, false);
         }
         Thrown(c);
@@ -134,7 +136,7 @@ namespace {
 } // namespace
 
 void RegisterThrows() {
-    AddRewrite(0x0260E8, "ThrowTest", ThrowTest, 0, 428);
+    AddRewrite(At(0x0260E8), "ThrowTest", ThrowTest, 0, 428);
 }
 
 } // namespace cps2recomp

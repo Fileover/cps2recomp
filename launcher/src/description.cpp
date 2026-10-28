@@ -11,6 +11,7 @@
 
 #include "../../machine/romset.h"
 #include "../../port/bindings.h"
+#include "../../port/netplay.h"
 
 #include <algorithm>
 #include <deque>
@@ -207,6 +208,10 @@ launcher::Description describe_game(const GameInfo& game) {
                 "Two players, each on their own machine with the game, anywhere: one hosts and gives the other the code their game "
                 "shows; the other joins with it. Each presses Start to come in. The match has the host's board settings and the "
                 "features that change play."};
+    // (the lobby: online/, the matches hosts have listed; Netplay::kService, kProtocol)
+    d.online.lobby = keep(std::string(port::Netplay::kService) + "/v1/lobby/" + game.id + "?protocol=" + std::to_string(port::Netplay::kProtocol));
+    d.online.list_argument = "--net-list";
+    d.online.name_argument = "--net-name";
     d.display = {{"fullscreen", "Full screen", "F11 switches while playing.", false, nullptr}};  // (a window unless asked)
     for (const FeatureSwitch& one : switches) {
         d.display.push_back({keep(one.name), keep(one.title), keep(one.detail), false, nullptr});
@@ -282,6 +287,15 @@ const launcher::Collection& launcher::describe_collection() {
         // The Multi game page: the fighting games' endless battle (fight/battle.h), each game's every stage once and
         // then the next game's (--multi endless:shuffle:SECONDS or endless:scroll:SPEED)
         c.multi_intro = "Several games played one after another, as long as you like. Choose the games and how they are played, then Start.";
+        // (online play's lobby, every game's: online/, Netplay::kService, kProtocol)
+        static const std::string lobby = std::string(port::Netplay::kService) + "/v1/lobby?protocol=" + std::to_string(port::Netplay::kProtocol);
+        c.lobby = lobby.c_str();
+        static const std::string lookup = std::string(port::Netplay::kService) + "/v1/code/";
+        c.code_lookup = lookup.c_str();
+        c.file_name = "ROM set";
+        c.online_features = "Online"; // (the ping and the input delay on the screen: port/main.cpp)
+        c.online_intro = "Play someone on another machine: join a match a player is hosting, or host one in any of your games for others to "
+                         "join. A game's own page has its Online card too, for a match with a code only the people you give it to know.";
         launcher::MultiMode endless;
         endless.key = "endless";
         endless.title = "Endless battle";

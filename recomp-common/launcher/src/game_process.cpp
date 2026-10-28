@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 // Copyright (C) 2026 Tommy McLeroy. Part of recomp-common: https://github.com/tmcleroy/recomp-common
 // (Quoting an argument for Windows follows the launcher of wiiparty-recomp by arelkair, GPL-3.0-or-later:
-// https://github.com/arelkair/wiiparty-recomp, launcher/src/subprocess.cpp; see THIRD_PARTY_NOTICES.md.)
+// https://github.com/arelkair/wiiparty-recomp, launcher/src/subrun_program.cpp; see THIRD_PARTY_NOTICES.md.)
 #include "game_process.h"
 
 #include <SDL3/SDL.h>

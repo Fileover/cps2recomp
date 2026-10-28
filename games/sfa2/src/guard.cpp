@@ -122,8 +122,8 @@ namespace {
     // 023554. Something is near: the answer is whether the player holds away from it (or guards by itself)
     bool Decide(M68K &c) {
         const uint32_t player = c.a[6];
-        // (Zangief's and Dhalsim's other forms never guard in the air)
-        if (Mem8(c, player + kInAir) && (Mem8(c, player + kCharacter) == 0x15 || Mem8(c, player + kCharacter) == 0x16)) {
+        // (the characters with Super Street Fighter II's ways never guard in the air: family.h)
+        if (Mem8(c, player + kInAir) && family::Classic(player)) {
             return false;
         }
         if ((Mem8(c, player + kHeld) & 1) || Mem8(c, player + kAutoGuardOn)) {
@@ -134,7 +134,7 @@ namespace {
             return true;
         }
         // (a setting of the game's own that has everyone guard)
-        return Ram8(Var(c, 0x85)) && (Ram8(Var(c, 0x5F65)) & 0x20);
+        return Ram8(Var(c, AtA5(0x85))) && (Ram8(Var(c, AtA5(0x5F65))) & 0x20);
     }
     // 023510 as a routine of its own: the record at A4 near, and then the answer
     bool OtherAnswer(M68K &c) {
@@ -152,24 +152,23 @@ namespace {
         }
         const uint16_t mode = Ram16(Var(c, kPlayMode));
         SetLow16(c.d[0], mode);
-        static constexpr uint16_t kJumps[] = {0x000A, 0x004A, 0x004A, 0x008C, 0x004A}; // (the table at 023452)
-        SetLow16(c.d[1], mode / 2 < 5 ? kJumps[mode / 2] : 0);
+        SetLow16(c.d[1], Code16(c, At(0x023452) + mode)); // (the table of the modes' ways)
         if (mode == 0) {
-            if (ThrownListNear(c, Var(c, 0x1400), kThrownRecords, true)) {
+            if (ThrownListNear(c, Var(c, AtA5(0x1400)), kThrownRecords, true)) {
                 return Answer(c, Decide(c));
             }
             c.a[4] = static_cast<uint32_t>(static_cast<int16_t>(Mem16(c, player + kOpponent)));
             OtherAnswer(c);
             return;
         }
-        if (ThrownListNear(c, Var(c, 0x1C00), kThrownOtherRecords, false)) {
+        if (ThrownListNear(c, Var(c, AtA5(0x1C00)), kThrownOtherRecords, false)) {
             return Answer(c, Decide(c));
         }
-        c.a[4] = Var(c, 0xC00);
-        if (OtherAnswer(c) || mode == 6) {
+        c.a[4] = Var(c, AtA5(0xC00));
+        if (OtherAnswer(c) || mode == 6 || !family::kGuardBothHelpers) {
             return;
         }
-        c.a[4] = Var(c, 0x1000);
+        c.a[4] = Var(c, AtA5(0x1000));
         OtherAnswer(c);
     }
 
@@ -177,19 +176,19 @@ namespace {
     bool AnythingNear(M68K &c) {
         const uint32_t player = c.a[6];
         const uint16_t mode = Ram16(Var(c, kPlayMode));
-        if (ThrownListNear(c, Var(c, mode == 0 ? 0x1400 : 0x1C00), mode == 0 ? kThrownRecords : kThrownOtherRecords, mode == 0)) {
+        if (ThrownListNear(c, Var(c, mode == 0 ? AtA5(0x1400) : AtA5(0x1C00)), mode == 0 ? kThrownRecords : kThrownOtherRecords, mode == 0)) {
             return true;
         }
         if (mode == 0) {
             c.a[4] = static_cast<uint32_t>(static_cast<int16_t>(Mem16(c, player + kOpponent)));
             return OtherPlayer(c) == Range::Near;
         }
-        c.a[4] = Var(c, 0xC00);
+        c.a[4] = Var(c, AtA5(0xC00));
         if (OtherPlayer(c) == Range::Near) {
             return true;
         }
-        c.a[4] = Var(c, 0x1000);
-        return mode != 6 && OtherPlayer(c) == Range::Near;
+        c.a[4] = Var(c, AtA5(0x1000));
+        return mode != 6 && family::kGuardBothHelpers && OtherPlayer(c) == Range::Near;
     }
 } // namespace
 
@@ -200,7 +199,7 @@ bool AttackInRange(M68K &c, uint32_t player) {
     c.a[5] = 0xFF8000;
     c.a[6] = player;
     bool yes = !Mem8(c, player + kCustomCombo) && AnythingNear(c);
-    if (yes && Mem8(c, player + kInAir) && (Mem8(c, player + kCharacter) == 0x15 || Mem8(c, player + kCharacter) == 0x16)) {
+    if (yes && Mem8(c, player + kInAir) && family::Classic(player)) {
         yes = false;
     }
     c.PutBack(kept);

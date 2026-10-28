@@ -35,27 +35,27 @@ namespace {
     using namespace sfa2;
 
     // The routines here, and the game's that they use
-    constexpr uint32_t kChance = 0x0280BA, kComputerThinks = 0x0280D4, kBrokenOff = 0x0295EC;
-    constexpr uint32_t kComputerReactions = 0x029CEA, kAnswerNow = 0x029E38;
-    constexpr uint32_t kRandom = 0x01975A;        // a made-up byte in D0
-    constexpr uint32_t kAttackComing = 0x027E94;  // is an attack of the other side's coming? (in the flags)
-    constexpr uint32_t kAttackAnswer = 0x027038;  // a normal at the other's attack, by which of its boxes reach (kStance...)
-    constexpr uint32_t kNormalByGap = 0x026EBC;   // a normal by the gap and the height between them (the table at 026F1A)
+    constexpr uint32_t kChance = At(0x0280BA), kComputerThinks = At(0x0280D4), kBrokenOff = At(0x0295EC);
+    constexpr uint32_t kComputerReactions = At(0x029CEA), kAnswerNow = At(0x029E38);
+    constexpr uint32_t kRandom = At(0x01975A);        // a made-up byte in D0
+    constexpr uint32_t kAttackComing = At(0x027E94);  // is an attack of the other side's coming? (in the flags)
+    constexpr uint32_t kAttackAnswer = At(0x027038);  // a normal at the other's attack, by which of its boxes reach (kStance...)
+    constexpr uint32_t kNormalByGap = At(0x026EBC);   // a normal by the gap and the height between them (the table at 026F1A)
 
     // The scripts' tables, by character (a long each): the four banks', and the characters' own test of whether a
     // special can be done now (a routine each)
-    constexpr uint32_t kPlans = 0x0992EC, kTactics = 0x09934C, kReactionScripts = 0x0993AC, kAnswers = 0x09940C;
-    constexpr uint32_t kCanDoSpecial = 0x09928C;
+    constexpr uint32_t kPlans = At(0x0992EC), kTactics = At(0x09934C), kReactionScripts = At(0x0993AC), kAnswers = At(0x09940C);
+    constexpr uint32_t kCanDoSpecial = At(0x09928C);
     // Chance tables: a long for each level, of which a random bit says yes or no (Chance). By character (128 bytes
     // each): kCharacterChances, whether to break in and whether to Alpha counter. For everyone: the others.
-    constexpr uint32_t kPlanOrTactic = 0x09AF44, kBrokenOffChances = 0x09AFC4, kGoToChances = 0x09BE44;
-    constexpr uint32_t kCharacterChances = 0x09B044;
+    constexpr uint32_t kPlanOrTactic = At(0x09AF44), kBrokenOffChances = At(0x09AFC4), kGoToChances = At(0x09BE44);
+    constexpr uint32_t kCharacterChances = At(0x09B044);
     // A wait's think time: a base by level, the character's own, and one of 32 at random (words)
-    constexpr uint32_t kThinkByLevel = 0x02A012, kThinkByCharacter = 0x02A052, kThinkRandom = 0x029FD2;
+    constexpr uint32_t kThinkByLevel = At(0x02A012), kThinkByCharacter = At(0x02A052), kThinkRandom = At(0x029FD2);
     // Projectiles by a class (bytes): 16 for each kind of projectile, by its step (tests 30 and 32)
-    constexpr uint32_t kProjectileClasses = 0x028BCE;
+    constexpr uint32_t kProjectileClasses = At(0x028BCE);
 
-    constexpr int32_t kNoComputer = 0x10E;     // from A5, a byte: not zero: the computer does nothing (the round has ended)
+    constexpr int32_t kNoComputer = AtA5(0x10E);     // from A5, a byte: not zero: the computer does nothing (the round has ended)
 
     // The computer's part of its player's record (from A6): Vampire Savior's fields, most of them 10h further on
     constexpr uint32_t kChosen = 0x200;        // byte: 0 until the bank's script is chosen, then 2

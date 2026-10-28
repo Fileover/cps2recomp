@@ -105,6 +105,36 @@ in `games/` (`tools/gamecfg.py --collection` writes its table from their `game.c
 The player's ROM set is only read. The program is deciphered with the set's own key file, as the
 board does when it starts; no key is in this repository.
 
+## Online play: what every game must keep to
+
+Every game plays online (`port/netplay.h`: the README's Online play) with nothing of its own to add, but only if its
+sources follow two rules, because online play runs a frame, puts the game back and runs the frame again whenever a
+guess of the other player's controls was wrong (rollback), and the two players' machines must come out exactly alike
+every time:
+
+1. **Everything the game's sources keep from one frame to the next is in its save state**: `TheGame().state`, an
+   `Archive` read and written with the machine's (a new field behind `ar.version`, as the others). A file-scope or
+   function-local `static` that changes while the game plays (a counter, a camera a frame ago, a step a cheat
+   watches) is the usual mistake: a frame run again then starts from the wrong value and the two sides come apart.
+   A game that uses another's sources (`sources =` in `game.cfg`, `fight/marvel.cpp` and the like) saves theirs too.
+   Code that only draws, names or logs may keep what it likes. `RunningAhead()` is run-ahead's, whose frames are
+   thrown away; a frame online runs again is a real one, so nothing may be left out for it.
+2. **A feature that changes how the game plays is in the Game or Board category** (or is the widescreen): the
+   joining side takes the host's for the match. The Cheats are off for both, for a fair match. Display, Sound and Online are each player's own; every other
+   category (the modes, training, the viewers) is off during a match.
+
+Two checks prove it, and every game must pass both before its pull request (they are part of section 6 of adding a
+game, and of a release):
+
+```sh
+make GAME=<id> check-rollback   # frames put back and run again come out as the first time (three ways)
+make GAME=<id> check-online     # two copies play each other over a bad connection made up, and the match is
+                                # replayed without the network: all the same (about 50 s)
+```
+
+A difference names the first frame that differs; `--dump-ram` of the two runs at that frame shows what changed.
+[VERIFYING.md](VERIFYING.md) says what each compares.
+
 
 ## A game made from another's program
 

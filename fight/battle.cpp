@@ -22,6 +22,7 @@ namespace cps2recomp {
 
 namespace {
     battle::Description d; // the game's (battle::Register)
+    bool g_described = false;
 
     constexpr const char *kModes = "Alternative modes", *kSurvival = "Survival", *kEndless = "Endless battle";
     constexpr const char *kRingOut = "Ring out", *kTeam = "Tag team battle";
@@ -2026,8 +2027,17 @@ bool RingOutLetsOut(uint32_t player) {
     return left || right;
 }
 
+int battle::RoundResultNow() {
+    return !g_described ? -1 : d.resultNow ? d.resultNow() : Ram8(d.result);
+}
+
+int battle::RoundsToWin() {
+    return d.roundsToWin;
+}
+
 void battle::Register(const Description &description) {
     d = description;
+    g_described = true;
     Game &game = TheGame();
     game.pages.push_back({kSurvival, kModes, "One opponent after another on the health you have left. How many can you beat?"});
     game.pages.push_back({kEndless, kModes, "Two fighters the game plays, for as long as you like. Touch the controls to take one over."});

@@ -36,6 +36,54 @@
   camera whose step works on a copy of its place (`cameraWorkX`/`Y`), kept between its ends in two pieces. The frame
   copy X-Men vs. Street Fighter and its sequel share is the toolkit's (`marvel::CopyFrameBoxSets`). Marvel Super
   Heroes and X-Men vs. Street Fighter run exactly as before (the same hash logs over their ladders and every mode).
+- **Street Fighter Zero 2 Alpha** (`games/sfz2al`, the set `sfz2al`, Asia 960826, #135): Alpha 2's later revision,
+  the one played online, with the EX forms of Ryu, Ken, Sagat, M. Bison, Zangief and Dhalsim, Evil Ryu and the
+  classic Chun-Li. It builds Street Fighter Alpha 2's sources, as Vampire Savior 2 builds Vampire Savior's, so it has
+  everything that port has: the training mode with every aid, attract mode, the stage and model viewers, the colour
+  editor, survival, endless battle (and the Multi game page), ring out, the tag team battle with the CPU tagging and
+  coached, the CPU's scripts as readable C++, widescreen and invisible walls, the zoom, the hidden characters at a
+  switch, the board's settings, the music's names. Alpha 2's sources now name their places through `At()` and
+  `AtA5()` (Alpha 2 itself plays the same, frame for frame); this game's `family.h` says where each is here and what
+  differs: the characters with Super Street Fighter II's ways (a byte of the player's, not two numbers), a stun's
+  length, the gauge for a knock-down, pushing apart, the hit test's attack box, M. Bison's and Chun-Li's other forms
+  and the rest, each checked by the rewrites' check on this game's own code. How a place is looked up is one piece of
+  the toolkit now (`runtime/places_in.h`), for Vampire Savior's family too.
+- **Online: win streaks.** In the fighting games, "STREAK N" under a side's life bar once it has won two or more
+  matches in a row against the other player (counted when both have pressed Start; a match is won with
+  `battle::Description::roundsToWin` rounds, 2 unless a game says: X-Men vs. Street Fighter's tag match, 1). The round's
+  result comes from the fighting toolkit (`battle::RoundResultNow`); each is counted once, a second's quiet before
+  the next, so a frame rollback runs again is not counted twice. Both machines count alike.
+- **Online: the cheats are off during a match**, on both sides (no damage for the host's player made it no match);
+  the host's Game and Board features still carry over. **Join with a code** on the launcher's Online page: a code for
+  a match in any of the games, Join; the service says which game it is for (`GET /v1/code/CODE`) and the launcher
+  starts that one (a game whose ROM set isn't added is said, with Add…). The game sends its name and protocol to the
+  service with every match now, not only a listed one.
+- **What online play needs of every game, written down and checked**: `docs/TOOLKIT.md`'s "Online play: what every
+  game must keep to" (everything a game's sources keep between frames in its save state; play-changing features in
+  Game, Board or Cheats), pointed to from `CONTRIBUTING.md` and `docs/RELEASING.md`; a release's checks
+  (`tools/release/checks.sh`) run `check-rollback` and `check-online` for every game.
+- **Online: the ping and the input delay, each a switch** (each player's own), on the launcher's Online page under In
+  a match and on the Features page (their category, Online): **Ping** (on in Enhanced) and **Input delay** ("DELAY 2",
+  off unless chosen). The leave prompt: in a match, Esc (or the menu's button) asks **Leave the match?** over the game,
+  which goes on; Confirm leaves, Back stays (drawn by the port, over the readout, which the fighting games' sources
+  set every frame). The Online page shows Open matches first. **PRESS START TO JOIN**
+  at the bottom until this side's player has pressed Start in the match. On the Online page, matches in a game whose
+  ROM set isn't added are greyed, with **Add…** to choose it, and those of a game this launcher hasn't are greyed too.
+- **The launcher's Online page**: after Multi game in the sidebar, every game's open matches in the lobby, each with
+  its game and Join, and **Host in the lobby** in any of your games, under your name (recomp-common's
+  `Collection::lobby`). The service keeps one lobby for every game now: `GET /v1/lobby?protocol=N` lists them all,
+  each with its game; `GET /v1/lobby/GAME` still lists one game's.
+- **Online: the wait said in short lines**, the match code on a line of its own in green and "Listed in the lobby"
+  under it (a readout line can now have a colour: `HudLine`'s `r`, `g`, `b`). The one long line flickered: with its
+  dots it grew wider than the picture, and a line wider than the picture is not drawn.
+- **A lobby for online play** (opt-in): on the Online card, **List my matches in the lobby** and **Your name**; a
+  listed host's match shows under **Open matches** on other players' cards for the same game (and the same protocol),
+  to join with a press, until someone has joined it or its host stops waiting. The service keeps each game's list in a
+  Durable Object of its own (`GET /v1/lobby/GAME`); the game lists itself with `--net-list` and `--net-name NAME`.
+- **Only the games you have**: a switch on the launcher's Games page (once a game is set up; off unless you switch it
+  on) leaves the games you have not set up out of the Games page, the Features page (their features, and their names
+  in its notes) and the Controllers page, for a player who plays one or two of them. **Choose folder…** still finds
+  the rest. (recomp-common: a collection's `[games] installed_only`.)
 - **Online: the ping on screen, and coming back after a drop.** "PING 42 ms" at the bottom all through a match
   (the time there and back, the frame's wait to read a packet taken off), or "WAITING FOR THE OTHER PLAYER" when
   they have been silent a second. When the other side leaves or goes silent, a host's window stays open and waits
