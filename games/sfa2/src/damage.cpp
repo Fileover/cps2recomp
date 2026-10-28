@@ -278,6 +278,9 @@ namespace {
                 stun = 0;
                 SetLow8(c.d[0], 0);
                 SetRam8(victim + kStun, 0);
+                if (family::kHelperHitMarks) {
+                    SetRam8(victim + 0x258, 0xFF); // (as a special's knock-down: family.h)
+                }
             }
             // (the cheat: no stun builds on that player)
             const int player = PlayerOf(victim);

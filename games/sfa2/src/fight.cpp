@@ -72,6 +72,9 @@ namespace {
             SetRam8(Var(c, AtA5(0x15A)), 1);
         } else {
             Call(c, At(0x0058DE)); // (the winner's count of rounds won, and the match's)
+            if (family::kRoundWonToo) {
+                Call(c, family::kRoundWonToo); // (this game's own after it: family.h)
+            }
         }
         if (!Ram8(Var(c, kRoundTimeOver))) {
             SetRam8(Var(c, AtA5(0x11C)), 0x3C);

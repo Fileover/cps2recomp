@@ -90,7 +90,7 @@ namespace {
         SetRam16(other + 0x15A, 0);
         SetRam8(other + 0x299, 0);
         SetRam16(other + 0x29A, 0);
-        if (Mem8(c, other + kCharacter) == 0x15 || Mem8(c, other + kCharacter) == 0x16) {
+        if (family::Classic(other)) {
             SetRam8(other + 0x3A, 0);
         }
         Answer(c, true);
@@ -126,7 +126,9 @@ namespace {
         if (Ram8(Var(c, AtA5(0x10E))) || Mem8(c, other + kInAir) || !HasBoxes(c, other)) {
             return Answer(c, false);
         }
-        if (!WithinReach(c, thrower, other, kFacesRight, true)) {
+        // (in the game's other modes of play, a byte of its own may say the other's box is turned about: family.h)
+        const uint32_t turnedBy = family::kThrowTurnedInModes && Ram16(Var(c, kPlayMode)) ? family::kThrowTurnedInModes : kFacesRight;
+        if (!WithinReach(c, thrower, other, turnedBy, true)) {
             return Answer(c, false);
         }
         Thrown(c);

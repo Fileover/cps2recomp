@@ -25,7 +25,7 @@ namespace {
     constexpr int32_t kRoundTimeOver = AtA5(0x10D), kRoundStopped = AtA5(0x10E), kRoundPaused = AtA5(0x8A);
     constexpr uint32_t kMoveNumber = 0x133; // byte: which special move the player is in
     constexpr uint8_t kActionThrow = 0x0E;
-    constexpr uint8_t kChunLi = 4, kChunLiClassic = 0x12, kSodom = 6, kDhalsim = 0x0F;
+    constexpr uint8_t kSodom = 6, kDhalsim = 0x0F; // (M. Bison and Chun-Li: family.h, Bison and ChunLi)
 
     constexpr uint32_t kComputerThinks = At(0x0280D4); // the computer chooses this player's input
     constexpr uint32_t kChunLiFrozen = At(0x0322D6);   // Chun-Li's own, every step she stands frozen by a hit
@@ -75,7 +75,6 @@ namespace {
     constexpr uint32_t kLow = 0x130;             // byte: set while crouched (standing's step 4)
     constexpr uint32_t kTurnFast = 0x143;        // byte: cleared at every step of standing
     constexpr uint32_t kSodomsThing = 0x35;      // byte: Sodom's: a thing of his to be made as he stands
-    constexpr uint8_t kBison = 0x0A;
 
     bool Asks(M68K &c, uint32_t test) {
         Call(c, test);
@@ -196,7 +195,7 @@ namespace {
             step = 2;
             c.d[0] = 0;
             if (!Ram8(player + kComputer)) {
-                if (Ram8(player + kCharacter) == kBison) {
+                if (family::Bison(Ram8(player + kCharacter))) {
                     c.d[0] = 0x30;
                 }
                 if (Ram8(player + kCustomCombo)) {
@@ -971,7 +970,7 @@ namespace {
         if (Ram8(player + kHitStop)) {
             SetRam8(player + kHitStop, static_cast<uint8_t>(Ram8(player + kHitStop) - 1));
             const uint8_t who = Ram8(player + kCharacter);
-            if (who == kChunLi || who == kChunLiClassic) {
+            if (family::ChunLi(who)) {
                 Call(c, kChunLiFrozen);
             }
             return Call(c, kKeepIn);
@@ -1079,7 +1078,7 @@ namespace {
         }
         if (Ram8(player + 0x246) && Ram8(player + kAutoGuardOn) && (kind == 6 || kind == 2) && (Ram8(Var(c, AtA5(0x80))) & 1)) {
             SetRam8(player + 0x0C, 0xFF);
-            SetRam8(player + kColourSet, static_cast<uint8_t>(Ram8(player + kColourSet) + 4));
+            SetRam8(player + kColourSet, static_cast<uint8_t>(Ram8(player + kColourSet) + family::kAutoGuardSets));
         }
         Call(c, At(0x02720E));
     }
@@ -1413,8 +1412,8 @@ namespace {
                     SetRam8(player + 0x57, 6);
                     Call(c, At(0x023930));
                 } else {
-                    c.d[0] = 3;
-                    Call(c, At(0x026DB0));
+                    c.d[0] = family::kDownGauge;
+                    Call(c, At(0x026DB0)); // (the super combo gauge goes up)
                     DownStarts(c, player);
                 }
             } else {
@@ -1500,6 +1499,19 @@ namespace {
             SetRam8(player + 0x5E, 0);
             SetRam32(player + 0x146, 0);
             SetRam8(player + kLow, 0);
+            if (!family::kStunByCharacter) {
+                // (Zero 2 Alpha: the character's own first, then the length by chance from one row: family.h)
+                c.d[0] = 0;
+                SetLow8(c.d[0], Ram8(player + kCharacter));
+                SetLow16(c.d[0], static_cast<uint16_t>((c.d[0] & 0xFFFF) << 2));
+                c.a[0] = Mem32(c, At(0x09AE84) + static_cast<uint32_t>(static_cast<int16_t>(c.d[0] & 0xFFFF)));
+                Call(c, c.a[0]);
+                Call(c, At(0x01975A)); // (a number by chance)
+                SetLow16(c.d[0], static_cast<uint16_t>(c.d[0] & 0x1E));
+                SetRam16(player + kStunLeft, Code16(c, At(0x09814C) + (c.d[0] & 0xFFFF)));
+                c.d[0] = 0x1A;
+                return Call(c, kReelAnimation);
+            }
             Call(c, At(0x01975A)); // (a number by chance)
             SetLow16(c.d[0], static_cast<uint16_t>(c.d[0] & 0x1E));
             c.d[1] = 0;
@@ -1692,7 +1704,7 @@ namespace {
     // and shocking ones, guarded ones; the round's first hit announced
     void ReelBegins(M68K &c) {
         const uint32_t player = c.a[6];
-        if (Ram8(player + kCharacter) == kBison && Ram8(player + 0x1F7)) {
+        if (family::Bison(Ram8(player + kCharacter)) && Ram8(player + 0x1F7)) {
             Call(c, At(0x03CB92));
         }
         SetRam8(player + kActionStep, static_cast<uint8_t>(Ram8(player + kActionStep) + 2));
@@ -1708,6 +1720,9 @@ namespace {
         }
         SetRam16(player + 0x15A, 0);
         SetRam16(player + 0x158, 0);
+        if (family::kReelClearsToo) {
+            SetRam8(player + family::kReelClearsToo, 0); // (this game's own: family.h)
+        }
         Call(c, At(0x09764C)); // (the hit's colours)
         const uint8_t reaction = Ram8(player + kReaction);
         if (reaction == 0xFF) {
@@ -1790,6 +1805,15 @@ namespace {
         }
         SetRam8(player + kInAir, 0xFF);
         SetRam8(player + 0x5D, static_cast<uint8_t>(Ram8(player + 0x5D) + 1));
+        if (reaction == 0x0B && family::kReelElevenEnds) {
+            // (this game's own: the animation, then the effects' colours put back and three bytes cleared: family.h)
+            Call(c, kReelAnimation);
+            Call(c, At(0x027204));
+            SetRam8(player + 0x251, 0);
+            SetRam8(player + 0x250, 0);
+            SetRam8(player + 0x252, 0);
+            return;
+        }
         if (reaction != 0x0B && Ram8(player + kReelKind) == 4) {
             if (reaction == 0x0C) {
                 return ReelBurnt(c, player);
@@ -2164,7 +2188,7 @@ namespace {
     void QuickRecovery(M68K &c) {
         const uint32_t player = c.a[6];
         const uint8_t who = Ram8(player + kCharacter);
-        if (Ram8(player + 0x258) || who == 0x15 || who == 0x16) {
+        if (Ram8(player + 0x258) || family::Classic(player)) {
             return;
         }
         c.a[4] = player + 0x260;

@@ -179,6 +179,7 @@ inline constexpr Place kPlaceList[] = {
     {0x023414, 0x02304C}, // an instruction, 4 on alike
     {0x02342A, 0x023062}, // an instruction, 4 on alike
     {0x02343C, 0x023074}, // an instruction, 4 on alike
+    {0x023452, 0x02308A}, // the guard-range test's table of the modes' ways (02307E reads it) by hand
     {0x0235F6, 0x0231D8}, // an instruction, 18 on alike
     {0x023638, 0x02321A}, // an instruction, 24 on alike
     {0x0236F0, 0x0232D2}, // an instruction, 24 on alike
@@ -449,6 +450,63 @@ inline constexpr HiddenForm kHiddenForms[] = {{0, 23}, {1, 26}, {2, 20}, {4, 18}
 inline constexpr const char *kHiddenWords =
     "Choosing Ryu, Ken, Akuma, Chun-Li, M. Bison, Sagat, Dhalsim or Zangief gives their hidden form instead: Evil Ryu, "
     "Shin Akuma, the classic Chun-Li, and the EX forms of the others. For player 1, player 2 or both.";
+
+// The characters with Super Street Fighter II's ways (the EX forms, and two of the rows no code chooses): they never
+// guard in the air, never rise quickly, and a throw of them ends their stun's count (src/guard.cpp, throws.cpp,
+// player.cpp). This game keeps it in the player's byte +B1, set as a round begins from a table by character
+// (09CFDC; 1 for 15, 16, 18-1B, 1D-1F), where Alpha 2 tests the numbers of its two. A player's record at `player`
+inline bool Classic(uint32_t player) {
+    return cps2recomp::Ram8(player + 0xB1) != 0;
+}
+
+// When the game's own mode of play (A5+138) is not the usual one (this game has one other: the table at 02308A has
+// two rows), the guard-range test looks at one record after the players' only (0230FC), not at both as Alpha 2
+inline constexpr bool kGuardBothHelpers = false;
+
+// A stun's length: by chance only, from one row in the code (022636; the character's own routine is called first, and
+// its row not used), not by character as in Alpha 2 (src/player.cpp)
+inline constexpr bool kStunByCharacter = false;
+
+// How much the super combo gauge of a player knocked down by a hit goes up, after a hit taken in the air (src/player.cpp,
+// ReelDown) (022402: this game gives less gauge in many places, the knocked-down player's among them)
+inline constexpr uint8_t kDownGauge = 2;
+
+// A routine of this game's own that a round's end calls after the winner's count of rounds won (src/fight.cpp,
+// RoundFighting, 005C6E): 005D78, which in this game's other modes of play (A5+138, the survival and the dramatic
+// battle) sets the next round's ... from the player's +24D (060D10), and otherwise works out the winner's again
+inline constexpr uint32_t kRoundWonToo = 0x005D78;
+
+// A byte of a player's record that, set in player 1's, has the pushing apart look at player 2 first, once, both cleared
+// (src/collision.cpp, PushApart: 00EE24)
+inline constexpr uint32_t kPushOtherWay = 0x29D;
+
+// Box numbers in a frame are read as unsigned bytes by the hit test (andi.w #FF: 010474), where Alpha 2 reads them
+// signed (src/collision.cpp)
+inline constexpr bool kBoxNumbersUnsigned = true;
+
+// A helper's hit (the attacker's +3E set), which builds no stun, also marks the victim as a special's knock-down does
+// (+258: no quick rise), src/damage.cpp: yes (010A76)
+inline constexpr bool kHelperHitMarks = true;
+
+// The checks of the game's for M. Bison and for Chun-Li by number (src/player.cpp): Alpha 2's, with this game's own
+// other forms too: M. Bison's EX form (021332, 021D24), and row 28's Chun-Li (021200)
+inline bool Bison(uint8_t who) {
+    return who == 0x0A || who == 0x18;
+}
+inline bool ChunLi(uint8_t who) {
+    return who == 0x04 || who == 0x12 || who == 0x1C;
+}
+
+// A byte of the player's record that this game also clears as a hit lands (src/player.cpp, ReelBegins: 021D86)
+inline constexpr uint32_t kReelClearsToo = 0x256;
+// A hit of kind 0B ends there in this game (its animation, the colours put back, +250-252 cleared: 021E9E)
+inline constexpr bool kReelElevenEnds = true;
+// How far the player's colour set goes on as auto guard takes a hit (src/player.cpp, ReelFrozen: 0221E2), one less
+// than Alpha 2's
+inline constexpr uint8_t kAutoGuardSets = 3;
+// In the game's other modes of play, the byte of the other's record that a throw's reach takes for its box turned
+// about (src/throws.cpp: 025D34), not its facing
+inline constexpr uint32_t kThrowTurnedInModes = 0x131;
 
 // The ROM file whose colours PalMod changes, and which set it is (src/colours.cpp)
 inline constexpr const char *kColoursFile = "szaa.07", *kColoursFileWhose = "the Asian set's, 960826";

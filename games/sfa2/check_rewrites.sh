@@ -34,7 +34,9 @@ for skip in "" $(sh games/sfa2/layers.sh); do
     run throw_tech 5000 free_play "$skip"
     run versus_attacks 4000 free_play "$skip" "--poke FF8482=0A"
     run wall_jump 6000 free_play "$skip" "--poke FF8482=04"
-    for who in 09 07 03; do # (Rose, Guy, Charlie: their hits' reactions)
+    # (Rose, Guy, Charlie: their hits' reactions; and the characters a game made from this program adds, which its
+    # check names in CHARACTERS)
+    for who in 09 07 03 $CHARACTERS; do
         run versus_attacks 7800 free_play,full_gauge "$skip" "--poke FF8482=$who"
     done
     run ladder 30000 free_play "$skip"

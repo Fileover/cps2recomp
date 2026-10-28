@@ -172,7 +172,9 @@ namespace {
         if (!number) {
             return;
         }
-        const uint16_t offset = static_cast<uint16_t>(static_cast<int16_t>(static_cast<int8_t>(number)) << 5);
+        // (signed or not, by the game: family.h)
+        const uint16_t offset = family::kBoxNumbersUnsigned ? static_cast<uint16_t>(number << 5)
+                                                            : static_cast<uint16_t>(static_cast<int16_t>(static_cast<int8_t>(number)) << 5);
         SetLow16(c.d[0], offset);
         c.a[3] = Mem32(c, attacker + kAttackBoxes) + static_cast<uint32_t>(static_cast<int16_t>(offset));
         // Not the attack that last hit the victim from this side, and not once too often
@@ -435,9 +437,17 @@ namespace {
     // by more than nothing) each is moved half of it apart; but one pressed against the picture's edge, or one on
     // the floor against one in the air, stays and the other moves all of it. `+298` notes that they touched.
     void PushApart(M68K &c) {
-        const uint32_t one = c.a[6] = Var(c, AtA5(0x400)), two = c.a[4] = Var(c, AtA5(0x800));
+        uint32_t one = c.a[6] = Var(c, AtA5(0x400)), two = c.a[4] = Var(c, AtA5(0x800));
         SetRam8(one + 0x298, 0);
         SetRam8(two + 0x298, 0);
+        // (a byte of player 1's that has the two looked at the other way about, once: family.h)
+        if (family::kPushOtherWay && Ram8(one + family::kPushOtherWay)) {
+            SetRam8(one + family::kPushOtherWay, 0);
+            SetRam8(two + family::kPushOtherWay, 0);
+            std::swap(one, two);
+            c.a[6] = one;
+            c.a[4] = two;
+        }
         c.a[0] = Mem32(c, one + kFrame);
         c.a[1] = Mem32(c, two + kFrame);
         c.d[0] = Mem8(c, c.a[0] + kFramePush);
