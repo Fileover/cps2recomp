@@ -251,21 +251,13 @@ void Netplay::Send(const std::vector<uint8_t> &packet) {
     socket.Send(peer, packet.data(), packet.size());
 }
 
-bool Netplay::Connect(Port &port, std::string &error) {
-    if (!socket.Open(settings.hosting ? settings.port : 0, error)) {
-        return false;
-    }
-    local = settings.hosting ? 0 : 1;
-    remote = 1 - local;
-    const uint32_t build = BuildHash(port);
-    std::vector<uint8_t> packet(2048);
-    NetAddress from;
-    // The features as this match has them: the joining side takes the host's (Share::Host); both turn off the rest
-    const auto settle = [&](const std::map<std::string, int> &host) {
+namespace {
+    // The features as the match has them: the joining side takes the host's (Share::Host); both turn off the rest
+    void Settle(bool hosting, const std::map<std::string, int> &host) {
         for (const Feature &feature : TheGame().features) {
             switch (Shared(feature)) {
             case Share::Host:
-                if (!settings.hosting) {
+                if (!hosting) {
                     const auto it = host.find(feature.name);
                     SetFeatureForNow(feature.name, it == host.end() ? 0 : it->second);
                 }
@@ -274,18 +266,25 @@ bool Netplay::Connect(Port &port, std::string &error) {
             default: break;
             }
         }
-    };
-    const uint64_t began = NowMs();
-    // (the first `delay` frames: nobody's controls)
-    const auto start = [&](int frames) {
-        delay = std::clamp(frames, 0, kMostAhead);
-        localUpTo = remoteUpTo = static_cast<uint64_t>(delay);
-    };
+    }
+} // namespace
+
+void Netplay::StartAt(int frames) {
+    delay = std::clamp(frames, 0, kMostAhead); // (the first `delay` frames: nobody's controls)
+    localUpTo = remoteUpTo = static_cast<uint64_t>(delay);
+}
+
+bool Netplay::Begin(Port &port, std::string &error) {
+    if (!socket.Open(settings.hosting ? settings.port : 0, error)) {
+        return false;
+    }
+    local = settings.hosting ? 0 : 1;
+    remote = 1 - local;
+    build = BuildHash(port);
+    began = NowMs();
     if (settings.hosting) {
-        start(settings.delay);
-        fprintf(stderr, "online: waiting for the other player on UDP port %d\n", settings.port);
-        std::map<std::string, int> none;
-        settle(none);
+        StartAt(settings.delay);
+        Settle(true, {});
         Writer welcome(kWelcome);
         welcome.U16(kProtocol);
         welcome.U8(static_cast<uint8_t>(delay));
@@ -297,62 +296,17 @@ bool Netplay::Connect(Port &port, std::string &error) {
             }
         }
         welcome.Text(features);
-        bool found = false;
-        uint64_t sent = 0;
-        while (true) {
-            const int got = socket.Receive(packet.data(), packet.size(), from);
-            if (got >= 5 && !memcmp(packet.data(), kMagic, 4)) {
-                Reader in(packet.data(), static_cast<size_t>(got));
-                if (packet[4] == kHello && (!found || from == peer)) {
-                    const uint16_t protocol = in.U16();
-                    const std::string game = in.Text();
-                    const uint32_t theirs = in.U32();
-                    std::string why;
-                    if (protocol != kProtocol) {
-                        why = "The two copies of the game are different versions: update both.";
-                    } else if (game != GAME_ID) {
-                        why = "The other player started " + game + ", this side " GAME_ID ".";
-                    } else if (theirs != build) {
-                        why = "The two copies of the game are different builds: use the same release on both.";
-                    }
-                    if (!why.empty()) {
-                        Writer refuse(kRefuse);
-                        refuse.Text(why);
-                        socket.Send(from, refuse.out.data(), refuse.out.size());
-                        fprintf(stderr, "online: turned away a player: %s\n", why.c_str());
-                        continue;
-                    }
-                    if (!found) {
-                        peer = from;
-                        found = true;
-                        fprintf(stderr, "online: the other player is here\n");
-                    }
-                    Send(welcome.out);
-                    sent = NowMs();
-                } else if (found && from == peer && packet[4] == kControls) {
-                    Take(packet.data(), static_cast<size_t>(got)); // (they have the welcome: the match is on)
-                    break;
-                } else if (found && from == peer && packet[4] == kBye) {
-                    found = false; // (they left before it began)
-                }
-            } else if (got < 0) {
-                if (found && NowMs() - sent > 250) {
-                    Send(welcome.out);
-                    sent = NowMs();
-                }
-                Pump();
-                std::this_thread::sleep_for(std::chrono::milliseconds(2));
-            }
-        }
+        greeting = welcome.out;
+        waiting = "Waiting for the other player (UDP port " + std::to_string(settings.port) + ")";
     } else {
-        // The host's address, and the welcome: the hello again every quarter second until it comes (for 30 seconds)
+        // The host's address: ADDRESS, ADDRESS:PORT, an IPv6 address, or [IPv6]:PORT
         std::string host = settings.address;
         int hostPort = settings.port;
         const size_t colon = host.rfind(':');
-        if (colon != std::string::npos && host.find(':') == colon) { // (ADDRESS:PORT; an IPv6 address alone has several)
+        if (colon != std::string::npos && host.find(':') == colon) {
             hostPort = atoi(host.c_str() + colon + 1);
             host = host.substr(0, colon);
-        } else if (host.size() > 2 && host[0] == '[') { // ([IPv6]:PORT)
+        } else if (host.size() > 2 && host[0] == '[') {
             const size_t close = host.find(']');
             if (close != std::string::npos && close + 1 < host.size() && host[close + 1] == ':') {
                 hostPort = atoi(host.c_str() + close + 2);
@@ -362,67 +316,137 @@ bool Netplay::Connect(Port &port, std::string &error) {
         if (!UdpSocket::Resolve(host, hostPort, peer, error)) {
             return false;
         }
-        fprintf(stderr, "online: joining %s, UDP port %d\n", host.c_str(), hostPort);
         Writer hello(kHello);
         hello.U16(kProtocol);
         hello.Text(GAME_ID);
         hello.U32(build);
-        uint64_t sent = 0;
-        bool welcomed = false;
-        while (!welcomed) {
-            if (NowMs() - began > 30000) {
-                error = "The host did not answer (is it waiting, and is UDP port " + std::to_string(hostPort) + " open to you?).";
-                return false;
-            }
-            if (NowMs() - sent > 250) {
-                Send(hello.out);
-                sent = NowMs();
-            }
-            Pump();
-            const int got = socket.Receive(packet.data(), packet.size(), from);
-            if (got < 5 || memcmp(packet.data(), kMagic, 4)) {
-                std::this_thread::sleep_for(std::chrono::milliseconds(2));
-                continue;
-            }
-            Reader in(packet.data(), static_cast<size_t>(got));
-            if (packet[4] == kRefuse) {
-                error = in.Text();
-                return false;
-            }
-            if (packet[4] != kWelcome) {
-                continue;
-            }
-            peer = from;
-            if (in.U16() != kProtocol) {
-                error = "The two copies of the game are different versions: update both.";
-                return false;
-            }
-            start(in.U8());
-            const size_t words = in.U16();
-            if (!in.Has(words) || words != sizeof(port.machine->eeprom.words)) {
-                error = "The host's welcome did not make sense.";
-                return false;
-            }
-            memcpy(port.machine->eeprom.words, in.at, words); // (the host's board settings, for this match only)
-            in.at += words;
-            std::map<std::string, int> host;
-            const std::string features = in.Text();
-            for (size_t at = 0; at < features.size();) {
-                const size_t comma = std::min(features.find(',', at), features.size());
-                const std::string item = features.substr(at, comma - at);
-                const size_t eq = item.find('=');
-                if (eq != std::string::npos) {
-                    host[item.substr(0, eq)] = atoi(item.c_str() + eq + 1);
-                }
-                at = comma + 1;
-            }
-            settle(host);
-            welcomed = true;
-        }
+        greeting = hello.out;
+        joinPort = hostPort;
+        waiting = "Joining " + host + " (UDP port " + std::to_string(hostPort) + ")";
     }
-    lastHeard = NowMs();
-    fprintf(stderr, "online: the match is on: you are player %d (%d frame%s of delay)\n", local + 1, delay, delay == 1 ? "" : "s");
+    fprintf(stderr, "online: %s\n", waiting.c_str());
     return true;
+}
+
+int Netplay::Waiting(Port &port, std::string &error) {
+    Pump();
+    uint8_t packet[2048];
+    NetAddress from;
+    const uint64_t now = NowMs();
+    if (settings.hosting) {
+        int got;
+        while ((got = socket.Receive(packet, sizeof(packet), from)) >= 0) {
+            if (got < 5 || memcmp(packet, kMagic, 4)) {
+                continue;
+            }
+            Reader in(packet, static_cast<size_t>(got));
+            if (packet[4] == kHello && (!found || from == peer)) {
+                const uint16_t protocol = in.U16();
+                const std::string game = in.Text();
+                const uint32_t theirs = in.U32();
+                std::string why;
+                if (protocol != kProtocol) {
+                    why = "The two copies of the game are different versions: update both.";
+                } else if (game != GAME_ID) {
+                    why = "The other player started " + game + ", this side " GAME_ID ".";
+                } else if (theirs != build) {
+                    why = "The two copies of the game are different builds: use the same release on both.";
+                }
+                if (!why.empty()) {
+                    Writer refuse(kRefuse);
+                    refuse.Text(why);
+                    socket.Send(from, refuse.out.data(), refuse.out.size());
+                    fprintf(stderr, "online: turned away a player: %s\n", why.c_str());
+                    continue;
+                }
+                if (!found) {
+                    peer = from;
+                    found = true;
+                    fprintf(stderr, "online: the other player is here\n");
+                }
+                Send(greeting);
+                sent = now;
+            } else if (found && from == peer && packet[4] == kControls) {
+                Take(packet, static_cast<size_t>(got)); // (they have the welcome: the match is on)
+                break;
+            } else if (found && from == peer && packet[4] == kBye) {
+                found = false; // (they left before it began)
+            }
+        }
+        if (got >= 0) {
+            lastHeard = now;
+            fprintf(stderr, "online: the match is on: you are player 1 (%d frame%s of delay)\n", delay, delay == 1 ? "" : "s");
+            return 1;
+        }
+        if (found && now - sent > 250) {
+            Send(greeting);
+            sent = now;
+        }
+        return 0;
+    }
+    // Joining: the hello every quarter second until the welcome comes (for 30 seconds)
+    if (now - began > 30000) {
+        error = "The host did not answer. Is it waiting, and can this machine reach it on UDP port " + std::to_string(joinPort) + "?";
+        return -1;
+    }
+    if (now - sent > 250) {
+        Send(greeting);
+        sent = now;
+    }
+    int got;
+    while ((got = socket.Receive(packet, sizeof(packet), from)) >= 0) {
+        if (got < 5 || memcmp(packet, kMagic, 4)) {
+            continue;
+        }
+        Reader in(packet, static_cast<size_t>(got));
+        if (packet[4] == kRefuse) {
+            error = in.Text();
+            return -1;
+        }
+        if (packet[4] != kWelcome) {
+            continue;
+        }
+        peer = from;
+        if (in.U16() != kProtocol) {
+            error = "The two copies of the game are different versions: update both.";
+            return -1;
+        }
+        StartAt(in.U8());
+        const size_t words = in.U16();
+        if (!in.Has(words) || words != sizeof(port.machine->eeprom.words)) {
+            error = "The host's welcome did not make sense.";
+            return -1;
+        }
+        memcpy(port.machine->eeprom.words, in.at, words); // (the host's board settings, for this match only)
+        in.at += words;
+        std::map<std::string, int> host;
+        const std::string features = in.Text();
+        for (size_t at = 0; at < features.size();) {
+            const size_t comma = std::min(features.find(',', at), features.size());
+            const std::string item = features.substr(at, comma - at);
+            const size_t eq = item.find('=');
+            if (eq != std::string::npos) {
+                host[item.substr(0, eq)] = atoi(item.c_str() + eq + 1);
+            }
+            at = comma + 1;
+        }
+        Settle(false, host);
+        lastHeard = now;
+        fprintf(stderr, "online: the match is on: you are player 2 (%d frame%s of delay)\n", delay, delay == 1 ? "" : "s");
+        return 1;
+    }
+    return 0;
+}
+
+bool Netplay::Connect(Port &port, std::string &error) {
+    if (!Begin(port, error)) {
+        return false;
+    }
+    int state;
+    while ((state = Waiting(port, error)) == 0) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(2));
+    }
+    return state > 0;
 }
 
 void Netplay::SendInputs() {

@@ -193,7 +193,9 @@ struct Port {
     void RollbackFrame(const uint16_t *real);
     // Online play (netplay.h): the other side found before the first frame, and each frame run through it
     std::unique_ptr<Netplay> net;
+    bool connecting = false; // (the other side not found yet: a window shows the wait)
     bool StartOnline(std::string &error);
+    void Matched();
     void RunAhead();
     void SoundTest();
     void MusicTest();

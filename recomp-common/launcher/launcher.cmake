@@ -76,7 +76,7 @@ add_custom_command(OUTPUT "${LAUNCHER_FONTS}"
 
 add_executable(launcher
     ${RECOMP_LAUNCHER_DIR}/src/main.cpp ${RECOMP_LAUNCHER_DIR}/src/app.cpp ${RECOMP_LAUNCHER_DIR}/src/game_process.cpp
-    ${RECOMP_LAUNCHER_DIR}/src/steam.cpp ${RECOMP_LAUNCHER_DIR}/src/ui.cpp ${RECOMP_COMMON_SRC}/settings.cpp
+    ${RECOMP_LAUNCHER_DIR}/src/steam.cpp ${RECOMP_LAUNCHER_DIR}/src/online.cpp ${RECOMP_LAUNCHER_DIR}/src/ui.cpp ${RECOMP_COMMON_SRC}/settings.cpp
     ${LAUNCHER_PORT_SOURCES} "${LAUNCHER_FONTS}")
 set_target_properties(launcher PROPERTIES OUTPUT_NAME "${LAUNCHER_GAME_EXE}-launcher")
 target_include_directories(launcher PRIVATE ${RECOMP_LAUNCHER_DIR}/src ${RECOMP_COMMON_SRC})
@@ -88,6 +88,9 @@ if(LAUNCHER_COLLECTION)
     target_compile_definitions(launcher PRIVATE LAUNCHER_COLLECTION=1)
 endif()
 target_link_libraries(launcher PRIVATE launcher_imgui)
+if(WIN32)
+    target_link_libraries(launcher PRIVATE iphlpapi ws2_32) # (online.cpp: this machine's addresses)
+endif()
 if(LAUNCHER_UPDATE_REPO)
     target_sources(launcher PRIVATE ${RECOMP_LAUNCHER_DIR}/src/update.cpp)
     target_compile_definitions(launcher PRIVATE LAUNCHER_UPDATE_REPO="${LAUNCHER_UPDATE_REPO}" LAUNCHER_VERSION="${LAUNCHER_VERSION}")

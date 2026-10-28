@@ -84,6 +84,9 @@ bool dropdown(const char* id, const std::vector<std::string>& labels, int& index
 // it too, and a second Esc (or a gamepad's B, which keeps what was typed) leaves it. True when what is in it
 // changed.
 bool search_box(const char* id, char* buffer, size_t size, const char* hint, float width);
+// A field to type in (an address, say), with `hint` in it while it is empty; a gamepad's B leaves it. True when
+// what is in it changed.
+bool text_field(const char* id, char* buffer, size_t size, const char* hint, float width);
 // (`reachable`: false keeps the arrow keys and a gamepad off it)
 bool nav_item(const char* label, bool active, float width, bool reachable = true);
 bool list_item(const char* label, bool active, float width);

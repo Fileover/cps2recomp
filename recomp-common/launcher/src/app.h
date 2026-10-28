@@ -184,6 +184,7 @@ private:
     void file_card(size_t which, float width);
     void display_cards(size_t which, float width);
     void play_button(size_t which, float width);
+    void online_card(size_t which, float width, bool ready);
     void files_card(float width);
 
     // The Multi game page (a collection's MultiModes): a mode's choices and games, and the run of one
@@ -246,6 +247,9 @@ private:
     std::vector<std::string> menu_choices_open_;  // the features whose choices for the game's menu are shown
 
     std::string steam_message_;  // what Add to Steam did
+    char online_address_[256] = {};  // the Online card's Join address (launcher.ini [online] address)
+    bool online_loaded_ = false;
+    std::vector<std::string> online_here_;  // this machine's addresses, as the Host row says them
 #ifdef LAUNCHER_UPDATE_REPO
     std::unique_ptr<launcher::Updater> updater_;
     bool relaunched_ = false;  // (the new version has been started: this one quits)
