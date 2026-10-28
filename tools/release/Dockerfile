@@ -18,4 +18,5 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # (Rust, for librashader: tools/librashader.sh; Ubuntu's rustup, which updates itself only through apt)
 ENV RUSTUP_HOME=/opt/rustup CARGO_HOME=/opt/cargo PATH=/opt/cargo/bin:$PATH
 RUN apt-get update && apt-get install -y --no-install-recommends rustup \
-    && rm -rf /var/lib/apt/lists/* && rustup toolchain install 1.99.1 --profile minimal --no-self-update && rustup default 1.99.1
+    && rm -rf /var/lib/apt/lists/* && rustup toolchain install 1.99.1 --profile minimal --no-self-update && rustup default 1.99.1 \
+    && { [ "$TARGETARCH" = arm64 ] || rustup target add x86_64-pc-windows-gnu; }

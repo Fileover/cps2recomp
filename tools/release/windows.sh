@@ -3,9 +3,10 @@
 # Copyright (C) 2026 Tommy McLeroy. Part of cps2recomp.
 #
 # Release build for Windows x64, cross-compiled with MinGW-w64 on Linux:
-# build/release/CPS2Recomp-windows-x64.zip (the launcher, every game's program, SDL3.dll, zlib1.dll, licences).
+# build/release/CPS2Recomp-windows-x64.zip (the launcher, every game's program, SDL3.dll, zlib1.dll, librashader.dll and the shaders, licences).
 # Needs the packages of tools/release/Dockerfile, and the translated code of a build of each game with its ROM
-# set (lib.sh).
+# set (lib.sh), and Rust with its x86_64-pc-windows-gnu target for librashader (tools/librashader.sh: the Display
+# page's shaders).
 set -eu
 . "$(dirname "$0")/lib.sh"
 BUILD="$ROOT/build/release-windows"
@@ -31,6 +32,16 @@ if x86_64-w64-mingw32-objdump -p "$STAGE"/*.exe | grep -i 'DLL Name' | grep -viE
     exit 1
 fi
 add_notices "$STAGE" "$BUILD/launcher"
+# (the Display page's shaders, port/shading.h: librashader beside the games and the presets, tools/librashader.sh)
+LIBRA=$("$ROOT/tools/librashader.sh" --windows)
+if x86_64-w64-mingw32-objdump -p "$LIBRA/librashader.dll" | grep -i 'DLL Name' | grep -viE 'KERNEL32|ntdll|msvcrt|USER32|ADVAPI32|api-ms-|bcrypt|WS2_32|userenv|OPENGL32|GDI32|ole32|OLEAUT32|SHELL32'; then
+    echo "error: librashader.dll needs a DLL that is not in the archive" >&2
+    exit 1
+fi
+cp "$LIBRA/librashader.dll" "$STAGE/"
+cp -R "$LIBRA/shaders" "$STAGE/"
+cp "$LIBRA/librashader-LICENSE.md" "$STAGE/licenses/librashader-MPL-2.0.txt"
+cp "$LIBRA/librashader-LICENSE-GPL.md" "$STAGE/licenses/librashader-GPL-3.0.txt"
 # (zlib1.dll is in the archive and the MinGW-w64 and GCC runtimes are linked into the programs)
 cp "$(ls /usr/share/doc/libz-mingw-w64*/copyright | head -1)" "$STAGE/licenses/zlib.txt"
 cp /usr/share/doc/mingw-w64-common/copyright "$STAGE/licenses/MinGW-w64-runtime.txt"

@@ -5,17 +5,22 @@
 # The Display page's shaders (port/shading.h), made once into build/deps/librashader/ (on Linux
 # librashader-linux-<processor>/) and kept there:
 #   librashader.dylib   librashader's C API with its OpenGL runtime only, built from its source (Rust: rustup's
-#   (librashader.so)    stable cargo; on macOS with the aarch64-apple-darwin and x86_64-apple-darwin targets, Apple
-#                       silicon and Intel in one; on Linux for the processor it runs on)
+#   (.so, .dll)         stable cargo; on macOS with the aarch64-apple-darwin and x86_64-apple-darwin targets, Apple
+#                       silicon and Intel in one; on Linux for the processor it runs on; for Windows with the
+#                       x86_64-pc-windows-gnu target and MinGW-w64)
 #   shaders/            the presets of RetroArch's slang-shaders the Display page names, with the files they use
 #                       (tools/shaders.py)
-# Each source is checked against its checksum. macOS and Linux. Prints the folder.
+# Each source is checked against its checksum. macOS, Linux and (--windows) Windows. Prints the folder.
 set -eu
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 DEPS="$ROOT/build/deps"
-# (each Linux processor's apart: x86_64 and ARM64 are built in one tree, each in its own container)
-case "$(uname -s)" in
+# (each Linux processor's apart: x86_64 and ARM64 are built in one tree, each in its own container; --windows:
+# Windows x64's, cross-compiled with MinGW-w64 as tools/release/windows.sh builds the games)
+SYSTEM="$(uname -s)"
+[ "${1:-}" != "--windows" ] || SYSTEM=Windows
+case "$SYSTEM" in
     Darwin) OUT="$DEPS/librashader" ;;
+    Windows) OUT="$DEPS/librashader-windows-x64" ;;
     *) OUT="$DEPS/librashader-linux-$(uname -m)" ;;
 esac
 LIBRASHADER_VERSION=0.12.1
@@ -35,8 +40,9 @@ mkdir -p "$OUT" "$DEPS"
 PATH="/opt/homebrew/opt/rustup/bin:$HOME/.cargo/bin:$PATH"
 
 SOURCE="$DEPS/librashader-librashader-v$LIBRASHADER_VERSION"
-case "$(uname -s)" in
+case "$SYSTEM" in
     Darwin) LIB=librashader.dylib; TARGETS="aarch64-apple-darwin x86_64-apple-darwin" ;;
+    Windows) LIB=librashader.dll; TARGETS="" ;;
     *) LIB=librashader.so; TARGETS="" ;;
 esac
 if [ ! -f "$OUT/$LIB" ] || [ ! -f "$OUT/version-$LIBRASHADER_VERSION" ]; then
@@ -63,6 +69,17 @@ if [ ! -f "$OUT/$LIB" ] || [ ! -f "$OUT/version-$LIBRASHADER_VERSION" ]; then
             "$SOURCE/target/aarch64-apple-darwin/release/liblibrashader_capi.dylib" "$SOURCE/target/x86_64-apple-darwin/release/liblibrashader_capi.dylib"
         install_name_tool -id "@rpath/$LIB" "$OUT/$LIB"
         strip -x "$OUT/$LIB"
+    elif [ "$SYSTEM" = Windows ]; then
+        # (MinGW-w64's linker, with its C++ and GCC runtimes linked in: the DLL needs only Windows' own)
+        rustup target add x86_64-pc-windows-gnu >/dev/null 2>&1 || true
+        export CARGO_TARGET_X86_64_PC_WINDOWS_GNU_LINKER=x86_64-w64-mingw32-gcc
+        # (the cc crate would link libstdc++-6.dll: its static library instead, CXXSTDLIB empty)
+        export CXXSTDLIB=
+        FLAGS="$FLAGS -C link-arg=-static -C link-arg=-static-libgcc -C link-arg=-static-libstdc++ -C link-arg=-l:libstdc++.a \
+            -C link-arg=-l:libwinpthread.a -C link-arg=-lmingwex -C link-arg=-lmsvcrt -C link-arg=-lkernel32"
+        build x86_64-pc-windows-gnu
+        cp "$SOURCE/target/x86_64-pc-windows-gnu/release/librashader_capi.dll" "$OUT/$LIB"
+        x86_64-w64-mingw32-strip --strip-unneeded "$OUT/$LIB"
     else
         export CARGO_TARGET_DIR="$SOURCE/target-linux-$(uname -m)"
         build
