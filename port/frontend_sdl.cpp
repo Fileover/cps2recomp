@@ -364,6 +364,9 @@ int RunWindowed(Port &port) {
     // while it was held: then it was the zoom's)
     bool stickWaiting = false;
     auto toggleMenu = [&]() {
+        if (port.net) {
+            return; // (online: the game goes on for both players; no menu yet)
+        }
         if (port.menu.IsOpen()) {
             port.menu.Close();
         } else {
@@ -373,6 +376,9 @@ int RunWindowed(Port &port) {
         }
     };
     auto quickState = [&](bool save) {
+        if (port.net) {
+            return; // (online: no save states)
+        }
         std::string error;
         const std::string path = port.StatePath(port.menu.Slot());
         if (!(save ? port.SaveState(path, error) : port.LoadState(path, error))) {

@@ -89,6 +89,9 @@ Each game's page has all it does, with pictures.
   | ![No shader](docs/screenshots/shaders/off.png)<br>Off | ![CRT (crt-geom-mini)](docs/screenshots/shaders/crt-geom-mini.png)<br>CRT | ![CRT Royale](docs/screenshots/shaders/crt-royale.png)<br>CRT Royale |
   | ![CRT Lottes](docs/screenshots/shaders/crt-lottes.png)<br>CRT Lottes | ![Scanlines, light](docs/screenshots/shaders/scanline-fract.png)<br>Scanlines, light | ![xBRZ](docs/screenshots/shaders/xbrz.png)<br>xBRZ |
 
+- **Online play** (a first version, started from a terminal): two players on two machines, over the internet or a
+  home network, with rollback, so that each player's own controls answer at once whatever the distance.
+  [How →](#online-play)
 - **The board's operator settings** (difficulty, damage, timer speed, game speed, rounds and the rest), each as
   the board is set unless you choose, and the game's own test menu.
 - **Straight to the title**: at a start or a reset, everything before the title runs unseen.
@@ -204,6 +207,34 @@ sfa2 --help                                     # what a game's program takes
 
 The games' ids are `ssf2t`, `sfa`, `sfa2`, `sfa3`, `pocket_fighter`, `msh`, `xmvsf`, `puzzle_fighter`, `vampire_savior`, `vsav2`, `vhunt2`, `vsav_definitive`, `avsp` and `dino`. `--features` may be given more than once, and
 a later one wins.
+
+### Online play
+
+Two players, each on their own machine (macOS, Linux, the Steam Deck or Windows, in any mix), each with the game and
+its ROM set. One hosts and the other joins; the host is player 1. A first version: it is started from a terminal (or
+a Steam shortcut's launch options), and the launcher will have it later.
+
+```sh
+cps2recomp-launcher --play sfa3 -- --host                  # the host: waits for the other player
+cps2recomp-launcher --play sfa3 -- --join 203.0.113.7      # the other player: the host's address
+```
+
+- **The host's address** is one the other player can reach: on a home network, the host's own (or its name); over
+  the internet, the host's public address with UDP port 7845 forwarded to it on the router (`--host 7900` and
+  `--join ADDRESS:7900` for another port). A VPN such as [Tailscale](https://tailscale.com) gives each machine an
+  address the other can always reach, with nothing to forward.
+- **Each player plays with their own player 1 controls**, and hears and sees the game as their own settings have it
+  (the Display page, the shader, the zoom, the custom soundtrack). The match takes the host's board settings
+  (difficulty, timer, rounds...) and the host's features that change play (free play, the cheats, arcade timing,
+  widescreen, hidden characters...), for the match only: the other player's own are left as they are.
+- **Rollback**: each side runs the game with both players' controls, its own player's held back 2 frames (as a
+  board's game might be; `--net-delay N` on the host, 0 to 8), and the other player's guessed until they come. When
+  a guess was wrong, the game goes back to that frame and runs on again with the real ones, unseen and unheard, in
+  the time of one frame. Up to 8 frames are guessed; past that the game waits for the other side.
+- **The two games are checked against each other**: every second each side sends the other a fingerprint of the
+  game; if they ever differ, the match stops and says so (a desync, which should not happen).
+- **Off during a match**: the in-game menu, save states, pause, the speed, run-ahead, the training mode and the
+  other modes (endless battle, tag team, the viewers). A match ends when either player closes their game.
 
 ### A custom soundtrack
 

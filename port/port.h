@@ -6,6 +6,7 @@
 
 #include "../machine/machine.h"
 #include "menu.h"
+#include "netplay.h"
 #include "present.h"
 #include "soundtrack.h"
 #include "zoom.h"
@@ -69,6 +70,8 @@ struct Options {
     int scale = 0;            // --scale: the window this many times the board's lines (0: the Display page's)
     int zoom = 0, zoomPlayer = 0; // --zoom SIZE:PLAYER: the camera's zoom from the start (zoom.h; SIZE 0-4, PLAYER 1 or 2, 3 both)
     uint64_t rollbackTest = 0;  // --rollback-test SEED: each frame run as online play's rollback would (RollbackTest)
+    bool online = false;        // --host or --join: online play (netplay.h), as `net` says
+    Netplay::Settings net;
 };
 
 // Recorded input: what the players hold, at the frames where it changes
@@ -187,6 +190,9 @@ struct Port {
     void PutBackState(const std::vector<uint8_t> &data);
     RollbackTest rollbackTest;
     void RollbackFrame(const uint16_t *real);
+    // Online play (netplay.h): the other side found before the first frame, and each frame run through it
+    std::unique_ptr<Netplay> net;
+    bool StartOnline(std::string &error);
     void RunAhead();
     void SoundTest();
     void MusicTest();

@@ -1,0 +1,54 @@
+#!/bin/bash
+# SPDX-License-Identifier: GPL-3.0-only
+# Copyright (C) 2026 Tommy McLeroy. Part of cps2recomp.
+#
+# Online play (issue #70, port/netplay.h) between two copies of the game on this machine: one hosts, the other
+# joins it over localhost, each with made-up play for its own player, every packet sent late (50 ms, give or take 25)
+# and one in twenty lost (--net-fake), so that the guesses go wrong and frames are rolled back. The host has every
+# feature that changes play on and the joining side none, so the joining side must take the host's. Both write a
+# frame's state hash once it has both players' real controls (--hash-log); the two logs must be the same, and
+# neither side may stop on a desync. At the board's pace: FRAMES (3000 unless said) take FRAMES / 60 seconds.
+#
+#   GAME=<id> check_online.sh [FRAMES]   (make GAME=<id> check-online: from the repository's top, after `make`; ROM=your set)
+set -eu
+GAME=${GAME:?which game: GAME=<id>}
+ROM=${ROM:-rom/$GAME}
+frames=${1:-3000}
+work=work/$GAME/check
+mkdir -p "$work"
+: > "$work/online-host.ini"
+: > "$work/online-join.ini"
+rm -f "$work/online-host.txt" "$work/online-join.txt" "$work/online-host.eeprom" "$work/online-join.eeprom"
+# (the features that change play, as tools/check_rollback.sh has them, but for the custom colours: each player's own)
+play=$("build/$GAME/$GAME" --list-features 2>&1 | awk -F'\t' '($2=="Game"||$2=="Cheats"||$2=="Display") && NF==5 &&
+    $1 !~ /^(display_|window_size|run_ahead|custom_soundtrack|widescreen_walls|custom_colours)/ {print $1}' | paste -sd, -)
+play="${play:+$play,}widescreen"
+port=$((7900 + RANDOM % 1000))
+side() { # host | join, then the program's arguments
+    name=$1; shift
+    "build/$GAME/$GAME" --rom "$ROM" --headless --frames "$frames" --settings "$work/online-$name.ini" \
+        --eeprom "$work/online-$name.eeprom" --hash-log "$work/online-$name.txt" --net-fake 50:25:5 "$@" 2> "$work/online-$name.err"
+}
+side host --auto 11:0:1 --features "$play" --host "$port" &
+host=$!
+sleep 0.5
+status=0
+side join --auto 12:0:1 --join "127.0.0.1:$port" || { echo "FAILED: the joining side stopped"; tail -3 "$work/online-join.err"; status=1; }
+wait "$host" || { echo "FAILED: the host stopped"; tail -3 "$work/online-host.err"; status=1; }
+# (each side's log ends where it last had the other's controls: the shorter is what both have)
+lines=$(wc -l < "$work/online-host.txt" | tr -d ' ')
+joined=$(wc -l < "$work/online-join.txt" | tr -d ' ')
+[ "$joined" -lt "$lines" ] && lines=$joined
+if [ "$lines" -lt $((frames - 30)) ]; then
+    echo "FAILED: only $lines frames had both players' controls"
+    status=1
+elif cmp -s <(head -n "$lines" "$work/online-host.txt") <(head -n "$lines" "$work/online-join.txt"); then
+    echo "ok: the two sides the same over $lines frames, with $play"
+else
+    echo "FAILED: the two sides differ from frame $(diff <(head -n "$lines" "$work/online-host.txt") <(head -n "$lines" "$work/online-join.txt") | grep '^<' | head -1 | cut -d' ' -f2)"
+    status=1
+fi
+for name in host join; do
+    echo "$name: $(grep '^online: frame' "$work/online-$name.err" | tail -1 | sed 's/^online: //')"
+done
+exit $status

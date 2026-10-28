@@ -49,6 +49,15 @@ its rollback at the worst. On the Steam Deck a frame is about 2–2.5 ms and kee
 0.03 ms; drawing is three quarters of a frame, and with the frames run again not drawn a rollback of 9 frames
 stays under 12 ms (Super Turbo, with the arcade timing and widescreen), inside the 16.7 ms of a frame.
 
+## `make check-online` (FRAMES=n): two copies of the game against each other
+
+Online play (`port/netplay.h`) between two copies of the game on one machine: one `--host`s, the other `--join`s it
+over localhost, each with made-up play for its own player (`--auto`), and every packet sent late, 50 ms give or take
+25, and one in twenty lost (`--net-fake 50:25:5`), so that guesses go wrong and frames are rolled back. The host has
+every feature that changes play on and the joining side none, so the joining side must take the host's. Each writes
+a frame's hash once it has both players' real controls (`--hash-log`), and the two logs must be the same; neither
+side may stop on a desync (exit 5). It runs at the board's pace, so 3000 frames take 50 seconds. Every game passes.
+
 ## Input
 
 - `--auto SEED[:FROM]`: made-up play (coins, start, sticks and buttons at random); the same seed

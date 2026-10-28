@@ -30,6 +30,7 @@
 #include <cstring>
 #include <filesystem>
 #include <set>
+#include <thread>
 #ifdef _WIN32
 #include <windows.h>
 #endif
@@ -429,7 +430,10 @@ uint32_t Port::StateHash() const {
     add(m.ram.data(), m.ram.size());
     add(m.videoRam.data(), m.videoRam.size());
     add(m.objectRam.data(), m.objectRam.size());
-    if (!opt.hashGame) {
+    if (net) {
+        // (online: the sound side left out, as each player's custom soundtrack changes what it is asked, and the game
+        // never reads back what it does)
+    } else if (!opt.hashGame) {
         add(m.soundRam, sizeof(m.soundRam));
     } else {
         // (byte 5 is the sound program's note of the last place it gave a sound, which it writes when it
@@ -437,7 +441,7 @@ uint32_t Port::StateHash() const {
         add(m.soundRam, 5);
         add(m.soundRam + 6, sizeof(m.soundRam) - 6);
     }
-    if (!opt.hashGame) {
+    if (!opt.hashGame && !net) {
         add(m.soundRam2, sizeof(m.soundRam2));
         add(m.soundCpu.r, sizeof(m.soundCpu.r));
         add(m.soundCpu.r2, sizeof(m.soundCpu.r2));
@@ -515,6 +519,9 @@ void Port::RunCommand(size_t index) {
 }
 
 void Port::Key(char key, unsigned n) {
+    if (net && key != 'z' && key != 'm') {
+        return; // (online: only the zoom, each player's own)
+    }
     switch (key) {
     case 'p':
         paused = !paused;
@@ -594,6 +601,20 @@ bool Port::Tick() {
         at = comma == std::string::npos ? opt.keys.size() : comma + 1;
     }
     tick++;
+    if (net) {
+        // Online: a frame a tick when the other side's controls allow (and as fast as it goes while the game's
+        // sources take it somewhere); no stopping, slowing or speeding up
+        if (!net->Ready(frame)) {
+            quit = !net->ended.empty();
+            return false;
+        }
+        RunFrame();
+        for (int n = 0; n < 120 && FastForward() && net->Ready(frame); n++) {
+            machine->audio.clear();
+            RunFrame();
+        }
+        return true;
+    }
     // (the next game asked for: the game's sources have had their time to end it their own way)
     if (NextGameAsked() >= 0 && tick >= static_cast<uint64_t>(NextGameAsked()) + kNextGameWait) {
         EndProgram(kNextGame);
@@ -1101,6 +1122,27 @@ void Port::RunAhead() {
     memcpy(machine->players, held, sizeof(held));
 }
 
+// Online play: the other side found and agreed with before the first frame (netplay.h)
+bool Port::StartOnline(std::string &error) {
+    if (opt.rollbackTest || !opt.moviePlay.empty() || !opt.stateLoad.empty()) {
+        error = "online play: not with --rollback-test, --movie or --state-load";
+        return false;
+    }
+    net = std::make_unique<Netplay>(opt.net);
+    if (!net->Connect(*this, error)) {
+        net.reset();
+        return false;
+    }
+    // (the hashes compared leave out the picture: frames run again are not drawn)
+    opt.hashNoPicture = true;
+    if (net->Local() != 0) {
+        opt.eepromPath.clear(); // (the board settings are the host's, for this match: the player's own are left as they are)
+    }
+    machine->SetBoardTiming(FeatureOn("arcade_timing"));
+    SoundtrackFollow();
+    return true;
+}
+
 // The port's rapid fire: a button the player holds is the game's pressed for two frames and let go for two, from
 // the frame it goes down (so the first press is not held back). Movies keep what the player held.
 void Port::RapidFire() {
@@ -1186,8 +1228,8 @@ void Port::RunFrame() {
         start2Frames--;
         machine->players[1] |= kStart;
     }
-    machine->serviceButton = service;
-    machine->testSwitch = test || testFrames > 0 || (frame >= opt.testFrom && frame < opt.testTo);
+    machine->serviceButton = service && !net;
+    machine->testSwitch = !net && (test || testFrames > 0 || (frame >= opt.testFrom && frame < opt.testTo));
     if (testFrames > 0) {
         testFrames--;
     }
@@ -1195,10 +1237,12 @@ void Port::RunFrame() {
     memcpy(pressed, machine->players, sizeof(pressed));
 
     std::string path, error;
-    if (AtFrame(opt.stateLoad, frame, path) && !LoadState(path, error)) {
+    if (!net && AtFrame(opt.stateLoad, frame, path) && !LoadState(path, error)) {
         fprintf(stderr, "%s\n", error.c_str());
     }
-    if (opt.rollbackTest) {
+    if (net) {
+        net->Frame(*this, pressed[0]); // (this side's player plays with player 1's controls)
+    } else if (opt.rollbackTest) {
         RollbackFrame(pressed);
     } else {
         Step(pressed);
@@ -1248,11 +1292,13 @@ void Port::RunFrame() {
     if (AtFrame(opt.stateSave, frame, path) && !SaveState(path, error)) {
         fprintf(stderr, "%s\n", error.c_str());
     }
-    if (hashFile && !opt.rollbackTest) { // (RollbackFrame logs a frame when it is confirmed)
+    if (hashFile && !opt.rollbackTest && !net) { // (RollbackFrame and online play log a frame when it is confirmed)
         fprintf(hashFile, "%llu %08x\n", static_cast<unsigned long long>(frame), StateHash());
     }
-    memcpy(machine->players, pressed, sizeof(pressed));
-    RunAhead();
+    if (!net) {
+        memcpy(machine->players, pressed, sizeof(pressed));
+        RunAhead();
+    }
     if (opt.shotEvery && frame % opt.shotEvery == 0) {
         char shot[512];
         snprintf(shot, sizeof(shot), "%s%06llu.png", opt.shotPrefix.c_str(), static_cast<unsigned long long>(frame));
@@ -1263,6 +1309,10 @@ void Port::RunFrame() {
 }
 
 void Port::Finish() {
+    if (net) {
+        net->Leave();
+        net->Report(true);
+    }
     if (hashFile) {
         fclose(hashFile);
     }
@@ -1375,6 +1425,11 @@ void Usage() {
             "  --auto SEED[:FROM[:N]] made-up input (from frame FROM; for N players, 2 unless said)\n"
             "  --rollback-test SEED   each frame run as online play's rollback would: the other players' controls late\n"
             "                         and guessed, and the frames guessed wrong run again (--hash-log must not change)\n"
+            "  --host [PORT]          online play: wait for the other player (on UDP port PORT, 7845 unless said);\n"
+            "                         the host is player 1, and its board settings and play features are the match's\n"
+            "  --join ADDRESS[:PORT]  online play: go to the host at ADDRESS (player 2)\n"
+            "  --net-delay N          (hosting) frames each player's controls are held back, 2 unless said (0-8)\n"
+            "  --net-fake MS[:JIT[:LOSS]]  (tests) each packet sent MS ms late, give or take JIT, LOSS in 100 lost\n"
             "  --test-switch FROM:TO  the operator's test switch held from frame FROM to TO\n"
             "  --music-test FRAMES    each piece of the game's music in turn on the board, FRAMES each (with the test\n"
             "                         switch held, say), and how long each made a sound for (to tell the ones that end)\n"
@@ -1487,6 +1542,22 @@ bool ParseArgs(int argc, char **argv, port::Options &o) {
             o.autoPlayers = second == std::string::npos ? 2 : atoi(v.c_str() + second + 1);
         } else if (a == "--rollback-test") {
             o.rollbackTest = strtoull(next(), nullptr, 10) | 1;
+        } else if (a == "--host") {
+            o.online = o.net.hosting = true;
+            if (i + 1 < argc && argv[i + 1][0] >= '0' && argv[i + 1][0] <= '9') {
+                o.net.port = atoi(next());
+            }
+        } else if (a == "--join") {
+            o.online = true;
+            o.net.address = next();
+        } else if (a == "--net-delay") {
+            o.net.delay = atoi(next());
+        } else if (a == "--net-fake") {
+            const std::string v = next();
+            const size_t colon = v.find(':'), second = colon == std::string::npos ? colon : v.find(':', colon + 1);
+            o.net.fakeLag = atoi(v.c_str());
+            o.net.fakeJitter = colon == std::string::npos ? 0 : atoi(v.c_str() + colon + 1);
+            o.net.fakeLoss = second == std::string::npos ? 0 : atoi(v.c_str() + second + 1);
         } else if (a == "--test-switch") {
             const std::string v = next();
             const size_t colon = v.find(':');
@@ -1672,6 +1743,10 @@ int main(int argc, char **argv) {
         }
         return 0;
     }
+    if (p.opt.online && !p.StartOnline(error)) {
+        SayFailed(p.opt, error);
+        return 1;
+    }
     if (p.opt.zoom > 0) {
         p.zoom.Set(p.opt.zoom, std::clamp(p.opt.zoomPlayer, 0, +port::Zoom::kBoth));
     }
@@ -1699,8 +1774,15 @@ int main(int argc, char **argv) {
             fprintf(stderr, "--present-test: %s\n", error.empty() ? SDL_GetError() : error.c_str());
             return false;
         };
+        // (online: at the board's pace, as a window would be, unless --unthrottled)
+        auto paced = std::chrono::steady_clock::now();
         while (!p.quit && (p.opt.frames == 0 || p.frame < p.opt.frames)) {
-            if (!p.Tick()) {
+            const bool ran = p.Tick();
+            if (p.net && !p.opt.unthrottled) {
+                paced += std::chrono::nanoseconds(static_cast<int64_t>(1e9 / Machine::kFramesPerSecond));
+                std::this_thread::sleep_until(paced);
+            }
+            if (!ran) {
                 continue;
             }
             if (p.opt.presentEvery) {
@@ -1787,6 +1869,17 @@ int main(int argc, char **argv) {
 #endif
     }
     p.Finish();
+    if (p.net && !p.net->ended.empty()) {
+        // (why the match ended, if it did before the player left it)
+        if (p.net->failed) {
+            SayFailed(p.opt, p.net->ended);
+            return 5;
+        }
+        fprintf(stderr, "online: %s\n", p.net->ended.c_str());
+        if (!p.opt.headless) {
+            SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_INFORMATION, GAME_NAME, p.net->ended.c_str(), nullptr);
+        }
+    }
     if (p.opt.checkRewrites && !ReportRewrites()) {
         return 4;
     }
