@@ -57,6 +57,7 @@ struct Options {
     bool autoPlay = false;
     bool headless = false, mute = false, unthrottled = false, fullscreen = false, stats = false;
     bool hashPicture = false; // --hash-log hashes the picture only
+    bool hashNoPicture = false; // --hash-no-picture: the state hash without the picture
     bool hashGame = false;     // --hash-game: the state hash without the Z80 and its own memory (to compare --sound driver and z80)
     int cpuSpeed = 1;         // --cpu-speed
     std::string renderer;     // --renderer sdl|gpu (gpu unless said)
@@ -67,6 +68,7 @@ struct Options {
     std::string presentPrefix;
     int scale = 0;            // --scale: the window this many times the board's lines (0: the Display page's)
     int zoom = 0, zoomPlayer = 0; // --zoom SIZE:PLAYER: the camera's zoom from the start (zoom.h; SIZE 0-4, PLAYER 1 or 2, 3 both)
+    uint64_t rollbackTest = 0;  // --rollback-test SEED: each frame run as online play's rollback would (RollbackTest)
 };
 
 // Recorded input: what the players hold, at the frames where it changes
@@ -76,6 +78,33 @@ struct Movie {
     std::map<uint64_t, Pads> changes;
     bool Load(const std::string &path);
     bool Save(const std::string &path) const;
+};
+
+// --rollback-test: what online play's rollback does to the game (issue #70), with no network. Player 1's controls
+// are this side's; the others' come from the other side late, by a lag that changes at random (0 to kMostLag
+// frames). Until they come they are guessed (as last known: what rollback sessions guess), and when they come
+// and a guess was wrong, the machine and the game's sources are put back to that frame and the frames since are
+// run again. A run with it must go exactly as one without (--hash-log the same on every frame): anything the
+// game keeps outside its save state, or that a frame run twice does twice, shows up as a difference.
+struct RollbackTest {
+    static constexpr int kMostLag = 8;
+    static constexpr int kKept = 16; // (frames kept: more than the most a rollback goes back)
+    struct Kept {
+        std::vector<uint8_t> state; // the machine and the game's sources before the frame
+        size_t sound = 0;           // the machine's sound before it
+        Movie::Pads used{}, real{}; // the controls it was run with, and the real ones
+        uint32_t hash = 0;          // (--hash-log: the state after it, as last run)
+    };
+    std::array<Kept, kKept> kept;
+    uint64_t random = 0;
+    uint64_t confirmed = 0; // the frames before this have had the others' real controls
+    int lag = 0;
+    uint64_t rollbacks = 0, rerun = 0, most = 0; // (for the report at the end)
+    // (and what it cost: the frames, the keeping and the putting back, in seconds and how many)
+    double stepTime = 0, keepTime = 0, putBackTime = 0;
+    std::vector<float> frameTimes; // (each frame's, its rollback's frames and keeping included)
+    uint64_t steps = 0, keeps = 0, putBacks = 0;
+    size_t stateSize = 0;
 };
 
 struct Port {
@@ -150,6 +179,14 @@ struct Port {
     void SoundtrackFollow(); // (each frame: the feature switched on or off in the menu)
     // One frame: input (window, movie or made up), the machine, the per-frame outputs
     void RunFrame();
+    // The frame itself, with these controls: what makes the next frame from the last (all that online play runs
+    // again in a rollback)
+    void Step(const uint16_t *players);
+    // The machine and the game's sources, kept in memory and put back (run-ahead's and rollback's)
+    void KeepState(std::vector<uint8_t> &data);
+    void PutBackState(const std::vector<uint8_t> &data);
+    RollbackTest rollbackTest;
+    void RollbackFrame(const uint16_t *real);
     void RunAhead();
     void SoundTest();
     void MusicTest();

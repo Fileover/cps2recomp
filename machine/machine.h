@@ -57,6 +57,9 @@ public:
     // For tests: the 68000 this many times as fast as the board's, so that the game is never short of time in
     // a frame (runs whose code takes different amounts of time can then be compared picture by picture)
     int cpuSpeed = 1;
+    // Off: the frame's lines are not drawn (the picture keeps what it had). For frames whose picture nobody sees: a
+    // rollback's frames run again, but for the last (port/port.h). Drawing reads the video memory and changes nothing.
+    bool drawing = true;
     static constexpr double kFramesPerSecond = 8000000.0 / 512 / 262;
 
     explicit Machine(const RomSet &roms);

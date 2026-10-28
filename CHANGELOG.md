@@ -2,6 +2,19 @@
 
 ## Unreleased
 
+- **Getting ready for online play** (#70): `make GAME=<id> check-rollback` (`tools/check_rollback.sh`,
+  `--rollback-test SEED`) runs made-up play as online play's rollback would, the other players' controls late and
+  guessed and the frames guessed wrong put back and run again, and checks that it goes exactly as without. Every
+  game passes, with every feature that changes play switched on. A frame run again need not be drawn
+  (`Machine::drawing`), which makes a rollback a quarter of the work: on the Steam Deck a rollback of 9 frames
+  takes under 12 ms. `--hash-no-picture`: the state hash without the picture.
+- **Fixed: widescreen after loading a save state.** The camera's place a frame ago, which the wide picture is drawn
+  from, is in the save state (save states are now version 8; older ones still load). Without it the first frame
+  after a load was drawn from the camera before the load, and in Vampire Savior, the Marvel games and X-Men vs.
+  Street Fighter the players could be kept in by the wrong edge for that frame.
+- **Fixed: Puzzle Fighter's "Player 1 wins quickly" after loading a save state** could send its counter gems a
+  pair late (or twice): the step it watches is in the save state.
+
 - **Shaders on Linux** (the Steam Deck and Steam Machine too): the Linux releases carry `librashader.so` (built from
   source by `tools/librashader.sh`, now for Linux as well; the build image has Rust) and the presets beside the
   games, so the Display page's Shader is there as on macOS.

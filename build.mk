@@ -47,7 +47,7 @@ HOOK_SOURCES := games/$(GAME)/src$(foreach g,$(SHARES),:games/$(g)/src)
 PROGRAM := $(WORK)/program.bin
 ENTRIES := $(WORK)/entries.txt
 
-.PHONY: all configure port gen run record explore check check-blocks check-sound check-rewrites check-common launcher app clean
+.PHONY: all configure port gen run record explore check check-blocks check-sound check-rewrites check-rollback check-common launcher app clean
 # (on macOS the app bundle too, which is what the player opens: a bundle left from an older build hides what
 # changed since)
 ifeq ($(shell uname -s)$(NO_APP),Darwin)
@@ -122,6 +122,10 @@ check-blocks: gen configure
 # The game's rewritten routines against the code they replace (docs/READABLE.md); the game says how
 check-sound: port
 	@$(CR)/tools/check_sound.sh
+
+# What online play's rollback needs: frames put back and run again come out as the first time (tools/check_rollback.sh)
+check-rollback: port
+	@$(CR)/tools/check_rollback.sh $(FRAMES)
 
 check-rewrites: port check-common
 	@games/$(GAME)/check_rewrites.sh

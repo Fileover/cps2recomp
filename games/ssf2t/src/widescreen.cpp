@@ -20,6 +20,7 @@
 #include "alternative.h"
 #include "battle.h"
 #include "ssf2t.h"
+#include "state.h"
 
 #include <algorithm>
 
@@ -321,6 +322,14 @@ int WideSide() {
 }
 int WideStage() {
     return g_side + g_shift;
+}
+
+// The camera's place a frame ago, which the picture is drawn from (it is a frame behind), in a save state: a frame
+// put back (a save state, online play's rollback) is drawn, and its players kept in, as it was the first time
+void WidescreenState(Archive &ar) {
+    if (ar.version == 0 || ar.version >= 8) { // (a save state from before has none)
+        ar.Pod(g_cameraBefore);
+    }
 }
 
 void WidescreenBeforeFrame(Machine &machine) {

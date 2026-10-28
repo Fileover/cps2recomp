@@ -83,6 +83,7 @@ void RegisterGame() {
         ModesState(ar);
         BattleState(ar);
         marvel::ModelState(ar);
+        marvel::WidescreenState(ar);
     };
     // (run-ahead: not in the modes, whose workings a save state does not wholly hold)
     TheGame().noRunAhead = [] {
