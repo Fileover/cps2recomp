@@ -2,6 +2,20 @@
 
 ## Unreleased
 
+- **Another game: Marvel vs. Capcom: Clash of Super Heroes** (`games/mvsc`, issue #135; ROM set `mvsc`, *Marvel Vs.
+  Capcom: Clash of Super Heroes*, Europe 980123, the parent set and the one competitive play uses), the last Marvel game
+  on the board, made from Marvel Super Heroes vs. Street Fighter's program and on the same shared engine
+  (`fight/marvel.h`), with nothing new needed in it. The game as the board plays it, translated whole (its 68000 program,
+  and its sound program, Capcom's driver 1.30) and checked, with everything the other Marvel games have: a **training
+  mode** (hit boxes, frame data, its meter and log, input display, combo readout, health, gauge and partner refills, a
+  dummy that records, replays and guards, start over, any of the ten stages), the **alternative modes** (attract mode
+  three ways, the stage viewer and its infinite stage, the model viewer, the colour editor, survival, endless battle,
+  ring out), **tag-team co-op and 2 vs 2** for up to four people, **widescreen** and invisible walls, the **zoom**,
+  **custom colours** (files, PalMod's mvc.06a, the editor), the **hidden characters** with no code (Start held as War
+  Machine, Hulk, Venom, Chun-Li, Morrigan or Mega Man is chosen: Gold War Machine, Orange Hulk, Red Venom, Shadow Lady,
+  Lilith, Roll), and the features every game has: free play (the game's own), straight to the title, the board's
+  settings (the Board page, with its Mode select and Flickering), cheats, save states, run-ahead, arcade timing and a
+  custom soundtrack (its music named) ([its progress](games/mvsc/PROGRESS.md)).
 - **Another game: Marvel Super Heroes vs. Street Fighter** (`games/mshvsf`, issue #135; ROM set `mshvsf`, *Marvel
   Super Heroes Vs. Street Fighter*, Europe 970625, the parent set and the one competitive play uses), X-Men vs. Street
   Fighter's sequel, on the Marvel games' shared engine (`fight/marvel.h`). The game as the board plays it, translated
