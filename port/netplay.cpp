@@ -43,7 +43,7 @@ namespace {
 
     // The packets: "C2NP", what kind, then the kind's fields, little-endian
     constexpr uint8_t kMagic[4] = {'C', '2', 'N', 'P'};
-    constexpr uint16_t kProtocol = 2; // (2: the host's state sent at the start)
+    constexpr uint16_t kProtocol = Netplay::kProtocol;
     enum Kind : uint8_t {
         kHello = 1,   // joining -> host: the protocol, the game and its build
         kWelcome = 2, // host -> joining: the delay, the board settings, the features that change play
@@ -96,20 +96,23 @@ namespace {
     };
 
     // Which features the joining side takes from the host: those that change how the game plays. Each player's
-    // own: how the picture is shown and the sound. Off for both: the rest (the alternative modes, training, the
-    // viewers: kept apart from the save state, or not worked out for two machines yet), and run-ahead (rollback
-    // does what it does).
+    // own: how the picture is shown and the sound. Off for both: the cheats (a fair match), and the rest (the
+    // alternative modes, training, the viewers: kept apart from the save state, or not worked out for two machines
+    // yet), and run-ahead (rollback does what it does).
     enum class Share { Host, Own, Off, Keep };
     Share Shared(const Feature &feature) {
         const std::string category = feature.category, name = feature.name;
         if (name == "run_ahead" || name == "custom_colours") {
             return Share::Off; // (custom colours: each player's own library, which the other side has not)
         }
-        if (name.rfind("widescreen", 0) == 0 || category == "Game" || category == "Board" || category == "Cheats") {
+        if (name.rfind("widescreen", 0) == 0 || category == "Game" || category == "Board") {
             return Share::Host;
         }
-        if (category == "Display" || category == "Sound") {
-            return Share::Own;
+        if (category == "Cheats") {
+            return Share::Off; // (a fair match: no damage for the host's player, say, is not)
+        }
+        if (category == "Display" || category == "Sound" || category == "Online") {
+            return Share::Own; // (how each player sees and hears it, and what their screen says of the match)
         }
         if (feature.flags & kFeatureOwn) {
             return Share::Keep; // (a record or a choice kept for a mode: left as it is, and the mode is off)
@@ -614,7 +617,8 @@ bool Netplay::Introduce(uint64_t now, std::string &error) {
         });
     };
     const auto answered = [&] { return asking.valid() && asking.wait_for(std::chrono::seconds(0)) == std::future_status::ready; };
-    const std::string about = "\"game\":\"" GAME_ID "\",\"build\":\"" + std::to_string(build) + "\"";
+    const std::string about = "\"game\":\"" GAME_ID "\",\"title\":\"" GAME_NAME "\",\"protocol\":" + std::to_string(kProtocol) +
+                              ",\"build\":\"" + std::to_string(build) + "\"";
     if (getenv("CPS2RECOMP_NET_DEBUG")) {
         static int last = -1;
         if (last != static_cast<int>(intro)) {
@@ -648,7 +652,21 @@ bool Netplay::Introduce(uint64_t now, std::string &error) {
         if (settings.hosting) {
             const std::string again = settings.renewCode.empty() ? ""
                                       : "\"code\":\"" + settings.renewCode + "\",\"secret\":\"" + settings.renewSecret + "\",";
-            ask("POST", "/v1/host", "{" + again + about + ",\"addresses\":" + Addresses() + "}");
+            std::string listed;
+            if (settings.listed) {
+                // (the name, as JSON text: quotes and backslashes escaped, control characters left out)
+                std::string name;
+                for (const char c : settings.name) {
+                    if (c == '"' || c == '\\') {
+                        name += '\\';
+                    }
+                    if (static_cast<unsigned char>(c) >= 0x20) {
+                        name += c;
+                    }
+                }
+                listed = ",\"listed\":true,\"name\":\"" + name + "\"";
+            }
+            ask("POST", "/v1/host", "{" + again + about + listed + ",\"addresses\":" + Addresses() + "}");
         } else {
             ask("POST", "/v1/join/" + joinCode, "{" + about + ",\"addresses\":" + Addresses() + "}");
         }
@@ -663,7 +681,7 @@ bool Netplay::Introduce(uint64_t now, std::string &error) {
             if (answer.status == 200 && !JsonText(answer.body, "code").empty()) {
                 code = Spaced(JsonText(answer.body, "code"));
                 secret = JsonText(answer.body, "secret");
-                waiting = "Match code " + code + ": waiting for the other player";
+                waiting = "Waiting for the other player"; // (the code said under it, and the lobby: Port::Tick)
                 fprintf(stderr, "online: the match's code is %s%s\n", code.c_str(), seenAs.empty() ? "" : (" (seen at " + seenAs + ")").c_str());
                 intro = Intro::Polling;
             } else {

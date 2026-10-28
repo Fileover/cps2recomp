@@ -4,6 +4,7 @@
 
 #include <algorithm>
 #include <cctype>
+#include <chrono>
 #include <cmath>
 #include <cstdio>
 #include <cstdlib>
@@ -540,7 +541,7 @@ bool App::shown(size_t which) const {
 }
 
 int App::fixed_pages() const {
-    return collection_ ? (collection_->multi.empty() ? 3 : 4) : 0;
+    return collection_ ? 3 + (collection_->multi.empty() ? 0 : 1) + (collection_->lobby ? 1 : 0) : 0;
 }
 
 int App::page_count() const {
@@ -551,8 +552,11 @@ int App::page_count() const {
 }
 
 void App::set_page(const std::string& id) {
-    if (id == "multi" && fixed_pages() > 3) {
+    if (id == "multi" && !collection_->multi.empty()) {
         page_ = 3;
+    }
+    if (id == "online" && collection_ && collection_->lobby) {
+        page_ = fixed_pages() - 1;
     }
     std::vector<size_t> list = titled();
     for (size_t i = 0; i < list.size(); i++) {
@@ -618,7 +622,11 @@ Page App::own_page(int index, size_t* which) const {
     if (collection_) {
         int fixed = fixed_pages();
         if (index < fixed) {
-            return index == 0 ? Page::Library : index == 1 ? Page::Features : index == 2 ? Page::Controllers : Page::Multi;
+            return index == 0   ? Page::Library
+                   : index == 1 ? Page::Features
+                   : index == 2 ? Page::Controllers
+                   : index == 3 && !collection_->multi.empty() ? Page::Multi
+                                                               : Page::Online;
         }
         std::vector<size_t> list = titled();
         if (static_cast<size_t>(index - fixed) >= list.size()) {
@@ -1147,7 +1155,7 @@ void App::sidebar(float height) {
     ImGui::SetCursorScreenPos(origin + ImVec2(px(24), px(50)));
     // (a collection's subtitle may take two lines, or more in a narrow sidebar)
     ui::text(collection_ ? collection_->subtitle : about_.subtitle, Font::Regular, ui::size::kDetail, p.secondary, collection_ ? px(inner) : 0.0f);
-    const char* own[] = {"Game", about_.features_name, "Controllers", "Games", "", "Multi game", ""};
+    const char* own[] = {"Game", about_.features_name, "Controllers", "Games", "", "Multi game", "Online", ""};
     float fixed = static_cast<float>(fixed_pages());
     float top = std::max(collection_ ? px(108) : px(100), ImGui::GetCursorScreenPos().y - origin.y + px(24));
     float step = px(38);
@@ -1328,6 +1336,9 @@ void App::page(float width, float height) {
         break;
     case Page::Title:
         title_page(which, content);
+        break;
+    case Page::Online:
+        online_page(content);
         break;
     case Page::Multi:
         multi_page(content);
@@ -1545,13 +1556,7 @@ void App::online_card(size_t which, float width, bool ready) {
     if (!online.host_argument || !online.join_argument) {
         return;
     }
-    if (!online_loaded_) {
-        online_loaded_ = true;
-        std::snprintf(online_address_, sizeof(online_address_), "%s", prefs_.get("online", "address").c_str());
-        for (const launcher::LocalAddress& here : launcher::local_addresses()) {
-            online_here_.push_back(here.kind.empty() ? here.address : here.address + " (" + here.kind + ")");
-        }
-    }
+    load_online();
     ui::gap(28);
     ui::text("ONLINE", Font::Semibold, ui::size::kDetail, p.secondary);
     if (online.detail && *online.detail) {
@@ -1569,11 +1574,42 @@ void App::online_card(size_t which, float width, bool ready) {
                                             (here.empty() ? std::string("this machine's address") : here) + port + "."
                                       : "Waits for the other player, who joins this machine at " + (here.empty() ? std::string("its address") : here) + port +
                                             ". Over the internet: this network's public address, with that port forwarded to this machine.";
+    const bool lobby = online.lobby && online.list_argument;
+    const bool listed = lobby && prefs_.get("online", "listed") == "1";
     row(width, "Host a match", detail.c_str(), 130.0f, 36.0f, [&] {
         if (ui::button("Host", Kind::Secondary, 130.0f, ready)) {
-            play(which, {online.host_argument});
+            std::vector<std::string> args = {online.host_argument};
+            if (listed) {
+                args.push_back(online.list_argument);
+                if (online.name_argument && online_name_[0]) {
+                    args.push_back(online.name_argument);
+                    args.push_back(online_name_);
+                }
+            }
+            play(which, args);
         }
     });
+    if (lobby) {
+        inset_separator(width);
+        row(width, "List my matches in the lobby",
+            "A match you host shows in Open matches on other players' launchers, under your name, until someone joins it. Off: only "
+            "those you give the code to can join.",
+            42.0f, 24.0f, [&] {
+                if (ui::toggle("##online_listed", listed)) {
+                    prefs_.set("online", "listed", listed ? "0" : "1");
+                    prefs_.save();
+                }
+            });
+        if (listed && online.name_argument) {
+            inset_separator(width);
+            row(width, "Your name", "How the lobby shows the matches you host.", 190.0f, 36.0f, [&] {
+                if (ui::text_field("##online_name", online_name_, sizeof(online_name_), "Your name", 190.0f)) {
+                    prefs_.set("online", "name", online_name_);
+                    prefs_.save();
+                }
+            });
+        }
+    }
     inset_separator(width);
     row(width, "Join a match",
         online.codes ? "The code the host's game shows, or the host's address." : "The host's address, as their Online card says it (ADDRESS, or ADDRESS:PORT).",
@@ -1590,6 +1626,326 @@ void App::online_card(size_t which, float width, bool ready) {
             play(which, {online.join_argument, address});
         }
     });
+    card.end();
+    if (lobby) {
+        lobby_card(which, width, ready);
+    }
+}
+
+void App::load_online() {
+    if (online_loaded_) {
+        return;
+    }
+    online_loaded_ = true;
+    std::snprintf(online_address_, sizeof(online_address_), "%s", prefs_.get("online", "address").c_str());
+    std::snprintf(online_name_, sizeof(online_name_), "%s", prefs_.get("online", "name").c_str());
+    for (const launcher::LocalAddress& here : launcher::local_addresses()) {
+        online_here_.push_back(here.kind.empty() ? here.address : here.address + " (" + here.kind + ")");
+    }
+}
+
+void App::follow_lobby(const std::string& url) {
+    const Uint64 now = SDL_GetTicks();
+    if (lobby_fetch_.valid() && lobby_fetch_.wait_for(std::chrono::seconds(0)) == std::future_status::ready) {
+        auto [ok, matches] = lobby_fetch_.get();
+        lobby_failed_ = !ok;
+        if (ok) {
+            lobby_ = std::move(matches);
+        }
+        lobby_at_ = now;
+    }
+    if (lobby_url_ != url) {
+        // (another list: the one being fetched is for the last, and is let go when it comes)
+        lobby_url_ = url;
+        lobby_.clear();
+        lobby_failed_ = false;
+        lobby_at_ = 0;
+        if (lobby_fetch_.valid()) {
+            return;
+        }
+    }
+    if (!lobby_fetch_.valid() && (lobby_at_ == 0 || now - lobby_at_ > 5000)) {
+        lobby_fetch_ = std::async(std::launch::async, [url] {
+            std::vector<launcher::OpenMatch> matches;
+            const bool ok = launcher::fetch_lobby(url, matches);
+            return std::make_pair(ok, matches);
+        });
+    }
+}
+
+bool App::can_play(size_t which) const {
+    const Slot& one = *slots_[which];
+    bool usable;
+    {
+        std::lock_guard<std::mutex> lock(mutex_);
+        usable = one.file.usable();
+    }
+    return !one.checking && usable && one.has_program() && !one.game.running();
+}
+
+// The Online page: host in the lobby in any of the games, and every game's open matches, each to join
+void App::online_page(float width) {
+    const ui::Palette& p = ui::palette();
+    load_online();
+    layout::heading("Online", collection_->online_intro, width);
+    // (the games that can be played now, in the sidebar's order, for hosting; a game's Online, for its arguments)
+    std::vector<size_t> playable;
+    for (size_t which : titled()) {
+        if (can_play(which) && slots_[which]->about->online.host_argument) {
+            playable.push_back(which);
+        }
+    }
+    // Every game's open matches, by game, in the sidebar's order
+    follow_lobby(collection_->lobby);
+    layout::label("OPEN MATCHES");
+    Card list(width);
+    if (lobby_.empty()) {
+        const char* empty = lobby_failed_ ? "Couldn't reach the online service." : lobby_at_ == 0 ? "Looking…" : "None right now. They show here as players host them.";
+        row(width, empty, "", 0.0f, 24.0f, [] {});
+    }
+    // (the games of the collection's in the sidebar's order, then those it hasn't: another version's games, say)
+    bool first = true;
+    int n = 0;
+    const auto waited = [](const launcher::OpenMatch& match) {
+        const int minutes = match.waiting / 60;
+        return minutes < 1 ? std::string("waiting for a player") : "waiting " + std::to_string(minutes) + " min";
+    };
+    for (size_t which : order_) {
+        const Slot& one = *slots_[which];
+        for (const launcher::OpenMatch& match : lobby_) {
+            if (match.game != one.id) {
+                continue;
+            }
+            if (!first) {
+                inset_separator(width);
+            }
+            first = false;
+            // (a game whose file isn't chosen yet: greyed, and Add…, which chooses it as the Games page's Choose… does: it has
+            // no page of its own until then)
+            bool file;
+            {
+                std::lock_guard<std::mutex> lock(mutex_);
+                file = !one.checking && one.file.usable();
+            }
+            const bool ready = can_play(which);
+            std::string detail = one.name + ": " + waited(match) + (file ? "" : ". Add your " + one.name + " " + collection_->file_name + " to join.");
+            ImGui::PushID(n++);
+            row(
+                width, match.name.c_str(), detail.c_str(), 130.0f, 36.0f,
+                [&] {
+                    if (!file) {
+                        if (ui::button("Add…", Kind::Secondary, 130.0f, !one.checking)) {
+                            // (the system's file dialog wants a mouse or a keyboard)
+                            if (ui::gamepad_in_use()) {
+                                open_browser(which, false);
+                            } else {
+                                choose_game_file(which);
+                            }
+                        }
+                    } else if (ui::button("Join", Kind::Secondary, 130.0f, ready)) {
+                        play(which, {one.about->online.join_argument, match.code});
+                    }
+                },
+                !file);
+            ImGui::PopID();
+        }
+    }
+    for (const launcher::OpenMatch& match : lobby_) {
+        if (std::any_of(slots_.begin(), slots_.end(), [&](const auto& one) { return one->id == match.game; })) {
+            continue;
+        }
+        if (!first) {
+            inset_separator(width);
+        }
+        first = false;
+        // (a game a newer version has: its name as its host's game gave it; the Games page has the updates)
+        std::string detail = (match.title.empty() ? match.game : match.title) + ": " + waited(match) + ". Not in your version of " LAUNCHER_GAME_NAME
+#ifdef LAUNCHER_UPDATE_REPO
+                             ": update to play it.";
+#else
+                             ".";
+#endif
+        ImGui::PushID(n++);
+        row(
+            width, match.name.c_str(), detail.c_str(), 130.0f, 36.0f,
+            [&] {
+#ifdef LAUNCHER_UPDATE_REPO
+                if (ui::button("Update…", Kind::Secondary, 130.0f)) {
+                    page_ = 0;  // (the Games page: the update card)
+                }
+#endif
+            },
+            true);
+        ImGui::PopID();
+    }
+    list.end();
+    // Join with a code: which game it is for, asked of the service, and that game started with it
+    if (collection_->code_lookup) {
+        if (join_lookup_.valid() && join_lookup_.wait_for(std::chrono::seconds(0)) == std::future_status::ready) {
+            const launcher::CodeLookup found = join_lookup_.get();
+            join_needs_ = -1;
+            join_said_.clear();
+            size_t which = slots_.size();
+            for (size_t n = 0; n < slots_.size(); n++) {
+                if (slots_[n]->id == found.game) {
+                    which = n;
+                }
+            }
+            if (found.status == 200 && which < slots_.size() && can_play(which)) {
+                play(which, {slots_[which]->about->online.join_argument, join_code_});
+            } else if (found.status == 200 && which < slots_.size()) {
+                join_said_ = "That's a " + slots_[which]->name + " match: add your " + collection_->file_name + " to join it.";
+                join_needs_ = static_cast<int>(which);
+            } else if (found.status == 200) {
+                join_said_ = "That's a " + found.title + " match, which your version of " LAUNCHER_GAME_NAME " hasn't: update to play it.";
+            } else if (found.status == 404) {
+                join_said_ = "There's no match with that code. Codes last 30 minutes, and each is good for one match.";
+            } else if (found.status != 0) {
+                join_said_ = found.error.empty() ? "That match can't be joined." : found.error;
+            } else {
+                join_said_ = "Couldn't reach the online service.";
+            }
+        }
+        ui::gap(24);
+        layout::label("JOIN WITH A CODE");
+        Card join(width);
+        // (its letters and digits, and dashes: it goes at the end of a URL)
+        std::string code;
+        for (const char* c = join_code_; *c; c++) {
+            if (std::isalnum(static_cast<unsigned char>(*c)) || *c == '-') {
+                code += *c;
+            }
+        }
+        const bool asking = join_lookup_.valid();
+        row(width, "Code", join_said_.empty() ? "The code a host gave you, for a match in any of the games." : join_said_.c_str(), 330.0f, 36.0f,
+            [&] {
+                if (ui::text_field("##join_code", join_code_, sizeof(join_code_), "K7Q-M2X", 190.0f)) {
+                    join_said_.clear();
+                    join_needs_ = -1;
+                }
+                ImGui::SameLine(0.0f, px(10));
+                if (join_needs_ >= 0) {
+                    if (ui::button("Add…", Kind::Secondary, 130.0f)) {
+                        if (ui::gamepad_in_use()) {
+                            open_browser(static_cast<size_t>(join_needs_), false);
+                        } else {
+                            choose_game_file(static_cast<size_t>(join_needs_));
+                        }
+                    }
+                } else if (ui::button(asking ? "Joining…" : "Join", Kind::Secondary, 130.0f, !asking && !code.empty())) {
+                    join_lookup_ = std::async(std::launch::async, [url = std::string(collection_->code_lookup) + code] { return launcher::lookup_code(url); });
+                }
+            });
+        join.end();
+    }
+    ui::gap(24);
+    layout::label("HOST IN THE LOBBY");
+    Card host(width);
+    row(width, "Your name", "How the lobby shows the matches you host.", 190.0f, 36.0f, [&] {
+        if (ui::text_field("##online_page_name", online_name_, sizeof(online_name_), "Your name", 190.0f)) {
+            prefs_.set("online", "name", online_name_);
+            prefs_.save();
+        }
+    });
+    inset_separator(width);
+    if (playable.empty()) {
+        row(width, "No game to host yet", "Choose a game's ROM set on its page first.", 0.0f, 24.0f, [] {});
+    } else {
+        std::vector<std::string> names;
+        int chosen = 0;
+        const std::string last = prefs_.get("online", "game");
+        for (size_t n = 0; n < playable.size(); n++) {
+            names.push_back(slots_[playable[n]]->name);
+            if (slots_[playable[n]]->id == last) {
+                chosen = static_cast<int>(n);
+            }
+        }
+        const size_t which = playable[static_cast<size_t>(chosen)];
+        const launcher::Online& online = slots_[which]->about->online;
+        row(width, "Host a match", "In the game chosen, listed in the lobby under your name until someone joins it; the game shows its code too.", 400.0f,
+            36.0f, [&] {
+                if (ui::dropdown("##online_game", names, chosen, 260.0f)) {
+                    prefs_.set("online", "game", slots_[playable[static_cast<size_t>(chosen)]]->id);
+                    prefs_.save();
+                }
+                ImGui::SameLine(0.0f, px(10));
+                if (ui::button("Host", Kind::Primary, 130.0f)) {
+                    std::vector<std::string> args = {online.host_argument};
+                    if (online.list_argument) {
+                        args.push_back(online.list_argument);
+                    }
+                    if (online.name_argument && online_name_[0]) {
+                        args.push_back(online.name_argument);
+                        args.push_back(online_name_);
+                    }
+                    play(which, args);
+                }
+            });
+    }
+    host.end();
+    // The features about a match (Collection::online_features), as the Features page has them: set for every game
+    if (collection_->online_features) {
+        std::vector<FeatureRow> rows;
+        for (size_t i = 0; i < shared_.size(); i++) {
+            const Shared& shared = shared_[i];
+            if (shared.info.category == collection_->online_features && !shared.where.empty()) {
+                const auto& [which, index] = shared.where[0];
+                rows.push_back({&shared.info, recomp::FeatureValues(slots_[which]->settings, slots_[which]->features)[index], "", i});
+            }
+        }
+        if (!rows.empty()) {
+            ui::gap(24);
+            layout::label("IN A MATCH");
+            feature_list(
+                width, rows, "", [&](const FeatureRow& feature, int value) { set_shared(feature.index, value); },
+                [&](const FeatureRow& feature) {
+                    const auto& [which, index] = shared_[feature.index].where[0];
+                    return recomp::MenuChoices(slots_[which]->settings, slots_[which]->features[index]);
+                },
+                [&](const FeatureRow& feature, const std::vector<bool>& offered) {
+                    for (const auto& [which, index] : shared_[feature.index].where) {
+                        set_menu_choices(*slots_[which], index, offered);
+                    }
+                },
+                false);
+        }
+    }
+    (void)p;
+}
+
+// The lobby's open matches for the game, fetched every five seconds while they are shown
+void App::lobby_card(size_t which, float width, bool ready) {
+    const ui::Palette& p = ui::palette();
+    Slot& one = *slots_[which];
+    const launcher::Online& online = one.about->online;
+    follow_lobby(online.lobby);
+    ui::gap(24);
+    ui::text("OPEN MATCHES", Font::Semibold, ui::size::kDetail, p.secondary);
+    ui::gap(6);
+    ui::text("Matches players are hosting in the lobby now. Join one to play its host.", Font::Regular, ui::size::kDetail, p.secondary, width);
+    ui::gap(10);
+    Card card(width);
+    if (lobby_.empty()) {
+        const char* empty = lobby_failed_       ? "Couldn't reach the online service."
+                            : lobby_at_ == 0    ? "Looking…"
+                                                : "None right now. They show here as players host them in the lobby.";
+        row(width, empty, "", 0.0f, 24.0f, [] {});
+    }
+    for (size_t n = 0; n < lobby_.size(); n++) {
+        const launcher::OpenMatch& match = lobby_[n];
+        if (n > 0) {
+            inset_separator(width);
+        }
+        const int minutes = match.waiting / 60;
+        std::string waited = minutes < 1 ? "Waiting for a player" : "Waiting " + std::to_string(minutes) + " min";
+        ImGui::PushID(static_cast<int>(n));
+        row(width, match.name.c_str(), waited.c_str(), 130.0f, 36.0f, [&] {
+            if (ui::button("Join", Kind::Secondary, 130.0f, ready)) {
+                play(which, {online.join_argument, match.code});
+            }
+        });
+        ImGui::PopID();
+    }
     card.end();
 }
 
@@ -2433,12 +2789,14 @@ void App::menu_choices(float width, const FeatureRow& feature, std::vector<bool>
 // The rows under their categories, narrowed by the search box: only those whose name, description, category or
 // choices have every word typed (Ctrl+F or Cmd+F goes into it)
 template <typename Set, typename Offered, typename SetOffered>
-void App::feature_list(float width, const std::vector<FeatureRow>& rows, const char* none, Set set, Offered offered, SetOffered set_offered) {
+void App::feature_list(float width, const std::vector<FeatureRow>& rows, const char* none, Set set, Offered offered, SetOffered set_offered,
+                       bool whole) {
     const ui::Palette& p = ui::palette();
     if (rows.empty()) {
         ui::text(none, Font::Regular, ui::size::kBody, p.secondary, width);
         return;
     }
+    // (`whole`: a page of features, with the search box and a heading for each category; else a few, as one card)
     if (ImGui::IsKeyChordPressed(ImGuiMod_Ctrl | ImGuiKey_F) || ImGui::IsKeyChordPressed(ImGuiMod_Super | ImGuiKey_F)) {
         focus_search_ = true;
     }
@@ -2446,9 +2804,11 @@ void App::feature_list(float width, const std::vector<FeatureRow>& rows, const c
         ImGui::SetKeyboardFocusHere();
         focus_search_ = false;
     }
-    ui::search_box("##search", feature_search_, sizeof(feature_search_), "Search features", width);
+    if (whole) {
+        ui::search_box("##search", feature_search_, sizeof(feature_search_), "Search features", width);
+    }
     std::vector<std::string> words;
-    {
+    if (whole) {
         std::istringstream typed(lower(feature_search_));
         for (std::string word; typed >> word;) {
             words.push_back(word);
@@ -2472,7 +2832,9 @@ void App::feature_list(float width, const std::vector<FeatureRow>& rows, const c
         std::string count = matches == 0 ? std::string("No features match.") : std::to_string(matches) + " of " + std::to_string(rows.size()) + " features";
         ui::text(count.c_str(), Font::Regular, ui::size::kDetail, p.secondary);
     }
-    ui::gap(20);
+    if (whole) {
+        ui::gap(20);
+    }
     std::vector<std::string> categories;
     for (size_t i = 0; i < rows.size(); i++) {
         const std::string& category = rows[i].info->category;
@@ -2483,8 +2845,10 @@ void App::feature_list(float width, const std::vector<FeatureRow>& rows, const c
     for (const std::string& category : categories) {
         std::string upper = category;
         std::transform(upper.begin(), upper.end(), upper.begin(), [](unsigned char c) { return static_cast<char>(std::toupper(c)); });
-        ui::text(upper.c_str(), Font::Semibold, ui::size::kDetail, p.secondary);
-        ui::gap(10);
+        if (whole) {
+            ui::text(upper.c_str(), Font::Semibold, ui::size::kDetail, p.secondary);
+            ui::gap(10);
+        }
         Card card(width);
         bool first = true;
         for (size_t i = 0; i < rows.size(); i++) {

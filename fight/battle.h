@@ -85,6 +85,7 @@ struct Description {
     uint32_t result = 0;            // byte: the round's result: 0 still going, 1 player 1 has won, 2 player 2, 3 neither
     // ... or, for a game that keeps it some other way, the same worked out from its memory (nullptr: the byte)
     uint8_t (*resultNow)() = nullptr;
+    int roundsToWin = 2;            // rounds a player wins a match with (the board's usual: online play's win streaks)
     uint32_t cameraX = 0, cameraY = 0; // words: where the camera is (the picture's left edge and bottom)
     int cameraLeft = 256, cameraRight = 640; // the camera's ends across on every stage (the board's picture)
     // A camera whose words move (with the stage, say): their addresses now; and stages whose camera's ends differ:
@@ -226,6 +227,10 @@ struct Description {
 
 // The game's description, and the menu's pages, commands and features of the modes
 void Register(const Description &description);
+// The round's result now (0 still going, 1 player 1 has won, 2 player 2, 3 neither), or -1 for a game that has no
+// description; and how many rounds win a match (online play's win streaks: port/main.cpp)
+int RoundResultNow();
+int RoundsToWin();
 // The tag-team modes (tag.h) for the team battle: each fighter of a side played by a person of its own, the side's
 // panel whoever's fighter is on (no tagging in: the next comes on at a knock-down). `labelY`: where the labels go.
 void RegisterTeamTag(float labelY);
