@@ -73,9 +73,9 @@ the settings memory) is code written for this project, not an emulator
 - **A custom soundtrack**: your own music in place of the board's music, with the board's sound effects and voices:
   a folder of music plays as a playlist (in order or shuffled), or files named for the game's songs replace those
   songs. The `songs.txt` the game writes in the soundtrack folder names all 24 pieces
-  of its music (each character's theme, the title, the dojo, the intermission and the screens between matches). [How →](../../README.md#a-custom-soundtrack)
+  of its music (each character's theme, the title, the dojo, the intermission and the screens between matches). [How →](../../docs/SOUNDTRACK.md)
 - Your ROM set is only ever read. Settings, save states and the board's settings memory go in your
-  own user folder, or beside the launcher in [portable mode](../../README.md#portable-mode).
+  own user folder, or beside the launcher in [portable mode](../../docs/LAUNCHER.md#portable-mode).
 
 | | |
 | --- | --- |
@@ -198,7 +198,7 @@ the set you changed**, anywhere: arcade, versus, training. Your gem colours are 
 | Windows | `%APPDATA%\Super Puzzle Fighter II Turbo\palettes` (paste it into Explorer's address bar; it is the `AppData\Roaming` folder in your user folder) |
 | macOS | `~/Library/Application Support/Super Puzzle Fighter II Turbo/palettes` |
 | Linux, SteamOS | `~/.local/share/Super Puzzle Fighter II Turbo/palettes` |
-| [Portable mode](../../README.md#portable-mode) | `user/Super Puzzle Fighter II Turbo/palettes` beside the launcher |
+| [Portable mode](../../docs/LAUNCHER.md#portable-mode) | `user/Super Puzzle Fighter II Turbo/palettes` beside the launcher |
 
 You can write or share them by hand: "Write the game's colours" (on the colour editor's page of the
 menu) puts every character's own colours and the gems' in `palettes/original` to start from, each set
@@ -227,7 +227,7 @@ nothing until there are files), off in Pure.
 
 ## Playing
 
-Super Puzzle Fighter II Turbo comes with [CPS-2 Recomp](../../README.md#playing): download it for your system from the
+Super Puzzle Fighter II Turbo comes with [CPS-2 Recomp](../../README.md#getting-started): download it for your system from the
 [releases page](https://github.com/tmcleroy/cps2recomp/releases), open its launcher, and show it your ROM
 set (drop `spf2t.zip` or its folder on the window, or choose the folder you keep your sets in: it finds each
 game's by name). Then press **Play** beside Super Puzzle Fighter II Turbo, or on its own page, which has its Display switches and

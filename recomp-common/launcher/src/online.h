@@ -21,6 +21,7 @@ std::vector<LocalAddress> local_addresses();
 struct OpenMatch {
     std::string game;  // (a collection's lobby: which game's, by id)
     std::string title; // (... and its name, for a game the collection hasn't)
+    std::string version; // (the host's version: joining needs the same)
     std::string code;
     std::string name;
     int waiting = 0; // (seconds)
@@ -33,7 +34,7 @@ bool fetch_lobby(const std::string& url, std::vector<OpenMatch>& matches);
 // game's id and name, or from another the service's error
 struct CodeLookup {
     int status = 0;
-    std::string game, title, error;
+    std::string game, title, version, error;
 };
 CodeLookup lookup_code(const std::string& url);
 

@@ -50,7 +50,7 @@ program; what the program expects of the board is code written for this project,
   - **Model viewer**: the Predator Warrior, Dutch Schaefer, the Predator Hunter or Linn Kurosawa by themselves,
     on a scene or on white or black, from a quarter of their size to 25 times, moved with your controls or going
     through any of their animations, in slow motion if you like.
-- **Custom soundtrack**: your own music files in place of the board's music ([how](../../README.md#a-custom-soundtrack));
+- **Custom soundtrack**: your own music files in place of the board's music ([how](../../docs/SOUNDTRACK.md));
   the game names its pieces in `songs.txt` (each round's music, the bosses', player select, the results, continue).
 - **Rapid fire**: a button held down is pressed again and again, for the first button (Attack) or for all of them.
 - **Cheats**: infinite health, infinite lives and infinite time (the round's clock stands still), for every player.
@@ -60,7 +60,7 @@ program; what the program expects of the board is code written for this project,
 - **Straight to the title**: at a start or a reset, the board's start, the notices and the story run unseen.
 - The picture your way (Display page): sharp, whole pixels or smooth; 4:3, square pixels or the whole screen; and
   the window's size. Run-ahead takes a frame or two of input lag away.
-- Your ROM set is only ever read. Settings, save states and the board's settings memory go in your own user folder, or beside the launcher in [portable mode](../../README.md#portable-mode).
+- Your ROM set is only ever read. Settings, save states and the board's settings memory go in your own user folder, or beside the launcher in [portable mode](../../docs/LAUNCHER.md#portable-mode).
 
 ![Round 2, War in the Underpass](../../docs/screenshots/avsp/underpass.png)
 
@@ -77,7 +77,7 @@ program; what the program expects of the board is code written for this project,
 
 ## Playing
 
-Alien vs. Predator comes with [CPS-2 Recomp](../../README.md#playing): open its launcher and show it your ROM set
+Alien vs. Predator comes with [CPS-2 Recomp](../../README.md#getting-started): open its launcher and show it your ROM set
 (drop `avspu.zip` or its folder on the window, or choose the folder you keep your sets in), then press **Play** beside
 Alien vs. Predator. From a terminal, `cps2recomp-launcher --play avsp` starts it straight away; the game's own program
 (`avsp`, beside the launcher) runs by itself too: `avsp --help` lists what it takes.

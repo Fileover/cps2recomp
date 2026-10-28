@@ -58,7 +58,7 @@ about a second. No key is in this repository.
   - **Model viewer**: Jack, Mustapha, Hannah or Mess by themselves, on a stage or on white or black, from a
     quarter of their size to 25 times, moved with your controls or going through any of their animations, in slow
     motion if you like.
-- **Custom soundtrack**: your own music files in place of the board's music ([how](../../README.md#a-custom-soundtrack));
+- **Custom soundtrack**: your own music files in place of the board's music ([how](../../docs/SOUNDTRACK.md));
   the game names its pieces in `songs.txt` (each kind of place's music, the bosses', the episodes' maps, continue).
 - **Rapid fire**: a button held down is pressed again and again, for the first button (Attack) or for both.
 - **Cheats**: infinite health, infinite lives and infinite time (the stage's clock stands still), for every player.
@@ -67,7 +67,7 @@ about a second. No key is in this repository.
 - **Straight to the title**: at a start or a reset, the board's start, its version and its warning run unseen.
 - The picture your way (Display page): sharp, whole pixels or smooth; 4:3, square pixels or the whole screen; and
   the window's size. Run-ahead takes a frame or two of input lag away.
-- Your ROM set is only ever read. Settings, save states and the board's settings memory go in your own user folder, or beside the launcher in [portable mode](../../README.md#portable-mode).
+- Your ROM set is only ever read. Settings, save states and the board's settings memory go in your own user folder, or beside the launcher in [portable mode](../../docs/LAUNCHER.md#portable-mode).
 
 ![Inside the mansion, stage 1](../../docs/screenshots/dino/mansion.png)
 
@@ -82,7 +82,7 @@ about a second. No key is in this repository.
 
 ## Playing
 
-Cadillacs and Dinosaurs comes with [CPS-2 Recomp](../../README.md#playing): open its launcher and show it your ROM set
+Cadillacs and Dinosaurs comes with [CPS-2 Recomp](../../README.md#getting-started): open its launcher and show it your ROM set
 (drop `dino.zip` or its folder on the window, or choose the folder you keep your sets in), then press **Play** beside
 Cadillacs and Dinosaurs. From a terminal, `cps2recomp-launcher --play dino` starts it straight away; the game's own
 program (`dino`, beside the launcher) runs by itself too: `dino --help` lists what it takes.

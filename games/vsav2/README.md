@@ -63,8 +63,8 @@ for this project, not an emulator.
 - **A custom soundtrack**: your own music in place of the board's, with the board's sound effects and voices: a
   folder of music plays as a playlist (in order or shuffled), or files named for the game's songs replace those
   songs (the `songs.txt` the game writes names its 48 pieces: each stage's, each character's win, the rival, Jedah,
-  the ending). [How →](../../README.md#a-custom-soundtrack)
-- Your ROM set is only ever read. Settings, save states and the board's settings memory go in your own user folder, or beside the launcher in [portable mode](../../README.md#portable-mode).
+  the ending). [How →](../../docs/SOUNDTRACK.md)
+- Your ROM set is only ever read. Settings, save states and the board's settings memory go in your own user folder, or beside the launcher in [portable mode](../../docs/LAUNCHER.md#portable-mode).
 
 ## The characters and stages
 
@@ -140,7 +140,7 @@ the character with the button of the set you changed. It works as in Vampire Sav
 | Windows | `%APPDATA%\Vampire Savior 2\palettes` |
 | macOS | `~/Library/Application Support/Vampire Savior 2/palettes` |
 | Linux, SteamOS | `~/.local/share/Vampire Savior 2/palettes` |
-| [Portable mode](../../README.md#portable-mode) | `user/Vampire Savior 2/palettes` beside the launcher |
+| [Portable mode](../../docs/LAUNCHER.md#portable-mode) | `user/Vampire Savior 2/palettes` beside the launcher |
 
 ## What you need
 
@@ -152,7 +152,7 @@ the character with the button of the set you changed. It works as in Vampire Sav
 
 ## Playing
 
-Vampire Savior 2 comes with [CPS-2 Recomp](../../README.md#playing): open its launcher and show it your ROM set
+Vampire Savior 2 comes with [CPS-2 Recomp](../../README.md#getting-started): open its launcher and show it your ROM set
 (drop `vsav2.zip` or its folder on the window, or choose the folder you keep your sets in), then press **Play**
 beside Vampire Savior 2. From a terminal, `cps2recomp-launcher --play vsav2` starts it straight away; the game's own
 program (`vsav2`, beside the launcher) runs by itself too: `vsav2 --help` lists what it takes.

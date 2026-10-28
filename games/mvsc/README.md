@@ -81,8 +81,8 @@ is checked against an interpreter of the same program ([how it was made](PROGRES
   songs. The `songs.txt` the game writes in the soundtrack folder names the music: each character's theme (the
   screen before a match plays player 2's first character's, the round its second's), player select, the screen before
   each stage, the winner's, the warning before Onslaught, the ending, the staff roll, game over, the rankings and the
-  notices. [How →](../../README.md#a-custom-soundtrack)
-- Your ROM set is only ever read. Settings, save states and the board's settings memory go in your own user folder, or beside the launcher in [portable mode](../../README.md#portable-mode).
+  notices. [How →](../../docs/SOUNDTRACK.md)
+- Your ROM set is only ever read. Settings, save states and the board's settings memory go in your own user folder, or beside the launcher in [portable mode](../../docs/LAUNCHER.md#portable-mode).
 
 ## Training mode
 
@@ -208,7 +208,7 @@ menu shows the board's own values.
 
 ## Playing
 
-Marvel vs. Capcom comes with [CPS-2 Recomp](../../README.md#playing): open its launcher and show it your ROM set (drop
+Marvel vs. Capcom comes with [CPS-2 Recomp](../../README.md#getting-started): open its launcher and show it your ROM set (drop
 `mvsc.zip` or its folder on the window, or choose the folder you keep your sets in), then press **Play** beside Marvel
 vs. Capcom. From a terminal, `cps2recomp-launcher --play mvsc` starts it straight away; the game's own program (`mvsc`,
 beside the launcher) runs by itself too: `mvsc --help` lists what it takes.

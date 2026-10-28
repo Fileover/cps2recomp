@@ -10,6 +10,10 @@ if (NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE Release)
 endif ()
 
+# The release's version (VERSION): online play's two copies must have the same (port/netplay.cpp)
+file(STRINGS "${CMAKE_SOURCE_DIR}/VERSION" RECOMP_VERSION LIMIT_COUNT 1)
+set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${CMAKE_SOURCE_DIR}/VERSION")
+
 # Game selection: the game id names a directory under games/ and the generated code under work/
 set(GAME "vampire_savior" CACHE STRING "Game id (directory under games/)")
 set(GAME_DIR "${CMAKE_SOURCE_DIR}/../games/${GAME}" CACHE PATH "The game's directory (game.cfg, src/)")
@@ -100,4 +104,5 @@ foreach (target ${GAME} ${GAME}-check)
     # (a char is signed, as on x86 and Apple's ARM, also on Linux ARM64, whose own is unsigned: every build does the
     # same sums)
     target_compile_options(${target} PRIVATE -fsigned-char)
+    target_compile_definitions(${target} PRIVATE RECOMP_VERSION="${RECOMP_VERSION}")
 endforeach ()

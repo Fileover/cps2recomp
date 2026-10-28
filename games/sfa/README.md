@@ -78,8 +78,8 @@ block is checked against an interpreter of the same program ([how it was made](P
   songs. The `songs.txt` the game writes in the soundtrack folder names the music: each character's theme, the
   introduction, player select, versus, the winner's, a new challenger, continue, every ending, the staff rolls, game
   over and the ranking.
-  [How →](../../README.md#a-custom-soundtrack)
-- Your ROM set is only ever read. Settings, save states and the board's settings memory go in your own user folder, or beside the launcher in [portable mode](../../README.md#portable-mode).
+  [How →](../../docs/SOUNDTRACK.md)
+- Your ROM set is only ever read. Settings, save states and the board's settings memory go in your own user folder, or beside the launcher in [portable mode](../../docs/LAUNCHER.md#portable-mode).
 
 ## Training mode
 
@@ -185,7 +185,7 @@ menu shows the board's own values.
 
 ## Playing
 
-Street Fighter Alpha comes with [CPS-2 Recomp](../../README.md#playing): open its launcher and show it your ROM set
+Street Fighter Alpha comes with [CPS-2 Recomp](../../README.md#getting-started): open its launcher and show it your ROM set
 (drop `sfa.zip` or its folder on the window, or choose the folder you keep your sets in), then press **Play**
 beside Street Fighter Alpha. From a terminal, `cps2recomp-launcher --play sfa` starts it straight away; the game's
 own program (`sfa`, beside the launcher) runs by itself too: `sfa --help` lists what it takes.

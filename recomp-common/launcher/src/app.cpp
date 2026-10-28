@@ -1155,6 +1155,12 @@ void App::sidebar(float height) {
     ImGui::SetCursorScreenPos(origin + ImVec2(px(24), px(50)));
     // (a collection's subtitle may take two lines, or more in a narrow sidebar)
     ui::text(collection_ ? collection_->subtitle : about_.subtitle, Font::Regular, ui::size::kDetail, p.secondary, collection_ ? px(inner) : 0.0f);
+#ifdef LAUNCHER_VERSION
+    // (the version, under the name: the one online play's matches must have too)
+    ui::gap(4);
+    ImGui::SetCursorScreenPos(ImVec2(origin.x + px(24), ImGui::GetCursorScreenPos().y));
+    ui::text("Version " LAUNCHER_VERSION, Font::Regular, ui::size::kSmall, p.tertiary);
+#endif
     const char* own[] = {"Game", about_.features_name, "Controllers", "Games", "", "Multi game", "Online", ""};
     float fixed = static_cast<float>(fixed_pages());
     float top = std::max(collection_ ? px(108) : px(100), ImGui::GetCursorScreenPos().y - origin.y + px(24));
@@ -1575,40 +1581,30 @@ void App::online_card(size_t which, float width, bool ready) {
                                       : "Waits for the other player, who joins this machine at " + (here.empty() ? std::string("its address") : here) + port +
                                             ". Over the internet: this network's public address, with that port forwarded to this machine.";
     const bool lobby = online.lobby && online.list_argument;
-    const bool listed = lobby && prefs_.get("online", "listed") == "1";
+    // (a match is in the lobby when the player has a name for it to be listed under; without one, only its code joins it)
+    const bool listed = lobby && online.name_argument && online_name_[0];
     row(width, "Host a match", detail.c_str(), 130.0f, 36.0f, [&] {
         if (ui::button("Host", Kind::Secondary, 130.0f, ready)) {
             std::vector<std::string> args = {online.host_argument};
             if (listed) {
                 args.push_back(online.list_argument);
-                if (online.name_argument && online_name_[0]) {
-                    args.push_back(online.name_argument);
-                    args.push_back(online_name_);
-                }
+                args.push_back(online.name_argument);
+                args.push_back(online_name_);
             }
             play(which, args);
         }
     });
-    if (lobby) {
+    if (lobby && online.name_argument) {
         inset_separator(width);
-        row(width, "List my matches in the lobby",
-            "A match you host shows in Open matches on other players' launchers, under your name, until someone joins it. Off: only "
-            "those you give the code to can join.",
-            42.0f, 24.0f, [&] {
-                if (ui::toggle("##online_listed", listed)) {
-                    prefs_.set("online", "listed", listed ? "0" : "1");
-                    prefs_.save();
-                }
-            });
-        if (listed && online.name_argument) {
-            inset_separator(width);
-            row(width, "Your name", "How the lobby shows the matches you host.", 190.0f, 36.0f, [&] {
+        row(width, "Your name",
+            "With a name, the matches you host are listed in the lobby under it until someone joins. Without one, only those you "
+            "give the code to can join.",
+            190.0f, 36.0f, [&] {
                 if (ui::text_field("##online_name", online_name_, sizeof(online_name_), "Your name", 190.0f)) {
                     prefs_.set("online", "name", online_name_);
                     prefs_.save();
                 }
             });
-        }
     }
     inset_separator(width);
     row(width, "Join a match",
@@ -1673,6 +1669,19 @@ void App::follow_lobby(const std::string& url) {
     }
 }
 
+const char* App::own_version() {
+#ifdef LAUNCHER_VERSION
+    return LAUNCHER_VERSION;
+#else
+    return "";
+#endif
+}
+
+bool App::version_matches(const std::string& version) {
+    // (a launcher that knows no version of its own, or a match that says none, can't tell: let the game's handshake)
+    return version.empty() || !*own_version() || version == own_version();
+}
+
 bool App::can_play(size_t which) const {
     const Slot& one = *slots_[which];
     bool usable;
@@ -1728,12 +1737,19 @@ void App::online_page(float width) {
                 file = !one.checking && one.file.usable();
             }
             const bool ready = can_play(which);
-            std::string detail = one.name + ": " + waited(match) + (file ? "" : ". Add your " + one.name + " " + collection_->file_name + " to join.");
+            // (a match on another version can't be joined: both need the same)
+            const bool other = !version_matches(match.version);
+            std::string detail = one.name + ": " + waited(match) + (match.version.empty() ? "" : ". Version " + match.version) +
+                                 (other ? " (you have " + std::string(own_version()) + "): both need the same version to play."
+                                  : file ? ""
+                                         : ". Add your " + one.name + " " + collection_->file_name + " to join.");
             ImGui::PushID(n++);
             row(
                 width, match.name.c_str(), detail.c_str(), 130.0f, 36.0f,
                 [&] {
-                    if (!file) {
+                    if (other) {
+                        ui::button("Join", Kind::Secondary, 130.0f, false);
+                    } else if (!file) {
                         if (ui::button("Add…", Kind::Secondary, 130.0f, !one.checking)) {
                             // (the system's file dialog wants a mouse or a keyboard)
                             if (ui::gamepad_in_use()) {
@@ -1746,7 +1762,7 @@ void App::online_page(float width) {
                         play(which, {one.about->online.join_argument, match.code});
                     }
                 },
-                !file);
+                !file || other);
             ImGui::PopID();
         }
     }
@@ -1791,7 +1807,9 @@ void App::online_page(float width) {
                     which = n;
                 }
             }
-            if (found.status == 200 && which < slots_.size() && can_play(which)) {
+            if (found.status == 200 && !version_matches(found.version)) {
+                join_said_ = "That match is on version " + found.version + ", and you have " + own_version() + ": both need the same version.";
+            } else if (found.status == 200 && which < slots_.size() && can_play(which)) {
                 play(which, {slots_[which]->about->online.join_argument, join_code_});
             } else if (found.status == 200 && which < slots_.size()) {
                 join_said_ = "That's a " + slots_[which]->name + " match: add your " + collection_->file_name + " to join it.";
@@ -1819,7 +1837,7 @@ void App::online_page(float width) {
         const bool asking = join_lookup_.valid();
         row(width, "Code", join_said_.empty() ? "The code a host gave you, for a match in any of the games." : join_said_.c_str(), 330.0f, 36.0f,
             [&] {
-                if (ui::text_field("##join_code", join_code_, sizeof(join_code_), "K7Q-M2X", 190.0f)) {
+                if (ui::text_field("##join_code", join_code_, sizeof(join_code_), "The host's code", 190.0f)) {
                     join_said_.clear();
                     join_needs_ = -1;
                 }
@@ -1839,9 +1857,10 @@ void App::online_page(float width) {
         join.end();
     }
     ui::gap(24);
-    layout::label("HOST IN THE LOBBY");
+    layout::label("HOST A MATCH");
     Card host(width);
-    row(width, "Your name", "How the lobby shows the matches you host.", 190.0f, 36.0f, [&] {
+    row(width, "Your name", "With a name, the matches you host are listed in the lobby under it. Without one, they're joined only by their code.",
+        190.0f, 36.0f, [&] {
         if (ui::text_field("##online_page_name", online_name_, sizeof(online_name_), "Your name", 190.0f)) {
             prefs_.set("online", "name", online_name_);
             prefs_.save();
@@ -1862,7 +1881,7 @@ void App::online_page(float width) {
         }
         const size_t which = playable[static_cast<size_t>(chosen)];
         const launcher::Online& online = slots_[which]->about->online;
-        row(width, "Host a match", "In the game chosen, listed in the lobby under your name until someone joins it; the game shows its code too.", 400.0f,
+        row(width, "Host a match", "In the game chosen. The game shows the match's code to give the other player.", 400.0f,
             36.0f, [&] {
                 if (ui::dropdown("##online_game", names, chosen, 260.0f)) {
                     prefs_.set("online", "game", slots_[playable[static_cast<size_t>(chosen)]]->id);
@@ -1871,10 +1890,8 @@ void App::online_page(float width) {
                 ImGui::SameLine(0.0f, px(10));
                 if (ui::button("Host", Kind::Primary, 130.0f)) {
                     std::vector<std::string> args = {online.host_argument};
-                    if (online.list_argument) {
+                    if (online.list_argument && online.name_argument && online_name_[0]) {
                         args.push_back(online.list_argument);
-                    }
-                    if (online.name_argument && online_name_[0]) {
                         args.push_back(online.name_argument);
                         args.push_back(online_name_);
                     }
@@ -1938,12 +1955,19 @@ void App::lobby_card(size_t which, float width, bool ready) {
         }
         const int minutes = match.waiting / 60;
         std::string waited = minutes < 1 ? "Waiting for a player" : "Waiting " + std::to_string(minutes) + " min";
+        const bool other = !version_matches(match.version);
+        if (!match.version.empty()) {
+            waited += ". Version " + match.version + (other ? " (you have " + std::string(own_version()) + "): both need the same version." : "");
+        }
         ImGui::PushID(static_cast<int>(n));
-        row(width, match.name.c_str(), waited.c_str(), 130.0f, 36.0f, [&] {
-            if (ui::button("Join", Kind::Secondary, 130.0f, ready)) {
-                play(which, {online.join_argument, match.code});
-            }
-        });
+        row(
+            width, match.name.c_str(), waited.c_str(), 130.0f, 36.0f,
+            [&] {
+                if (ui::button("Join", Kind::Secondary, 130.0f, ready && !other)) {
+                    play(which, {online.join_argument, match.code});
+                }
+            },
+            other);
         ImGui::PopID();
     }
     card.end();

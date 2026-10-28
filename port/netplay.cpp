@@ -430,6 +430,7 @@ bool Netplay::Begin(Port &port, std::string &error) {
         hello.U16(kProtocol);
         hello.Text(GAME_ID);
         hello.U32(build);
+        hello.Text(RECOMP_VERSION);
         greeting = hello.out;
         // A match's code (K7Q-M2X: six letters and digits), or the host's address
         joinCode = CodeOf(settings.address);
@@ -617,7 +618,8 @@ bool Netplay::Introduce(uint64_t now, std::string &error) {
         });
     };
     const auto answered = [&] { return asking.valid() && asking.wait_for(std::chrono::seconds(0)) == std::future_status::ready; };
-    const std::string about = "\"game\":\"" GAME_ID "\",\"title\":\"" GAME_NAME "\",\"protocol\":" + std::to_string(kProtocol) +
+    const std::string about = "\"game\":\"" GAME_ID "\",\"title\":\"" GAME_NAME "\",\"version\":\"" RECOMP_VERSION "\",\"protocol\":" +
+                              std::to_string(kProtocol) +
                               ",\"build\":\"" + std::to_string(build) + "\"";
     if (getenv("CPS2RECOMP_NET_DEBUG")) {
         static int last = -1;
@@ -764,8 +766,11 @@ int Netplay::Waiting(Port &port, std::string &error) {
                 const uint16_t protocol = in.U16();
                 const std::string game = in.Text();
                 const uint32_t theirs = in.U32();
+                const std::string version = in.Text();
                 std::string why;
-                if (protocol != kProtocol) {
+                if (protocol == kProtocol && version != RECOMP_VERSION) {
+                    why = "The other player has version " + version + " and this one " RECOMP_VERSION ": both need the same version.";
+                } else if (protocol != kProtocol) {
                     why = "The two copies of the game are different versions: update both.";
                 } else if (game != GAME_ID) {
                     why = "The other player started " + game + ", this side " GAME_ID ".";

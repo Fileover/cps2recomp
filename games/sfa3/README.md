@@ -83,7 +83,7 @@ checked against an interpreter of the same program ([how it was made](PROGRESS.m
   of music plays as a playlist (in order or shuffled), or files named for the game's songs replace those songs. The
   `songs.txt` the game writes in the soundtrack folder names its music: each character's theme, the ladder's last
   fights and M. Bison's, player select, the characters' introductions, the winner's, continue, game over, the ending
-  and the rankings. [How →](../../README.md#a-custom-soundtrack)
+  and the rankings. [How →](../../docs/SOUNDTRACK.md)
 - Your ROM set is only ever read. Settings, save states and the board's settings memory go in your own user folder.
 
 ## Training mode
@@ -202,7 +202,7 @@ holding only the sets that are not the game's. The folder is:
 | Windows | `%APPDATA%\Street Fighter Alpha 3\palettes` (paste it into Explorer's address bar; it is the `AppData\Roaming` folder in your user folder) |
 | macOS | `~/Library/Application Support/Street Fighter Alpha 3/palettes` |
 | Linux, SteamOS | `~/.local/share/Street Fighter Alpha 3/palettes` |
-| [Portable mode](../../README.md#portable-mode) | `user/Street Fighter Alpha 3/palettes` beside the launcher |
+| [Portable mode](../../docs/LAUNCHER.md#portable-mode) | `user/Street Fighter Alpha 3/palettes` beside the launcher |
 
 You can write or share them by hand: "Write the game's colours" (on the colour editor's page of the menu) puts every
 character's own colours in `palettes/original` to start from, each set up to five lines of 16 colours (`#RRGGBB` or
@@ -248,7 +248,7 @@ changed, and the test menu shows the board's own values.
 
 ## Playing
 
-Street Fighter Alpha 3 comes with [CPS-2 Recomp](../../README.md#playing): download it for your system from the
+Street Fighter Alpha 3 comes with [CPS-2 Recomp](../../README.md#getting-started): download it for your system from the
 [releases page](https://github.com/tmcleroy/cps2recomp/releases), open its launcher, and show it your ROM set (drop
 `sfa3u.zip` or its folder on the window, or choose the folder you keep your sets in: it finds each game's by name).
 Then press **Play** beside Street Fighter Alpha 3, or on its own page, which has its Display switches and the features
