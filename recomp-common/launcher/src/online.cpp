@@ -138,6 +138,7 @@ bool fetch_lobby(const std::string& url, std::vector<OpenMatch>& matches) {
         }
         OpenMatch match;
         match.game = text(at, "game", end);
+        match.title = text(at, "title", end);
         match.code = text(at, "code", end);
         match.name = text(at, "name", end);
         const size_t waiting = json.find("\"waiting\":", at);

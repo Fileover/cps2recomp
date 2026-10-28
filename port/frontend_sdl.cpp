@@ -365,7 +365,13 @@ int RunWindowed(Port &port) {
     bool stickWaiting = false;
     auto toggleMenu = [&]() {
         if (port.net) {
-            port.quit = port.connecting; // (online: no menu, the game goes on for both players; Esc gives up a wait)
+            // (online: no menu, the game goes on for both players; Esc gives up a wait, and in a match asks whether to
+            // leave it: Port::leaving)
+            if (port.connecting) {
+                port.quit = true;
+            } else {
+                port.leaving = !port.leaving;
+            }
             return;
         }
         if (port.menu.IsOpen()) {
@@ -588,6 +594,14 @@ int RunWindowed(Port &port) {
                 if (!port.menu.IsOpen()) {
                     heldAtClose = previousPad;
                 }
+            } else if (port.leaving) {
+                // (online, "Leave the match?": Confirm leaves it, Back stays; this side's player stands still meanwhile)
+                if (menuPressed & recomp::kMenuConfirm) {
+                    port.quit = true;
+                } else if (menuPressed & recomp::kMenuBack) {
+                    port.leaving = false;
+                }
+                heldAtClose = previousPad;
             }
             heldAtClose &= previousPad;
             for (int player = 0; player < Machine::kMaxPlayers; player++) {

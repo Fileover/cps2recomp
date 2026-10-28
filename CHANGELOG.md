@@ -2,8 +2,10 @@
 
 ## Unreleased
 
-- **Online: the ping and the input delay, each a switch** on the Display page (each player's own): **Online: the
-  ping** (on in Enhanced) and **Online: the input delay** ("DELAY 2", off unless chosen). **PRESS START TO COME IN**
+- **Online: the ping and the input delay, each a switch** (each player's own), on the launcher's Online page under In
+  a match and on the Features page (their category, Online): **Ping** (on in Enhanced) and **Input delay** ("DELAY 2",
+  off unless chosen). The leave prompt: in a match, Esc (or the menu's button) asks **Leave the match?** over the game,
+  which goes on; Confirm leaves, Back stays. **PRESS START TO JOIN**
   at the bottom until this side's player has pressed Start in the match. On the Online page, matches in a game whose
   ROM set isn't added are greyed, with **Add…** to its page, and those of a game this launcher hasn't are greyed too.
 - **The launcher's Online page**: after Multi game in the sidebar, every game's open matches in the lobby, each with

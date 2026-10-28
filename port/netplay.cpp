@@ -108,8 +108,8 @@ namespace {
         if (name.rfind("widescreen", 0) == 0 || category == "Game" || category == "Board" || category == "Cheats") {
             return Share::Host;
         }
-        if (category == "Display" || category == "Sound") {
-            return Share::Own;
+        if (category == "Display" || category == "Sound" || category == "Online") {
+            return Share::Own; // (how each player sees and hears it, and what their screen says of the match)
         }
         if (feature.flags & kFeatureOwn) {
             return Share::Keep; // (a record or a choice kept for a mode: left as it is, and the mode is off)
@@ -660,7 +660,7 @@ bool Netplay::Introduce(uint64_t now, std::string &error) {
                         name += c;
                     }
                 }
-                listed = ",\"listed\":true,\"name\":\"" + name + "\",\"protocol\":" + std::to_string(kProtocol);
+                listed = ",\"listed\":true,\"name\":\"" + name + "\",\"title\":\"" GAME_NAME "\",\"protocol\":" + std::to_string(kProtocol);
             }
             ask("POST", "/v1/host", "{" + again + about + listed + ",\"addresses\":" + Addresses() + "}");
         } else {

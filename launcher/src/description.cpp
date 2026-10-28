@@ -291,6 +291,7 @@ const launcher::Collection& launcher::describe_collection() {
         static const std::string lobby = std::string(port::Netplay::kService) + "/v1/lobby?protocol=" + std::to_string(port::Netplay::kProtocol);
         c.lobby = lobby.c_str();
         c.file_name = "ROM set";
+        c.online_features = "Online"; // (the ping and the input delay on the screen: port/main.cpp)
         c.online_intro = "Play someone on another machine: join a match a player is hosting, or host one in any of your games for others to "
                          "join. A game's own page has its Online card too, for a match with a code only the people you give it to know.";
         launcher::MultiMode endless;

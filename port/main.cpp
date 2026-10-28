@@ -169,11 +169,11 @@ void RegisterPortFeatures() {
                                   {"Off", "CRT", "CRT Lottes", "CRT Royale", "CRT Guest", "CRT Light", "Scanlines: light",
                                    "Scanlines: strong", "Scanlines: OSSC", "Scanlines: dark", "xBRZ", "ScaleFX", "Your own"}});
     // (online play's readout, each player's own: Port::Shown)
-    TheGame().features.push_back({"online_ping", "Display", "Online: the ping",
+    TheGame().features.push_back({"online_ping", "Online", "Ping",
                                   "During an online match, the time a packet takes to the other player and back, at the bottom of "
                                   "the picture (\"PING 42 ms\").",
                                   kFeatureEnhanced});
-    TheGame().features.push_back({"online_delay", "Display", "Online: the input delay",
+    TheGame().features.push_back({"online_delay", "Online", "Input delay",
                                   "During an online match, how many frames each player's own controls are held back, at the bottom "
                                   "of the picture (\"DELAY 2\"): the host chooses it.",
                                   0});
@@ -676,6 +676,15 @@ bool Port::Tick() {
             }
             return false;
         }
+        // (Esc's question, over the game, which goes on)
+        static bool asked = false;
+        if (leaving != asked) {
+            asked = leaving;
+            SetHud(leaving ? std::vector<HudLine>{{0.5f, 0.42f, 0, "Leave the match?"},
+                                                 {0.5f, 0.54f, 0, "Confirm (A, Enter): leave", 255, 120, 110},
+                                                 {0.5f, 0.64f, 0, "Back (B, Backspace, Esc): stay"}}
+                           : std::vector<HudLine>{});
+        }
         RunFrame();
         for (int n = 0; n < 120 && FastForward() && net->Ready(frame); n++) {
             machine->audio.clear();
@@ -778,7 +787,7 @@ void Port::Shown(std::vector<uint32_t> &pixels, std::vector<SDL_Rect> *panels) c
             status(text, said++ * 14);
         }
         if (!cameIn) {
-            status("PRESS START TO COME IN", said++ * 14);
+            status("PRESS START TO JOIN", said++ * 14);
         }
     }
     // (what the camera's zoom was set to, for a few seconds: above that if both are said)

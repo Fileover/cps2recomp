@@ -194,7 +194,8 @@ struct Port {
     // Online play (netplay.h): the other side found before the first frame, and each frame run through it
     std::unique_ptr<Netplay> net;
     bool connecting = false; // (the other side not found yet: a window shows the wait)
-    bool cameIn = false;     // (this side's player has pressed Start in the match: "PRESS START TO COME IN" is said until then)
+    bool leaving = false;    // (online: Esc asked whether to leave the match; said on the screen until answered)
+    bool cameIn = false;     // (this side's player has pressed Start in the match: "PRESS START TO JOIN" is said until then)
     bool StartOnline(std::string &error);
     void Matched();
     // A window's match that ended with the other side gone: the host waits for them to come back (the same code, or

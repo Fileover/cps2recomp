@@ -13,7 +13,7 @@
 //   GET  /v1/host/CODE?secret=S                                    -> {joined: false} | {joined: true, addresses}
 //   POST /v1/join/CODE           {game, build, addresses}          -> {addresses} | 404 | 409 {error}
 //   GET  /v1/lobby/GAME?protocol=N                                 -> {matches: [{code, name, waiting}]}
-//   GET  /v1/lobby?protocol=N                                      -> {matches: [{game, code, name, waiting}]}  (every game's)
+//   GET  /v1/lobby?protocol=N                                      -> {matches: [{game, title, code, name, waiting}]}  (every game's)
 //
 // A host that asks for it (`listed`, with a `name` and its `protocol`) is in the lobby, a Durable Object (Lobby) that
 // keeps every game's: there while it is asking whether someone has joined (seen in the last 10 seconds), and until
@@ -133,7 +133,7 @@ export class Match {
     const lobby = this.env.LOBBIES.get(this.env.LOBBIES.idFromName("all"));
     await lobby.fetch(`https://lobby/${what}`, {
       method: "POST",
-      body: JSON.stringify({ code, game: match.game, name: match.name, protocol: match.protocol, made: match.made }),
+      body: JSON.stringify({ code, game: match.game, title: match.title, name: match.name, protocol: match.protocol, made: match.made }),
     });
   }
 
@@ -158,7 +158,8 @@ export class Match {
       }
       const secret = typeof body.secret === "string" && /^[0-9a-f-]{36}$/.test(body.secret) ? body.secret : crypto.randomUUID();
       match = { made: now, secret, game: cleanText(body.game), build: cleanText(body.build), host: cleanAddresses(body.addresses), joiner: null,
-                listed: body.listed === true, name: cleanName(body.name), protocol: Number(body.protocol) || 0, code: url.searchParams.get("code") || "" };
+                listed: body.listed === true, name: cleanName(body.name), title: cleanText(body.title), protocol: Number(body.protocol) || 0,
+                code: url.searchParams.get("code") || "" };
       await this.state.storage.put("match", match);
       await this.state.storage.setAlarm(now + kLifetime);
       await this.lobby(match, "seen", match.code);
@@ -227,7 +228,7 @@ export class Lobby {
           delete matches[code];
           changed = true;
         } else if (m.protocol === protocol && (!game || m.game === game)) {
-          shown.push({ game: m.game, code, name: m.name, waiting: Math.round((now - m.made) / 1000) });
+          shown.push({ game: m.game, title: m.title || m.game, code, name: m.name, waiting: Math.round((now - m.made) / 1000) });
         }
       }
       if (changed) {
@@ -241,7 +242,7 @@ export class Lobby {
       return json({});
     }
     if (url.pathname === "/seen") {
-      matches[body.code] = { game: body.game, name: body.name, protocol: body.protocol, made: body.made, seen: now };
+      matches[body.code] = { game: body.game, title: body.title, name: body.name, protocol: body.protocol, made: body.made, seen: now };
     } else if (url.pathname === "/gone") {
       delete matches[body.code];
     }

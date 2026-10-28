@@ -1739,6 +1739,33 @@ void App::online_page(float width) {
             });
     }
     host.end();
+    // The features about a match (Collection::online_features), as the Features page has them: set for every game
+    if (collection_->online_features) {
+        std::vector<FeatureRow> rows;
+        for (size_t i = 0; i < shared_.size(); i++) {
+            const Shared& shared = shared_[i];
+            if (shared.info.category == collection_->online_features && !shared.where.empty()) {
+                const auto& [which, index] = shared.where[0];
+                rows.push_back({&shared.info, recomp::FeatureValues(slots_[which]->settings, slots_[which]->features)[index], "", i});
+            }
+        }
+        if (!rows.empty()) {
+            ui::gap(24);
+            layout::label("IN A MATCH");
+            feature_list(
+                width, rows, "", [&](const FeatureRow& feature, int value) { set_shared(feature.index, value); },
+                [&](const FeatureRow& feature) {
+                    const auto& [which, index] = shared_[feature.index].where[0];
+                    return recomp::MenuChoices(slots_[which]->settings, slots_[which]->features[index]);
+                },
+                [&](const FeatureRow& feature, const std::vector<bool>& offered) {
+                    for (const auto& [which, index] : shared_[feature.index].where) {
+                        set_menu_choices(*slots_[which], index, offered);
+                    }
+                },
+                false);
+        }
+    }
     // Every game's open matches, by game, in the sidebar's order
     follow_lobby(collection_->lobby);
     ui::gap(24);
@@ -1797,8 +1824,25 @@ void App::online_page(float width) {
             inset_separator(width);
         }
         first = false;
-        std::string detail = match.game + ": " + waited(match) + ". This copy of the launcher hasn't that game: a newer version may.";
-        row(width, match.name.c_str(), detail.c_str(), 0.0f, 24.0f, [] {}, true);
+        // (a game a newer version has: its name as its host's game gave it; the Games page has the updates)
+        std::string detail = (match.title.empty() ? match.game : match.title) + ": " + waited(match) + ". Not in your version of " LAUNCHER_GAME_NAME
+#ifdef LAUNCHER_UPDATE_REPO
+                             ": update to play it.";
+#else
+                             ".";
+#endif
+        ImGui::PushID(n++);
+        row(
+            width, match.name.c_str(), detail.c_str(), 130.0f, 36.0f,
+            [&] {
+#ifdef LAUNCHER_UPDATE_REPO
+                if (ui::button("Update…", Kind::Secondary, 130.0f)) {
+                    page_ = 0;  // (the Games page: the update card)
+                }
+#endif
+            },
+            true);
+        ImGui::PopID();
     }
     list.end();
     (void)p;
@@ -2680,12 +2724,14 @@ void App::menu_choices(float width, const FeatureRow& feature, std::vector<bool>
 // The rows under their categories, narrowed by the search box: only those whose name, description, category or
 // choices have every word typed (Ctrl+F or Cmd+F goes into it)
 template <typename Set, typename Offered, typename SetOffered>
-void App::feature_list(float width, const std::vector<FeatureRow>& rows, const char* none, Set set, Offered offered, SetOffered set_offered) {
+void App::feature_list(float width, const std::vector<FeatureRow>& rows, const char* none, Set set, Offered offered, SetOffered set_offered,
+                       bool whole) {
     const ui::Palette& p = ui::palette();
     if (rows.empty()) {
         ui::text(none, Font::Regular, ui::size::kBody, p.secondary, width);
         return;
     }
+    // (`whole`: a page of features, with the search box and a heading for each category; else a few, as one card)
     if (ImGui::IsKeyChordPressed(ImGuiMod_Ctrl | ImGuiKey_F) || ImGui::IsKeyChordPressed(ImGuiMod_Super | ImGuiKey_F)) {
         focus_search_ = true;
     }
@@ -2693,9 +2739,11 @@ void App::feature_list(float width, const std::vector<FeatureRow>& rows, const c
         ImGui::SetKeyboardFocusHere();
         focus_search_ = false;
     }
-    ui::search_box("##search", feature_search_, sizeof(feature_search_), "Search features", width);
+    if (whole) {
+        ui::search_box("##search", feature_search_, sizeof(feature_search_), "Search features", width);
+    }
     std::vector<std::string> words;
-    {
+    if (whole) {
         std::istringstream typed(lower(feature_search_));
         for (std::string word; typed >> word;) {
             words.push_back(word);
@@ -2719,7 +2767,9 @@ void App::feature_list(float width, const std::vector<FeatureRow>& rows, const c
         std::string count = matches == 0 ? std::string("No features match.") : std::to_string(matches) + " of " + std::to_string(rows.size()) + " features";
         ui::text(count.c_str(), Font::Regular, ui::size::kDetail, p.secondary);
     }
-    ui::gap(20);
+    if (whole) {
+        ui::gap(20);
+    }
     std::vector<std::string> categories;
     for (size_t i = 0; i < rows.size(); i++) {
         const std::string& category = rows[i].info->category;
@@ -2730,8 +2780,10 @@ void App::feature_list(float width, const std::vector<FeatureRow>& rows, const c
     for (const std::string& category : categories) {
         std::string upper = category;
         std::transform(upper.begin(), upper.end(), upper.begin(), [](unsigned char c) { return static_cast<char>(std::toupper(c)); });
-        ui::text(upper.c_str(), Font::Semibold, ui::size::kDetail, p.secondary);
-        ui::gap(10);
+        if (whole) {
+            ui::text(upper.c_str(), Font::Semibold, ui::size::kDetail, p.secondary);
+            ui::gap(10);
+        }
         Card card(width);
         bool first = true;
         for (size_t i = 0; i < rows.size(); i++) {
