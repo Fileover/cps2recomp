@@ -37,11 +37,11 @@ namespace {
         int first; // the value of the first choice after "As the board is set"
     };
     constexpr Setting kSettings[] = {
-        {"board_difficulty", kVars + 0xA0, 0}, {"board_damage", kVars + 0xA1, 0}, {"board_timer", kVars + 0xA2, 0},
-        {"board_speed", kVars + 0xA3, 0},      {"board_rounds", kVars + 0xA4, 1}, {"board_event", kVars + 0xA5, 0},
-        {"board_automatic", kVars + 0xBB, 0},  {"board_continue", kVars + 0x98, 0}, {"board_demo_sound", kVars + 0x99, 0},
+        {"board_difficulty", sfa2::At(kVars + 0xA0), 0}, {"board_damage", sfa2::At(kVars + 0xA1), 0}, {"board_timer", sfa2::At(kVars + 0xA2), 0},
+        {"board_speed", sfa2::At(kVars + 0xA3), 0},      {"board_rounds", sfa2::At(kVars + 0xA4), 1}, {"board_event", sfa2::At(kVars + 0xA5), 0},
+        {"board_automatic", sfa2::At(kVars + 0xBB), 0},  {"board_continue", sfa2::At(kVars + 0x98), 0}, {"board_demo_sound", sfa2::At(kVars + 0x99), 0},
     };
-    constexpr uint32_t kContinue = kVars + 0x98, kEvent = kVars + 0xA5;
+    constexpr uint32_t kContinue = sfa2::At(kVars + 0x98), kEvent = sfa2::At(kVars + 0xA5);
 
     // The board's own values of what was chosen, to put back for its test menu
     uint8_t g_board[std::size(kSettings)];
@@ -107,7 +107,7 @@ void RegisterBoard() {
     game.features.push_back({"board_difficulty", kPage, "Difficulty", "How well the computer fights.", 0,
                              {kAsSet, "Easy", "Normal", "Hard 1", "Hard 2", "Hard 3", "Hard 4", "Hard 5", "Expert"}});
     game.features.push_back({"board_damage", kPage, "Damage level", "How much damage a hit does.", 0,
-                             {kAsSet, "Low", "Medium", "Normal", "High"}});
+                             {kAsSet, sfa2::family::kDamageLevels[0], sfa2::family::kDamageLevels[1], sfa2::family::kDamageLevels[2], sfa2::family::kDamageLevels[3]}});
     game.features.push_back({"board_timer", kPage, "Timer speed", "How fast the round's clock runs.", 0,
                              {kAsSet, "Slow", "Normal", "Fast", "Fastest"}});
     game.features.push_back({"board_speed", kPage, "Game speed",
@@ -120,8 +120,8 @@ void RegisterBoard() {
                              {kAsSet, "Off", "Free select"}});
     game.features.push_back({"board_continue", kPage, "Continue", "Whether a game over can be continued.", 0, {kAsSet, "Off", "On"}});
     game.features.push_back({"board_demo_sound", kPage, "Demo sound", "Whether the attract mode plays sound.", 0, {kAsSet, "Off", "On"}});
-    AddHook(HookAt(0x001096), "SettingsRead", SettingsRead);
-    AddHook(HookAt(0x004B6C), "GameBegins", GameBegins);
+    AddHook(HookAt(sfa2::At(0x001096)), "SettingsRead", SettingsRead);
+    AddHook(HookAt(sfa2::At(0x004B6C)), "GameBegins", GameBegins);
 }
 
 } // namespace cps2recomp

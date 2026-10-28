@@ -21,9 +21,9 @@ namespace {
     using namespace sfa2;
 
     // From A5
-    constexpr int32_t kRoundResult = 0x10C, kRoundTimeOver = 0x10D, kHitGuarded = -0x57D7;
-    constexpr int32_t kAttackerSide = -0x57DA; // word: the record of the attacker's side's player (FFxxxx)
-    constexpr int32_t kKeptA6 = -0x57DE, kKeptA4 = -0x57E2;
+    constexpr int32_t kRoundResult = AtA5(0x10C), kRoundTimeOver = AtA5(0x10D), kHitGuarded = AtA5(-0x57D7);
+    constexpr int32_t kAttackerSide = AtA5(-0x57DA); // word: the record of the attacker's side's player (FFxxxx)
+    constexpr int32_t kKeptA6 = AtA5(-0x57DE), kKeptA4 = AtA5(-0x57E2);
     // In an attack's entry (A3)
     constexpr uint32_t kAttackStrength = 0x08;     // bits 0-4 the strength; bit 7 a special move, bit 6 a super
     constexpr uint32_t kAttackHelperStrength = 0x1A; // (the strength, for a helper's attack)
@@ -31,8 +31,8 @@ namespace {
     constexpr uint32_t kAttackRandom = 0x0E, kAttackRandomLow = 0x0F; // which row of random parts (the second when the attacker's health is low)
     constexpr uint32_t kAttackChips = 0x14;        // not zero: takes chip damage when guarded
     // The tables
-    constexpr uint32_t kBaseTable = 0x09C044, kRandomTable = 0x09C444, kTakesTable = 0x09C844, kTakesTableAuto = 0x09CB44;
-    constexpr uint32_t kLowHealthTable = 0x09CE44, kDamageTable = 0x09D144, kCharacterRows = 0x09E1C4, kCharacterTable = 0x09E1DC;
+    constexpr uint32_t kBaseTable = At(0x09C044), kRandomTable = At(0x09C444), kTakesTable = At(0x09C844), kTakesTableAuto = At(0x09CB44);
+    constexpr uint32_t kLowHealthTable = At(0x09CE44), kDamageTable = At(0x09D144), kCharacterRows = At(0x09E1C4), kCharacterTable = At(0x09E1DC);
     constexpr uint16_t kLowHealth = 0x28;
 
     int PlayerOf(uint32_t record) {
@@ -41,7 +41,7 @@ namespace {
     }
 
     uint32_t SideRecord(M68K &c, uint32_t object) {
-        return Var(c, Mem8(c, object + kSide) ? 0x800 : 0x400);
+        return Var(c, Mem8(c, object + kSide) ? AtA5(0x800) : AtA5(0x400));
     }
 
     // 010C1A: a hit on a player in the middle of an attack, or on a player with a weakness, is worth more (by
@@ -68,7 +68,7 @@ namespace {
         }
     apply:
         // 010C4E: (the jump table's own word is left in D0)
-        SetLow16(c.d[0], static_cast<uint16_t>(Code16(c, 0x010C58 + (c.d[0] & 0xFF) * 2u)));
+        SetLow16(c.d[0], static_cast<uint16_t>(Code16(c, At(0x010C58) + (c.d[0] & 0xFF) * 2u)));
         const uint16_t base = static_cast<uint16_t>(c.d[2]);
         switch (which) {
         case 1: SetLow16(c.d[2], static_cast<uint16_t>(base << 1)); break;
@@ -88,7 +88,7 @@ namespace {
     // its place, so that the same combo always does the same; the game's random numbers are drawn all the same, so
     // that nothing else it does with them changes.)
     uint8_t RandomPart(M68K &c) {
-        Call(c, 0x01975A);
+        Call(c, At(0x01975A));
         SetLow16(c.d[0], c.d[0] & 0x1F);
         if (FeatureOn("fixed_damage")) {
             int sum = 0;
@@ -105,9 +105,9 @@ namespace {
         const uint32_t attacker = c.a[6], victim = c.a[1], attack = c.a[3];
         (void)victim;
         if (Ram8(Var(c, kHitGuarded))) {
-            Call(c, 0x0107B0);
+            Call(c, At(0x0107B0));
         } else {
-            Call(c, 0x010CB6);
+            Call(c, At(0x010CB6));
         }
         c.a[0] = SideRecord(c, attacker);
         if (Mem8(c, c.a[0] + 0x140)) {
@@ -121,14 +121,14 @@ namespace {
             }
         }
         SetRam8(c.a[0] + 0x140, static_cast<uint8_t>(c.d[0]));
-        SetRam8(Var(c, 0x14B), Mem8(c, c.a[0] + kCharacter));
+        SetRam8(Var(c, AtA5(0x14B)), Mem8(c, c.a[0] + kCharacter));
         if (Mem8(c, attacker + 0x3E)) {
             SetRam16(Var(c, kKeptA4), static_cast<uint16_t>(c.a[4]));
             SetRam8(c.a[0] + 0x24D, 6);
             SetRam16(c.a[0] + kSpecialGauge, 0);
             c.d[0] = 1;
         } else {
-            if (!(Mem8(c, attack + kAttackStrength) & 0x40) || Ram8(Var(c, 0x10E))) {
+            if (!(Mem8(c, attack + kAttackStrength) & 0x40) || Ram8(Var(c, AtA5(0x10E)))) {
                 return;
             }
             const uint8_t flash = Mem8(c, attack + 0x16);
@@ -146,8 +146,8 @@ namespace {
             }
         }
         SetLow8(c.d[0], static_cast<uint8_t>((c.d[0] & 0xFF) - 1));
-        SetRam8(Var(c, 0x12B), static_cast<uint8_t>(c.d[0]));
-        Call(c, 0x05CD62);
+        SetRam8(Var(c, AtA5(0x12B)), static_cast<uint8_t>(c.d[0]));
+        Call(c, At(0x05CD62));
         c.a[4] = static_cast<uint32_t>(static_cast<int16_t>(Ram16(Var(c, kKeptA4))));
     }
 
@@ -216,7 +216,7 @@ namespace {
     // damage taken off its health.
     void TakeDamage(M68K &c) {
         const uint32_t attacker = c.a[6], victim = c.a[1], attack = c.a[3];
-        Call(c, 0x010D26); // (the super combo gauge both sides gain)
+        Call(c, At(0x010D26)); // (the super combo gauge both sides gain)
         // The attacker's side's player
         c.a[0] = SideRecord(c, attacker);
         SetRam16(Var(c, kAttackerSide), static_cast<uint16_t>(c.a[0]));
@@ -278,6 +278,9 @@ namespace {
                 stun = 0;
                 SetLow8(c.d[0], 0);
                 SetRam8(victim + kStun, 0);
+                if (family::kHelperHitMarks) {
+                    SetRam8(victim + 0x258, 0xFF); // (as a special's knock-down: family.h)
+                }
             }
             // (the cheat: no stun builds on that player)
             const int player = PlayerOf(victim);
@@ -291,7 +294,7 @@ namespace {
         SetLow16(c.d[2], c.d[2] & 0xFF);
         SetLow8(c.d[0], Mem8(c, victim + kStun));
         if ((c.d[0] & 0xFF) >= Mem8(c, victim + kStunMost)) {
-            Call(c, 0x010C76); // (stunned)
+            Call(c, At(0x010C76)); // (stunned)
         }
         // What the victim's character takes: a row by its character, a column by its own setting
         c.a[0] = Mem8(c, victim + 0xA5) ? kTakesTableAuto : kTakesTable;
@@ -324,9 +327,9 @@ namespace {
                 if (const uint8_t air = Mem8(c, attack + 0x17)) {
                     c.d[0] = air == 1 ? 0x20 : 0x40;
                 }
-                c.a[0] = 0x011594;
+                c.a[0] = At(0x011594);
             } else {
-                c.a[0] = 0x011494;
+                c.a[0] = At(0x011494);
             }
             c.a[0] += static_cast<uint32_t>(static_cast<int16_t>(c.d[0]));
             c.d[0] = 0;
@@ -361,7 +364,7 @@ namespace {
         SetLow8(c.d[4], Mem8(c, c.a[0] + (c.d[3] & 0xFFFF)));
         SetLow16(c.d[4], c.d[4] & 0xFF);
         SetLow16(c.d[3], (c.d[3] + c.d[4]) & 0xFFFF);
-        Call(c, 0x010D94); // (the board's damage setting)
+        Call(c, At(0x010D94)); // (the board's damage setting)
         if ((c.d[3] & 0xFFFF) >= 0x80) {
             c.d[3] = 0x7F;
         }
@@ -381,7 +384,7 @@ void RegisterDamage() {
                              "combo always does the same damage. (On the board each hit's damage varies a little.)"});
     game.features.push_back({"no_stun", "Cheats", "No stun", "Player 1 is never stunned (no stun builds up)."});
     game.features.push_back({"no_stun_2", "Cheats", "No stun, player 2", "Player 2 is never stunned (no stun builds up)."});
-    AddRewrite(0x0108E2, "TakeDamage", TakeDamage, kFreeFlags, 1320);
+    AddRewrite(At(0x0108E2), "TakeDamage", TakeDamage, kFreeFlags, 1320);
 }
 
 } // namespace cps2recomp

@@ -2,6 +2,18 @@
 
 ## Unreleased
 
+- **Street Fighter Zero 2 Alpha** (`games/sfz2al`, the set `sfz2al`, Asia 960826, #135): Alpha 2's later revision,
+  the one played online, with the EX forms of Ryu, Ken, Sagat, M. Bison, Zangief and Dhalsim, Evil Ryu and the
+  classic Chun-Li. It builds Street Fighter Alpha 2's sources, as Vampire Savior 2 builds Vampire Savior's, so it has
+  everything that port has: the training mode with every aid, attract mode, the stage and model viewers, the colour
+  editor, survival, endless battle (and the Multi game page), ring out, the tag team battle with the CPU tagging and
+  coached, the CPU's scripts as readable C++, widescreen and invisible walls, the zoom, the hidden characters at a
+  switch, the board's settings, the music's names. Alpha 2's sources now name their places through `At()` and
+  `AtA5()` (Alpha 2 itself plays the same, frame for frame); this game's `family.h` says where each is here and what
+  differs: the characters with Super Street Fighter II's ways (a byte of the player's, not two numbers), a stun's
+  length, the gauge for a knock-down, pushing apart, the hit test's attack box, M. Bison's and Chun-Li's other forms
+  and the rest, each checked by the rewrites' check on this game's own code. How a place is looked up is one piece of
+  the toolkit now (`runtime/places_in.h`), for Vampire Savior's family too.
 - **Online: win streaks.** In the fighting games, "STREAK N" under a side's life bar once it has won two or more
   matches in a row against the other player (counted when both have pressed Start; a match is won with
   `battle::Description::roundsToWin` rounds, 2 unless a game says: X-Men vs. Street Fighter's tag match, 1). The round's

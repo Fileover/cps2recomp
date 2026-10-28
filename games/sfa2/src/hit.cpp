@@ -15,15 +15,15 @@ namespace {
     using namespace sfa2;
 
     // From A5
-    constexpr int32_t kHitGuarded = -0x57D7, kHitParts = -0x57D8;
-    constexpr int32_t kHeadDistance = -0x5800, kBodyDistance = -0x57FE, kLegsDistance = -0x57FC;
+    constexpr int32_t kHitGuarded = AtA5(-0x57D7), kHitParts = AtA5(-0x57D8);
+    constexpr int32_t kHeadDistance = AtA5(-0x5800), kBodyDistance = AtA5(-0x57FE), kLegsDistance = AtA5(-0x57FC);
     // In an attack's entry
     constexpr uint32_t kAttackKind = 0x0D, kAttackStrength = 0x08, kAttackNumber = 0x12, kAttackHitStop = 0x11;
     // In a player's record
     constexpr uint32_t kGuardBits = 0x69;   // the attack's: what guards it (bit 0 standing, bit 1 crouching)
     constexpr uint32_t kHitByNumber = 0x25C, kHitByCount = 0x280;
 
-    constexpr uint32_t kGuardTables[2] = {0x011438, 0x011456}; // by kind; the second for attacks from the air
+    constexpr uint32_t kGuardTables[2] = {At(0x011438), At(0x011456)}; // by kind; the second for attacks from the air
 
     // 01076E. Guarded
     void Guarded(M68K &c) {
@@ -72,11 +72,11 @@ namespace {
         if (Ram8(victim + kReaction) == 0x1D) {
             SetRam8(victim + kReaction, 0x12);
         }
-        const uint32_t table = Mem8(c, victim + kInAir) ? 0x010834 : 0x0107F0;
+        const uint32_t table = Mem8(c, victim + kInAir) ? At(0x010834) : At(0x0107F0);
         const uint16_t offset = Code16(c, table + (c.d[0] & 0xFFFF));
         SetLow16(c.d[1], offset);
         switch (table + offset) {
-        case 0x0108A4: { // the head hit, nearer than the body: a reaction of its own
+        case At(0x0108A4): { // the head hit, nearer than the body: a reaction of its own
             const uint16_t head = Ram16(Var(c, kHeadDistance));
             SetLow16(c.d[1], head);
             if (head < Ram16(Var(c, kBodyDistance))) {
@@ -85,10 +85,10 @@ namespace {
             SetRam8(victim + kReaction, 1);
             return;
         }
-        case 0x0108C6:
+        case At(0x0108C6):
             SetRam8(victim + kKnocksDown, 1);
             return ReactionByKind(c);
-        case 0x010870: { // (hit in the air: knocked down by a strong one)
+        case At(0x010870): { // (hit in the air: knocked down by a strong one)
             SetRam8(victim + kReaction, 3);
             if (kind == 0x10) {
                 return;
@@ -114,7 +114,7 @@ namespace {
         SetRam8(attacker + kGuardBits, Mem8(c, c.a[0] + kind));
         if (!Mem8(c, attacker + 0x08)) {
             c.d[0] = Mem8(c, attacker + kCharacter);
-            SetRam8(attacker + 0x28E, Code8(c, 0x01054C + c.d[0]));
+            SetRam8(attacker + 0x28E, Code8(c, At(0x01054C) + c.d[0]));
         }
         SetRam8(attacker + 0x5B, 1);
         SetRam8(Var(c, kHitGuarded), 0);
@@ -173,11 +173,11 @@ namespace {
             return Hit(c);
         }
         SetRam8(victim + 0x297, 0);
-        if (Ram8(Var(c, 0x85)) && (Ram8(Var(c, 0x5F65)) & 0x20)) {
+        if (Ram8(Var(c, AtA5(0x85))) && (Ram8(Var(c, AtA5(0x5F65))) & 0x20)) {
             return Guarded(c);
         }
         SetLow16(c.d[0], static_cast<uint16_t>(pose * 2));
-        SetLow16(c.d[1], Code16(c, 0x010682 + (c.d[0] & 0xFFFF)));
+        SetLow16(c.d[1], Code16(c, At(0x010682) + (c.d[0] & 0xFFFF)));
         const uint8_t bits = Ram8(attacker + kGuardBits);
         switch (pose) {
         case 1: // standing
@@ -207,13 +207,13 @@ namespace {
             if (side == Mem8(c, victim + kFacesRight)) {
                 return Hit(c);
             }
-            Call(c, 0x0106F6);
+            Call(c, At(0x0106F6));
             if (c.d[0]) {
-                return Call(c, 0x0342E8);
+                return Call(c, At(0x0342E8));
             }
-            Call(c, 0x010708);
+            Call(c, At(0x010708));
             if (c.d[0]) {
-                return Call(c, 0x0342E8);
+                return Call(c, At(0x0342E8));
             }
             return Hit(c);
         }

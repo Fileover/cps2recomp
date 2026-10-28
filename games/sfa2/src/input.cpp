@@ -20,8 +20,8 @@ namespace {
     constexpr uint32_t kPortOutputs = 0x804040; // coin counters, the settings memory's lines, the sound's switch
     // From A5: a long each of the starts and coins and of the switches, a byte a frame (the newest first); the
     // control words of the frame before (kControls are this frame's)
-    constexpr int32_t kStartsAndCoins = 0x60, kService = 0x64, kVolume = 0x68;
-    constexpr int32_t kControlsBefore[2] = {0x5A, 0x5E};
+    constexpr int32_t kStartsAndCoins = AtA5(0x60), kService = AtA5(0x64), kVolume = AtA5(0x68);
+    constexpr int32_t kControlsBefore[2] = {AtA5(0x5A), AtA5(0x5E)};
 
     uint8_t Port(M68K &c, uint32_t address) {
         return static_cast<uint8_t>(~Mem8(c, address));
@@ -30,17 +30,17 @@ namespace {
     // 0013CE. The frame's registers: the objects' bank and the layers' order, then the panel.
     void FrameRegisters(M68K &c) {
         // The video: the layer control word (the high bit of which picks the object registers' value)
-        uint16_t layers = static_cast<uint16_t>((Ram8(Var(c, 0x96)) << 8) | Ram16(Var(c, 0x30)));
+        uint16_t layers = static_cast<uint16_t>((Ram8(Var(c, AtA5(0x96))) << 8) | Ram16(Var(c, AtA5(0x30))));
         SetLow16(c.d[0], layers);
         c.Write(0x800122, 1, layers);
         const uint16_t objects = (layers & 0x8000) ? 0x808E : 0x807D;
         SetLow16(c.d[1], objects);
         c.Write(0x400002, 1, objects);
-        c.Write(0x800166, 1, Ram16(Var(c, 0x32)));
-        if (!Ram8(Var(c, 0x87))) {
+        c.Write(0x800166, 1, Ram16(Var(c, AtA5(0x32))));
+        if (!Ram8(Var(c, AtA5(0x87)))) {
             // (the outputs, unless the settings memory is being worked: then its own routines own the port)
-            uint16_t outputs = static_cast<uint16_t>(Ram16(Var(c, 0x6A)) & 0x7F33);
-            outputs = static_cast<uint16_t>(outputs | Ram8(Var(c, 0x88)) | Ram8(Var(c, 0xD1)));
+            uint16_t outputs = static_cast<uint16_t>(Ram16(Var(c, AtA5(0x6A))) & 0x7F33);
+            outputs = static_cast<uint16_t>(outputs | Ram8(Var(c, AtA5(0x88))) | Ram8(Var(c, AtA5(0xD1))));
             SetLow16(c.d[0], outputs);
             c.Write(kPortOutputs, 1, outputs);
         }
@@ -78,17 +78,17 @@ namespace {
             SetRam8(Var(c, kControls[player]), buttons);
         }
         // (the kicks' port as it was read, this frame and the last)
-        SetRam8(Var(c, 0x5F69), Ram8(Var(c, 0x5F68)));
-        SetRam8(Var(c, 0x5F68), Mem8(c, 0x804010));
+        SetRam8(Var(c, AtA5(0x5F69)), Ram8(Var(c, AtA5(0x5F68))));
+        SetRam8(Var(c, AtA5(0x5F68)), Mem8(c, 0x804010));
         // The scroll registers for the frame (0014CC), and something cleared
-        Call(c, 0x0014CC);
+        Call(c, At(0x0014CC));
         c.d[0] = 0;
-        SetRam32(Var(c, 0x5F64), 0);
+        SetRam32(Var(c, AtA5(0x5F64)), 0);
     }
 } // namespace
 
 void RegisterInput() {
-    AddRewrite(0x0013CE, "FrameRegisters", FrameRegisters, kFreeFlags, 800);
+    AddRewrite(At(0x0013CE), "FrameRegisters", FrameRegisters, kFreeFlags, 800);
 }
 
 } // namespace cps2recomp
