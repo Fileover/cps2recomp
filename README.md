@@ -240,6 +240,11 @@ cps2recomp-launcher --play sfa3 -- --join K7Q-M2X          # the other player: t
   the time of one frame. Up to 8 frames are guessed; past that the game waits for the other side.
 - **The two games are checked against each other**: every second each side sends the other a fingerprint of the
   game; if they ever differ, the match stops and says so (a desync, which should not happen).
+- **The ping** is said at the bottom of the screen all through a match ("PING 42 ms"), and "WAITING FOR THE OTHER
+  PLAYER" if their game goes quiet for a moment.
+- **Coming back after a drop**: if the other player's game closes or their connection drops, the host's game stays
+  open and waits for them with the same code; a joining player whose connection dropped is taken back to the host by
+  itself. The two games then start over together from the title. (The host closing their game ends the match.)
 - **Off during a match**: the in-game menu, save states, pause, the speed, run-ahead, the training mode and the
   other modes (endless battle, tag team, the viewers). A match ends when either player closes their game.
 

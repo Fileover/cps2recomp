@@ -51,6 +51,8 @@ namespace {
         kControls = 4, // either: controls, and the rest of what each frame says (Netplay::SendInputs)
         kBye = 5,     // either: this side has left
         kPunch = 6,   // host -> joining, before the hello: nothing, but it opens the host's router to them
+        kPiece = 7,   // host -> joining: a piece of the game's state as the match begins (Netplay::state)
+        kPieceAck = 8, // joining -> host: how many pieces have come, all before that one
     };
 
     struct Writer {
@@ -407,6 +409,17 @@ bool Netplay::Begin(Port &port, std::string &error) {
             }
         }
         welcome.Text(features);
+        // (the game as it is, waiting: the state the match begins from, sent in pieces once someone has come)
+        std::vector<uint8_t> raw;
+        port.KeepState(raw);
+        uLongf packed = compressBound(static_cast<uLong>(raw.size()));
+        state.resize(packed);
+        compress2(state.data(), &packed, raw.data(), static_cast<uLong>(raw.size()), 6);
+        state.resize(packed);
+        stateSize = raw.size();
+        chunks = static_cast<uint32_t>((state.size() + kChunk - 1) / kChunk);
+        welcome.U32(static_cast<uint32_t>(stateSize));
+        welcome.U32(static_cast<uint32_t>(state.size()));
         greeting = welcome.out;
         waiting = "Waiting for the other player (UDP port " + std::to_string(settings.port) + ")";
     } else {
@@ -633,7 +646,9 @@ bool Netplay::Introduce(uint64_t now, std::string &error) {
         }
         // (with where the internet sees us, or without: then only the addresses of this machine's networks)
         if (settings.hosting) {
-            ask("POST", "/v1/host", "{" + about + ",\"addresses\":" + Addresses() + "}");
+            const std::string again = settings.renewCode.empty() ? ""
+                                      : "\"code\":\"" + settings.renewCode + "\",\"secret\":\"" + settings.renewSecret + "\",";
+            ask("POST", "/v1/host", "{" + again + about + ",\"addresses\":" + Addresses() + "}");
         } else {
             ask("POST", "/v1/join/" + joinCode, "{" + about + ",\"addresses\":" + Addresses() + "}");
         }
@@ -756,8 +771,11 @@ int Netplay::Waiting(Port &port, std::string &error) {
             } else if (found && from == peer && packet[4] == kControls) {
                 Take(packet, static_cast<size_t>(got)); // (they have the welcome: the match is on)
                 break;
+            } else if (found && from == peer && packet[4] == kPieceAck) {
+                chunksHad = std::max(chunksHad, in.U32());
             } else if (found && from == peer && packet[4] == kBye) {
                 found = false; // (they left before it began)
+                chunksHad = 0;
             }
         }
         if (got >= 0) {
@@ -765,9 +783,20 @@ int Netplay::Waiting(Port &port, std::string &error) {
             fprintf(stderr, "online: the match is on: you are player 1 (%d frame%s of delay)\n", delay, delay == 1 ? "" : "s");
             return 1;
         }
-        if (found && now - sent > 250) {
+        if (found && now - sent > 250 && chunksHad == 0) {
             Send(greeting);
             sent = now;
+        }
+        // (the state, in pieces: those the other side hasn't said it has, a window at a time, again until it has them)
+        if (found && chunksHad < chunks && now - chunkSent > 40) {
+            for (uint32_t n = chunksHad; n < chunks && n < chunksHad + 32; n++) {
+                Writer piece(kPiece);
+                piece.U32(n);
+                const size_t at = static_cast<size_t>(n) * kChunk;
+                piece.Bytes(state.data() + at, std::min(kChunk, state.size() - at));
+                Send(piece.out);
+            }
+            chunkSent = now;
         }
         // (someone joined by the code: packets their way, which open this side's router to their hello)
         if (!found && !candidates.empty() && now - punchedAt > 250) {
@@ -792,9 +821,15 @@ int Netplay::Waiting(Port &port, std::string &error) {
                                  : "The host of match " + Spaced(joinCode) + " couldn't be reached through the two networks' routers.";
         return -1;
     }
-    if (now - sent > 250) {
-        for (const NetAddress &to : candidates) {
-            SendTo(to, greeting);
+    if (now - sent > (welcomed ? 100 : 250)) {
+        if (welcomed) {
+            Writer ack(kPieceAck);
+            ack.U32(chunksHad);
+            Send(ack.out);
+        } else {
+            for (const NetAddress &to : candidates) {
+                SendTo(to, greeting);
+            }
         }
         sent = now;
     }
@@ -808,7 +843,33 @@ int Netplay::Waiting(Port &port, std::string &error) {
             error = in.Text();
             return -1;
         }
-        if (packet[4] != kWelcome) {
+        if (packet[4] == kPiece && welcomed && from == peer) {
+            const uint32_t n = in.U32();
+            const size_t size = in.U16();
+            const size_t at = static_cast<size_t>(n) * kChunk;
+            if (n < chunks && in.Has(size) && at + size <= state.size()) {
+                memcpy(state.data() + at, in.at, size);
+                had[n] = true;
+                while (chunksHad < chunks && had[chunksHad]) {
+                    chunksHad++;
+                }
+            }
+            if (chunksHad == chunks) {
+                // (all here: the host's game, as this side's)
+                std::vector<uint8_t> raw(stateSize);
+                uLongf size = static_cast<uLongf>(stateSize);
+                if (uncompress(raw.data(), &size, state.data(), static_cast<uLong>(state.size())) != Z_OK || size != stateSize) {
+                    error = "The host's game did not come whole.";
+                    return -1;
+                }
+                port.PutBackState(raw);
+                lastHeard = now;
+                fprintf(stderr, "online: the match is on: you are player 2 (%d frame%s of delay)\n", delay, delay == 1 ? "" : "s");
+                return 1;
+            }
+            continue;
+        }
+        if (packet[4] != kWelcome || welcomed) {
             continue;
         }
         peer = from;
@@ -836,11 +897,26 @@ int Netplay::Waiting(Port &port, std::string &error) {
             at = comma + 1;
         }
         Settle(false, host);
-        lastHeard = now;
-        fprintf(stderr, "online: the match is on: you are player 2 (%d frame%s of delay)\n", delay, delay == 1 ? "" : "s");
-        return 1;
+        stateSize = in.U32();
+        state.assign(in.U32(), 0);
+        if (!in.ok || stateSize == 0 || state.empty() || state.size() > (16u << 20)) {
+            error = "The host's welcome did not make sense.";
+            return -1;
+        }
+        chunks = static_cast<uint32_t>((state.size() + kChunk - 1) / kChunk);
+        had.assign(chunks, false);
+        welcomed = true;
+        sent = 0; // (the first ack at once)
     }
     return 0;
+}
+
+int Netplay::Ping() const {
+    return std::max(0, static_cast<int>(std::lround(ping - 1000.0 / Machine::kFramesPerSecond)));
+}
+
+uint64_t Netplay::Silent() const {
+    return NowMs() - lastHeard;
 }
 
 bool Netplay::Connect(Port &port, std::string &error) {
@@ -880,6 +956,7 @@ void Netplay::Take(const uint8_t *data, size_t size) {
         if (ended.empty()) { // (the first reason is the one: a desync is followed by a goodbye)
             ended = data[4] == kBye ? "The other player left." : in.Text();
             failed = data[4] == kRefuse;
+            left = data[4] == kBye;
         }
         return;
     }
@@ -946,7 +1023,7 @@ bool Netplay::Ready(uint64_t frame) {
     Compare();
     if (ended.empty() && NowMs() - lastHeard > 5000) {
         ended = "Lost the connection to the other player.";
-        failed = true;
+        failed = lost = true;
     }
     if (!ended.empty()) {
         return false;
