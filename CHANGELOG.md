@@ -2,6 +2,31 @@
 
 ## Unreleased
 
+- **Online: win streaks.** In the fighting games, "STREAK N" under a side's life bar once it has won two or more
+  matches in a row against the other player (counted when both have pressed Start; a match is won with
+  `battle::Description::roundsToWin` rounds, 2 unless a game says: X-Men vs. Street Fighter's tag match, 1). The round's
+  result comes from the fighting toolkit (`battle::RoundResultNow`); each is counted once, a second's quiet before
+  the next, so a frame rollback runs again is not counted twice. Both machines count alike.
+- **Online: the cheats are off during a match**, on both sides (no damage for the host's player made it no match);
+  the host's Game and Board features still carry over. **Join with a code** on the launcher's Online page: a code for
+  a match in any of the games, Join; the service says which game it is for (`GET /v1/code/CODE`) and the launcher
+  starts that one (a game whose ROM set isn't added is said, with Add…). The game sends its name and protocol to the
+  service with every match now, not only a listed one.
+- **What online play needs of every game, written down and checked**: `docs/TOOLKIT.md`'s "Online play: what every
+  game must keep to" (everything a game's sources keep between frames in its save state; play-changing features in
+  Game, Board or Cheats), pointed to from `CONTRIBUTING.md` and `docs/RELEASING.md`; a release's checks
+  (`tools/release/checks.sh`) run `check-rollback` and `check-online` for every game.
+- **Online: the ping and the input delay, each a switch** (each player's own), on the launcher's Online page under In
+  a match and on the Features page (their category, Online): **Ping** (on in Enhanced) and **Input delay** ("DELAY 2",
+  off unless chosen). The leave prompt: in a match, Esc (or the menu's button) asks **Leave the match?** over the game,
+  which goes on; Confirm leaves, Back stays (drawn by the port, over the readout, which the fighting games' sources
+  set every frame). The Online page shows Open matches first. **PRESS START TO JOIN**
+  at the bottom until this side's player has pressed Start in the match. On the Online page, matches in a game whose
+  ROM set isn't added are greyed, with **Add…** to choose it, and those of a game this launcher hasn't are greyed too.
+- **The launcher's Online page**: after Multi game in the sidebar, every game's open matches in the lobby, each with
+  its game and Join, and **Host in the lobby** in any of your games, under your name (recomp-common's
+  `Collection::lobby`). The service keeps one lobby for every game now: `GET /v1/lobby?protocol=N` lists them all,
+  each with its game; `GET /v1/lobby/GAME` still lists one game's.
 - **Online: the wait said in short lines**, the match code on a line of its own in green and "Listed in the lobby"
   under it (a readout line can now have a colour: `HudLine`'s `r`, `g`, `b`). The one long line flickered: with its
   dots it grew wider than the picture, and a line wider than the picture is not drawn.

@@ -1695,6 +1695,150 @@ void App::online_page(float width) {
             playable.push_back(which);
         }
     }
+    // Every game's open matches, by game, in the sidebar's order
+    follow_lobby(collection_->lobby);
+    layout::label("OPEN MATCHES");
+    Card list(width);
+    if (lobby_.empty()) {
+        const char* empty = lobby_failed_ ? "Couldn't reach the online service." : lobby_at_ == 0 ? "Looking…" : "None right now. They show here as players host them.";
+        row(width, empty, "", 0.0f, 24.0f, [] {});
+    }
+    // (the games of the collection's in the sidebar's order, then those it hasn't: another version's games, say)
+    bool first = true;
+    int n = 0;
+    const auto waited = [](const launcher::OpenMatch& match) {
+        const int minutes = match.waiting / 60;
+        return minutes < 1 ? std::string("waiting for a player") : "waiting " + std::to_string(minutes) + " min";
+    };
+    for (size_t which : order_) {
+        const Slot& one = *slots_[which];
+        for (const launcher::OpenMatch& match : lobby_) {
+            if (match.game != one.id) {
+                continue;
+            }
+            if (!first) {
+                inset_separator(width);
+            }
+            first = false;
+            // (a game whose file isn't chosen yet: greyed, and Add…, which chooses it as the Games page's Choose… does: it has
+            // no page of its own until then)
+            bool file;
+            {
+                std::lock_guard<std::mutex> lock(mutex_);
+                file = !one.checking && one.file.usable();
+            }
+            const bool ready = can_play(which);
+            std::string detail = one.name + ": " + waited(match) + (file ? "" : ". Add your " + one.name + " " + collection_->file_name + " to join.");
+            ImGui::PushID(n++);
+            row(
+                width, match.name.c_str(), detail.c_str(), 130.0f, 36.0f,
+                [&] {
+                    if (!file) {
+                        if (ui::button("Add…", Kind::Secondary, 130.0f, !one.checking)) {
+                            // (the system's file dialog wants a mouse or a keyboard)
+                            if (ui::gamepad_in_use()) {
+                                open_browser(which, false);
+                            } else {
+                                choose_game_file(which);
+                            }
+                        }
+                    } else if (ui::button("Join", Kind::Secondary, 130.0f, ready)) {
+                        play(which, {one.about->online.join_argument, match.code});
+                    }
+                },
+                !file);
+            ImGui::PopID();
+        }
+    }
+    for (const launcher::OpenMatch& match : lobby_) {
+        if (std::any_of(slots_.begin(), slots_.end(), [&](const auto& one) { return one->id == match.game; })) {
+            continue;
+        }
+        if (!first) {
+            inset_separator(width);
+        }
+        first = false;
+        // (a game a newer version has: its name as its host's game gave it; the Games page has the updates)
+        std::string detail = (match.title.empty() ? match.game : match.title) + ": " + waited(match) + ". Not in your version of " LAUNCHER_GAME_NAME
+#ifdef LAUNCHER_UPDATE_REPO
+                             ": update to play it.";
+#else
+                             ".";
+#endif
+        ImGui::PushID(n++);
+        row(
+            width, match.name.c_str(), detail.c_str(), 130.0f, 36.0f,
+            [&] {
+#ifdef LAUNCHER_UPDATE_REPO
+                if (ui::button("Update…", Kind::Secondary, 130.0f)) {
+                    page_ = 0;  // (the Games page: the update card)
+                }
+#endif
+            },
+            true);
+        ImGui::PopID();
+    }
+    list.end();
+    // Join with a code: which game it is for, asked of the service, and that game started with it
+    if (collection_->code_lookup) {
+        if (join_lookup_.valid() && join_lookup_.wait_for(std::chrono::seconds(0)) == std::future_status::ready) {
+            const launcher::CodeLookup found = join_lookup_.get();
+            join_needs_ = -1;
+            join_said_.clear();
+            size_t which = slots_.size();
+            for (size_t n = 0; n < slots_.size(); n++) {
+                if (slots_[n]->id == found.game) {
+                    which = n;
+                }
+            }
+            if (found.status == 200 && which < slots_.size() && can_play(which)) {
+                play(which, {slots_[which]->about->online.join_argument, join_code_});
+            } else if (found.status == 200 && which < slots_.size()) {
+                join_said_ = "That's a " + slots_[which]->name + " match: add your " + collection_->file_name + " to join it.";
+                join_needs_ = static_cast<int>(which);
+            } else if (found.status == 200) {
+                join_said_ = "That's a " + found.title + " match, which your version of " LAUNCHER_GAME_NAME " hasn't: update to play it.";
+            } else if (found.status == 404) {
+                join_said_ = "There's no match with that code. Codes last 30 minutes, and each is good for one match.";
+            } else if (found.status != 0) {
+                join_said_ = found.error.empty() ? "That match can't be joined." : found.error;
+            } else {
+                join_said_ = "Couldn't reach the online service.";
+            }
+        }
+        ui::gap(24);
+        layout::label("JOIN WITH A CODE");
+        Card join(width);
+        // (its letters and digits, and dashes: it goes at the end of a URL)
+        std::string code;
+        for (const char* c = join_code_; *c; c++) {
+            if (std::isalnum(static_cast<unsigned char>(*c)) || *c == '-') {
+                code += *c;
+            }
+        }
+        const bool asking = join_lookup_.valid();
+        row(width, "Code", join_said_.empty() ? "The code a host gave you, for a match in any of the games." : join_said_.c_str(), 330.0f, 36.0f,
+            [&] {
+                if (ui::text_field("##join_code", join_code_, sizeof(join_code_), "K7Q-M2X", 190.0f)) {
+                    join_said_.clear();
+                    join_needs_ = -1;
+                }
+                ImGui::SameLine(0.0f, px(10));
+                if (join_needs_ >= 0) {
+                    if (ui::button("Add…", Kind::Secondary, 130.0f)) {
+                        if (ui::gamepad_in_use()) {
+                            open_browser(static_cast<size_t>(join_needs_), false);
+                        } else {
+                            choose_game_file(static_cast<size_t>(join_needs_));
+                        }
+                    }
+                } else if (ui::button(asking ? "Joining…" : "Join", Kind::Secondary, 130.0f, !asking && !code.empty())) {
+                    join_lookup_ = std::async(std::launch::async, [url = std::string(collection_->code_lookup) + code] { return launcher::lookup_code(url); });
+                }
+            });
+        join.end();
+    }
+    ui::gap(24);
     layout::label("HOST IN THE LOBBY");
     Card host(width);
     row(width, "Your name", "How the lobby shows the matches you host.", 190.0f, 36.0f, [&] {
@@ -1766,85 +1910,6 @@ void App::online_page(float width) {
                 false);
         }
     }
-    // Every game's open matches, by game, in the sidebar's order
-    follow_lobby(collection_->lobby);
-    ui::gap(24);
-    layout::label("OPEN MATCHES");
-    Card list(width);
-    if (lobby_.empty()) {
-        const char* empty = lobby_failed_ ? "Couldn't reach the online service." : lobby_at_ == 0 ? "Looking…" : "None right now. They show here as players host them.";
-        row(width, empty, "", 0.0f, 24.0f, [] {});
-    }
-    // (the games of the collection's in the sidebar's order, then those it hasn't: another version's games, say)
-    bool first = true;
-    int n = 0;
-    const auto waited = [](const launcher::OpenMatch& match) {
-        const int minutes = match.waiting / 60;
-        return minutes < 1 ? std::string("waiting for a player") : "waiting " + std::to_string(minutes) + " min";
-    };
-    for (size_t which : order_) {
-        const Slot& one = *slots_[which];
-        for (const launcher::OpenMatch& match : lobby_) {
-            if (match.game != one.id) {
-                continue;
-            }
-            if (!first) {
-                inset_separator(width);
-            }
-            first = false;
-            // (a game whose file isn't chosen yet: greyed, and Add, to its page, where it is chosen)
-            bool file;
-            {
-                std::lock_guard<std::mutex> lock(mutex_);
-                file = !one.checking && one.file.usable();
-            }
-            const bool ready = can_play(which);
-            std::string detail = one.name + ": " + waited(match) + (file ? "" : ". Add your " + one.name + " " + collection_->file_name + " to join.");
-            ImGui::PushID(n++);
-            row(
-                width, match.name.c_str(), detail.c_str(), 130.0f, 36.0f,
-                [&] {
-                    if (!file) {
-                        if (ui::button("Add…", Kind::Secondary, 130.0f)) {
-                            set_page(one.id);
-                        }
-                    } else if (ui::button("Join", Kind::Secondary, 130.0f, ready)) {
-                        play(which, {one.about->online.join_argument, match.code});
-                    }
-                },
-                !file);
-            ImGui::PopID();
-        }
-    }
-    for (const launcher::OpenMatch& match : lobby_) {
-        if (std::any_of(slots_.begin(), slots_.end(), [&](const auto& one) { return one->id == match.game; })) {
-            continue;
-        }
-        if (!first) {
-            inset_separator(width);
-        }
-        first = false;
-        // (a game a newer version has: its name as its host's game gave it; the Games page has the updates)
-        std::string detail = (match.title.empty() ? match.game : match.title) + ": " + waited(match) + ". Not in your version of " LAUNCHER_GAME_NAME
-#ifdef LAUNCHER_UPDATE_REPO
-                             ": update to play it.";
-#else
-                             ".";
-#endif
-        ImGui::PushID(n++);
-        row(
-            width, match.name.c_str(), detail.c_str(), 130.0f, 36.0f,
-            [&] {
-#ifdef LAUNCHER_UPDATE_REPO
-                if (ui::button("Update…", Kind::Secondary, 130.0f)) {
-                    page_ = 0;  // (the Games page: the update card)
-                }
-#endif
-            },
-            true);
-        ImGui::PopID();
-    }
-    list.end();
     (void)p;
 }
 

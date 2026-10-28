@@ -10,7 +10,7 @@
 //
 // --host [PORT] waits for the other player; --join ADDRESS[:PORT] goes to them. The host is player 1. Before the
 // first frame the two make sure they are the same game, and the joining side takes the host's board settings
-// (the settings memory) and the features that change play (Game, Board and Cheats, and widescreen); the rest of
+// (the settings memory) and the features that change play (Game and Board, and widescreen); the cheats and the rest of
 // the alternative modes, training, run-ahead and the like stay off. Every so often each sends the other a hash of
 // the game as it was at a frame both have the real controls for; if the two differ, the games have come apart
 // (a desync), and the match stops, saying so.
@@ -105,6 +105,9 @@ public:
     // The time a packet takes there and back (ms; the frame's wait for it to be read taken off), and how long since the
     // other side was last heard
     int Ping() const;
+    int Delay() const {
+        return delay;
+    }
     uint64_t Silent() const;
     // This side's player (0: player 1)
     int Local() const {

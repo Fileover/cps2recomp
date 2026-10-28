@@ -29,4 +29,12 @@ struct OpenMatch {
 // answer
 bool fetch_lobby(const std::string& url, std::vector<OpenMatch>& matches);
 
+// Which game a match's code is for (Collection::code_lookup): the HTTP status (0: no answer), and from a 200 the
+// game's id and name, or from another the service's error
+struct CodeLookup {
+    int status = 0;
+    std::string game, title, error;
+};
+CodeLookup lookup_code(const std::string& url);
+
 }  // namespace launcher

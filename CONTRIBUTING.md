@@ -46,6 +46,8 @@ which only someone with their ROM sets can run (`rom/<id>/`):
 
 - `make GAME=<id> check FRAMES=40000 MOVIE=games/<id>/movies/ladder.txt`: the interpreter and the translated
   code must give the same state after every frame, and two runs must be alike;
+- `make GAME=<id> check-rollback` and `check-online`: what online play needs of every game, a new one above all
+  (everything its sources keep between frames in its save state: [docs/TOOLKIT.md](docs/TOOLKIT.md), Online play).
 - `make GAME=<id> check-rewrites`: every hand-written routine of the game against the code it replaces;
   `check-blocks`: every translated block beside the interpreter; `check-sound`: the sound driver against the
   game's sound program;
