@@ -65,7 +65,9 @@ put both beside the game.
 
 Built by cross-compiling with MinGW-w64 on Linux (`tools/release/windows.sh`), or in an MSYS2 UCRT64 shell with
 `mingw-w64-ucrt-x86_64-{gcc,cmake,ninja,python,sdl3,zlib}` and the same targets. Microsoft's compiler has not
-been tried.
+been tried. For the shaders, `rustup target add x86_64-pc-windows-gnu` and `tools/librashader.sh --windows`
+(`tools/release/windows.sh` runs it), which makes `librashader.dll` and the presets in
+`build/deps/librashader-windows-x64/`: put both beside the game.
 
 ## The checks
 
