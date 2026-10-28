@@ -1,6 +1,11 @@
 # Changelog
 
-## Unreleased
+## 1.0.0
+
+The first full release, no longer a beta. **Online play** for every game: rollback netcode, matches hosted with a code
+or listed in a lobby, joined from the launcher's new Online page, with the ping and win streaks on screen and a
+dropped player let back in. **Three more games**: Street Fighter Zero 2 Alpha, Marvel Super Heroes vs. Street Fighter
+and Marvel vs. Capcom, seventeen in all. And a much shorter README, with a page for each big feature.
 
 - **Online: both players on the same version.** The launcher shows its version at the top of the sidebar; an open
   match says its host's version, and one on another version is greyed and can't be joined (recomp-common #31); the
