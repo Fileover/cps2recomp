@@ -119,8 +119,8 @@ every time:
    A game that uses another's sources (`sources =` in `game.cfg`, `fight/marvel.cpp` and the like) saves theirs too.
    Code that only draws, names or logs may keep what it likes. `RunningAhead()` is run-ahead's, whose frames are
    thrown away; a frame online runs again is a real one, so nothing may be left out for it.
-2. **A feature that changes how the game plays is in the Game, Board or Cheats category** (or is the widescreen):
-   the joining side takes the host's for the match. Display, Sound and Online are each player's own; every other
+2. **A feature that changes how the game plays is in the Game or Board category** (or is the widescreen): the
+   joining side takes the host's for the match. The Cheats are off for both, for a fair match. Display, Sound and Online are each player's own; every other
    category (the modes, training, the viewers) is off during a match.
 
 Two checks prove it, and every game must pass both before its pull request (they are part of section 6 of adding a

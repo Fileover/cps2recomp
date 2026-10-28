@@ -222,6 +222,8 @@ cps2recomp-launcher --play sfa3 -- --host                  # the host: shows a c
 cps2recomp-launcher --play sfa3 -- --join K7Q-M2X          # the other player: the host's code (or address)
 ```
 
+- **Join with a code** on the launcher's Online page: type a code a host gave you, for a match in any of the games,
+  and press Join: the launcher starts the game the match is in.
 - **The lobby** (opt-in): switch on **List my matches in the lobby** on the Online card and give **Your name**, and the
   matches you host are listed under **Open matches** on every other player's card for that game, until someone joins;
   they press Join. Matches not listed are joined only with their code.
@@ -239,7 +241,7 @@ cps2recomp-launcher --play sfa3 -- --join K7Q-M2X          # the other player: t
   presses theirs ("Here comes a new challenger").
 - **Each player plays with their own player 1 controls**, and hears and sees the game as their own settings have it
   (the Display page, the shader, the zoom, the custom soundtrack). The match takes the host's board settings
-  (difficulty, timer, rounds...) and the host's features that change play (free play, the cheats, arcade timing,
+  (difficulty, timer, rounds...) and the host's features that change play (free play, arcade timing,
   widescreen, hidden characters...), for the match only: the other player's own are left as they are.
 - **Rollback**: each side runs the game with both players' controls, its own player's held back 2 frames (as a
   board's game might be; `--net-delay N` on the host, 0 to 8), and the other player's guessed until they come. When
@@ -257,7 +259,7 @@ cps2recomp-launcher --play sfa3 -- --join K7Q-M2X          # the other player: t
   itself. The two games then start over together from the title. (The host closing their game ends the match.)
 - **Leaving a match**: Esc, or the gamepad's menu button, asks **Leave the match?** over the game (which goes on);
   Confirm leaves, Back stays.
-- **Off during a match**: the in-game menu, save states, pause, the speed, run-ahead, the training mode and the
+- **Off during a match**: the cheats (on both sides, for a fair match), the in-game menu, save states, pause, the speed, run-ahead, the training mode and the
   other modes (endless battle, tag team, the viewers). A match ends when either player closes their game.
 
 ### A custom soundtrack

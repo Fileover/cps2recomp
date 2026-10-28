@@ -268,7 +268,12 @@ private:
     char online_address_[256] = {};  // the Online card's Join address (launcher.ini [online] address)
     bool online_loaded_ = false;
     std::vector<std::string> online_here_;  // this machine's addresses, as the Host row says them
-    char online_name_[64] = {};  // the player's name, as the lobby shows a match they host ([online] name)
+    char online_name_[64] = {};
+    // (the Online page's Join with a code: what is typed, the lookup of which game it is for, and what it said)
+    char join_code_[32] = {};
+    std::future<launcher::CodeLookup> join_lookup_;
+    std::string join_said_;
+    int join_needs_ = -1;  // (a game whose file must be chosen first: Add…)  // the player's name, as the lobby shows a match they host ([online] name)
     // (the lobby's list: fetched every few seconds while the card is shown, on another thread)
     std::future<std::pair<bool, std::vector<launcher::OpenMatch>>> lobby_fetch_;
     std::vector<launcher::OpenMatch> lobby_;

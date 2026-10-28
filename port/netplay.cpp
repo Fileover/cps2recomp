@@ -96,17 +96,20 @@ namespace {
     };
 
     // Which features the joining side takes from the host: those that change how the game plays. Each player's
-    // own: how the picture is shown and the sound. Off for both: the rest (the alternative modes, training, the
-    // viewers: kept apart from the save state, or not worked out for two machines yet), and run-ahead (rollback
-    // does what it does).
+    // own: how the picture is shown and the sound. Off for both: the cheats (a fair match), and the rest (the
+    // alternative modes, training, the viewers: kept apart from the save state, or not worked out for two machines
+    // yet), and run-ahead (rollback does what it does).
     enum class Share { Host, Own, Off, Keep };
     Share Shared(const Feature &feature) {
         const std::string category = feature.category, name = feature.name;
         if (name == "run_ahead" || name == "custom_colours") {
             return Share::Off; // (custom colours: each player's own library, which the other side has not)
         }
-        if (name.rfind("widescreen", 0) == 0 || category == "Game" || category == "Board" || category == "Cheats") {
+        if (name.rfind("widescreen", 0) == 0 || category == "Game" || category == "Board") {
             return Share::Host;
+        }
+        if (category == "Cheats") {
+            return Share::Off; // (a fair match: no damage for the host's player, say, is not)
         }
         if (category == "Display" || category == "Sound" || category == "Online") {
             return Share::Own; // (how each player sees and hears it, and what their screen says of the match)
@@ -614,7 +617,8 @@ bool Netplay::Introduce(uint64_t now, std::string &error) {
         });
     };
     const auto answered = [&] { return asking.valid() && asking.wait_for(std::chrono::seconds(0)) == std::future_status::ready; };
-    const std::string about = "\"game\":\"" GAME_ID "\",\"build\":\"" + std::to_string(build) + "\"";
+    const std::string about = "\"game\":\"" GAME_ID "\",\"title\":\"" GAME_NAME "\",\"protocol\":" + std::to_string(kProtocol) +
+                              ",\"build\":\"" + std::to_string(build) + "\"";
     if (getenv("CPS2RECOMP_NET_DEBUG")) {
         static int last = -1;
         if (last != static_cast<int>(intro)) {
@@ -660,7 +664,7 @@ bool Netplay::Introduce(uint64_t now, std::string &error) {
                         name += c;
                     }
                 }
-                listed = ",\"listed\":true,\"name\":\"" + name + "\",\"title\":\"" GAME_NAME "\",\"protocol\":" + std::to_string(kProtocol);
+                listed = ",\"listed\":true,\"name\":\"" + name + "\"";
             }
             ask("POST", "/v1/host", "{" + again + about + listed + ",\"addresses\":" + Addresses() + "}");
         } else {

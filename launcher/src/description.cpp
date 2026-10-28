@@ -290,6 +290,8 @@ const launcher::Collection& launcher::describe_collection() {
         // (online play's lobby, every game's: online/, Netplay::kService, kProtocol)
         static const std::string lobby = std::string(port::Netplay::kService) + "/v1/lobby?protocol=" + std::to_string(port::Netplay::kProtocol);
         c.lobby = lobby.c_str();
+        static const std::string lookup = std::string(port::Netplay::kService) + "/v1/code/";
+        c.code_lookup = lookup.c_str();
         c.file_name = "ROM set";
         c.online_features = "Online"; // (the ping and the input delay on the screen: port/main.cpp)
         c.online_intro = "Play someone on another machine: join a match a player is hosting, or host one in any of your games for others to "

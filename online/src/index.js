@@ -13,6 +13,8 @@
 //   GET  /v1/host/CODE?secret=S                                    -> {joined: false} | {joined: true, addresses}
 //   POST /v1/join/CODE           {game, build, addresses}          -> {addresses} | 404 | 409 {error}
 //   GET  /v1/lobby/GAME?protocol=N                                 -> {matches: [{code, name, waiting}]}
+//   GET  /v1/code/CODE                                             -> {game, title, protocol} | 404 (which game a code is
+//                                                                     for, while it can be joined: the launcher's Join)
 //   GET  /v1/lobby?protocol=N                                      -> {matches: [{game, title, code, name, waiting}]}  (every game's)
 //
 // A host that asks for it (`listed`, with a `name` and its `protocol`) is in the lobby, a Durable Object (Lobby) that
@@ -109,6 +111,9 @@ export default {
       return json({ error: "no such code" }, 404);
     }
     const match = env.MATCHES.get(env.MATCHES.idFromName(code));
+    if (request.method === "GET" && parts[1] === "code") {
+      return match.fetch("https://match/info");
+    }
     if (request.method === "GET" && parts[1] === "host") {
       return match.fetch(`https://match/poll?secret=${encodeURIComponent(url.searchParams.get("secret") || "")}`);
     }
@@ -167,6 +172,12 @@ export class Match {
     }
     if (!match) {
       return json({ error: "no such code" }, 404);
+    }
+    if (url.pathname === "/info") {
+      if (match.joiner) {
+        return json({ error: "Someone has joined that match already." }, 409);
+      }
+      return json({ game: match.game, title: match.title || match.game, protocol: match.protocol });
     }
     if (url.pathname === "/poll") {
       if (url.searchParams.get("secret") !== match.secret) {

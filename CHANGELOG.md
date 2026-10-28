@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- **Online: the cheats are off during a match**, on both sides (no damage for the host's player made it no match);
+  the host's Game and Board features still carry over. **Join with a code** on the launcher's Online page: a code for
+  a match in any of the games, Join; the service says which game it is for (`GET /v1/code/CODE`) and the launcher
+  starts that one (a game whose ROM set isn't added is said, with Add…). The game sends its name and protocol to the
+  service with every match now, not only a listed one.
 - **What online play needs of every game, written down and checked**: `docs/TOOLKIT.md`'s "Online play: what every
   game must keep to" (everything a game's sources keep between frames in its save state; play-changing features in
   Game, Board or Cheats), pointed to from `CONTRIBUTING.md` and `docs/RELEASING.md`; a release's checks

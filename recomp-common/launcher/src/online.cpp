@@ -151,4 +151,36 @@ bool fetch_lobby(const std::string& url, std::vector<OpenMatch>& matches) {
     return true;
 }
 
+CodeLookup lookup_code(const std::string& url) {
+    CodeLookup out;
+    std::string body;
+    if (run_program(curl_program(), {"-sS", "--max-time", "8", "-w", "\n%{http_code}", url}, &body) != 0) {
+        return out;
+    }
+    const size_t line = body.rfind('\n');
+    if (line == std::string::npos) {
+        return out;
+    }
+    out.status = std::atoi(body.c_str() + line + 1);
+    body.resize(line);
+    const auto text = [&](const char* key) {
+        std::string value;
+        const size_t at = body.find(std::string("\"") + key + "\":\"");
+        if (at == std::string::npos) {
+            return value;
+        }
+        for (size_t i = at + std::strlen(key) + 4; i < body.size() && body[i] != '"'; i++) {
+            if (body[i] == '\\' && i + 1 < body.size()) {
+                i++;
+            }
+            value += body[i];
+        }
+        return value;
+    };
+    out.game = text("game");
+    out.title = text("title");
+    out.error = text("error");
+    return out;
+}
+
 }  // namespace launcher
