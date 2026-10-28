@@ -215,7 +215,7 @@ void Machine::RunLine() {
 
     RunSound(kSoundCyclesPerLine);
 
-    if (m_line >= Video::kFirstLine && m_line < Video::kFirstLine + Video::kHeight) {
+    if (drawing && m_line >= Video::kFirstLine && m_line < Video::kFirstLine + Video::kHeight) {
         const int row = m_line - Video::kFirstLine;
         video.RenderLine(row, &m_picture[static_cast<size_t>(row) * m_pictureWidth]);
     }

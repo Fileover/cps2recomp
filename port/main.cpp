@@ -80,7 +80,8 @@ bool Movie::Save(const std::string &path) const {
 }
 
 namespace {
-    constexpr uint32_t kStateVersion = 7; // (5: the 68000's wait kept; 6: the custom soundtrack's place; 7: the board timing's palette copy)
+    constexpr uint32_t kStateVersion = 8; // (5: the 68000's wait kept; 6: the custom soundtrack's place; 7: the board timing's palette copy;
+                                          // 8: widescreen's camera a frame ago)
 
     bool ReadFile(const std::string &path, std::vector<uint8_t> &data) {
         FILE *f = fopen(path.c_str(), "rb");
@@ -301,6 +302,7 @@ bool Port::Init(std::string &error) {
         hashFile = fopen(opt.hashLog.c_str(), "w");
     }
     autoState = opt.autoSeed * 0x9E3779B97F4A7C15ull + 0x1234567ull;
+    rollbackTest.random = opt.rollbackTest * 0x9E3779B97F4A7C15ull + 0x89ABCDEull;
     if (TheGame().songCount) {
         machine->soundtrack.FindMusic(roms.soundProgram, TheGame().songTable, TheGame().songCount, TheGame().musicBelow);
     }
@@ -447,7 +449,9 @@ uint32_t Port::StateHash() const {
     add(m.cpsA, sizeof(m.cpsA));
     add(m.cpsB, sizeof(m.cpsB));
     add(m.objectRegs, sizeof(m.objectRegs));
-    add(m.Picture(), sizeof(uint32_t) * m.PictureWidth() * Video::kHeight);
+    if (!opt.hashNoPicture) {
+        add(m.Picture(), sizeof(uint32_t) * m.PictureWidth() * Video::kHeight);
+    }
     return static_cast<uint32_t>(h);
 }
 
@@ -941,6 +945,129 @@ void Port::SoundTest() {
     shared[0x00F] = 0;
 }
 
+void Port::KeepState(std::vector<uint8_t> &data) {
+    data.clear();
+    Archive ar(data, true);
+    machine->Serialize(ar);
+    if (TheGame().state) {
+        TheGame().state(ar);
+    }
+}
+
+void Port::PutBackState(const std::vector<uint8_t> &data) {
+    std::vector<uint8_t> &from = const_cast<std::vector<uint8_t> &>(data); // (an Archive that reads does not change it)
+    Archive ar(from, false);
+    machine->Serialize(ar);
+    if (TheGame().state) {
+        TheGame().state(ar);
+    }
+}
+
+void Port::Step(const uint16_t *players) {
+    memcpy(machine->players, players, sizeof(machine->players));
+    if (TheGame().beforeFrame) {
+        TheGame().beforeFrame(*machine);
+    }
+    machine->RunFrame();
+    if (opt.musicTest) {
+        MusicTest();
+    }
+    if (opt.soundTest) {
+        SoundTest();
+    }
+    if (TheGame().frame) {
+        TheGame().frame(*machine);
+    }
+}
+
+// --rollback-test (port.h, RollbackTest): the frame run with the others' controls guessed where they have not
+// come, then, as the others' controls come, the frames guessed wrong run again
+void Port::RollbackFrame(const uint16_t *real) {
+    RollbackTest &t = rollbackTest;
+    using Clock = std::chrono::steady_clock;
+    const auto seconds = [](Clock::time_point since) { return std::chrono::duration<double>(Clock::now() - since).count(); };
+    const Clock::time_point began = Clock::now();
+    const auto keep = [&](RollbackTest::Kept &k) {
+        const Clock::time_point at = Clock::now();
+        KeepState(k.state);
+        k.sound = machine->audio.size();
+        t.keepTime += seconds(at);
+        t.keeps++;
+        t.stateSize = k.state.size();
+    };
+    const auto step = [&](const Movie::Pads &used) {
+        const Clock::time_point at = Clock::now();
+        Step(used.data());
+        t.stepTime += seconds(at);
+        t.steps++;
+    };
+    const auto guessed = [&](const uint16_t *pads, uint64_t at) {
+        Movie::Pads used;
+        std::copy(pads, pads + Machine::kMaxPlayers, used.begin());
+        if (at >= t.confirmed) {
+            const Movie::Pads last = t.confirmed ? t.kept[(t.confirmed - 1) % RollbackTest::kKept].real : Movie::Pads{};
+            std::copy(last.begin() + 1, last.end(), used.begin() + 1);
+        }
+        return used;
+    };
+    RollbackTest::Kept &now = t.kept[frame % RollbackTest::kKept];
+    keep(now);
+    std::copy(real, real + Machine::kMaxPlayers, now.real.begin());
+    now.used = guessed(real, frame);
+    step(now.used);
+    now.hash = hashFile ? StateHash() : 0;
+    // The others' controls come up to here (the lag changes now and then, and never takes back what has come)
+    if (Random(t.random) % 20 == 0) {
+        t.lag = static_cast<int>(Random(t.random) % (RollbackTest::kMostLag + 1));
+    }
+    if (opt.frames && frame + 1 >= opt.frames) {
+        t.lag = 0; // (the run's last frame: everything has come, so that what it ends on can be compared)
+    }
+    const uint64_t upTo = std::max<uint64_t>(t.confirmed, frame + 1 >= static_cast<uint64_t>(t.lag) ? frame + 1 - t.lag : 0);
+    uint64_t wrong = upTo;
+    for (uint64_t at = t.confirmed; at < upTo; at++) {
+        const RollbackTest::Kept &k = t.kept[at % RollbackTest::kKept];
+        if (k.used != k.real) {
+            wrong = at;
+            break;
+        }
+    }
+    // (the hash log has a frame once its controls are the real ones and it has been run with them)
+    const auto logConfirmed = [&](uint64_t from) {
+        for (uint64_t at = from; hashFile && at < upTo; at++) {
+            fprintf(hashFile, "%llu %08x\n", static_cast<unsigned long long>(at + 1), t.kept[at % RollbackTest::kKept].hash);
+        }
+    };
+    const uint64_t from = t.confirmed;
+    t.confirmed = upTo;
+    if (wrong == upTo) {
+        logConfirmed(from);
+        t.frameTimes.push_back(static_cast<float>(seconds(began)));
+        return;
+    }
+    t.rollbacks++;
+    t.rerun += frame + 1 - wrong;
+    t.most = std::max<uint64_t>(t.most, frame + 1 - wrong);
+    const Clock::time_point putting = Clock::now();
+    PutBackState(t.kept[wrong % RollbackTest::kKept].state);
+    t.putBackTime += seconds(putting);
+    t.putBacks++;
+    machine->audio.resize(t.kept[wrong % RollbackTest::kKept].sound);
+    for (uint64_t at = wrong; at <= frame; at++) {
+        RollbackTest::Kept &k = t.kept[at % RollbackTest::kKept];
+        if (at != wrong) {
+            keep(k);
+        }
+        k.used = guessed(k.real.data(), at);
+        // (only the last frame's picture is seen; a hash log with the picture in it has them all drawn)
+        machine->drawing = at == frame || (hashFile && !opt.hashNoPicture);
+        step(k.used);
+        k.hash = hashFile ? StateHash() : 0;
+    }
+    logConfirmed(from);
+    t.frameTimes.push_back(static_cast<float>(seconds(began)));
+}
+
 // Run-ahead: after the frame, the frames after it are run with the controls as they are and the picture (and
 // the readout) of the last is the one shown; then the machine and the game's sources are put back as they were
 // after the frame, and its sound is the frame's own. So the game goes on exactly as without it, and the picture
@@ -953,14 +1080,7 @@ void Port::RunAhead() {
         return;
     }
     static std::vector<uint8_t> kept;
-    kept.clear();
-    {
-        Archive ar(kept, true);
-        machine->Serialize(ar);
-        if (TheGame().state) {
-            TheGame().state(ar);
-        }
-    }
+    KeepState(kept);
     const size_t sound = machine->audio.size();
     uint16_t held[Machine::kMaxPlayers];
     memcpy(held, machine->players, sizeof(held));
@@ -975,13 +1095,7 @@ void Port::RunAhead() {
             TheGame().frame(*machine);
         }
     }
-    {
-        Archive ar(kept, false);
-        machine->Serialize(ar);
-        if (TheGame().state) {
-            TheGame().state(ar);
-        }
-    }
+    PutBackState(kept);
     SetRunningAhead(false);
     machine->audio.resize(sound);
     memcpy(machine->players, held, sizeof(held));
@@ -1084,18 +1198,10 @@ void Port::RunFrame() {
     if (AtFrame(opt.stateLoad, frame, path) && !LoadState(path, error)) {
         fprintf(stderr, "%s\n", error.c_str());
     }
-    if (TheGame().beforeFrame) {
-        TheGame().beforeFrame(*machine);
-    }
-    machine->RunFrame();
-    if (opt.musicTest) {
-        MusicTest();
-    }
-    if (opt.soundTest) {
-        SoundTest();
-    }
-    if (TheGame().frame) {
-        TheGame().frame(*machine);
+    if (opt.rollbackTest) {
+        RollbackFrame(pressed);
+    } else {
+        Step(pressed);
     }
     frame++;
     // (for finding things out: --poke ADDR=BYTE,... every frame; --dump-ram FRAME:file)
@@ -1142,7 +1248,7 @@ void Port::RunFrame() {
     if (AtFrame(opt.stateSave, frame, path) && !SaveState(path, error)) {
         fprintf(stderr, "%s\n", error.c_str());
     }
-    if (hashFile) {
+    if (hashFile && !opt.rollbackTest) { // (RollbackFrame logs a frame when it is confirmed)
         fprintf(hashFile, "%llu %08x\n", static_cast<unsigned long long>(frame), StateHash());
     }
     memcpy(machine->players, pressed, sizeof(pressed));
@@ -1159,6 +1265,21 @@ void Port::RunFrame() {
 void Port::Finish() {
     if (hashFile) {
         fclose(hashFile);
+    }
+    if (opt.rollbackTest) {
+        const RollbackTest &t = rollbackTest;
+        const auto ms = [](double total, uint64_t count) { return count ? 1000 * total / count : 0.0; };
+        fprintf(stderr, "rollback test: %llu rollbacks, %llu frames run again, at most %llu at once\n",
+                static_cast<unsigned long long>(t.rollbacks), static_cast<unsigned long long>(t.rerun),
+                static_cast<unsigned long long>(t.most));
+        std::vector<float> times = t.frameTimes;
+        std::sort(times.begin(), times.end());
+        const auto at = [&](double part) { return times.empty() ? 0.0 : 1000.0 * times[static_cast<size_t>(part * (times.size() - 1))]; };
+        const size_t over = static_cast<size_t>(times.end() - std::upper_bound(times.begin(), times.end(), 1.0f / Machine::kFramesPerSecond));
+        fprintf(stderr, "rollback test: a frame %.3f ms, keeping %.3f ms, putting back %.3f ms, state %zu bytes\n",
+                ms(t.stepTime, t.steps), ms(t.keepTime, t.keeps), ms(t.putBackTime, t.putBacks), t.stateSize);
+        fprintf(stderr, "rollback test: a frame with its rollback: half under %.2f ms, 99%% %.2f ms, 99.9%% %.2f ms, the worst %.2f ms; "
+                        "%zu of %zu over a frame's time\n", at(0.5), at(0.99), at(0.999), at(1.0), over, times.size());
     }
     if (!opt.movieRecord.empty()) {
         recMovie.Save(opt.movieRecord);
@@ -1241,6 +1362,7 @@ void Usage() {
             "  --shot-every N:PFX     write PFX<frame>.png every N frames\n"
             "  --hash-log FILE        a line per frame with a hash of the game's state\n"
             "  --hash-picture         ... of the picture only (to compare runs whose timing is not the same)\n"
+            "  --hash-no-picture      ... of all but the picture (--rollback-test then draws only the frames shown)\n"
             "  --hash-game            ... without the Z80 and its own memory (to compare --sound driver and z80)\n"
 "  --renderer sdl|gpu     how the picture gets to the window: SDL's GPU API unless said (or not there)\n"
             "  --present-test F.png   (headless) the run's last picture drawn by the GPU path, no window, as the\n"
@@ -1251,6 +1373,8 @@ void Usage() {
             "  --movie FILE           replay an input movie\n"
             "  --record FILE          record an input movie\n"
             "  --auto SEED[:FROM[:N]] made-up input (from frame FROM; for N players, 2 unless said)\n"
+            "  --rollback-test SEED   each frame run as online play's rollback would: the other players' controls late\n"
+            "                         and guessed, and the frames guessed wrong run again (--hash-log must not change)\n"
             "  --test-switch FROM:TO  the operator's test switch held from frame FROM to TO\n"
             "  --music-test FRAMES    each piece of the game's music in turn on the board, FRAMES each (with the test\n"
             "                         switch held, say), and how long each made a sound for (to tell the ones that end)\n"
@@ -1333,6 +1457,8 @@ bool ParseArgs(int argc, char **argv, port::Options &o) {
             o.shotPrefix = colon == std::string::npos ? "shot_" : v.substr(colon + 1);
         } else if (a == "--hash-log") {
             o.hashLog = next();
+        } else if (a == "--hash-no-picture") {
+            o.hashNoPicture = true;
         } else if (a == "--hash-game") {
             o.hashGame = true;
         } else if (a == "--hash-picture") {
@@ -1359,6 +1485,8 @@ bool ParseArgs(int argc, char **argv, port::Options &o) {
             o.autoFrom = colon == std::string::npos ? 0 : strtoull(v.c_str() + colon + 1, nullptr, 10);
             const size_t second = colon == std::string::npos ? colon : v.find(':', colon + 1);
             o.autoPlayers = second == std::string::npos ? 2 : atoi(v.c_str() + second + 1);
+        } else if (a == "--rollback-test") {
+            o.rollbackTest = strtoull(next(), nullptr, 10) | 1;
         } else if (a == "--test-switch") {
             const std::string v = next();
             const size_t colon = v.find(':');

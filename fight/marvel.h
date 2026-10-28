@@ -154,6 +154,7 @@ bool RingOutStep(M68K &c);
 // inside the picture of its plane (A6 the player's record); and the features
 void RegisterWidescreen(uint32_t keepCamera, uint32_t keepIn);
 void WidescreenBeforeFrame(Machine &machine);
+void WidescreenState(Archive &ar); // (in the game's save state)
 bool WidePlay();
 int WideSide();
 int WideStage();

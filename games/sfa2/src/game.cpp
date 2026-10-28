@@ -46,6 +46,7 @@ void RegisterColours(); // colours.cpp
 
 void RegisterWidescreen(); // widescreen.cpp
 void WidescreenBeforeFrame(Machine &machine);
+void WidescreenState(Archive &ar);
 
 void RegisterMachines(); // machines.cpp
 void RegisterTitle();    // title.cpp
@@ -111,6 +112,7 @@ void RegisterGame() {
         ModesState(ar);
         BattleState(ar);
         ModelState(ar);
+        WidescreenState(ar);
     };
     // With the arcade timing, the game's own code runs in place of the rewrites but where they carry what the
     // port adds (game.h, rewritesNeeded): training mode, the modes of the sources' own, widescreen, the cheats

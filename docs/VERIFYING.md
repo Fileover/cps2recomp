@@ -32,6 +32,23 @@ the per-frame state hashes (`--hash-log`: CPU, RAM, video and object memory, reg
 `blocks` against `native`, and `native` against itself. This covers what the block check cannot:
 routines calling one another on the host's stack, and time running out inside them.
 
+## `make check-rollback` (FRAMES=n): what online play needs
+
+Online play (#70) runs a frame with the other player's controls guessed, and when they come and the guess was
+wrong, puts the machine and the game's sources back and runs the frames again. That works only if a frame put
+back comes out exactly as the first time. `--rollback-test SEED` does that to a run with no network: player 2's
+(and 3's) controls come late, by a lag that changes at random from 0 to 8 frames, are guessed as last known until
+they do, and the frames guessed wrong are run again. `--hash-log` writes a frame once its controls are the real
+ones, and must be the same as a run without it. `tools/check_rollback.sh` compares the two three ways: with the
+game's own features, with every feature that changes play on (cheats, free play, widescreen, the arcade timing),
+and with the frames run again not drawn (`--hash-no-picture`), as online play runs them. A difference is
+something the game's sources keep outside the save state (`TheGame().state`), or do twice for a frame run twice.
+
+It also says what a rollback costs: a frame, keeping and putting back the state (about 330 KB), and a frame with
+its rollback at the worst. On the Steam Deck a frame is about 2–2.5 ms and keeping or putting back the state
+0.03 ms; drawing is three quarters of a frame, and with the frames run again not drawn a rollback of 9 frames
+stays under 12 ms (Super Turbo, with the arcade timing and widescreen), inside the 16.7 ms of a frame.
+
 ## Input
 
 - `--auto SEED[:FROM]`: made-up play (coins, start, sticks and buttons at random); the same seed

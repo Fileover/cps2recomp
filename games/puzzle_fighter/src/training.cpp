@@ -210,8 +210,9 @@ namespace {
 
     // The cheat that gets a one-player game to its ending: forty counter gems from player 1 with every pair,
     // and player 1 cannot lose
+    uint8_t g_quickWinStep = 0xFF; // (player 1's step the frame before: in the save state)
     void QuickWin() {
-        static uint8_t before = 0xFF;
+        uint8_t &before = g_quickWinStep;
         const uint8_t step = RoundPlayed() ? Ram8(Player(0) + kStep) : 0xFF;
         if (FeatureOn("quick_win") && step == kStepNewPair && before != kStepNewPair) {
             SetRam8(Player(0) + kAttack, 40);
@@ -330,6 +331,9 @@ void TrainingState(Archive &ar) {
     ar.Mark(0x5452414E);
     ar.Pod(g);
     ar.Vec(g_roundStart);
+    if (ar.version == 0 || ar.version >= 8) { // (a save state from before has none)
+        ar.Pod(g_quickWinStep);
+    }
 }
 
 // The menu's pages

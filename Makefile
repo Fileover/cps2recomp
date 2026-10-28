@@ -7,7 +7,7 @@
 # One game, as GAME=<id> (build.mk has the targets):
 #   make GAME=<id>                  translate its code and build it (on macOS its launcher and app bundle too)
 #   make GAME=<id> explore          find its code by made-up play (a fresh tree needs this once)
-#   make GAME=<id> check | check-blocks | check-rewrites | check-release | check-widescreen
+#   make GAME=<id> check | check-blocks | check-rewrites | check-release | check-widescreen | check-rollback
 #
 # Every game, and the collection (one launcher for all of them):
 #   make games          build every game whose ROM set is in rom/<id>/
