@@ -51,7 +51,8 @@ export default {
     const url = new URL(request.url);
     const parts = url.pathname.split("/").filter(Boolean);
     if (parts[0] !== "v1") {
-      return json({ error: "not here" }, 404);
+      // (someone who came here in a browser: to the project)
+      return Response.redirect("https://github.com/tmcleroy/cps2recomp", 302);
     }
     if (request.method === "POST" && parts[1] === "host" && parts.length === 2) {
       // (a code not in use: tried again on the rare clash)
