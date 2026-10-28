@@ -19,6 +19,7 @@
 
 #include "folders.h"
 #include "layout.h"
+#include "online.h"
 #include "steam.h"
 #include "ui.h"
 
@@ -1496,6 +1497,7 @@ void App::play_button(size_t which, float width) {
         std::string text = "The game stopped with code " + std::to_string(one.game.exit_code()) + ".";
         ui::text(text.c_str(), Font::Regular, ui::size::kDetail, p.danger, width);
     }
+    online_card(which, width, ready);
     // Linux and Steam Deck: shortcuts for Steam's Game Mode.
     static const bool steam = can_add_to_steam();
     if (steam) {
@@ -1517,6 +1519,59 @@ void App::play_button(size_t which, float width) {
         });
         card.end();
     }
+}
+
+// Online play (launcher::Online): Host, with the addresses the other player can use, and Join, with the host's
+void App::online_card(size_t which, float width, bool ready) {
+    const ui::Palette& p = ui::palette();
+    Slot& one = *slots_[which];
+    const launcher::Online& online = one.about->online;
+    if (!online.host_argument || !online.join_argument) {
+        return;
+    }
+    if (!online_loaded_) {
+        online_loaded_ = true;
+        std::snprintf(online_address_, sizeof(online_address_), "%s", prefs_.get("online", "address").c_str());
+        for (const launcher::LocalAddress& here : launcher::local_addresses()) {
+            online_here_.push_back(here.kind.empty() ? here.address : here.address + " (" + here.kind + ")");
+        }
+    }
+    ui::gap(28);
+    ui::text("ONLINE", Font::Semibold, ui::size::kDetail, p.secondary);
+    if (online.detail && *online.detail) {
+        ui::gap(6);
+        ui::text(online.detail, Font::Regular, ui::size::kDetail, p.secondary, width);
+    }
+    ui::gap(10);
+    Card card(width);
+    std::string here;
+    for (const std::string& address : online_here_) {
+        here += (here.empty() ? "" : ", ") + address;
+    }
+    std::string detail = "Waits for the other player, who joins this machine at " +
+                         (here.empty() ? std::string("its address") : here) +
+                         (online.port ? " (UDP port " + std::to_string(online.port) + ")." : ".") +
+                         " Over the internet: this network's public address, with that port forwarded to this machine.";
+    row(width, "Host a match", detail.c_str(), 130.0f, 36.0f, [&] {
+        if (ui::button("Host", Kind::Secondary, 130.0f, ready)) {
+            play(which, {online.host_argument});
+        }
+    });
+    inset_separator(width);
+    row(width, "Join a match", "The host's address, as their Online card says it (ADDRESS, or ADDRESS:PORT).", 330.0f, 36.0f, [&] {
+        if (ui::text_field("##online_address", online_address_, sizeof(online_address_), "192.168.1.5", 190.0f)) {
+            prefs_.set("online", "address", online_address_);
+            prefs_.save();
+        }
+        ImGui::SameLine(0.0f, px(10));
+        std::string address = online_address_;
+        address.erase(0, address.find_first_not_of(" \t"));
+        address.erase(address.find_last_not_of(" \t") + 1);
+        if (ui::button("Join", Kind::Secondary, 130.0f, ready && !address.empty())) {
+            play(which, {online.join_argument, address});
+        }
+    });
+    card.end();
 }
 
 void App::game_page(float width) {

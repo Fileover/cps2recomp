@@ -89,9 +89,8 @@ Each game's page has all it does, with pictures.
   | ![No shader](docs/screenshots/shaders/off.png)<br>Off | ![CRT (crt-geom-mini)](docs/screenshots/shaders/crt-geom-mini.png)<br>CRT | ![CRT Royale](docs/screenshots/shaders/crt-royale.png)<br>CRT Royale |
   | ![CRT Lottes](docs/screenshots/shaders/crt-lottes.png)<br>CRT Lottes | ![Scanlines, light](docs/screenshots/shaders/scanline-fract.png)<br>Scanlines, light | ![xBRZ](docs/screenshots/shaders/xbrz.png)<br>xBRZ |
 
-- **Online play** (a first version, started from a terminal): two players on two machines, over the internet or a
-  home network, with rollback, so that each player's own controls answer at once whatever the distance.
-  [How →](#online-play)
+- **Online play**: two players on two machines, over the internet or a home network, with rollback, so that each
+  player's own controls answer at once whatever the distance. Host or Join on a game's page. [How →](#online-play)
 - **The board's operator settings** (difficulty, damage, timer speed, game speed, rounds and the rest), each as
   the board is set unless you choose, and the game's own test menu.
 - **Straight to the title**: at a start or a reset, everything before the title runs unseen.
@@ -211,8 +210,9 @@ a later one wins.
 ### Online play
 
 Two players, each on their own machine (macOS, Linux, the Steam Deck or Windows, in any mix), each with the game and
-its ROM set. One hosts and the other joins; the host is player 1. A first version: it is started from a terminal (or
-a Steam shortcut's launch options), and the launcher will have it later.
+its ROM set. On the game's page in the launcher, under Play, the **Online** card has **Host** and **Join**: one hosts,
+and the card says the addresses the other can join it at; the other types one of them and presses Join. The host is
+player 1. The game's window says it is waiting until the other player comes (Esc gives up). From a terminal:
 
 ```sh
 cps2recomp-launcher --play sfa3 -- --host                  # the host: waits for the other player

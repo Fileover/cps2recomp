@@ -73,6 +73,11 @@ public:
     explicit Netplay(const Settings &settings) : settings(settings) {}
     // The socket, the other side found and agreed with (blocks until then; false and `error` if it did not go)
     bool Connect(Port &port, std::string &error);
+    // ... or a step at a time, for a window that shows the wait: Begin, then Waiting each tick until it is not 0 (1:
+    // the match is on; -1: it did not go, as `error` says)
+    bool Begin(Port &port, std::string &error);
+    int Waiting(Port &port, std::string &error);
+    std::string waiting; // what is being waited for ("Waiting for the other player...")
     // This side's player (0: player 1)
     int Local() const {
         return local;
@@ -93,6 +98,13 @@ public:
 private:
     Settings settings;
     UdpSocket socket;
+    // (the handshake: the hello or the welcome, sent again until answered)
+    std::vector<uint8_t> greeting;
+    uint32_t build = 0;
+    uint64_t began = 0, sent = 0;
+    bool found = false; // (hosting: the other player has said hello)
+    int joinPort = 0;
+    void StartAt(int frames);
     NetAddress peer;
     int local = 0, remote = 1;
     int delay = kDefaultDelay;

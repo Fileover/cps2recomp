@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- **Online play from the launcher**: a game's page has an **Online** card under Play, with **Host** (and the
+  addresses this machine can be joined at: the home network's, Tailscale's) and **Join** (the host's address, kept
+  for next time). The game's window opens at once and says it is waiting for the other player, or joining the host,
+  until the match begins (Esc gives up); a host that does not answer in 30 seconds is said so.
 - **Online play, a first version** (#70): `--host [PORT]` and `--join ADDRESS[:PORT]` (after the launcher's
   `--play ID --`) play a match between two machines over UDP, with rollback: each side's own controls held back 2
   frames (`--net-delay`), the other's guessed up to 8 frames and the frames guessed wrong run again unseen and

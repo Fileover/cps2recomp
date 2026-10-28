@@ -365,7 +365,8 @@ int RunWindowed(Port &port) {
     bool stickWaiting = false;
     auto toggleMenu = [&]() {
         if (port.net) {
-            return; // (online: the game goes on for both players; no menu yet)
+            port.quit = port.connecting; // (online: no menu, the game goes on for both players; Esc gives up a wait)
+            return;
         }
         if (port.menu.IsOpen()) {
             port.menu.Close();

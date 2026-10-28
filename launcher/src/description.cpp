@@ -202,6 +202,10 @@ launcher::Description describe_game(const GameInfo& game) {
                   "plays as a playlist, or files named as the songs.txt the game writes there replace those songs. None chosen: the "
                   "soundtrack folder in the game's own folder.",
                   "--soundtrack"}};
+    // (online play: port/netplay.h)
+    d.online = {"--host", "--join", 7845,
+                "Two players, each on their own machine with the game: one hosts, the other joins. Each presses Start to come "
+                "in. The match has the host's board settings and the features that change play."};
     d.display = {{"fullscreen", "Full screen", "F11 switches while playing.", false, nullptr}};  // (a window unless asked)
     for (const FeatureSwitch& one : switches) {
         d.display.push_back({keep(one.name), keep(one.title), keep(one.detail), false, nullptr});

@@ -63,6 +63,17 @@ struct FolderChoice {
     const char *argument; // "--soundtrack"
 };
 
+// Online play: two players, each on their own machine, one hosting and the other joining it. The game page gets an
+// Online card under Play: Host starts the game with `host_argument` (it waits for the other player; the card says
+// this machine's addresses to give them), Join with `join_argument ADDRESS` (the address typed, kept in launcher.ini
+// under [online]). The game does the rest. nullptr: no card.
+struct Online {
+    const char *host_argument = nullptr; // "--host"
+    const char *join_argument = nullptr; // "--join"
+    int port = 0;                        // the UDP port the host waits on, as the card says it (0: none said)
+    const char *detail = "";             // the card's first lines: what a match is
+};
+
 struct InfoRow {
     const char *label;
     const char *text;
@@ -136,6 +147,8 @@ struct Description {
     const char *mute_argument = "--mute";
     // ... and below it, folders the player may choose (none: only the switch)
     std::vector<FolderChoice> folders;
+
+    Online online;                            // the Online card (none unless its arguments are given)
 
     bool preset_summary = false;              // a line over Play saying which preset is chosen
     std::vector<Toggle> display;              // the Display card's switches (none: no card)

@@ -601,6 +601,25 @@ bool Port::Tick() {
         at = comma == std::string::npos ? opt.keys.size() : comma + 1;
     }
     tick++;
+    if (net && connecting) {
+        // (the other player not here yet: said on the screen, as the readout, over the board's black picture)
+        std::string error;
+        const int state = net->Waiting(*this, error);
+        if (state < 0) {
+            net->ended = error;
+            net->failed = true;
+            quit = true;
+            SetHud({});
+            return false;
+        }
+        if (state == 0) {
+            static const char *const kDots[] = {"", ".", "..", "..."};
+            SetHud({{0.5f, 0.42f, 0, net->waiting + kDots[(tick / 30) % 4]}, {0.5f, 0.56f, 0, "Esc: give up"}});
+            return false;
+        }
+        SetHud({});
+        Matched();
+    }
     if (net) {
         // Online: a frame a tick when the other side's controls allow (and as fast as it goes while the game's
         // sources take it somewhere); no stopping, slowing or speeding up
@@ -1122,17 +1141,32 @@ void Port::RunAhead() {
     memcpy(machine->players, held, sizeof(held));
 }
 
-// Online play: the other side found and agreed with before the first frame (netplay.h)
+// Online play (netplay.h): the other side found and agreed with before the first frame; with a window, a step a tick
+// (Tick), the wait shown on the screen, and without, here
 bool Port::StartOnline(std::string &error) {
     if (opt.rollbackTest || !opt.moviePlay.empty() || !opt.stateLoad.empty()) {
         error = "online play: not with --rollback-test, --movie or --state-load";
         return false;
     }
     net = std::make_unique<Netplay>(opt.net);
-    if (!net->Connect(*this, error)) {
+    if (opt.headless) {
+        if (!net->Connect(*this, error)) {
+            net.reset();
+            return false;
+        }
+        Matched();
+        return true;
+    }
+    if (!net->Begin(*this, error)) {
         net.reset();
         return false;
     }
+    connecting = true;
+    return true;
+}
+
+void Port::Matched() {
+    connecting = false;
     // (the hashes compared leave out the picture: frames run again are not drawn)
     opt.hashNoPicture = true;
     if (net->Local() != 0) {
@@ -1140,7 +1174,6 @@ bool Port::StartOnline(std::string &error) {
     }
     machine->SetBoardTiming(FeatureOn("arcade_timing"));
     SoundtrackFollow();
-    return true;
 }
 
 // The port's rapid fire: a button the player holds is the game's pressed for two frames and let go for two, from
@@ -1309,7 +1342,7 @@ void Port::RunFrame() {
 }
 
 void Port::Finish() {
-    if (net) {
+    if (net && !connecting) {
         net->Leave();
         net->Report(true);
     }
