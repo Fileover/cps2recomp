@@ -19,6 +19,7 @@ std::vector<LocalAddress> local_addresses();
 
 // A match waiting in the lobby (launcher::Online::lobby): its code, its host's name, and how long it has waited
 struct OpenMatch {
+    std::string game; // (a collection's lobby: which game's)
     std::string code;
     std::string name;
     int waiting = 0; // (seconds)
