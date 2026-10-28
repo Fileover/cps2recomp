@@ -34,8 +34,8 @@ namespace {
     constexpr uint16_t kFirstFight = 0x16;  // a demonstration fight (from the step that sets it up)
     constexpr uint16_t kSecondFight = 0x2C; // another fight
     constexpr uint16_t kLoopEnd = 0x32;
-    constexpr uint32_t kAttractFight = 0xFF0C68; // counts the demonstration fights, two for each: picks who fights
-    constexpr uint32_t kPlayersIn = 0xFF80A8;
+    constexpr uint32_t kAttractFight = At(0xFF0C68); // counts the demonstration fights, two for each: picks who fights
+    constexpr uint32_t kPlayersIn = At(0xFF80A8);
 
     // The parts of the loop left out for what is to be shown
     bool AttractStep(int show) {
@@ -89,8 +89,8 @@ void RegisterModes() {
     d.roundFought = kRoundFought;
     d.credits = kCredits;
     d.playersIn = kPlayersIn;
-    d.soundQueue = 0xFFCF60;
-    d.soundQueueEnd = 0xFFDF60;
+    d.soundQueue = At(0xFFCF60);
+    d.soundQueueEnd = At(0xFFDF60);
     d.tuneOff = kTuneOff;
     d.player1 = kPlayer1;
     d.playerSize = kPlayerSize;

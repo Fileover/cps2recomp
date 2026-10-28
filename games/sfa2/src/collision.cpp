@@ -17,13 +17,13 @@ namespace {
     using namespace sfa2;
 
     // What a hit test leaves for the code that deals with the hit, from A5 (words unless said)
-    constexpr int32_t kOverlapAttackX = -0x5808, kOverlapVictimX = -0x5806; // the middles of the two boxes last tested
-    constexpr int32_t kOverlapAttackY = -0x5804, kOverlapVictimY = -0x5802;
-    constexpr int32_t kHitDistance[3] = {-0x5800, -0x57FE, -0x57FC}; // per part (head, body, legs): how far apart the middles were (FFFF: not hit)
-    constexpr int32_t kHitMiddles[3] = {-0x57FA, -0x57F2, -0x57EA};  // per part: four words: attack x, victim x, attack y, victim y
-    constexpr int32_t kHitParts = -0x57D8;                           // byte: bit 0 head, 1 body, 2 legs
+    constexpr int32_t kOverlapAttackX = AtA5(-0x5808), kOverlapVictimX = AtA5(-0x5806); // the middles of the two boxes last tested
+    constexpr int32_t kOverlapAttackY = AtA5(-0x5804), kOverlapVictimY = AtA5(-0x5802);
+    constexpr int32_t kHitDistance[3] = {AtA5(-0x5800), AtA5(-0x57FE), AtA5(-0x57FC)}; // per part (head, body, legs): how far apart the middles were (FFFF: not hit)
+    constexpr int32_t kHitMiddles[3] = {AtA5(-0x57FA), AtA5(-0x57F2), AtA5(-0x57EA)};  // per part: four words: attack x, victim x, attack y, victim y
+    constexpr int32_t kHitParts = AtA5(-0x57D8);                           // byte: bit 0 head, 1 body, 2 legs
     // From A5: the round's result (bit 0 player 1 has won, bit 1 player 2), and what stops the hit tests
-    constexpr int32_t kRoundResult = 0x10C, kNoHitTests = 0x15C;
+    constexpr int32_t kRoundResult = AtA5(0x10C), kNoHitTests = AtA5(0x15C);
     // In a player's record, for the hit test
     constexpr uint32_t kHitByNumber = 0x25C; // bytes, one for each side: the number of the attack that last hit it
     constexpr uint32_t kHitByCount = 0x280;  // bytes, one for each side: how many times that attack has hit it
@@ -208,16 +208,16 @@ namespace {
         SetRam8(victim + 0x239, 0);
         Call(c, kHitLands);
         if (!Mem8(c, attacker + 0x295)) {
-            Call(c, 0x0108E2);
-            Call(c, 0x010DF0);
-            Call(c, 0x0112CE);
+            Call(c, At(0x0108E2));
+            Call(c, At(0x010DF0));
+            Call(c, At(0x0112CE));
         }
     }
 
     // 010FD8. The things thrown against each other: two of different sides whose boxes for this (the frames' +08,
     // in each one's first table) meet both go (the game's 00F89A says how), and the first looks no further
     void ThrownAgainstThrown(M68K &c) {
-        const uint8_t count = Ram8(Var(c, 0x611A));
+        const uint8_t count = Ram8(Var(c, AtA5(0x611A)));
         SetLow8(c.d[7], count);
         if (!count || count == 1) {
             if (count) {
@@ -226,19 +226,19 @@ namespace {
             return;
         }
         SetLow16(c.d[7], static_cast<uint16_t>(count - 1));
-        c.a[4] = Var(c, 0x6202);
+        c.a[4] = Var(c, AtA5(0x6202));
         c.d[4] = c.a[4];
         for (;;) {
             c.a[4] = c.d[4] - 2;
             c.a[6] = static_cast<uint32_t>(static_cast<int16_t>(Mem16(c, c.a[4])));
             c.d[4] = c.a[4];
-            const uint8_t inner = Ram8(Var(c, 0x611A));
+            const uint8_t inner = Ram8(Var(c, AtA5(0x611A)));
             SetLow8(c.d[6], inner);
             if (!inner) {
                 return;
             }
             SetLow16(c.d[6], static_cast<uint16_t>(static_cast<int16_t>(static_cast<int8_t>(inner - 1))));
-            c.a[4] = Var(c, 0x6202);
+            c.a[4] = Var(c, AtA5(0x6202));
             c.d[5] = c.a[4];
             const uint32_t one = c.a[6];
             for (;;) {
@@ -292,7 +292,7 @@ namespace {
                     if (!Overlaps(c)) {
                         return 0;
                     }
-                    Call(c, 0x00F89A);
+                    Call(c, At(0x00F89A));
                     return 1;
                 }();
                 if (next == 1) {
@@ -314,13 +314,13 @@ namespace {
 
     // 011092. Each thing thrown (the list the game keeps of those in use) against the player of the other side
     void ThrownAgainstPlayers(M68K &c) {
-        const uint8_t count = Ram8(Var(c, 0x611A));
+        const uint8_t count = Ram8(Var(c, AtA5(0x611A)));
         SetLow8(c.d[7], count);
         if (!count) {
             return;
         }
         SetLow16(c.d[7], static_cast<uint16_t>(static_cast<int16_t>(static_cast<int8_t>(count - 1))));
-        c.a[4] = Var(c, 0x6202);
+        c.a[4] = Var(c, AtA5(0x6202));
         for (;;) {
             c.a[4] -= 2;
             c.a[6] = static_cast<uint32_t>(static_cast<int16_t>(Mem16(c, c.a[4])));
@@ -329,7 +329,7 @@ namespace {
                 if (Mem8(c, thrown + kActive) != 1) {
                     return;
                 }
-                const uint32_t victim = c.a[1] = Var(c, Mem8(c, thrown + kSide) ? 0x400 : 0x800);
+                const uint32_t victim = c.a[1] = Var(c, Mem8(c, thrown + kSide) ? AtA5(0x400) : AtA5(0x800));
                 if (Mem8(c, victim + 0x25B) || Mem8(c, victim + 0x273) || Mem8(c, victim + 0x13B)) {
                     return;
                 }
@@ -372,19 +372,19 @@ namespace {
                         SetRam8(victim + kGuardedHit, 0);
                     }
                 }
-                Call(c, 0x0108E2);
+                Call(c, At(0x0108E2));
                 if (Mem8(c, victim + kGuardedHit) != 0xFF && !(Ram16(victim + kHealth) & 0x8000)) {
                     c.d[1] = 0x800000;
                     SetLow8(c.d[0], Mem8(c, thrown + 0x02));
                     if (!((c.d[1] >> (c.d[0] & 31)) & 1)) {
                         const bool helper = Mem8(c, thrown + 0x3E);
-                        SetRam8(Var(c, 0x11C), helper ? 7 : 0x0F);
-                        SetRam8(Var(c, 0x11D), helper ? 1 : 2);
-                        SetRam8(Var(c, 0x11E), helper ? 1 : 2);
+                        SetRam8(Var(c, AtA5(0x11C)), helper ? 7 : 0x0F);
+                        SetRam8(Var(c, AtA5(0x11D)), helper ? 1 : 2);
+                        SetRam8(Var(c, AtA5(0x11E)), helper ? 1 : 2);
                     }
                 }
-                Call(c, 0x010DF0);
-                Call(c, 0x0112CE);
+                Call(c, At(0x010DF0));
+                Call(c, At(0x0112CE));
                 // The thing thrown has one hit fewer left in it (but the kind that goes on through)
                 c.d[1] = 0x800000;
                 SetLow8(c.d[0], Mem8(c, thrown + 0x02));
@@ -409,12 +409,12 @@ namespace {
     // 010370. The two players' attacks against each other; then a player with no health left has lost the round
     void PlayersAgainstPlayers(M68K &c) {
         ClearHit(c);
-        c.a[6] = Var(c, 0x400);
-        c.a[1] = Var(c, 0x800);
+        c.a[6] = Var(c, AtA5(0x400));
+        c.a[1] = Var(c, AtA5(0x800));
         HitTest(c);
         ClearHit(c);
-        c.a[6] = Var(c, 0x800);
-        c.a[1] = Var(c, 0x400);
+        c.a[6] = Var(c, AtA5(0x800));
+        c.a[1] = Var(c, AtA5(0x400));
         HitTest(c);
         // (the team battle's tag style: a fighter with a partner to come in is not knocked out, whatever took its
         // health; a hold throw's, say)
@@ -423,10 +423,10 @@ namespace {
                 SetRam16(Player(n) + kHealth, 0);
             }
         }
-        if (Ram16(Var(c, 0x450)) & 0x8000) {
+        if (Ram16(Var(c, AtA5(0x450))) & 0x8000) {
             SetRam8(Var(c, kRoundResult), Ram8(Var(c, kRoundResult)) | 2);
         }
-        if (Ram16(Var(c, 0x850)) & 0x8000) {
+        if (Ram16(Var(c, AtA5(0x850))) & 0x8000) {
             SetRam8(Var(c, kRoundResult), Ram8(Var(c, kRoundResult)) | 1);
         }
     }
@@ -435,7 +435,7 @@ namespace {
     // by more than nothing) each is moved half of it apart; but one pressed against the picture's edge, or one on
     // the floor against one in the air, stays and the other moves all of it. `+298` notes that they touched.
     void PushApart(M68K &c) {
-        const uint32_t one = c.a[6] = Var(c, 0x400), two = c.a[4] = Var(c, 0x800);
+        const uint32_t one = c.a[6] = Var(c, AtA5(0x400)), two = c.a[4] = Var(c, AtA5(0x800));
         SetRam8(one + 0x298, 0);
         SetRam8(two + 0x298, 0);
         c.a[0] = Mem32(c, one + kFrame);
@@ -552,7 +552,7 @@ namespace {
         if (Ram8(Var(c, kNoHitTests))) {
             return;
         }
-        const uint8_t thrown = Ram8(Var(c, 0x53D)) | Ram8(Var(c, 0x93D));
+        const uint8_t thrown = Ram8(Var(c, AtA5(0x53D))) | Ram8(Var(c, AtA5(0x93D)));
         SetLow8(c.d[0], thrown);
         if (thrown) {
             return;
@@ -565,14 +565,14 @@ namespace {
 
 void RegisterCollision() {
     // (each charged the original's average time, the routines it calls as plain C++ included)
-    AddRewrite(0x010352, "AllHitTests", AllHitTests, kFreeFlags, 1050);
-    AddRewrite(0x010370, "PlayersAgainstPlayers", PlayersAgainstPlayers, kFreeFlags, 928);
-    AddRewrite(0x011092, "ThrownAgainstPlayers", ThrownAgainstPlayers, kFreeFlags);
-    AddRewrite(0x010FD8, "ThrownAgainstThrown", ThrownAgainstThrown, kFreeFlags);
-    AddRewrite(0x00ECCE, "PushApart", PushApart, kFreeFlags, 450);
-    AddRewrite(0x0103AA, "HitTest", HitTest, kFreeFlags, 205);
-    AddRewrite(0x0113AA, "BoxesOverlap", BoxesOverlap, 0, 182);
-    AddRewrite(0x011324, "ClearHit", ClearHit, 0, 152);
+    AddRewrite(At(0x010352), "AllHitTests", AllHitTests, kFreeFlags, 1050);
+    AddRewrite(At(0x010370), "PlayersAgainstPlayers", PlayersAgainstPlayers, kFreeFlags, 928);
+    AddRewrite(At(0x011092), "ThrownAgainstPlayers", ThrownAgainstPlayers, kFreeFlags);
+    AddRewrite(At(0x010FD8), "ThrownAgainstThrown", ThrownAgainstThrown, kFreeFlags);
+    AddRewrite(At(0x00ECCE), "PushApart", PushApart, kFreeFlags, 450);
+    AddRewrite(At(0x0103AA), "HitTest", HitTest, kFreeFlags, 205);
+    AddRewrite(At(0x0113AA), "BoxesOverlap", BoxesOverlap, 0, 182);
+    AddRewrite(At(0x011324), "ClearHit", ClearHit, 0, 152);
 }
 
 } // namespace cps2recomp

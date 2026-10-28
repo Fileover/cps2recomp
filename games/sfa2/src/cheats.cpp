@@ -39,12 +39,12 @@ void RegisterCheats() {
     // The settings memory, read and written directly (board.h). The two routines are Capcom's for every
     // CPS-2 game; these are where this game has them and their variables.
     SettingsMemory memory;
-    memory.readWords = HookAt(0x00B444);
-    memory.writeWords = HookAt(0x00B50C);
-    memory.buffer = -0x5E2A;
-    memory.count = -0x5E24;
-    memory.start = -0x5E20;
-    memory.busy = 0x87;
+    memory.readWords = HookAt(At(0x00B444));
+    memory.writeWords = HookAt(At(0x00B50C));
+    memory.buffer = AtA5(-0x5E2A);
+    memory.count = AtA5(-0x5E24);
+    memory.start = AtA5(-0x5E20);
+    memory.busy = AtA5(0x87);
     AddSettingsMemory(memory);
     Game &game = TheGame();
     game.features.push_back({"free_play", "Game", "Free play", "Start works without a coin.", kFeatureEnhanced});

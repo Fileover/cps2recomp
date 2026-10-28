@@ -38,7 +38,7 @@ namespace {
 
     constexpr int kSide = Video::kMaxSide;
     // The camera's record (a scroll screen's: the stage's own plane), and in it
-    constexpr uint32_t kCamera = 0xFF8280;
+    constexpr uint32_t kCamera = At(0xFF8280);
     constexpr uint32_t kCameraX = 0x20, kCameraShake = 0x50, kCameraBefore = 0x28, kCameraGoing = 0x3B;
     constexpr uint32_t kCameraEndLeft = 0x44, kCameraEndRight = 0x46;
     constexpr uint32_t kCameraY = 0x24, kCameraShakeY = 0x54, kCameraBeforeY = 0x2C, kCameraGoingY = 0x3A;
@@ -75,7 +75,7 @@ namespace {
     // drawn as it goes.
     void CameraAcross(M68K &c) {
         const uint32_t camera = c.a[6];
-        Call(c, 0x01BFE0); // (the players' outer edges: D0 the left, D1 the right)
+        Call(c, At(0x01BFE0)); // (the players' outer edges: D0 the left, D1 the right)
         // (the team battle's tag style: a player off the stage is not followed, as the game's own does for one thrown
         // away, +67: the other's edges alone)
         for (int n = 0; n < 2; n++) {
@@ -148,10 +148,10 @@ namespace {
         }
         SetRam8(camera + 0x38, Ram8(camera + 0x38) ^ 0x10);
         SetLow8(c.d[0], Ram8(camera + kCameraGoing));
-        Call(c, 0x01CA9C);
-        Call(c, 0x01C9FE);
-        Call(c, 0x01CA34);
-        Call(c, 0x01CAB8);
+        Call(c, At(0x01CA9C));
+        Call(c, At(0x01C9FE));
+        Call(c, At(0x01CA34));
+        Call(c, At(0x01CAB8));
     }
 
     // 01B6DA. The camera's place up and down: it follows the higher player when that one is more than 96 above its
@@ -159,7 +159,7 @@ namespace {
     // the map drawn as it goes. (A mode can want it at a place of its own.)
     void CameraUp(M68K &c) {
         const uint32_t camera = c.a[6];
-        Call(c, 0x01C1D0); // (the players' heights: D1 the higher)
+        Call(c, At(0x01C1D0)); // (the players' heights: D1 the higher)
         for (int n = 0; n < 2; n++) {
             if (TagIsOff(Player(n))) {
                 SetLow16(c.d[0], Ram16(Player(1 - n) + kY));
@@ -211,10 +211,10 @@ namespace {
         }
         SetRam8(camera + 0x39, Ram8(camera + 0x39) ^ 0x10);
         SetLow8(c.d[0], Ram8(camera + kCameraGoingY));
-        Call(c, 0x01CA9C);
-        Call(c, 0x01C9FE);
-        Call(c, 0x01CA34);
-        Call(c, 0x01CB40);
+        Call(c, At(0x01CA9C));
+        Call(c, At(0x01C9FE));
+        Call(c, At(0x01CA34));
+        Call(c, At(0x01CB40));
     }
 
     // --- the players inside the picture ---
@@ -239,7 +239,7 @@ namespace {
             apart = static_cast<uint16_t>(0u - apart);
         }
         SetLow16(c.d[1], apart);
-        Call(c, 0x019216); // (A3: the scroll screen the player stands in)
+        Call(c, At(0x019216)); // (A3: the scroll screen the player stands in)
         const uint16_t half = Mem16(c, player + kHalfWidth);
         SetLow16(c.d[2], half);
         const uint16_t shown = static_cast<uint16_t>(Mem16(c, c.a[3] + kPlaneShownX) - Margin());
@@ -288,7 +288,7 @@ namespace {
             c.a[0] = player;
             c.a[1] = other;
         }
-        Call(c, 0x019216);
+        Call(c, At(0x019216));
         const uint32_t leftOne = c.a[0], rightOne = c.a[1];
         const uint16_t shown = static_cast<uint16_t>(Mem16(c, c.a[3] + kPlaneShownX) - Margin());
         uint16_t half = Mem16(c, leftOne + kHalfWidth);
@@ -343,7 +343,7 @@ namespace {
         {{0, 0}, {304, 592}},     {{273, 622}, {352, 544}}, {{8, 888}, {336, 496}},   {{308, 587}, {308, 587}}, {{339, 695}, {362, 533}},
         {{16, 112}, {352, 544}},  {{337, 558}, {305, 334}}, {{313, 583}, {332, 564}}, {{358, 538}, {403, 493}}, {{30, 97}, {381, 514}},
         {{373, 522}, {282, 357}}, {{268, 628}, {280, 616}}, {{256, 640}, {256, 640}}};
-    constexpr uint32_t kPlanes[2] = {0xFF8200, 0xFF8300};
+    constexpr uint32_t kPlanes[2] = {At(0xFF8200), At(0xFF8300)};
     int g_planeBefore[2] = {0, 0};
 
     // How far to draw a plane moved so that its wide view stays inside its painting
@@ -374,7 +374,7 @@ namespace {
     // 32-pixel cell in a table the record names (+30), a cell 4 x 4 tiles (down then across) of two words each, in
     // another (+34). The game keeps up only what its own picture shows, so the wide picture's sides are read from
     // the plan here, as the game's own strip routines (01C574, 01C5AA, 01C668) find them.
-    constexpr uint32_t kBackPlane = 0xFF8200, kBackPlan = 0xFF2B44;
+    constexpr uint32_t kBackPlane = At(0xFF8200), kBackPlan = At(0xFF2B44);
     Machine *g_machine = nullptr;
     int g_backShown = 0, g_backShift = 0; // (the plane's place for the picture being made, and how far it is drawn moved)
     bool StagePlanTile(uint32_t x, uint32_t y, uint16_t &code, uint16_t &attributes) {
@@ -544,18 +544,18 @@ namespace {
     // Where a player's fighter stands in the picture, for the window's zoom (fight/alternative.h, modes::Focus): the
     // middle of its feet, the wide picture's columns counted
     void FocusPlace(int player, int &x, int &y) {
-        x = static_cast<int16_t>(Ram16(Player(player) + kX)) - static_cast<int16_t>(Ram16(0xFF8290)) + WideStage();
-        y = 239 - (static_cast<int16_t>(Ram16(Player(player) + kY)) - static_cast<int16_t>(Ram16(0xFF8294)));
+        x = static_cast<int16_t>(Ram16(Player(player) + kX)) - static_cast<int16_t>(Ram16(At(0xFF8290))) + WideStage();
+        y = 239 - (static_cast<int16_t>(Ram16(Player(player) + kY)) - static_cast<int16_t>(Ram16(At(0xFF8294))));
     }
 } // namespace
 
 void RegisterWidescreen() {
     modes::Focus(FocusPlace, 44, 112);
     TheGame().widestPicture = [] { return Video::kWidth + (FeatureOn("widescreen") ? 2 * kSide : 0); };
-    AddRewrite(0x01B662, "CameraAcross", CameraAcross, kFreeFlags, 253);
-    AddRewrite(0x01B6DA, "CameraUp", CameraUp, kFreeFlags, 218);
-    AddRewrite(0x0236F0, "KeepIn", KeepIn, kFreeFlags, 230);
-    AddRewrite(0x0237BE, "KeepBothIn", KeepBothIn, kFreeFlags, 210);
+    AddRewrite(At(0x01B662), "CameraAcross", CameraAcross, kFreeFlags, 253);
+    AddRewrite(At(0x01B6DA), "CameraUp", CameraUp, kFreeFlags, 218);
+    AddRewrite(At(0x0236F0), "KeepIn", KeepIn, kFreeFlags, 230);
+    AddRewrite(At(0x0237BE), "KeepBothIn", KeepBothIn, kFreeFlags, 210);
     // (not in the Enhanced preset: it shows more of the stage than the board does, and a player who wants the game
     // as it is played in competition must not get that without asking)
     TheGame().features.push_back({"widescreen", "Display", "Widescreen",

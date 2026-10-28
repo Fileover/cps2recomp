@@ -22,15 +22,15 @@ namespace {
     // Not zero: the computer is not asked what to do this step (a byte of the player's; and the game's own three,
     // fight.cpp's: the clock ran out, the round is stopped (decided, or held), the round is held)
     constexpr uint32_t kComputerWaits = 0x24E;
-    constexpr int32_t kRoundTimeOver = 0x10D, kRoundStopped = 0x10E, kRoundPaused = 0x8A;
+    constexpr int32_t kRoundTimeOver = AtA5(0x10D), kRoundStopped = AtA5(0x10E), kRoundPaused = AtA5(0x8A);
     constexpr uint32_t kMoveNumber = 0x133; // byte: which special move the player is in
     constexpr uint8_t kActionThrow = 0x0E;
     constexpr uint8_t kChunLi = 4, kChunLiClassic = 0x12, kSodom = 6, kDhalsim = 0x0F;
 
-    constexpr uint32_t kComputerThinks = 0x0280D4; // the computer chooses this player's input
-    constexpr uint32_t kChunLiFrozen = 0x0322D6;   // Chun-Li's own, every step she stands frozen by a hit
-    constexpr uint32_t kKeepIn = 0x0236F0;
-    constexpr uint32_t kActions = 0x02171E; // the routines by kAction (words, from here)
+    constexpr uint32_t kComputerThinks = At(0x0280D4); // the computer chooses this player's input
+    constexpr uint32_t kChunLiFrozen = At(0x0322D6);   // Chun-Li's own, every step she stands frozen by a hit
+    constexpr uint32_t kKeepIn = At(0x0236F0);
+    constexpr uint32_t kActions = At(0x02171E); // the routines by kAction (words, from here)
 
     void CountDown(uint32_t address) {
         if (Ram8(address)) {
@@ -58,20 +58,20 @@ namespace {
 
     // The game's routines a standing player's step is made of. A test answers with the Z flag clear for yes; what
     // follows a yes is a routine that starts the new action (a jump to it, in the game's code).
-    constexpr uint32_t kSetAnimation = 0x023136; // D0: the character's animation of that number, from its start
-    constexpr uint32_t kAnimate = 0x0231D4;      // the animation on by a step (two in a Custom Combo)
-    constexpr uint32_t kTimeOverPose = 0x023638; // the clock ran out: the winner's or the loser's pose
-    constexpr uint32_t kOtherBeaten = 0x023A1A, kWinPose = 0x023A2E;
-    constexpr uint32_t kPausedPose = 0x023D6A;   // the round held: a pose by who has more health (answers in D0)
-    constexpr uint32_t kMustTurn = 0x0233B2, kTurn = 0x0233C6;          // the other has gone past: turn round
-    constexpr uint32_t kPressed = 0x023B6A, kAttack = 0x023B74;         // a button pressed: an attack
-    constexpr uint32_t kHoldsDown = 0x0233FA, kCrouch = 0x023402;
-    constexpr uint32_t kHoldsUp = 0x0232AA, kJump = 0x0232BC;
-    constexpr uint32_t kGuardTest = 0x02343C, kGuardPose = 0x0235F6;     // GuardRange (guard.cpp)
-    constexpr uint32_t kHoldsAcross = 0x02322A, kWalk = 0x023242;
-    constexpr uint32_t kCrouchRises = 0x02342A; // let go of down: the crouch's rising (kActionCrouch, step 4)
-    constexpr uint32_t kTakeObject = 0x01963A;   // a free record for a thing of the game's (A4), Z clear if one
-    constexpr uint32_t kStandActions = 0x021742; // the standing routine's steps (words, from here)
+    constexpr uint32_t kSetAnimation = At(0x023136); // D0: the character's animation of that number, from its start
+    constexpr uint32_t kAnimate = At(0x0231D4);      // the animation on by a step (two in a Custom Combo)
+    constexpr uint32_t kTimeOverPose = At(0x023638); // the clock ran out: the winner's or the loser's pose
+    constexpr uint32_t kOtherBeaten = At(0x023A1A), kWinPose = At(0x023A2E);
+    constexpr uint32_t kPausedPose = At(0x023D6A);   // the round held: a pose by who has more health (answers in D0)
+    constexpr uint32_t kMustTurn = At(0x0233B2), kTurn = At(0x0233C6);          // the other has gone past: turn round
+    constexpr uint32_t kPressed = At(0x023B6A), kAttack = At(0x023B74);         // a button pressed: an attack
+    constexpr uint32_t kHoldsDown = At(0x0233FA), kCrouch = At(0x023402);
+    constexpr uint32_t kHoldsUp = At(0x0232AA), kJump = At(0x0232BC);
+    constexpr uint32_t kGuardTest = At(0x02343C), kGuardPose = At(0x0235F6);     // GuardRange (guard.cpp)
+    constexpr uint32_t kHoldsAcross = At(0x02322A), kWalk = At(0x023242);
+    constexpr uint32_t kCrouchRises = At(0x02342A); // let go of down: the crouch's rising (kActionCrouch, step 4)
+    constexpr uint32_t kTakeObject = At(0x01963A);   // a free record for a thing of the game's (A4), Z clear if one
+    constexpr uint32_t kStandActions = At(0x021742); // the standing routine's steps (words, from here)
     constexpr uint32_t kLow = 0x130;             // byte: set while crouched (standing's step 4)
     constexpr uint32_t kTurnFast = 0x143;        // byte: cleared at every step of standing
     constexpr uint32_t kSodomsThing = 0x35;      // byte: Sodom's: a thing of his to be made as he stands
@@ -215,7 +215,7 @@ namespace {
             // 02177E
             SetRam8(player + kLow, 0);
             if (Ram8(player + kCustomCombo)) {
-                Call(c, 0x01FE5E);
+                Call(c, At(0x01FE5E));
                 if (Ram8(player + kCustomCombo) == 1) {
                     // (the Custom Combo's last step: back to standing's own animation)
                     SetRam8(player + kThrowing, 0);
@@ -242,12 +242,12 @@ namespace {
 
     // --- crouching (kAction kActionCrouch) ---
 
-    constexpr uint32_t kCrouchActions = 0x021890; // the crouching routine's steps (words, from here)
+    constexpr uint32_t kCrouchActions = At(0x021890); // the crouching routine's steps (words, from here)
     constexpr uint32_t kFrameTime = 0x32;          // word: steps left of the animation frame
     constexpr uint32_t kFrameWord = 0x34;          // word: the frame's second: bit 15, the animation's end (a jump
                                                    // on); the rest picks the crouch's going down and coming up
-    constexpr uint32_t kCrouched = 0x023EB0;      // the going down's animation over: crouched (standing's step 4)
-    constexpr uint32_t kRisenStanding = 0x023E82; // the rising's animation over: standing (step 0)
+    constexpr uint32_t kCrouched = At(0x023EB0);      // the going down's animation over: crouched (standing's step 4)
+    constexpr uint32_t kRisenStanding = At(0x023E82); // the rising's animation over: standing (step 0)
 
     // The animation by the frame's number (+4: coming up; +7: going down again), the frame's time kept
     void CrouchAnimation(M68K &c, uint32_t player, uint16_t plus) {
@@ -350,15 +350,15 @@ namespace {
 
     // --- walking (kAction kActionWalk) ---
 
-    constexpr uint32_t kWalkActions = 0x0219A0; // the walking routine's steps (words, from here)
+    constexpr uint32_t kWalkActions = At(0x0219A0); // the walking routine's steps (words, from here)
     constexpr uint32_t kWalkingBack = 0x3C;     // byte: 1 walking back, 0 forward (by the stick); also the number of
                                                 // the stick's bit (kStick) for the other way
     constexpr uint32_t kWalkSpeed = 0x40;       // long: added to the place across (kX and its fraction) each step
-    constexpr uint32_t kWalkSpeeds = 0x09886C;  // by character: two longs, walking forward and back (as if facing left)
+    constexpr uint32_t kWalkSpeeds = At(0x09886C);  // by character: two longs, walking forward and back (as if facing left)
     constexpr uint32_t kComputerWalksBack = 0x214; // byte: the way the computer wants to walk
-    constexpr uint32_t kHoldsBackOrForward = 0x0233A8;
-    constexpr uint32_t kStopWalking = 0x023E70;     // standing again (M. Bison's own standing)
-    constexpr uint32_t kWalkOn = 0x023294;          // the other way held: the walk again that way; and a step across
+    constexpr uint32_t kHoldsBackOrForward = At(0x0233A8);
+    constexpr uint32_t kStopWalking = At(0x023E70);     // standing again (M. Bison's own standing)
+    constexpr uint32_t kWalkOn = At(0x023294);          // the other way held: the walk again that way; and a step across
 
     // 0219AC. The walk's animation and speed, facing the other
     void WalkBegins(M68K &c, uint32_t player) {
@@ -450,19 +450,19 @@ namespace {
 
     // --- jumping (kAction kActionJump) ---
 
-    constexpr uint32_t kJumpActions = 0x021A70; // the jumping routine's steps (words, from here)
-    constexpr uint32_t kFly = 0x02331A;          // a step through the air: across and up by the speeds, the
+    constexpr uint32_t kJumpActions = At(0x021A70); // the jumping routine's steps (words, from here)
+    constexpr uint32_t kFly = At(0x02331A);          // a step through the air: across and up by the speeds, the
                                                  // speeds by theirs; C set once below the floor (kFloor)
     constexpr uint32_t kFloor = 0x64;            // word: the height of the floor under the player
     constexpr uint32_t kYFraction = 0x16;        // word: below kY
     constexpr uint32_t kJumpingWay = 0x3C;       // byte (as the jump began): 1 forward, FF back, 0 straight up
-    constexpr uint32_t kLands = 0x01472E;        // landing: dust, sound and the like
-    constexpr uint32_t kAirAttack = 0x0232F6;    // an attack in the air (the character's table of them)
-    constexpr uint32_t kWallJumpTest = 0x023CD4, kWallJump = 0x023D3C; // (Chun-Li, Guy: near a wall, high enough)
-    constexpr uint32_t kAirGuard = 0x023D5E;
-    constexpr uint32_t kComputerAirAttacks = 0x027E32, kComputerWallJumps = 0x028034, kComputerAirGuards = 0x028086;
-    constexpr uint32_t kComputerKeepsGuarding = 0x027E94;
-    constexpr uint32_t kBounceSpeeds = 0x09892C; // by character, 64 bytes; at +20 the wall jump's: across, up, and
+    constexpr uint32_t kLands = At(0x01472E);        // landing: dust, sound and the like
+    constexpr uint32_t kAirAttack = At(0x0232F6);    // an attack in the air (the character's table of them)
+    constexpr uint32_t kWallJumpTest = At(0x023CD4), kWallJump = At(0x023D3C); // (Chun-Li, Guy: near a wall, high enough)
+    constexpr uint32_t kAirGuard = At(0x023D5E);
+    constexpr uint32_t kComputerAirAttacks = At(0x027E32), kComputerWallJumps = At(0x028034), kComputerAirGuards = At(0x028086);
+    constexpr uint32_t kComputerKeepsGuarding = At(0x027E94);
+    constexpr uint32_t kBounceSpeeds = At(0x09892C); // by character, 64 bytes; at +20 the wall jump's: across, up, and
                                                  // what is added to each every step
     constexpr uint8_t kRolento = 0x0E, kSagat = 0x0B, kShinAkuma = 0x14;
     constexpr uint8_t kJumpAnimations[3] = {0x12, 0x13, 0x14}; // straight up, forward, back
@@ -519,8 +519,8 @@ namespace {
         case 2: // 021AB2. In the air: an attack, a wall jump or a guard; on landing at once an attack, a guard, a turn
             if (Flies(c, player, true)) {
                 if (!computer) {
-                    if (Ram8(player + kCharacter) == kRolento && Asks(c, 0x04431E)) {
-                        return Call(c, 0x04433C); // (Rolento's own landing)
+                    if (Ram8(player + kCharacter) == kRolento && Asks(c, At(0x04431E))) {
+                        return Call(c, At(0x04433C)); // (Rolento's own landing)
                     }
                     if (Asks(c, kPressed)) {
                         return Call(c, kAttack);
@@ -584,10 +584,10 @@ namespace {
             Call(c, kAnimate);
             if (Ram8(player + kCharacter) == kSagat && Ram8(player + kSodomsThing)) {
                 SetRam8(player + kSodomsThing, 0);
-                return Call(c, 0x027320); // (Sagat's own)
+                return Call(c, At(0x027320)); // (Sagat's own)
             }
             if (Ram8(player + kCharacter) == kShinAkuma) {
-                return Call(c, 0x04FEE8); // (Shin Akuma's own)
+                return Call(c, At(0x04FEE8)); // (Shin Akuma's own)
             }
             return;
         case 8: // 021C08. Guarding in the air: while still guarding stays so, else back to the jump
@@ -651,8 +651,8 @@ namespace {
 
     // --- attacking (kAction kActionAttack) ---
 
-    constexpr uint32_t kAttacks = 0x097AEC, kComputerAttacks = 0x097B4C; // by character: its attacking routine
-    constexpr uint32_t kCustomComboStep = 0x01FE5E;                       // a Custom Combo's own, every step of it
+    constexpr uint32_t kAttacks = At(0x097AEC), kComputerAttacks = At(0x097B4C); // by character: its attacking routine
+    constexpr uint32_t kCustomComboStep = At(0x01FE5E);                       // a Custom Combo's own, every step of it
     constexpr uint32_t kTimer28E = 0x28E, kTimer293 = 0x293, kTimer240 = 0x240;
 
     // 021E04. An attacking player's step: the character's own routine for its attacks (the computer's own)
@@ -676,8 +676,8 @@ namespace {
 
     // --- guarding (kAction kActionGuardPose) ---
 
-    constexpr uint32_t kGuardActions = 0x021E64; // the guarding routine's steps (words, from here)
-    constexpr uint32_t kGuardsLow = 0x023414;    // holding down to guard (or, after some moves, held then)
+    constexpr uint32_t kGuardActions = At(0x021E64); // the guarding routine's steps (words, from here)
+    constexpr uint32_t kGuardsLow = At(0x023414);    // holding down to guard (or, after some moves, held then)
     enum : uint8_t { kGuardHighBegins = 0x15, kGuardHigh, kGuardHighEnds, kGuardLowBegins, kGuardLow, kGuardLowEnds }; // animations
 
     void FaceOther(uint32_t player) {
@@ -806,7 +806,7 @@ namespace {
 
     // --- special moves (kAction 0E, 10) ---
 
-    constexpr uint32_t kSpecials = 0x097BAC, kComputerSpecials = 0x097C0C; // by character: its special moves' routine
+    constexpr uint32_t kSpecials = At(0x097BAC), kComputerSpecials = At(0x097C0C); // by character: its special moves' routine
 
     // 022000. A player in a special move: the character's own routine for them (the computer's own)
     void SpecialMove(M68K &c) {
@@ -822,12 +822,12 @@ namespace {
 
     // --- stunned (kAction kActionStunned) ---
 
-    constexpr uint32_t kStunActions = 0x022032; // the stunned routine's steps (words, from here)
+    constexpr uint32_t kStunActions = At(0x022032); // the stunned routine's steps (words, from here)
     constexpr uint32_t kStunLeft = 0x3A;         // word: steps left of the stun
-    constexpr uint32_t kMashesStick = 0x022094;  // the stick newly moved (the computer: its own, 0280BA)
-    constexpr uint32_t kMashesStickToo = 0x0220A4;
-    constexpr uint32_t kMashesButtons = 0x0220B8; // a button newly pressed
-    constexpr uint32_t kStunOver = 0x0220D4;
+    constexpr uint32_t kMashesStick = At(0x022094);  // the stick newly moved (the computer: its own, 0280BA)
+    constexpr uint32_t kMashesStickToo = At(0x0220A4);
+    constexpr uint32_t kMashesButtons = At(0x0220B8); // a button newly pressed
+    constexpr uint32_t kStunOver = At(0x0220D4);
 
     // One step off the stun; true once it is over
     bool StunCountsDown(uint32_t player) {
@@ -876,8 +876,8 @@ namespace {
         }
         if (step == 2) {
             // 0220D4. Over: standing (or crouched, or guarding, as held)
-            Call(c, 0x0272EC);
-            Call(c, 0x014874);
+            Call(c, At(0x0272EC));
+            Call(c, At(0x014874));
             SetRam8(player + 0x5D, 0);
             SetRam8(player + 0x5E, 0);
             SetRam32(player + 0x146, 0);
@@ -896,7 +896,7 @@ namespace {
 
     // --- turning round (kAction 08) ---
 
-    constexpr uint32_t kTurnActions = 0x021D32; // the turning routine's steps (words, from here)
+    constexpr uint32_t kTurnActions = At(0x021D32); // the turning routine's steps (words, from here)
 
     // The turn's animation over: standing, or crouched (the computer's: as it was, kLow); otherwise on
     void TurnGoesOn(M68K &c, uint32_t player, uint32_t over) {
@@ -995,7 +995,7 @@ namespace {
 namespace {
     // --- reeling (kControl kControlReeling) ---
 
-    constexpr uint32_t kReactions = 0x02212A; // the routines by kAction while reeling (words, from here): 0 on the
+    constexpr uint32_t kReactions = At(0x02212A); // the routines by kAction while reeling (words, from here): 0 on the
                                               // floor, 2 (0225E6), 4 (022D20)
 
     constexpr uint32_t kAutoGuardHeld = 0x249;
@@ -1004,7 +1004,7 @@ namespace {
     // it chooses), else stands (or crouches, holding down)
     void Recovered(M68K &c) {
         const uint32_t player = c.a[6];
-        Call(c, 0x0272EC);
+        Call(c, At(0x0272EC));
         SetRam8(player + 0x5D, 0);
         SetRam8(player + 0x5E, 0);
         SetRam32(player + 0x146, 0);
@@ -1030,18 +1030,18 @@ namespace {
         SetRam8(player + 0x201, 0);
         SetRam16(player + 0x202, 0);
         if (Ram16(player + 0x206)) {
-            Call(c, 0x0295EC);
+            Call(c, At(0x0295EC));
         }
         if (Asks(c, kComputerKeepsGuarding)) {
-            return Call(c, 0x027FE2); // (the computer's guard)
+            return Call(c, At(0x027FE2)); // (the computer's guard)
         }
         Call(c, Ram8(player + kLow) ? kCrouched : kRisenStanding);
     }
 
     constexpr uint32_t kReelKind = 0x54;    // byte: how the player reels (2, 6, 0A: with the hit's colours)
     constexpr uint32_t kShake = 0x144;      // word: the picture moved across while frozen by a hit
-    constexpr uint32_t kShakes = 0x024068;  // words by the steps of freeze left (read as data: the ROM as it is)
-    constexpr uint32_t kReelGoesOn = 0x0225E6; // the reeling after the freeze (by kReelKind)
+    constexpr uint32_t kShakes = At(0x024068);  // words by the steps of freeze left (read as data: the ROM as it is)
+    constexpr uint32_t kReelGoesOn = At(0x0225E6); // the reeling after the freeze (by kReelKind)
 
     // 022544. Reeling, frozen while the hit lands (kHitStop): shaken (on the floor), and flashing as the game's own
     // guard does; once the freeze is over the reeling goes on (kAction on by 2)
@@ -1049,7 +1049,7 @@ namespace {
         const uint32_t player = c.a[6];
         const uint8_t kind = Ram8(player + kReelKind);
         if (kind == 6 || kind == 0x0A || kind == 2) {
-            Call(c, 0x09764C); // (the hit's colours)
+            Call(c, At(0x09764C)); // (the hit's colours)
         }
         const uint8_t left = static_cast<uint8_t>(Ram8(player + kHitStop) - 1);
         SetRam8(player + kHitStop, left);
@@ -1064,7 +1064,7 @@ namespace {
         }
         c.a[4] = static_cast<uint32_t>(static_cast<int16_t>(Ram16(player + kOpponent)));
         if (Ram8((c.a[4] & 0xFFFFFF) + kCustomCombo)) {
-            Call(c, 0x023C4E);
+            Call(c, At(0x023C4E));
         }
         if (!Ram8(player + kInAir)) {
             c.a[0] = kShakes;
@@ -1077,21 +1077,21 @@ namespace {
             SetLow16(c.d[0], shake);
             SetRam16(player + kShake, shake);
         }
-        if (Ram8(player + 0x246) && Ram8(player + kAutoGuardOn) && (kind == 6 || kind == 2) && (Ram8(Var(c, 0x80)) & 1)) {
+        if (Ram8(player + 0x246) && Ram8(player + kAutoGuardOn) && (kind == 6 || kind == 2) && (Ram8(Var(c, AtA5(0x80))) & 1)) {
             SetRam8(player + 0x0C, 0xFF);
             SetRam8(player + kColourSet, static_cast<uint8_t>(Ram8(player + kColourSet) + 4));
         }
-        Call(c, 0x02720E);
+        Call(c, At(0x02720E));
     }
 
-    constexpr uint32_t kReelKinds = 0x0225F2;   // the reeling routines by kReelKind (words, from here)
-    constexpr uint32_t kReelStandingSteps = 0x02260A; // kReelKind 0's steps (words, from here)
-    constexpr uint32_t kPushBack = 0x023BEC;    // pushed back a step (by the hit's strength +56); Z clear once it is over
+    constexpr uint32_t kReelKinds = At(0x0225F2);   // the reeling routines by kReelKind (words, from here)
+    constexpr uint32_t kReelStandingSteps = At(0x02260A); // kReelKind 0's steps (words, from here)
+    constexpr uint32_t kPushBack = At(0x023BEC);    // pushed back a step (by the hit's strength +56); Z clear once it is over
     constexpr uint32_t kPushedSteps = 0x3A;     // word: steps pushed back so far
-    constexpr uint32_t kReelAnimation = 0x02319C; // D0: the character's reeling animation of that number
-    constexpr uint32_t kKnockedOut = 0x0239E6;
-    constexpr uint32_t kReelStarts = 0x09808C;  // by character (8 bytes each): its own routine as a reeling begins
-    constexpr uint32_t kComputerAlphaCounter = 0x023B2E;
+    constexpr uint32_t kReelAnimation = At(0x02319C); // D0: the character's reeling animation of that number
+    constexpr uint32_t kKnockedOut = At(0x0239E6);
+    constexpr uint32_t kReelStarts = At(0x09808C);  // by character (8 bytes each): its own routine as a reeling begins
+    constexpr uint32_t kComputerAlphaCounter = At(0x023B2E);
 
     // Over: back in control (Recovered), or knocked out (022698, 02279E)
     void ReelOver(M68K &c, uint32_t player) {
@@ -1164,10 +1164,10 @@ namespace {
         }
         switch (step) {
         case 2: { // 02261A
-            Call(c, 0x02720E);
+            Call(c, At(0x02720E));
             if (Asks(c, kPushBack)) {
                 SetRam8(player + kActionStep, static_cast<uint8_t>(Ram8(player + kActionStep) + 2));
-                Call(c, 0x027204);
+                Call(c, At(0x027204));
                 SetRam8(player + 0x250, 0);
                 SetRam8(player + 0x251, 0);
                 SetRam8(player + 0x252, 0);
@@ -1195,7 +1195,7 @@ namespace {
         }
     }
 
-    constexpr uint32_t kReelGuardSteps = 0x0226F2; // kReelKind 2's steps (words, from here)
+    constexpr uint32_t kReelGuardSteps = At(0x0226F2); // kReelKind 2's steps (words, from here)
 
     // 0226E6. Reeling, kReelKind 2: pushed back guarding (kActionStep): 0 begins, 2 pushed back, guarding high or low
     // as held (a new press of down, after some moves, to guard low), 4 over. Pushed back to the end, it faces the
@@ -1248,7 +1248,7 @@ namespace {
         Call(c, kReelAnimation);
     }
 
-    constexpr uint32_t kReelHopSteps = 0x022B5E;
+    constexpr uint32_t kReelHopSteps = At(0x022B5E);
     constexpr uint32_t kAtEdge = 0x13C; // byte: 1 at the picture's left edge, 2 at its right (KeepIn)
 
     // 022B52. Reeling, kReelKind 6: hopped back through the air by a hit there (kActionStep): 0 the hop's speeds, 2
@@ -1308,9 +1308,9 @@ namespace {
 
     // --- knocked down (kReelKind 4) ---
 
-    constexpr uint32_t kReelDownSteps = 0x0227C4; // kReelKind 4's steps (words, from here)
+    constexpr uint32_t kReelDownSteps = At(0x0227C4); // kReelKind 4's steps (words, from here)
     constexpr uint32_t kDizzyAfter = 0x13B;        // byte: stunned once it is up (the stun reached while down)
-    constexpr uint32_t kReelStartsDown = 0x098090; // by character (8 bytes each): its own routine as a knock-down begins
+    constexpr uint32_t kReelStartsDown = At(0x098090); // by character (8 bytes each): its own routine as a knock-down begins
 
     // 0226C8: the character's own routine as a knock-down begins (not when knocked out)
     void DownStarts(M68K &c, uint32_t player) {
@@ -1341,8 +1341,8 @@ namespace {
             move = !stopped && !Asks(c, kOtherBeaten);
         }
         if (move) {
-            c.a[1] = 0x09BFC4;
-            move = Asks(c, 0x0280BA);
+            c.a[1] = At(0x09BFC4);
+            move = Asks(c, At(0x0280BA));
         }
         if (!move) {
             c.d[0] = 0x14;
@@ -1384,7 +1384,7 @@ namespace {
         SetRam8(player + kActionStep, 0x0C);
         if (Ram8(player + 0x29B)) {
             SetRam8(player + 0x29B, 0);
-            Call(c, 0x0157A4);
+            Call(c, At(0x0157A4));
         }
         c.d[0] = 0x18;
         Call(c, kReelAnimation);
@@ -1404,39 +1404,39 @@ namespace {
             SetRam8(player + kActionStep, static_cast<uint8_t>(Ram8(player + kActionStep) + 2));
             SetRam8(player + kAttackOut, 0);
             SetRam8(player + kLow, 0);
-            Call(c, 0x023930);
+            Call(c, At(0x023930));
             SetRam8(player + kInAir, 0xFF);
-            Call(c, 0x02720E);
+            Call(c, At(0x02720E));
             if (Ram8(player + 0x23B)) {
-                Call(c, 0x022258);
+                Call(c, At(0x022258));
                 if (!Ram8(player + kKnocksDown)) {
                     SetRam8(player + 0x57, 6);
-                    Call(c, 0x023930);
+                    Call(c, At(0x023930));
                 } else {
                     c.d[0] = 3;
-                    Call(c, 0x026DB0);
+                    Call(c, At(0x026DB0));
                     DownStarts(c, player);
                 }
             } else {
                 DownStarts(c, player);
             }
             if (Ram8(player + kDizzyAfter)) {
-                Call(c, 0x05DA40); // (the stars)
+                Call(c, At(0x05DA40)); // (the stars)
             }
             [[fallthrough]];
         case 2: // 022826
-            Call(c, 0x02720E);
+            Call(c, At(0x02720E));
             Call(c, kFly);
             if (!c.flagC) {
                 return DownFalls(c, player);
             }
             SetRam8(player + kActionStep, static_cast<uint8_t>(Ram8(player + kActionStep) + 2));
-            Call(c, out ? 0x014916 : 0x01467A); // (the landing's sound)
+            Call(c, out ? At(0x014916) : At(0x01467A)); // (the landing's sound)
             SetRam8(player + kInAir, 0);
             SetRam8(player + kPushedSteps, 4);
             SetRam16(player + kY, Ram16(player + kFloor));
-            Call(c, 0x023A9A);
-            Call(c, 0x027204);
+            Call(c, At(0x023A9A));
+            Call(c, At(0x027204));
             SetRam8(player + 0x250, 0);
             SetRam8(player + 0x251, 0);
             SetRam8(player + 0x252, 0);
@@ -1449,7 +1449,7 @@ namespace {
             }
             SetRam8(player + kActionStep, static_cast<uint8_t>(Ram8(player + kActionStep) + 2));
             SetRam8(player + kInAir, 0xFF);
-            Call(c, 0x02399A);
+            Call(c, At(0x02399A));
             c.d[0] = 0x15;
             return Call(c, kReelAnimation);
         }
@@ -1459,13 +1459,13 @@ namespace {
                 return Call(c, kAnimate);
             }
             SetRam8(player + kActionStep, static_cast<uint8_t>(Ram8(player + kActionStep) + 2));
-            Call(c, 0x023A6E);
+            Call(c, At(0x023A6E));
             SetRam8(player + kInAir, 0);
             SetRam8(player + kPushedSteps, 8);
             SetRam16(player + kY, Ram16(player + kFloor));
             c.d[0] = 0x16;
             Call(c, kReelAnimation);
-            return Call(c, (Ram16(player + kHealth) & 0x8000) ? 0x0148C8 : 0x01462C);
+            return Call(c, (Ram16(player + kHealth) & 0x8000) ? At(0x0148C8) : At(0x01462C));
         case 8: { // 0229BC
             const uint8_t left = static_cast<uint8_t>(Ram8(player + kPushedSteps) - 1);
             SetRam8(player + kPushedSteps, left);
@@ -1495,22 +1495,22 @@ namespace {
             SetRam8(player + kStun, 0);
             SetRam8(player + kDizzyAfter, 0);
             SetRam8(player + kStunMost, static_cast<uint8_t>(Ram8(player + kStunMost) + 5));
-            Call(c, 0x0272EC);
+            Call(c, At(0x0272EC));
             SetRam8(player + 0x5D, 0);
             SetRam8(player + 0x5E, 0);
             SetRam32(player + 0x146, 0);
             SetRam8(player + kLow, 0);
-            Call(c, 0x01975A); // (a number by chance)
+            Call(c, At(0x01975A)); // (a number by chance)
             SetLow16(c.d[0], static_cast<uint16_t>(c.d[0] & 0x1E));
             c.d[1] = 0;
             SetLow8(c.d[1], Ram8(player + kCharacter));
             SetLow16(c.d[1], static_cast<uint16_t>((c.d[1] & 0xFFFF) << 2));
-            c.a[0] = Mem32(c, 0x09AE84 + static_cast<uint32_t>(static_cast<int16_t>(c.d[1] & 0xFFFF)));
+            c.a[0] = Mem32(c, At(0x09AE84) + static_cast<uint32_t>(static_cast<int16_t>(c.d[1] & 0xFFFF)));
             Call(c, c.a[0]); // (the character's own: D1 its row)
             SetLow16(c.d[1], static_cast<uint16_t>((c.d[1] & 0xFFFF) << 3));
             SetLow16(c.d[0], static_cast<uint16_t>((c.d[0] & 0xFFFF) + (c.d[1] & 0xFFFF)));
-            c.a[0] = 0x09814C;
-            SetRam16(player + kStunLeft, Mem16(c, 0x09814C + static_cast<uint32_t>(static_cast<int16_t>(c.d[0] & 0xFFFF))));
+            c.a[0] = At(0x09814C);
+            SetRam16(player + kStunLeft, Mem16(c, At(0x09814C) + static_cast<uint32_t>(static_cast<int16_t>(c.d[0] & 0xFFFF))));
             c.d[0] = 0x1A;
             return Call(c, kReelAnimation);
         case 0x0C: // 022A58. Recovered in the air: landing, in control
@@ -1565,9 +1565,9 @@ namespace {
 
     // --- a reeling begins (kAction 0 of reeling, step 0) ---
 
-    constexpr uint32_t kReelOnFloorSteps = 0x02213C; // (words, from here): 0 begins (022140), 2 frozen (ReelFrozen)
-    constexpr uint32_t kReactions2 = 0x02402C;       // by reaction (+55), two bytes: the animation, the kReelKind
-    constexpr int32_t kFirstAttack = 0x135;          // from A5: set by the round's first hit ("First attack")
+    constexpr uint32_t kReelOnFloorSteps = At(0x02213C); // (words, from here): 0 begins (022140), 2 frozen (ReelFrozen)
+    constexpr uint32_t kReactions2 = At(0x02402C);       // by reaction (+55), two bytes: the animation, the kReelKind
+    constexpr int32_t kFirstAttack = AtA5(0x135);          // from A5: set by the round's first hit ("First attack")
     constexpr uint32_t kReelAnimationNow = 0x5C;     // byte: the reeling's animation (from kReactions2)
     constexpr uint32_t kHitStrength = 0x56;          // byte: the hit's strength (0 light, 1 medium, 2 and on heavy)
     constexpr uint32_t kOnFire = 0x251, kShocked = 0x250, kFrozenStiff = 0x252; // bytes: the hit's effect begun
@@ -1582,18 +1582,18 @@ namespace {
         SetLow8(c.d[0], static_cast<uint8_t>((c.d[0] & 0xFF) + (c.d[1] & 0xFF)));
         Call(c, kReelAnimation);
         if (pushBack) {
-            Call(c, 0x023AC6);
+            Call(c, At(0x023AC6));
         }
         c.d[0] = 0;
         if (!Ram8(player + kHitStop)) {
-            Call(c, 0x022544);
+            Call(c, At(0x022544));
         }
     }
     void ReelThenFrozen(M68K &c, uint32_t player) {
         Call(c, kReelAnimation);
         c.d[0] = 0;
         if (!Ram8(player + kHitStop)) {
-            Call(c, 0x022544);
+            Call(c, At(0x022544));
         }
     }
 
@@ -1622,10 +1622,10 @@ namespace {
     void ReelBurnt(M68K &c, uint32_t player) {
         if (!Ram8(player + kOnFire)) {
             SetRam8(player + kOnFire, static_cast<uint8_t>(Ram8(player + kOnFire) + 1));
-            Call(c, 0x05DEBE);
+            Call(c, At(0x05DEBE));
         }
-        Call(c, 0x0149F4);
-        Call(c, 0x02720E);
+        Call(c, At(0x0149F4));
+        Call(c, At(0x02720E));
         SetRam8(player + kKnocksDown, 1);
         c.d[0] = 0x13;
         Call(c, kReelAnimation);
@@ -1633,11 +1633,11 @@ namespace {
     void ReelShocked(M68K &c, uint32_t player) {
         if (!Ram8(player + kShocked)) {
             SetRam8(player + kShocked, static_cast<uint8_t>(Ram8(player + kShocked) + 1));
-            Call(c, 0x05DF28);
-            Call(c, 0x0149F4);
+            Call(c, At(0x05DF28));
+            Call(c, At(0x0149F4));
         }
         SetRam8(player + kKnocksDown, 1);
-        Call(c, 0x02720E);
+        Call(c, At(0x02720E));
         c.d[0] = 0x13;
         Call(c, kReelAnimation);
     }
@@ -1693,14 +1693,14 @@ namespace {
     void ReelBegins(M68K &c) {
         const uint32_t player = c.a[6];
         if (Ram8(player + kCharacter) == kBison && Ram8(player + 0x1F7)) {
-            Call(c, 0x03CB92);
+            Call(c, At(0x03CB92));
         }
         SetRam8(player + kActionStep, static_cast<uint8_t>(Ram8(player + kActionStep) + 2));
         c.d[0] = 0;
         for (const uint32_t field : {kAttackOut, 0x23Bu, 0x23Fu, kThrowing}) {
             SetRam8(player + field, 0);
         }
-        for (const int32_t offset : {0x65E, 0xA5E, 0xE5E, 0x125E}) {
+        for (const int32_t offset : {AtA5(0x65E), AtA5(0xA5E), AtA5(0xE5E), AtA5(0x125E)}) {
             SetRam8(Var(c, offset), 0);
         }
         for (const uint32_t field : {kCustomCombo, kTimer25B, kThrowProtection, 0x294u, 0x29Au, 0x299u}) {
@@ -1708,13 +1708,13 @@ namespace {
         }
         SetRam16(player + 0x15A, 0);
         SetRam16(player + 0x158, 0);
-        Call(c, 0x09764C); // (the hit's colours)
+        Call(c, At(0x09764C)); // (the hit's colours)
         const uint8_t reaction = Ram8(player + kReaction);
         if (reaction == 0xFF) {
             return ReelGuarded(c, player);
         }
         SetRam8(player + 0x5E, static_cast<uint8_t>(Ram8(player + 0x5E) + 1));
-        Call(c, 0x01F9A6);
+        Call(c, At(0x01F9A6));
         c.a[4] = static_cast<uint32_t>(static_cast<int16_t>(Ram16(player + kOpponent)));
         const uint32_t other = c.a[4] & 0xFFFFFF;
         SetRam8(other + 0x284, 0);
@@ -1724,12 +1724,12 @@ namespace {
             SetRam8(Var(c, kFirstAttack), 0xFF);
             SetRam8(other + 0x95, 8);
             if (Ram16(Var(c, kPlayMode)) && Ram8(player + 0x08) == 4) {
-                SetRam8(Var(c, 0x495), 8);
+                SetRam8(Var(c, AtA5(0x495)), 8);
             }
             c.d[0] = 0x28;
             SetLow8(c.d[1], Ram8(other + 0x81));
-            Call(c, 0x005A52); // ("First attack")
-            Call(c, 0x01906A);
+            Call(c, At(0x005A52)); // ("First attack")
+            Call(c, At(0x01906A));
         }
         // 0221FE
         if (reaction < 3 || reaction == 6 || reaction == 8 || reaction == 9 || reaction == 0x0E) {
@@ -1748,7 +1748,7 @@ namespace {
             }
             SetRam8(player + kReelAnimationNow, 0x21);
             SetRam8(player + kReelKind, 4);
-            Call(c, 0x05DF92);
+            Call(c, At(0x05DF92));
             SetRam8(player + kFrozenStiff, 1);
             c.d[0] = 0x21;
             return Call(c, kReelAnimation);
@@ -1773,18 +1773,18 @@ namespace {
             if (fire) {
                 if (!Ram8(player + kOnFire)) {
                     SetRam8(player + kOnFire, static_cast<uint8_t>(Ram8(player + kOnFire) + 1));
-                    Call(c, 0x05DEBE);
+                    Call(c, At(0x05DEBE));
                 }
-                Call(c, 0x0149F4);
-                Call(c, 0x02720E);
+                Call(c, At(0x0149F4));
+                Call(c, At(0x02720E));
             } else {
                 if (!Ram8(player + kShocked)) {
                     SetRam8(player + kShocked, static_cast<uint8_t>(Ram8(player + kShocked) + 1));
-                    Call(c, 0x05DF28);
-                    Call(c, 0x0149F4);
+                    Call(c, At(0x05DF28));
+                    Call(c, At(0x0149F4));
                 }
                 SetRam8(player + kKnocksDown, 1);
-                Call(c, 0x02720E);
+                Call(c, At(0x02720E));
             }
             return (reaction == 0x16 || reaction == 0x17) ? ReelStandingOnly(c, player, reaction) : ReelLight(c, player, reaction, false);
         }
@@ -1799,7 +1799,7 @@ namespace {
             }
             if (reaction == 0x11) {
                 // 022532
-                Call(c, 0x05DF92);
+                Call(c, At(0x05DF92));
                 SetRam8(player + kFrozenStiff, 1);
                 c.d[0] = 0x21;
                 return Call(c, kReelAnimation);
@@ -1832,12 +1832,12 @@ namespace {
 namespace {
     // --- the other kControl states ---
 
-    constexpr uint32_t kThrowPlaces = 0x0984AC; // by thrower, then by the one thrown: by the thrower's frame (+10 of
+    constexpr uint32_t kThrowPlaces = At(0x0984AC); // by thrower, then by the one thrown: by the thrower's frame (+10 of
                                                 // it), 8 bytes: across, up, facing (bit 15: +152 set), the frame to show
-    constexpr uint32_t kHeldFrames = 0x0987AC;  // by character: the frames shown while held
+    constexpr uint32_t kHeldFrames = At(0x0987AC);  // by character: the frames shown while held
     constexpr uint32_t kTechWindow = 0x3A;      // byte: steps left in which a throw can be softened
     constexpr uint32_t kSoftened = 0x29B;       // byte: set when the throw was softened (TakeDamage takes less)
-    constexpr uint32_t kKeepBothIn = 0x0237BE;
+    constexpr uint32_t kKeepBothIn = At(0x0237BE);
 
     // By the character's own table (the computer's own, if it has one): kControl 4 (then KeepIn unless +67), 8
     void ByCharacter(M68K &c, uint32_t table, uint32_t computerTable) {
@@ -1849,13 +1849,13 @@ namespace {
         Call(c, c.a[0]);
     }
     void ControlFour(M68K &c) { // 022DAC
-        ByCharacter(c, 0x097C6C, 0x097CCC);
+        ByCharacter(c, At(0x097C6C), At(0x097CCC));
         if (!Ram8(c.a[6] + 0x67)) {
             Call(c, kKeepIn);
         }
     }
     void ControlEight(M68K &c) { // 022F1E
-        ByCharacter(c, 0x097D2C, 0);
+        ByCharacter(c, At(0x097D2C), 0);
     }
 
     // 022DD4. Held in a throw (kControl 6): its effects off; the round's first hit announced; while the window is
@@ -1863,7 +1863,7 @@ namespace {
     // the window closes); placed and shown by the thrower's frame, and both kept inside the picture
     void HeldInThrow(M68K &c) {
         const uint32_t player = c.a[6];
-        Call(c, 0x027204);
+        Call(c, At(0x027204));
         c.d[0] = 0;
         for (const uint32_t field : {kCustomCombo, kTimer25B, kThrowProtection, kShocked, kOnFire, kFrozenStiff}) {
             SetRam8(player + field, 0);
@@ -1873,12 +1873,12 @@ namespace {
             c.a[4] = static_cast<uint32_t>(static_cast<int16_t>(Ram16(player + kOpponent)));
             SetRam8((c.a[4] & 0xFFFFFF) + 0x95, 8);
             if (Ram16(Var(c, kPlayMode))) {
-                SetRam8(Var(c, Ram8(player + 0x08) == 4 ? 0x495 : 0xC95), 8);
+                SetRam8(Var(c, Ram8(player + 0x08) == 4 ? AtA5(0x495) : AtA5(0xC95)), 8);
             }
             c.d[0] = 0x28;
             SetLow8(c.d[1], Ram8((c.a[4] & 0xFFFFFF) + 0x81));
-            Call(c, 0x005A52); // ("First attack")
-            Call(c, 0x01906A);
+            Call(c, At(0x005A52)); // ("First attack")
+            Call(c, At(0x01906A));
         }
         // 022E36: the window
         if (Ram8(player + kTechWindow)) {
@@ -1886,8 +1886,8 @@ namespace {
             SetRam8(player + kTechWindow, left);
             bool softened = false;
             if (!left && Ram8(player + kComputer)) {
-                c.a[1] = 0x09BDC4;
-                softened = Asks(c, 0x0280BA);
+                c.a[1] = At(0x09BDC4);
+                softened = Asks(c, At(0x0280BA));
             } else {
                 SetLow8(c.d[0], Ram8(player + kStick));
                 SetLow16(c.d[0], static_cast<uint16_t>(c.d[0] & (kStickHeldBack | kStickHeldForward)));
@@ -1957,13 +1957,13 @@ namespace {
     constexpr uint32_t kControlsFacing = 0x126, kControlsFacingBefore = 0x128; // the same by the facing it should have
     constexpr uint32_t kSuperFlash = 0x13D;      // byte: the player's super combo's flash is on (the others stand still)
     constexpr uint32_t kHitByNumber = 0x25C;     // byte: the number of the attack that last hit (not again till it ends)
-    constexpr uint32_t kStates = 0x021300;       // a player's routines by kState (words, from here)
-    constexpr int32_t kStillFrame = 0x15C;       // from A5: a still frame of the knock-out's slow motion (fight.cpp)
+    constexpr uint32_t kStates = At(0x021300);       // a player's routines by kState (words, from here)
+    constexpr int32_t kStillFrame = AtA5(0x15C);       // from A5: a still frame of the knock-out's slow motion (fight.cpp)
 
     // Left and right swapped (as the stick's bits 0 and 1) when facing right: the stick by the player's facing
     uint16_t ByFacing(M68K &c, uint16_t word) {
         SetLow16(c.d[0], static_cast<uint16_t>(word & 3));
-        SetLow8(c.d[0], Code8(c, 0x0212A8 + (c.d[0] & 0xFFFF)));
+        SetLow8(c.d[0], Code8(c, At(0x0212A8) + (c.d[0] & 0xFFFF)));
         return static_cast<uint16_t>((word & 0xFFFC) | (c.d[0] & 0xFF));
     }
 
@@ -2003,7 +2003,7 @@ namespace {
         SetLow8(c.d[0], Ram8(player + kState));
         SetLow16(c.d[1], Code16(c, kStates + (c.d[0] & 0xFFFF)));
         Call(c, kStates + static_cast<uint32_t>(static_cast<int16_t>(c.d[1] & 0xFFFF)));
-        Call(c, 0x024004); // (the character's own after its step)
+        Call(c, At(0x024004)); // (the character's own after its step)
     }
 
     // 01FF0A. The players' step in a fight (not in a still frame of the knock-out's slow motion). In the usual
@@ -2014,7 +2014,7 @@ namespace {
         if (Ram8(Var(c, kStillFrame))) {
             return;
         }
-        const uint32_t one = Var(c, 0x400), two = Var(c, 0x800);
+        const uint32_t one = Var(c, AtA5(0x400)), two = Var(c, AtA5(0x800));
         for (const uint32_t player : {one, two}) {
             SetRam16(player + kControlsBefore, Ram16(player + kControlsNow));
             SetRam16(player + kControlsFacingBefore, Ram16(player + kControlsFacing));
@@ -2025,10 +2025,10 @@ namespace {
         for (const uint32_t player : {one, two}) {
             SetRam16(player + kControlsFacing, Ram16(player + kPanel));
         }
-        Call(c, 0x0211C8); // (the helpers' timers, by the play mode)
-        Call(c, 0x021112); // (by the play mode)
+        Call(c, At(0x0211C8)); // (the helpers' timers, by the play mode)
+        Call(c, At(0x021112)); // (by the play mode)
         if (Ram16(Var(c, kPlayMode))) {
-            return Call(c, 0x01FFF2); // (the modes with helpers: their own order)
+            return Call(c, At(0x01FFF2)); // (the modes with helpers: their own order)
         }
         auto both = [&](uint32_t first, uint32_t second) {
             PlayerStepOne(c, first);
@@ -2049,7 +2049,7 @@ namespace {
                 return PlayerStepOne(c, two);
             }
         }
-        Call(c, 0x01975A); // (a number by chance)
+        Call(c, At(0x01975A)); // (a number by chance)
         const bool oneFirst = !(c.d[0] & 1);
         const uint32_t first = oneFirst ? one : two, second = oneFirst ? two : one;
         PlayerStepOne(c, first);
@@ -2060,7 +2060,7 @@ namespace {
         if (Ram8(second + 0x67)) {
             return both(second, first);
         }
-        Call(c, 0x02109A); // (each player against the other's push box)
+        Call(c, At(0x02109A)); // (each player against the other's push box)
         // 01FFD4. An attack over (its frame has no attack box): the other may be hit by it again
         c.a[0] = Ram32(one + kFrame);
         if (!Mem8(c, c.a[0] + kFrameAttack)) {
@@ -2082,8 +2082,8 @@ namespace {
     constexpr int32_t kFlungAcross = 0xC000;    // knocked out: away over the end, three quarters of a pixel a step
     constexpr int32_t kFlungUp = 0x60000;       //   and up, six pixels a step at first
     constexpr uint32_t kFrameExtra = 0x3D;      // a byte of the frame's, kept as it is shown (kSetAnimation)
-    constexpr uint32_t kColoursBack = 0x027204; // the player's own colours put back (a hit's flash over)
-    constexpr uint32_t kDownCry = 0x0226C8;     // the character's own as a knock-down begins (DownStarts: its cry)
+    constexpr uint32_t kColoursBack = At(0x027204); // the player's own colours put back (a hit's flash over)
+    constexpr uint32_t kDownCry = At(0x0226C8);     // the character's own as a knock-down begins (DownStarts: its cry)
     constexpr int kGoneBelow = 400;             // how far under the floor one falling stops (long out of the picture)
 
     // Knocked over the end of the stage: the knock-down's animation, flung up and away (no longer kept in) to fall through the floor and out of the picture
@@ -2144,15 +2144,15 @@ namespace {
             DropsIn(c, player, ringOut);
         }
         if (Ram8(player + kComputer)) {
-            if (Asks(c, 0x029CEA)) {
-                Call(c, 0x029E38);
+            if (Asks(c, At(0x029CEA))) {
+                Call(c, At(0x029E38));
             }
         } else {
-            Call(c, 0x023B00); // (the character's special moves' inputs)
-            Call(c, 0x022AEA); // QuickRecovery
+            Call(c, At(0x023B00)); // (the character's special moves' inputs)
+            Call(c, At(0x022AEA)); // QuickRecovery
         }
-        Call(c, 0x0214E0); // (held by a hold throw: its damage over time)
-        Call(c, 0x021614); // (+297 down)
+        Call(c, At(0x0214E0)); // (held by a hold throw: its damage over time)
+        Call(c, At(0x021614)); // (+297 down)
         Call(c, kPlayerDispatch);
     }
 } // namespace
@@ -2168,19 +2168,19 @@ namespace {
             return;
         }
         c.a[4] = player + 0x260;
-        if (Asks(c, 0x025162)) {
-            if (!Asks(c, 0x026C96)) {
+        if (Asks(c, At(0x025162))) {
+            if (!Asks(c, At(0x026C96))) {
                 return;
             }
             SetRam32(player + kState, 0x02100000);
             SetRam8(player + 0x253, 0);
-            return Call(c, 0x0277CA);
+            return Call(c, At(0x0277CA));
         }
         if (who != kSodom) {
             return;
         }
         c.a[4] = player + 0x268;
-        if (Asks(c, 0x02515A) && Asks(c, 0x026C96)) {
+        if (Asks(c, At(0x02515A)) && Asks(c, At(0x026C96))) {
             SetRam32(player + kState, 0x02100000);
             SetRam8(player + 0x253, 1);
         }
@@ -2188,32 +2188,32 @@ namespace {
 } // namespace
 
 void RegisterPlayer() {
-    AddRewrite(0x021620, "PlayerInControl", PlayerInControl, kFreeFlags, 400);
-    AddRewrite(0x022116, "PlayerReeling", PlayerReeling, kFreeFlags, 100);
-    AddRewrite(0x022D20, "Recovered", Recovered, kFreeFlags, 300);
-    AddRewrite(0x022544, "ReelFrozen", ReelFrozen, kFreeFlags, 220);
-    AddRewrite(0x0225E6, "ReelGoesOn", ReelGoesOn, kFreeFlags, 40);
-    AddRewrite(0x0225FE, "ReelStanding", ReelStanding, kFreeFlags, 150);
-    AddRewrite(0x0226E6, "ReelGuarding", ReelGuarding, kFreeFlags, 120);
-    AddRewrite(0x022B52, "ReelHops", ReelHops, kFreeFlags, 120);
-    AddRewrite(0x0227B8, "ReelDown", ReelDown, kFreeFlags, 150);
-    AddRewrite(0x022130, "ReelOnFloor", ReelOnFloor, kFreeFlags, 40);
-    AddRewrite(0x022140, "ReelBegins", ReelBegins, kFreeFlags, 700);
-    AddRewrite(0x022DAC, "ControlFour", ControlFour, kFreeFlags, 60);
-    AddRewrite(0x01FF0A, "PlayersStep", PlayersStep, kFreeFlags, 300);
-    AddRewrite(0x02149A, "PlayerFighting", PlayerFighting, kFreeFlags, 80);
-    AddRewrite(0x022AEA, "QuickRecovery", QuickRecovery, kFreeFlags, 100);
-    AddRewrite(0x022DD4, "HeldInThrow", HeldInThrow, kFreeFlags, 400);
-    AddRewrite(0x022F1E, "ControlEight", ControlEight, kFreeFlags, 40);
-    AddRewrite(0x021732, "Standing", Standing, kFreeFlags, 200);
-    AddRewrite(0x021880, "Crouching", Crouching, kFreeFlags, 200);
-    AddRewrite(0x021990, "Walking", Walking, kFreeFlags, 200);
-    AddRewrite(0x021A64, "Jumping", Jumping, kFreeFlags, 200);
-    AddRewrite(0x021D22, "Turning", Turning, kFreeFlags, 150);
-    AddRewrite(0x021E04, "Attacking", Attacking, kFreeFlags, 220);
-    AddRewrite(0x021E54, "Guarding", Guarding, kFreeFlags, 150);
-    AddRewrite(0x022000, "SpecialMove", SpecialMove, kFreeFlags, 120);
-    AddRewrite(0x022026, "Stunned", Stunned, kFreeFlags, 120);
+    AddRewrite(At(0x021620), "PlayerInControl", PlayerInControl, kFreeFlags, 400);
+    AddRewrite(At(0x022116), "PlayerReeling", PlayerReeling, kFreeFlags, 100);
+    AddRewrite(At(0x022D20), "Recovered", Recovered, kFreeFlags, 300);
+    AddRewrite(At(0x022544), "ReelFrozen", ReelFrozen, kFreeFlags, 220);
+    AddRewrite(At(0x0225E6), "ReelGoesOn", ReelGoesOn, kFreeFlags, 40);
+    AddRewrite(At(0x0225FE), "ReelStanding", ReelStanding, kFreeFlags, 150);
+    AddRewrite(At(0x0226E6), "ReelGuarding", ReelGuarding, kFreeFlags, 120);
+    AddRewrite(At(0x022B52), "ReelHops", ReelHops, kFreeFlags, 120);
+    AddRewrite(At(0x0227B8), "ReelDown", ReelDown, kFreeFlags, 150);
+    AddRewrite(At(0x022130), "ReelOnFloor", ReelOnFloor, kFreeFlags, 40);
+    AddRewrite(At(0x022140), "ReelBegins", ReelBegins, kFreeFlags, 700);
+    AddRewrite(At(0x022DAC), "ControlFour", ControlFour, kFreeFlags, 60);
+    AddRewrite(At(0x01FF0A), "PlayersStep", PlayersStep, kFreeFlags, 300);
+    AddRewrite(At(0x02149A), "PlayerFighting", PlayerFighting, kFreeFlags, 80);
+    AddRewrite(At(0x022AEA), "QuickRecovery", QuickRecovery, kFreeFlags, 100);
+    AddRewrite(At(0x022DD4), "HeldInThrow", HeldInThrow, kFreeFlags, 400);
+    AddRewrite(At(0x022F1E), "ControlEight", ControlEight, kFreeFlags, 40);
+    AddRewrite(At(0x021732), "Standing", Standing, kFreeFlags, 200);
+    AddRewrite(At(0x021880), "Crouching", Crouching, kFreeFlags, 200);
+    AddRewrite(At(0x021990), "Walking", Walking, kFreeFlags, 200);
+    AddRewrite(At(0x021A64), "Jumping", Jumping, kFreeFlags, 200);
+    AddRewrite(At(0x021D22), "Turning", Turning, kFreeFlags, 150);
+    AddRewrite(At(0x021E04), "Attacking", Attacking, kFreeFlags, 220);
+    AddRewrite(At(0x021E54), "Guarding", Guarding, kFreeFlags, 150);
+    AddRewrite(At(0x022000), "SpecialMove", SpecialMove, kFreeFlags, 120);
+    AddRewrite(At(0x022026), "Stunned", Stunned, kFreeFlags, 120);
 }
 
 } // namespace cps2recomp

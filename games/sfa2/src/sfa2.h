@@ -11,6 +11,7 @@
 #include "game.h"
 #include "lift.h"
 #include "machine.h"
+#include "places.h"
 
 #include <cstdint>
 
@@ -23,22 +24,22 @@ using cps2recomp::M68K;
 // Words from A5, each a step (in twos) of the one before. The first is 2 once a game is being played; the next
 // 2 while the players choose their characters and 4 during the match; then 4 while a round is on, and under that
 // 2 while it is being fought (0 its introduction)
-constexpr uint32_t kMode = 0xFF8000, kGameStep = 0xFF8004, kMatchStep = 0xFF8008, kRoundStep = 0xFF800C;
+constexpr uint32_t kMode = 0xFF8000, kGameStep = At(0xFF8004), kMatchStep = At(0xFF8008), kRoundStep = At(0xFF800C);
 enum : uint16_t { kGameChoosing = 2, kGameMatch = 4, kMatchRound = 4, kRoundFought = 2 };
 // The game's own mode of play, a word from A5 (0 the usual one; others for its hidden modes: the guard-range
 // test, 02343C, looks at different lists of things thrown in them)
-constexpr int32_t kPlayMode = 0x138;
+constexpr int32_t kPlayMode = AtA5(0x138);
 
 // Credits paid for and not yet used (found by RAM dumps around coins put in; as in Vampire Savior). The
 // board's settings memory starts at two coins a credit: kCoins counts the coins (kHalfCredit the odd one).
-constexpr uint32_t kCredits = 0xFF8076, kHalfCredit = 0xFF8071, kCoins = 0xFF80C3;
+constexpr uint32_t kCredits = At(0xFF8076), kHalfCredit = At(0xFF8071), kCoins = At(0xFF80C3);
 // The round's clock: seconds left (99 at most)
-constexpr uint32_t kClock = 0xFF8109;
+constexpr uint32_t kClock = At(0xFF8109);
 constexpr uint8_t kClockFull = 99;
 
 // The stage a match is fought on: a word, the stage's number doubled. Each character has a stage (the table at
 // 007A7A; the hidden characters share theirs); the game takes one of the two players' at 007914.
-constexpr uint32_t kStage = 0xFF8100;
+constexpr uint32_t kStage = At(0xFF8100);
 constexpr int kStages = 18;
 // Who a player is (a player's byte kCharacter): seen on the name plates with each number put in. 18 to 23 are other
 // forms of six of them (the classic Chun-Li, Shin Akuma and Evil Ryu among them), each with its first form's stage.
@@ -57,16 +58,16 @@ inline constexpr const char *kStageNames[kStages] = {
 // --- the players ---
 
 // A player's record; the second player's follows the first's
-constexpr uint32_t kPlayer1 = 0xFF8400, kPlayerSize = 0x400;
+constexpr uint32_t kPlayer1 = At(0xFF8400), kPlayerSize = 0x400;
 inline uint32_t Player(int n) {
     return kPlayer1 + static_cast<uint32_t>(n) * kPlayerSize;
 }
 // Other records of the same layout, for the things the players throw and the like. The guard-range test
 // (02343C) goes through these lists: kThrown, sixteen of 0x80 in the usual mode (a byte kActive of 1 for one in
 // use); kThrownOther, ten of 0x80, in the others; and two whole records after the players' (helpers).
-constexpr uint32_t kThrown = 0xFF9400, kThrownOther = 0xFF9C00, kThrownSize = 0x80;
+constexpr uint32_t kThrown = At(0xFF9400), kThrownOther = At(0xFF9C00), kThrownSize = 0x80;
 constexpr int kThrownRecords = 16, kThrownOtherRecords = 10;
-constexpr uint32_t kHelper1 = 0xFF8C00, kHelper2 = 0xFF9000;
+constexpr uint32_t kHelper1 = At(0xFF8C00), kHelper2 = At(0xFF9000);
 
 constexpr uint32_t kActive = 0x00;     // byte: 1 while the record is in use
 // Four bytes of steps, each a step of the one before. In a fight the first is 2; the second says who is in
@@ -131,7 +132,7 @@ constexpr uint32_t kKnocksDown = 0x134;    // set by a hit that knocks the playe
 
 // The control panel as the game keeps it, from A5: a word a player, buttons above (punches in bits 0-2, kicks
 // in 4-6) and the stick below (bit 0 right, 1 left, 2 down, 3 up)
-constexpr int32_t kControls[2] = {0x58, 0x5C};
+constexpr int32_t kControls[2] = {AtA5(0x58), AtA5(0x5C)};
 
 // --- the characters' colours ---
 
@@ -144,7 +145,7 @@ constexpr int32_t kControls[2] = {0x58, 0x5C};
 // is copied from: 90C200 for player 1, 90C160 for player 2, the slots the player's byte kColourSet names), and
 // copies all five there (01240C). Effects that colour a player (02725C) take palettes of kEffectColours (16 a
 // character, 0x200 bytes) and put the set back from kColours when they end (027204).
-constexpr uint32_t kColourSets = 0x26D0E0, kEffectColours = 0x272AE0;
+constexpr uint32_t kColourSets = At(0x26D0E0), kEffectColours = At(0x272AE0);
 constexpr int kColourSetsEach = 6, kPalettesInSet = 5, kColoursInPalette = 16, kEffectPalettes = 16;
 constexpr uint32_t kColourSetSize = kPalettesInSet * kColoursInPalette * 2;
 constexpr uint32_t kColourChoice = 0xA8;      // byte
@@ -152,10 +153,10 @@ constexpr uint32_t kColours = 0xCC, kColoursTo = 0xD0; // longs
 
 // --- routines (addresses in the program) ---
 
-constexpr uint32_t kPlayerDispatch = 0x0214C0; // a player's routine goes on by kControl (once a step for each)
-constexpr uint32_t kGuardRange = 0x02343C;     // is an attack near enough for the player A6 to guard, and does it hold away?
-constexpr uint32_t kBoxesOverlap = 0x0113AA;
-constexpr uint32_t kHitLands = 0x010564;       // an attack has hit (A6 the attacker, A1 the victim, A3 the attack)
+constexpr uint32_t kPlayerDispatch = At(0x0214C0); // a player's routine goes on by kControl (once a step for each)
+constexpr uint32_t kGuardRange = At(0x02343C);     // is an attack near enough for the player A6 to guard, and does it hold away?
+constexpr uint32_t kBoxesOverlap = At(0x0113AA);
+constexpr uint32_t kHitLands = At(0x010564);       // an attack has hit (A6 the attacker, A1 the victim, A3 the attack)
 
 // --- for rewrites: memory and registers by name ---
 

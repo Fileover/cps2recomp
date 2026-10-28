@@ -25,7 +25,7 @@ int HiddenFormOf(int n, int character); // training.cpp
 namespace {
     using namespace sfa2;
 
-    constexpr uint32_t kSuperFlash = 0xFF815C; // byte: a super's flash, the players' steps not run (01FF0A)
+    constexpr uint32_t kSuperFlash = At(0xFF815C); // byte: a super's flash, the players' steps not run (01FF0A)
 
     // The pools the game takes objects from (each a list of free ones from A5, made at 019238; taken from at 01959E on and
     // given back at 0195DE on): where the objects are, how many and how big, the tag at +8 a free one has, the list's
@@ -41,12 +41,12 @@ namespace {
         bool clears26;  // +30, +26
     };
     constexpr Pool kPools[] = {
-        {0xFF9400, 16, 0x80, 0x08, 0xFFE0F0, 0xFFE114, true, true, true},
-        {0xFF9C00, 10, 0x80, 0x08, 0xFFE0F2, 0xFFE115, true, true, true},
-        {0xFFA100, 40, 0x80, 0x10, 0xFFE0F4, 0xFFE116, false, true, true},
-        {0xFFB500, 4, 0x80, 0x10, 0xFFE0FA, 0xFFE119, false, true, true},
-        {0xFFB700, 16, 0x80, 0x14, 0xFFE0F6, 0xFFE117, false, false, true},
-        {0xFFBF00, 8, 0x200, 0x18, 0xFFE0F8, 0xFFE118, false, false, false},
+        {At(0xFF9400), 16, 0x80, 0x08, At(0xFFE0F0), At(0xFFE114), true, true, true},
+        {At(0xFF9C00), 10, 0x80, 0x08, At(0xFFE0F2), At(0xFFE115), true, true, true},
+        {At(0xFFA100), 40, 0x80, 0x10, At(0xFFE0F4), At(0xFFE116), false, true, true},
+        {At(0xFFB500), 4, 0x80, 0x10, At(0xFFE0FA), At(0xFFE119), false, true, true},
+        {At(0xFFB700), 16, 0x80, 0x14, At(0xFFE0F6), At(0xFFE117), false, false, true},
+        {At(0xFFBF00), 8, 0x200, 0x18, At(0xFFE0F8), At(0xFFE118), false, false, false},
     };
     constexpr uint32_t kOwner = 0x36;   // word: the record of whoever made the object (a player's or another object's)
     constexpr uint32_t kSecondList = 0x71;
@@ -109,12 +109,12 @@ namespace {
     // The panel (an object of the last pool, its kind +2 6: 082C1C) has its own picture in its record: the names under
     // the bars at +BE and +C6, made when it is (082EA4: a word by character from 8318E, 0x30 on with A5+90 set, and
     // the second player's 0x60 on from the first's)
-    constexpr uint32_t kPanelNames = 0x08318E;
+    constexpr uint32_t kPanelNames = At(0x08318E);
     void Name(M68K &c, int player) {
         for (int n = 0; n < kPools[5].count; n++) {
             const uint32_t object = kPools[5].first + static_cast<uint32_t>(n) * kPools[5].size;
             if (Ram8(object + kActive) && Ram8(object + 0x02) == 6) {
-                const uint32_t table = kPanelNames + (Ram16(0xFF8090) ? 0x30 : 0) + (player ? 0x60 : 0);
+                const uint32_t table = kPanelNames + (Ram16(At(0xFF8090)) ? 0x30 : 0) + (player ? 0x60 : 0);
                 SetRam16(object + 0xBE + static_cast<uint32_t>(player) * 8, Mem16(c, table + Ram8(Player(player) + kCharacter) * 2u));
             }
         }
@@ -170,8 +170,8 @@ void TagIn(int player, int character, int colours) {
 
 // The team battle's computer difficulty, 0-7: the board's setting, and the copy of it a game takes when it begins (004B6C)
 void TagDifficulty(int level) {
-    SetRam8(0xFF80A0, static_cast<uint8_t>(level));
-    SetRam8(0xFF80BE, static_cast<uint8_t>(level));
+    SetRam8(At(0xFF80A0), static_cast<uint8_t>(level));
+    SetRam8(At(0xFF80BE), static_cast<uint8_t>(level));
 }
 
 // The player let out of the picture, the camera not following it, or not
@@ -230,7 +230,7 @@ bool TagEntrance(M68K &c) {
     if (n < 0 || (!g_place[n] && !TeamBattle())) {
         return false;
     }
-    c.pc = 0x021430;
+    c.pc = At(0x021430);
     return true;
 }
 
@@ -254,7 +254,7 @@ void LiveTagBeforeFrame(Machine &machine) {
         // (the tag style: one round decides the match, the last fighter of a side knocked out; not the board's two won,
         // whose next round would begin under the result. The game's copy of the board's max round, taken as a game
         // begins: 004BDC.)
-        SetRam8(0xFF8108, 1);
+        SetRam8(At(0xFF8108), 1);
     }
     for (int player = 0; player < 2; player++) {
         if (!g_colours[player] || !TaggedIn(player)) {
@@ -304,11 +304,11 @@ void LiveTagBeforeFrame(Machine &machine) {
     static const bool soundLog = getenv("SFA2_SOUND_LOG") != nullptr;
     if (soundLog) {
         static int logFrame = 0;
-        static uint16_t was = Ram16(0xFFDF60);
+        static uint16_t was = Ram16(At(0xFFDF60));
         logFrame++;
-        for (const uint16_t end = Ram16(0xFFDF60); was != end; was = static_cast<uint16_t>((was + 0x10) & 0xFF0)) {
+        for (const uint16_t end = Ram16(At(0xFFDF60)); was != end; was = static_cast<uint16_t>((was + 0x10) & 0xFF0)) {
             fprintf(stderr, "sound %d %02X %02X %04X\n", logFrame, Ram8(Player(0) + kCharacter), Ram8(Player(1) + kCharacter),
-                    Ram16(0xFFCF60 + was + 2));
+                    Ram16(At(0xFFCF60) + was + 2));
         }
     }
     static const char *swap = getenv("SFA2_SWAP");
@@ -359,8 +359,8 @@ void LiveTagBeforeFrame(Machine &machine) {
 }
 
 void RegisterLiveTag() {
-    AddHook(0x02140A, "TagEntrance", TagEntrance);
-    AddHook(0x02145E, "TagSetUp", TagSetUp);
+    AddHook(At(0x02140A), "TagEntrance", TagEntrance);
+    AddHook(At(0x02145E), "TagSetUp", TagSetUp);
 }
 
 } // namespace cps2recomp
