@@ -9,19 +9,16 @@ ARM64 included) and Windows, in one download with one launcher.** Each game's pr
 into C++ and runs on a machine written for this project, not an emulator. The fighting games add a full training
 mode, online play with rollback, widescreen and new modes.
 
-![Training mode in Street Fighter Alpha 2, in widescreen: hit boxes, input displays, the damage readout and the frame meter](docs/screenshots/sfa2/training.gif)
-
-![The model viewer: Psylocke at 2x, going through her animations](docs/screenshots/msh/model-viewer-psylocke.gif)
-
-![Custom colours: Morrigan in nine colourings made in the colour editor](docs/screenshots/vampire_savior/morrigan-colours-1.png)
-
 **[Get started →](#getting-started)**
-
-> **Beta.** Every game's code is checked instruction by instruction, but the games have been played on few machines
-> and controllers yet. Expect rough edges, and please [report what you find](#feedback-and-contributing).
 
 **No game files are included.** You need your own copy of each game: its arcade ROM set (a CPS-2 game's with its key
 file). Only the version named below works for each game, and this project cannot help you get one.
+
+![The model viewer: Psylocke at 1.5x, going through her animations](docs/screenshots/msh/model-viewer-psylocke.gif)
+
+![Training mode in Street Fighter Alpha 2, in widescreen: hit boxes, input displays, the damage readout and the frame meter](docs/screenshots/sfa2/training.gif)
+
+![Custom colours: Morrigan in nine colourings made in the colour editor](docs/screenshots/vampire_savior/morrigan-colours-1.png)
 
 ## The games
 
