@@ -141,7 +141,8 @@ game**.
 
 The games are in your order: drag a game's row in the sidebar up or down to keep the ones you play most at the top
 (with a gamepad or the keyboard, **Move up** and **Move down** on its page, under Play). The Games page lists them
-the same way. On a small screen, or with large text, the launcher closes up to fit: a narrower sidebar whose list
+the same way. Playing only one or two of the games? Switch on **Only the games you have** on the Games page, and the
+others are left out of it and of the Features and Controllers pages (**Choose folder…** still finds them). On a small screen, or with large text, the launcher closes up to fit: a narrower sidebar whose list
 scrolls, and each row's buttons under its words.
 
 While playing, Esc or `F1` (on a gamepad, the left stick's click, or Start and Select together) opens the
