@@ -19,6 +19,7 @@
 #include "modes.h"
 #include "state.h"
 
+#include <array>
 #include <iterator>
 
 namespace cps2recomp {
@@ -29,8 +30,14 @@ namespace {
     constexpr const char *kModel = "Model viewer";
     constexpr int kStartMost = 9000; // frames after which getting to a round is given up
 
-    // The characters in the menu's order, by their numbers in the game (all of sfa2.h's)
-    constexpr int kCharacterNumbers[] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23};
+    // The characters in the menu's order, by their numbers in the game (all of family.h's, in their order)
+    constexpr auto kCharacterNumbers = [] {
+        std::array<int, kCharacters> numbers{};
+        for (int n = 0; n < kCharacters; n++) {
+            numbers[static_cast<size_t>(n)] = n;
+        }
+        return numbers;
+    }();
     // The "Animation" choice: standing as in a fight, or one of the three tables
     constexpr uint32_t kAnimationTables[3] = {At(0x09862C), At(0x09868C), At(0x09874C)};
     constexpr int kMostAnimations = 256;

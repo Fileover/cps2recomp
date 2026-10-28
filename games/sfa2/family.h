@@ -93,6 +93,10 @@ inline constexpr uint8_t kAutoGuardSets = 4;
 // about (src/throws.cpp): none (always its facing, +0B)
 inline constexpr uint32_t kThrowTurnedInModes = 0;
 
+// The board's damage levels, as its test menu names them (src/board.cpp)
+inline constexpr const char *kDamageLevels[4] = {"Low", "Medium", "Normal", "High"};
+inline constexpr bool kDamageLevelsOwn = false; // (Alpha 2's own names, which the collection's other games share)
+
 // The ROM file whose colours PalMod changes, and which set it is (src/colours.cpp)
 inline constexpr const char *kColoursFile = "sz2u.07", *kColoursFileWhose = "the USA set's, 960430";
 

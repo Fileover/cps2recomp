@@ -107,7 +107,7 @@ void RegisterBoard() {
     game.features.push_back({"board_difficulty", kPage, "Difficulty", "How well the computer fights.", 0,
                              {kAsSet, "Easy", "Normal", "Hard 1", "Hard 2", "Hard 3", "Hard 4", "Hard 5", "Expert"}});
     game.features.push_back({"board_damage", kPage, "Damage level", "How much damage a hit does.", 0,
-                             {kAsSet, "Low", "Medium", "Normal", "High"}});
+                             {kAsSet, sfa2::family::kDamageLevels[0], sfa2::family::kDamageLevels[1], sfa2::family::kDamageLevels[2], sfa2::family::kDamageLevels[3]}});
     game.features.push_back({"board_timer", kPage, "Timer speed", "How fast the round's clock runs.", 0,
                              {kAsSet, "Slow", "Normal", "Fast", "Fastest"}});
     game.features.push_back({"board_speed", kPage, "Game speed",
