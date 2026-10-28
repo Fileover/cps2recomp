@@ -91,7 +91,8 @@ Each game's page has all it does, with pictures.
   | ![CRT Lottes](docs/screenshots/shaders/crt-lottes.png)<br>CRT Lottes | ![Scanlines, light](docs/screenshots/shaders/scanline-fract.png)<br>Scanlines, light | ![xBRZ](docs/screenshots/shaders/xbrz.png)<br>xBRZ |
 
 - **Online play**: two players on two machines, over the internet or a home network, with rollback, so that each
-  player's own controls answer at once whatever the distance. Host or Join on a game's page. [How →](#online-play)
+  player's own controls answer at once whatever the distance. Host on a game's page and give the other player the
+  code your game shows. [How →](#online-play)
 - **The board's operator settings** (difficulty, damage, timer speed, game speed, rounds and the rest), each as
   the board is set unless you choose, and the game's own test menu.
 - **Straight to the title**: at a start or a reset, everything before the title runs unseen.
@@ -211,19 +212,23 @@ a later one wins.
 ### Online play
 
 Two players, each on their own machine (macOS, Linux, the Steam Deck or Windows, in any mix), each with the game and
-its ROM set. On the game's page in the launcher, under Play, the **Online** card has **Host** and **Join**: one hosts,
-and the card says the addresses the other can join it at; the other types one of them and presses Join. The host is
-player 1. The game's window says it is waiting until the other player comes (Esc gives up). From a terminal:
+its ROM set. On the game's page in the launcher, under Play, the **Online** card has **Host** and **Join**. The host
+presses Host, and their game shows a **match code** (`K7Q-M2X`); the other player types it into Join. Nothing needs
+setting up on either router. The host is player 1. The game's window says it is waiting until the other player comes
+(Esc gives up). From a terminal:
 
 ```sh
-cps2recomp-launcher --play sfa3 -- --host                  # the host: waits for the other player
-cps2recomp-launcher --play sfa3 -- --join 203.0.113.7      # the other player: the host's address
+cps2recomp-launcher --play sfa3 -- --host                  # the host: shows a code, waits for the other player
+cps2recomp-launcher --play sfa3 -- --join K7Q-M2X          # the other player: the host's code (or address)
 ```
 
-- **The host's address** is one the other player can reach: on a home network, the host's own (or its name); over
-  the internet, the host's public address with UDP port 7845 forwarded to it on the router (`--host 7900` and
-  `--join ADDRESS:7900` for another port). A VPN such as [Tailscale](https://tailscale.com) gives each machine an
-  address the other can always reach, with nothing to forward.
+- **How the code works**: a small service of ours introduces the two games, telling each where the other can be
+  reached, and they then connect straight to each other through their routers; none of the match goes through it
+  ([online/README.md](online/README.md)). A code lasts 30 minutes and is good for one match.
+- **Joining by address** works too, without the service: on a home network, the host's own address (the Online card
+  lists it); over the internet, the host's public address with UDP port 7845 forwarded to it on the router (`--host
+  7900` and `--join ADDRESS:7900` for another port); or a VPN such as [Tailscale](https://tailscale.com). That is
+  also the way for the rare two networks a code can't connect (some mobile networks).
 - **Each player presses Start to come in**, as at the arcade: the first to press plays the computer until the other
   presses theirs ("Here comes a new challenger").
 - **Each player plays with their own player 1 controls**, and hears and sees the game as their own settings have it
@@ -236,6 +241,11 @@ cps2recomp-launcher --play sfa3 -- --join 203.0.113.7      # the other player: t
   the time of one frame. Up to 8 frames are guessed; past that the game waits for the other side.
 - **The two games are checked against each other**: every second each side sends the other a fingerprint of the
   game; if they ever differ, the match stops and says so (a desync, which should not happen).
+- **The ping** is said at the bottom of the screen all through a match ("PING 42 ms"), and "WAITING FOR THE OTHER
+  PLAYER" if their game goes quiet for a moment.
+- **Coming back after a drop**: if the other player's game closes or their connection drops, the host's game stays
+  open and waits for them with the same code; a joining player whose connection dropped is taken back to the host by
+  itself. The two games then start over together from the title. (The host closing their game ends the match.)
 - **Off during a match**: the in-game menu, save states, pause, the speed, run-ahead, the training mode and the
   other modes (endless battle, tag team, the viewers). A match ends when either player closes their game.
 

@@ -1548,18 +1548,21 @@ void App::online_card(size_t which, float width, bool ready) {
     for (const std::string& address : online_here_) {
         here += (here.empty() ? "" : ", ") + address;
     }
-    std::string detail = "Waits for the other player, who joins this machine at " +
-                         (here.empty() ? std::string("its address") : here) +
-                         (online.port ? " (UDP port " + std::to_string(online.port) + ")." : ".") +
-                         " Over the internet: this network's public address, with that port forwarded to this machine.";
+    std::string port = online.port ? " (UDP port " + std::to_string(online.port) + ")" : "";
+    std::string detail = online.codes ? "Waits for the other player. The game shows a code to give them; on this network they can also join at " +
+                                            (here.empty() ? std::string("this machine's address") : here) + port + "."
+                                      : "Waits for the other player, who joins this machine at " + (here.empty() ? std::string("its address") : here) + port +
+                                            ". Over the internet: this network's public address, with that port forwarded to this machine.";
     row(width, "Host a match", detail.c_str(), 130.0f, 36.0f, [&] {
         if (ui::button("Host", Kind::Secondary, 130.0f, ready)) {
             play(which, {online.host_argument});
         }
     });
     inset_separator(width);
-    row(width, "Join a match", "The host's address, as their Online card says it (ADDRESS, or ADDRESS:PORT).", 330.0f, 36.0f, [&] {
-        if (ui::text_field("##online_address", online_address_, sizeof(online_address_), "The host's address", 190.0f)) {
+    row(width, "Join a match",
+        online.codes ? "The code the host's game shows, or the host's address." : "The host's address, as their Online card says it (ADDRESS, or ADDRESS:PORT).",
+        330.0f, 36.0f, [&] {
+        if (ui::text_field("##online_address", online_address_, sizeof(online_address_), online.codes ? "Code or address" : "The host's address", 190.0f)) {
             prefs_.set("online", "address", online_address_);
             prefs_.save();
         }
