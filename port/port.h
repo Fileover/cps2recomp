@@ -196,6 +196,12 @@ struct Port {
     bool connecting = false; // (the other side not found yet: a window shows the wait)
     bool StartOnline(std::string &error);
     void Matched();
+    // A window's match that ended with the other side gone: the host waits for them to come back (the same code, or
+    // its address), the joining side goes to the host again; the game starts over from the board's reset, the host's
+    // sent whole to the other (Netplay's state). `rejoin` says why, while it is waited for.
+    void Again(const std::string &why);
+    std::string rejoin;
+    uint64_t againAt = 0; // (joining: the tick to try again at)
     void RunAhead();
     void SoundTest();
     void MusicTest();

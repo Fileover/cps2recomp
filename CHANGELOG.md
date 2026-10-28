@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- **Online: the ping on screen, and coming back after a drop.** "PING 42 ms" at the bottom all through a match
+  (the time there and back, the frame's wait to read a packet taken off), or "WAITING FOR THE OTHER PLAYER" when
+  they have been silent a second. When the other side leaves or goes silent, a host's window stays open and waits
+  for them again, with the same code (the service gives it back to the host that had it), and a joining side whose
+  connection dropped joins again every few seconds until it is back; both then start over from the board's reset.
+  Every match now begins with the host's game state sent whole to the joining side (compressed, in pieces, again
+  until all have come), so the two begin exactly alike however they got there.
 - **Online play with a code, anywhere**: Host gives a match code (`K7Q-M2X`) that the other player types into Join;
   nothing needs forwarding on either router. A small service (`online/`, a Cloudflare Worker) introduces the two:
   each game asks a STUN server what address the internet sees its socket at, the host registers with the service and

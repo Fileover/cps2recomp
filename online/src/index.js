@@ -8,6 +8,8 @@
 // or until it has been joined. Every match is a Durable Object of its own, named by its code.
 //
 //   POST /v1/host                {game, build, addresses}          -> {code, secret}
+//   POST /v1/host                {code, secret, game, build, addresses} -> {code, secret}   (the same code again, for
+//                                                                  the player who left to come back to: Netplay's reconnect)
 //   GET  /v1/host/CODE?secret=S                                    -> {joined: false} | {joined: true, addresses}
 //   POST /v1/join/CODE           {game, build, addresses}          -> {addresses} | 404 | 409 {error}
 //
@@ -55,11 +57,27 @@ export default {
       return Response.redirect("https://github.com/tmcleroy/cps2recomp", 302);
     }
     if (request.method === "POST" && parts[1] === "host" && parts.length === 2) {
+      const text = await request.text();
+      let asked = null;
+      try {
+        asked = JSON.parse(text);
+      } catch {
+        return json({ error: "not JSON" }, 400);
+      }
+      // (the host's code again: open to be joined once more, if it is theirs, or free)
+      const again = typeof asked.code === "string" ? cleanCode(asked.code) : null;
+      if (again && typeof asked.secret === "string") {
+        const match = env.MATCHES.get(env.MATCHES.idFromName(again));
+        const answer = await match.fetch("https://match/host", { method: "POST", body: text });
+        if (answer.ok) {
+          return json({ code: again, secret: asked.secret });
+        }
+      }
       // (a code not in use: tried again on the rare clash)
       for (let tries = 0; tries < 5; tries++) {
         const code = newCode();
         const match = env.MATCHES.get(env.MATCHES.idFromName(code));
-        const answer = await match.fetch("https://match/host", { method: "POST", body: await request.clone().text() });
+        const answer = await match.fetch("https://match/host", { method: "POST", body: JSON.stringify({ ...asked, code: undefined, secret: undefined }) });
         if (answer.status !== 409) {
           const body = await answer.json();
           return json(answer.ok ? { code, secret: body.secret } : body, answer.status);
@@ -96,16 +114,17 @@ export class Match {
       match = null;
     }
     if (url.pathname === "/host") {
-      if (match) {
-        return json({ error: "in use" }, 409);
-      }
       let body;
       try {
         body = JSON.parse(await request.text());
       } catch {
         return json({ error: "not JSON" }, 400);
       }
-      const secret = crypto.randomUUID();
+      // (taken, unless by this host asking for it again; free, it may be had with the secret the host keeps)
+      if (match && !(typeof body.secret === "string" && body.secret === match.secret)) {
+        return json({ error: "in use" }, 409);
+      }
+      const secret = typeof body.secret === "string" && /^[0-9a-f-]{36}$/.test(body.secret) ? body.secret : crypto.randomUUID();
       match = { made: now, secret, game: cleanText(body.game), build: cleanText(body.build), host: cleanAddresses(body.addresses), joiner: null };
       await this.state.storage.put("match", match);
       await this.state.storage.setAlarm(now + kLifetime);
