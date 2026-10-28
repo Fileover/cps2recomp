@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- **Shaders on Linux** (the Steam Deck and Steam Machine too): the Linux releases carry `librashader.so` (built from
+  source by `tools/librashader.sh`, now for Linux as well; the build image has Rust) and the presets beside the
+  games, so the Display page's Shader is there as on macOS. Windows still has none.
+
 - **More shaders, and only your favourites in the menu**: the Display page's Shader has CRT Light (zfast-crt) and four
   scanlines, light (scanline-fract), strong (sharp-bilinear-scanlines), OSSC (ossc) and dark
   (integer-scaling-scanlines, best with Whole pixels), in place of the one; xBRZ and ScaleFX come after them. On the
