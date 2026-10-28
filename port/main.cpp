@@ -168,6 +168,15 @@ void RegisterPortFeatures() {
                                   kFeatureMenuChoices,
                                   {"Off", "CRT", "CRT Lottes", "CRT Royale", "CRT Guest", "CRT Light", "Scanlines: light",
                                    "Scanlines: strong", "Scanlines: OSSC", "Scanlines: dark", "xBRZ", "ScaleFX", "Your own"}});
+    // (online play's readout, each player's own: Port::Shown)
+    TheGame().features.push_back({"online_ping", "Display", "Online: the ping",
+                                  "During an online match, the time a packet takes to the other player and back, at the bottom of "
+                                  "the picture (\"PING 42 ms\").",
+                                  kFeatureEnhanced});
+    TheGame().features.push_back({"online_delay", "Display", "Online: the input delay",
+                                  "During an online match, how many frames each player's own controls are held back, at the bottom "
+                                  "of the picture (\"DELAY 2\"): the host chooses it.",
+                                  0});
     TheGame().features.push_back({"window_size", "Display", "Window size",
                                   "How large the window opens, in times the board's 224 lines (it can be made any size by "
                                   "dragging its edges; full screen is on the launcher's first page and F11).",
@@ -751,20 +760,30 @@ void Port::Shown(std::vector<uint32_t> &pixels, std::vector<SDL_Rect> *panels) c
         }
         status(text, 0);
     }
-    // (online: the ping, or that the other side has gone quiet)
-    const bool match = net && !connecting;
-    if (match) {
-        char text[64];
+    // (online: the ping and the input delay, as the Display page has them, or that the other side has gone quiet; and
+    // above, until this side's player has pressed Start, that it lets them in)
+    int said = told ? 1 : 0;
+    if (net && !connecting) {
+        char text[64] = "";
         if (net->Silent() > 1000) {
             snprintf(text, sizeof(text), "WAITING FOR THE OTHER PLAYER");
-        } else {
+        } else if (FeatureOn("online_ping") && FeatureOn("online_delay")) {
+            snprintf(text, sizeof(text), "PING %d ms   DELAY %d", net->Ping(), net->Delay());
+        } else if (FeatureOn("online_ping")) {
             snprintf(text, sizeof(text), "PING %d ms", net->Ping());
+        } else if (FeatureOn("online_delay")) {
+            snprintf(text, sizeof(text), "DELAY %d", net->Delay());
         }
-        status(text, told ? 14 : 0);
+        if (*text) {
+            status(text, said++ * 14);
+        }
+        if (!cameIn) {
+            status("PRESS START TO COME IN", said++ * 14);
+        }
     }
     // (what the camera's zoom was set to, for a few seconds: above that if both are said)
     if (*zoom.Label()) {
-        status(zoom.Label(), (told + match) * 14);
+        status(zoom.Label(), said * 14);
     }
 }
 
@@ -1245,6 +1264,7 @@ void Port::Again(const std::string &why) {
 
 void Port::Matched() {
     connecting = false;
+    cameIn = false;
     rejoin.clear();
     frame = 0; // (the match's frames count from its start, on both sides)
     // (the hashes compared leave out the picture: frames run again are not drawn)
@@ -1355,6 +1375,7 @@ void Port::RunFrame() {
     }
     if (net) {
         net->Frame(*this, pressed[0]); // (this side's player plays with player 1's controls)
+        cameIn = cameIn || (pressed[0] & kStart);
     } else if (opt.rollbackTest) {
         RollbackFrame(pressed);
     } else {

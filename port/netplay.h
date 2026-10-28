@@ -105,6 +105,9 @@ public:
     // The time a packet takes there and back (ms; the frame's wait for it to be read taken off), and how long since the
     // other side was last heard
     int Ping() const;
+    int Delay() const {
+        return delay;
+    }
     uint64_t Silent() const;
     // This side's player (0: player 1)
     int Local() const {

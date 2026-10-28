@@ -225,7 +225,8 @@ cps2recomp-launcher --play sfa3 -- --join K7Q-M2X          # the other player: t
   matches you host are listed under **Open matches** on every other player's card for that game, until someone joins;
   they press Join. Matches not listed are joined only with their code.
 - **The Online page** in the launcher's sidebar shows every game's open matches at once, each with Join, and hosts a
-  match in the lobby in whichever of your games you choose.
+  match in the lobby in whichever of your games you choose. A match in a game whose ROM set you haven't added is shown
+  greyed, with **Add…** to go and add it.
 - **How the code works**: a small service of ours introduces the two games, telling each where the other can be
   reached, and they then connect straight to each other through their routers; none of the match goes through it
   ([online/README.md](online/README.md)). A code lasts 30 minutes and is good for one match.
@@ -245,8 +246,10 @@ cps2recomp-launcher --play sfa3 -- --join K7Q-M2X          # the other player: t
   the time of one frame. Up to 8 frames are guessed; past that the game waits for the other side.
 - **The two games are checked against each other**: every second each side sends the other a fingerprint of the
   game; if they ever differ, the match stops and says so (a desync, which should not happen).
-- **The ping** is said at the bottom of the screen all through a match ("PING 42 ms"), and "WAITING FOR THE OTHER
-  PLAYER" if their game goes quiet for a moment.
+- **The ping** is said at the bottom of the screen all through a match ("PING 42 ms"), and the input delay too if you
+  like ("DELAY 2"): each is a switch on the Display page, **Online: the ping** (on) and **Online: the input delay**.
+  "WAITING FOR THE OTHER PLAYER" shows if their game goes quiet for a moment, and **PRESS START TO COME IN** until you
+  have.
 - **Coming back after a drop**: if the other player's game closes or their connection drops, the host's game stays
   open and waits for them with the same code; a joining player whose connection dropped is taken back to the host by
   itself. The two games then start over together from the title. (The host closing their game ends the match.)

@@ -1748,8 +1748,13 @@ void App::online_page(float width) {
         const char* empty = lobby_failed_ ? "Couldn't reach the online service." : lobby_at_ == 0 ? "Looking…" : "None right now. They show here as players host them.";
         row(width, empty, "", 0.0f, 24.0f, [] {});
     }
+    // (the games of the collection's in the sidebar's order, then those it hasn't: another version's games, say)
     bool first = true;
     int n = 0;
+    const auto waited = [](const launcher::OpenMatch& match) {
+        const int minutes = match.waiting / 60;
+        return minutes < 1 ? std::string("waiting for a player") : "waiting " + std::to_string(minutes) + " min";
+    };
     for (size_t which : order_) {
         const Slot& one = *slots_[which];
         for (const launcher::OpenMatch& match : lobby_) {
@@ -1760,18 +1765,40 @@ void App::online_page(float width) {
                 inset_separator(width);
             }
             first = false;
+            // (a game whose file isn't chosen yet: greyed, and Add, to its page, where it is chosen)
+            bool file;
+            {
+                std::lock_guard<std::mutex> lock(mutex_);
+                file = !one.checking && one.file.usable();
+            }
             const bool ready = can_play(which);
-            const int minutes = match.waiting / 60;
-            std::string detail = one.name + (minutes < 1 ? ": waiting for a player" : ": waiting " + std::to_string(minutes) + " min") +
-                                 (ready || one.game.running() ? "" : ". Choose its ROM set on its page to join.");
+            std::string detail = one.name + ": " + waited(match) + (file ? "" : ". Add your " + one.name + " " + collection_->file_name + " to join.");
             ImGui::PushID(n++);
-            row(width, match.name.c_str(), detail.c_str(), 130.0f, 36.0f, [&] {
-                if (ui::button("Join", Kind::Secondary, 130.0f, ready)) {
-                    play(which, {one.about->online.join_argument, match.code});
-                }
-            });
+            row(
+                width, match.name.c_str(), detail.c_str(), 130.0f, 36.0f,
+                [&] {
+                    if (!file) {
+                        if (ui::button("Add…", Kind::Secondary, 130.0f)) {
+                            set_page(one.id);
+                        }
+                    } else if (ui::button("Join", Kind::Secondary, 130.0f, ready)) {
+                        play(which, {one.about->online.join_argument, match.code});
+                    }
+                },
+                !file);
             ImGui::PopID();
         }
+    }
+    for (const launcher::OpenMatch& match : lobby_) {
+        if (std::any_of(slots_.begin(), slots_.end(), [&](const auto& one) { return one->id == match.game; })) {
+            continue;
+        }
+        if (!first) {
+            inset_separator(width);
+        }
+        first = false;
+        std::string detail = match.game + ": " + waited(match) + ". This copy of the launcher hasn't that game: a newer version may.";
+        row(width, match.name.c_str(), detail.c_str(), 0.0f, 24.0f, [] {}, true);
     }
     list.end();
     (void)p;

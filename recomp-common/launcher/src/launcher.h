@@ -251,6 +251,7 @@ struct Collection {
     // the games (with its Online's list and name arguments). nullptr: no page.
     const char *lobby = nullptr;
     const char *online_intro = ""; // the Online page's first lines
+    const char *file_name = "game file"; // what a game's file is called, as the Online page says it ("ROM set")
 };
 
 // A collection's own file defines this (and not describe()).
