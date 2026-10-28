@@ -112,12 +112,6 @@ private:
     // The collection's games that have a page of their own (their program here, their file chosen and usable), in
     // the player's order
     std::vector<size_t> titled() const;
-    // With "Only the games you have" on (launcher.ini [games] installed_only) and at least one game set up, the
-    // Games, Features and Controllers pages leave out the collection's games whose file has not been chosen
-    bool installed_only() const;
-    // A collection's game on those pages: in this build and, with installed_only(), its file chosen (being
-    // checked, or usable)
-    bool shown(size_t which) const;
     // The collection's pages before its games': Games, Features, Controllers and, with modes for it, Multi game
     int fixed_pages() const;
     // A collection's games in the player's order: launcher.ini, [games] order (their ids; a game not in it comes
