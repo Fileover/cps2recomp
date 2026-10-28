@@ -16,6 +16,8 @@ file). Only the version named below works for each game, and this project cannot
 
 ![The model viewer: Psylocke at 1.5x, going through her animations](docs/screenshots/msh/model-viewer-psylocke.gif)
 
+![The colour editor: Rogue's green suit turned purple and her yellows pink, colour by colour](docs/screenshots/xmvsf/colour-editor-rogue.gif)
+
 ![Training mode in Street Fighter Alpha 2, in widescreen: hit boxes, input displays, the damage readout and the frame meter](docs/screenshots/sfa2/training.gif)
 
 ![Custom colours: Morrigan in nine colourings made in the colour editor](docs/screenshots/vampire_savior/morrigan-colours-1.png)
