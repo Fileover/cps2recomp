@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- **Shader and Zoom on the Multi game page**: the Endless battle card has **Shader** (every game through the same
+  shader, or each as its own Display page has it) and **Zoom** (**Both fighters**: every game's camera on the two
+  fighters from the start, `--zoom 1:3`), for that run only. One shader for every game for good is the launcher's
+  Features page's Shader, as before.
+
 - **Zooming with a shader closes in on the monitor**: zoomed, the shader draws the whole picture and the camera
   closes in on what it drew, scanlines, mask and all, sharp, as a camera would on a monitor (it was given the zoomed
   picture, blended up to the board's size, which looked muddy). The readout's panels stay where they are, at their

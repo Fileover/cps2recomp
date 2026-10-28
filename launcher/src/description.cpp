@@ -310,6 +310,15 @@ const launcher::Collection& launcher::describe_collection() {
             {"size", "Window size", "How large the first game's window opens, in times the board's 224 lines, or as its own Display page has it. "
              "Each game after it opens where the one before was, as large.",
              {"2x", "3x", "4x", "5x", "6x", "As each game is set"}, 5},
+            // (the Display page's Shader, port/main.cpp display_shader: the same choices, in the same order)
+            {"shader", "Shader", "Every game through the same shader, or each as its own Display page has it. For this run only.",
+             {"Off", "CRT", "CRT Lottes", "CRT Royale", "CRT Guest", "CRT Light", "Scanlines: light", "Scanlines: strong", "Scanlines: OSSC",
+              "Scanlines: dark", "xBRZ", "ScaleFX", "Your own", "As each game is set"},
+             13},
+            // (port/zoom.h: --zoom 1:3, the camera on both fighters from the start)
+            {"zoom", "Zoom", "Both fighters: in every game the camera follows the two fighters, as close as they allow (the zoom's L3 and R3 "
+             "together). Off: as each game starts, all of the picture.",
+             {"Off", "Both fighters"}},
         };
         // (port/frontend_sdl.cpp: in a Multi game run; each unless the player has given it to the game)
         endless.buttons = {
@@ -346,9 +355,16 @@ const launcher::Collection& launcher::describe_collection() {
             if (values[8] != 5) {
                 give("window_size=" + std::to_string(kSizes[std::clamp(values[8], 0, 4)]));
             }
+            if (values[9] != 13) {
+                give("display_shader=" + std::to_string(values[9]));
+            }
             if (!display.empty()) {
                 args.push_back("--features");
                 args.push_back(display);
+            }
+            if (values[10] == 1) {
+                args.push_back("--zoom");
+                args.push_back("1:3");
             }
             return args;
         };
