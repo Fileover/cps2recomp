@@ -5,8 +5,8 @@
 > download and play.
 
 An unofficial native PC port of the arcade game *Street Fighter Alpha 2* (Capcom, 1996, CPS-2 board) for
-macOS, Linux (Steam Deck included) and Windows, made by static recompilation, with a full training mode:
-the one thing no release of this game has ever had.
+macOS, Linux (Steam Deck included) and Windows, made by static recompilation, with a full training mode that
+the arcade game never had.
 
 **[Get started: download it and play →](#playing)**
 
@@ -86,7 +86,7 @@ emulator ([how it works](docs/PORT.md)).
 
 ## Training mode
 
-The one thing no release of Street Fighter Alpha 2 has had. "Alternative modes" at the top of the in-game menu
+The arcade game had none. "Alternative modes" at the top of the in-game menu
 has a Training mode page: Start goes straight to the character choice with two players (player 1's controls
 choose for both) and into a fight with no clock that nobody loses, and the page holds the aids below.
 
