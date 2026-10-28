@@ -1155,6 +1155,12 @@ void App::sidebar(float height) {
     ImGui::SetCursorScreenPos(origin + ImVec2(px(24), px(50)));
     // (a collection's subtitle may take two lines, or more in a narrow sidebar)
     ui::text(collection_ ? collection_->subtitle : about_.subtitle, Font::Regular, ui::size::kDetail, p.secondary, collection_ ? px(inner) : 0.0f);
+#ifdef LAUNCHER_VERSION
+    // (the version, under the name: the one online play's matches must have too)
+    ui::gap(4);
+    ImGui::SetCursorScreenPos(ImVec2(origin.x + px(24), ImGui::GetCursorScreenPos().y));
+    ui::text("Version " LAUNCHER_VERSION, Font::Regular, ui::size::kSmall, p.tertiary);
+#endif
     const char* own[] = {"Game", about_.features_name, "Controllers", "Games", "", "Multi game", "Online", ""};
     float fixed = static_cast<float>(fixed_pages());
     float top = std::max(collection_ ? px(108) : px(100), ImGui::GetCursorScreenPos().y - origin.y + px(24));
@@ -1663,6 +1669,19 @@ void App::follow_lobby(const std::string& url) {
     }
 }
 
+const char* App::own_version() {
+#ifdef LAUNCHER_VERSION
+    return LAUNCHER_VERSION;
+#else
+    return "";
+#endif
+}
+
+bool App::version_matches(const std::string& version) {
+    // (a launcher that knows no version of its own, or a match that says none, can't tell: let the game's handshake)
+    return version.empty() || !*own_version() || version == own_version();
+}
+
 bool App::can_play(size_t which) const {
     const Slot& one = *slots_[which];
     bool usable;
@@ -1718,12 +1737,19 @@ void App::online_page(float width) {
                 file = !one.checking && one.file.usable();
             }
             const bool ready = can_play(which);
-            std::string detail = one.name + ": " + waited(match) + (file ? "" : ". Add your " + one.name + " " + collection_->file_name + " to join.");
+            // (a match on another version can't be joined: both need the same)
+            const bool other = !version_matches(match.version);
+            std::string detail = one.name + ": " + waited(match) + (match.version.empty() ? "" : ". Version " + match.version) +
+                                 (other ? " (you have " + std::string(own_version()) + "): both need the same version to play."
+                                  : file ? ""
+                                         : ". Add your " + one.name + " " + collection_->file_name + " to join.");
             ImGui::PushID(n++);
             row(
                 width, match.name.c_str(), detail.c_str(), 130.0f, 36.0f,
                 [&] {
-                    if (!file) {
+                    if (other) {
+                        ui::button("Join", Kind::Secondary, 130.0f, false);
+                    } else if (!file) {
                         if (ui::button("Add…", Kind::Secondary, 130.0f, !one.checking)) {
                             // (the system's file dialog wants a mouse or a keyboard)
                             if (ui::gamepad_in_use()) {
@@ -1736,7 +1762,7 @@ void App::online_page(float width) {
                         play(which, {one.about->online.join_argument, match.code});
                     }
                 },
-                !file);
+                !file || other);
             ImGui::PopID();
         }
     }
@@ -1781,7 +1807,9 @@ void App::online_page(float width) {
                     which = n;
                 }
             }
-            if (found.status == 200 && which < slots_.size() && can_play(which)) {
+            if (found.status == 200 && !version_matches(found.version)) {
+                join_said_ = "That match is on version " + found.version + ", and you have " + own_version() + ": both need the same version.";
+            } else if (found.status == 200 && which < slots_.size() && can_play(which)) {
                 play(which, {slots_[which]->about->online.join_argument, join_code_});
             } else if (found.status == 200 && which < slots_.size()) {
                 join_said_ = "That's a " + slots_[which]->name + " match: add your " + collection_->file_name + " to join it.";
@@ -1927,12 +1955,19 @@ void App::lobby_card(size_t which, float width, bool ready) {
         }
         const int minutes = match.waiting / 60;
         std::string waited = minutes < 1 ? "Waiting for a player" : "Waiting " + std::to_string(minutes) + " min";
+        const bool other = !version_matches(match.version);
+        if (!match.version.empty()) {
+            waited += ". Version " + match.version + (other ? " (you have " + std::string(own_version()) + "): both need the same version." : "");
+        }
         ImGui::PushID(static_cast<int>(n));
-        row(width, match.name.c_str(), waited.c_str(), 130.0f, 36.0f, [&] {
-            if (ui::button("Join", Kind::Secondary, 130.0f, ready)) {
-                play(which, {online.join_argument, match.code});
-            }
-        });
+        row(
+            width, match.name.c_str(), waited.c_str(), 130.0f, 36.0f,
+            [&] {
+                if (ui::button("Join", Kind::Secondary, 130.0f, ready && !other)) {
+                    play(which, {online.join_argument, match.code});
+                }
+            },
+            other);
         ImGui::PopID();
     }
     card.end();

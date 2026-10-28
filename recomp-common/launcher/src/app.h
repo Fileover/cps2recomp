@@ -203,6 +203,9 @@ private:
     void follow_lobby(const std::string& url);
     // A game that can be started now (its file chosen and good, its program there, not running)
     bool can_play(size_t which) const;
+    // This launcher's version (LAUNCHER_VERSION, or ""), and whether a match's is the same (online play's must be)
+    static const char* own_version();
+    static bool version_matches(const std::string& version);
     void files_card(float width);
 
     // The Multi game page (a collection's MultiModes): a mode's choices and games, and the run of one

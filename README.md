@@ -70,6 +70,8 @@ each other.
 - **Host** a match and give the other player its **code**: they type it on the launcher's **Online** page. If you've
   set your name, the match is also listed in the **lobby**, where anyone can pick it from **Open matches**. Nothing
   needs setting up on either router.
+- Both players need the same version of CPS-2 Recomp (the launcher shows yours at the top); a match on another
+  version is greyed in the list.
 - Each player presses Start to come in, as at the arcade. The match uses the host's board settings (difficulty,
   timer, rounds); cheats are off.
 - **On screen:** the ping (and the input delay, if you like), and the **win streak** of a player who keeps winning.

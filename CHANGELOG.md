@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- **Online: both players on the same version.** The launcher shows its version at the top of the sidebar; an open
+  match says its host's version, and one on another version is greyed and can't be joined (recomp-common #31); the
+  service refuses a join from another version, and the games' handshake does too (protocol 3, the version in the
+  hello: `RECOMP_VERSION`, from `VERSION`).
 - **The README, much shorter**, with a page for each big feature: `docs/TRAINING.md`, `ONLINE.md`, `MODES.md`,
   `PICTURE.md`, `SOUNDTRACK.md`, `LAUNCHER.md`, with screenshots (the Alternative modes menu, survival, ring out, the tag
   team battle, the stage viewer, the launcher's Games, Features, Multi game and Online pages, taken anew). **The lobby

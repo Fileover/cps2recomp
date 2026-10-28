@@ -16,6 +16,9 @@ Each player needs the game and its ROM set. The launcher's **Online** page (in t
   you've set **Your name**, the match is also listed in the lobby under it until someone joins; without a name, only
   those you give the code to can join.
 
+Both players need the **same version** of CPS-2 Recomp; the launcher shows its version at the top of the sidebar.
+A match on another version is greyed in Open matches, and a code for one says so.
+
 Each game's own page has the same under Play, in its **Online** card. Nothing needs setting up on either router. The
 host is player 1. The game's window says it is waiting until the other player comes (Esc gives up). From a terminal:
 

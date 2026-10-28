@@ -139,6 +139,7 @@ bool fetch_lobby(const std::string& url, std::vector<OpenMatch>& matches) {
         OpenMatch match;
         match.game = text(at, "game", end);
         match.title = text(at, "title", end);
+        match.version = text(at, "version", end);
         match.code = text(at, "code", end);
         match.name = text(at, "name", end);
         const size_t waiting = json.find("\"waiting\":", at);
@@ -179,6 +180,7 @@ CodeLookup lookup_code(const std::string& url) {
     };
     out.game = text("game");
     out.title = text("title");
+    out.version = text("version");
     out.error = text("error");
     return out;
 }
