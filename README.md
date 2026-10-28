@@ -7,13 +7,13 @@
 **Unofficial native PC ports of Capcom's CPS-2 arcade games (and a CPS-1 one), for macOS, Linux (Steam Deck and
 ARM64 included) and Windows, in one download with one launcher.** Each game's program is translated ahead of time
 into C++ and runs on a machine written for this project, not an emulator. The fighting games add a full training
-mode, online play with rollback, widescreen and new modes; the beat-'em-ups take three players at once.
+mode, online play with rollback, widescreen and new modes.
 
 ![Training mode in Street Fighter Alpha 2, in widescreen: hit boxes, input displays, the damage readout and the frame meter](docs/screenshots/sfa2/training.gif)
 
-![The model viewer: a character by itself, at any size, going through its animations](docs/screenshots/sfa2/model-viewer.gif)
+![The model viewer: Psylocke at 2x, going through her animations](docs/screenshots/msh/model-viewer-psylocke.gif)
 
-![The colour editor: one character in nine colourings of your own](docs/screenshots/colour-editor-3x3.png)
+![Custom colours: Morrigan in nine colourings made in the colour editor](docs/screenshots/vampire_savior/morrigan-colours-1.png)
 
 **[Get started →](#getting-started)**
 
@@ -97,11 +97,8 @@ each other.
 - **Updates** in the launcher, and a **portable mode** that keeps everything on a drive you carry
   ([the launcher](docs/LAUNCHER.md)).
 
-![The Features page: what the games share, set for all of them at once](docs/screenshots/launcher-features.png)
 
 ## Getting started
-
-![The launcher: every game whose ROM set you have, ready to play](docs/screenshots/launcher-games.png)
 
 1. Download the build for your system from the [releases page](https://github.com/tmcleroy/cps2recomp/releases) and
    unpack it.
