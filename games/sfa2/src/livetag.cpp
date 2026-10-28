@@ -197,13 +197,15 @@ void TagUntouchable(int player) {
 // (sounds queued, traced with SFA2_SOUND_LOG over each character's entrances up the arcade ladder). The game has a
 // player's voices twice, one for each side (player 2's 0x80 on for those from 0x300, 0x100 on for those below), so the
 // side is found by who is that character now. Not listened to. Ryu, Charlie, Zangief and Gen have no sound of their
-// own in their entrances: none. A hidden form takes its own character's (Evil Ryu, and Zangief's and Gen's others: none).
+// own in their entrances: none. A hidden form takes its first form's (family.h).
 uint16_t TagCall(int character) {
     uint16_t call = 0;
-    switch (character) {
+    // (an other form's is its first form's: family.h)
+    const int first = character >= 18 && character < kCharacters ? family::kFormOf[character - 18] : character;
+    switch (first) {
     case 0x01: call = 0x0110; break; // Ken
-    case 0x02: case 0x14: call = 0x019A; break; // Akuma (Shin Akuma)
-    case 0x04: case 0x12: call = 0x0127; break; // Chun-Li (classic)
+    case 0x02: call = 0x019A; break; // Akuma
+    case 0x04: call = 0x0127; break; // Chun-Li
     case 0x05: call = 0x01C6; break; // Adon
     case 0x06: call = 0x0169; break; // Sodom
     case 0x07: call = 0x01DE; break; // Guy
@@ -214,7 +216,7 @@ uint16_t TagCall(int character) {
     case 0x0C: call = 0x0336; break; // Dan
     case 0x0D: call = 0x0349; break; // Sakura
     case 0x0E: call = 0x0354; break; // Rolento
-    case 0x0F: case 0x16: call = 0x036E; break; // Dhalsim (another form)
+    case 0x0F: call = 0x036E; break; // Dhalsim
     default: return 0;
     }
     if (Ram8(Player(0) + kCharacter) != character && Ram8(Player(1) + kCharacter) == character) {

@@ -41,13 +41,11 @@ constexpr uint8_t kClockFull = 99;
 // 007A7A; the hidden characters share theirs); the game takes one of the two players' at 007914.
 constexpr uint32_t kStage = At(0xFF8100);
 constexpr int kStages = 18;
-// Who a player is (a player's byte kCharacter): seen on the name plates with each number put in. 18 to 23 are other
-// forms of six of them (the classic Chun-Li, Shin Akuma and Evil Ryu among them), each with its first form's stage.
-constexpr int kCharacters = 24;
-inline constexpr const char *kCharacterNames[kCharacters] = {
-    "Ryu", "Ken", "Akuma", "Charlie", "Chun-Li", "Adon", "Sodom", "Guy", "Birdie", "Rose", "M. Bison", "Sagat", "Dan", "Sakura",
-    "Rolento", "Dhalsim", "Zangief", "Gen", "Chun-Li (classic)", "Gen (another form)", "Shin Akuma", "Zangief (another form)",
-    "Dhalsim (another form)", "Evil Ryu"};
+// Who a player is (a player's byte kCharacter): seen on the name plates with each number put in. The first eighteen
+// are the characters on the screen they are chosen from; then other forms of some of them, each with its first
+// form's stage: which, and how many, is the game's own (family.h)
+using family::kCharacters;
+using family::kCharacterNames;
 // The stages are the first eighteen characters', in the same order
 inline constexpr const char *kStageNames[kStages] = {
     "Ryu's (moonlit snow)", "Ken's (the yacht)", "Akuma's (the cave)", "Charlie's (the hangar)", "Chun-Li's (the street market)",

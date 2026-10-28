@@ -62,12 +62,9 @@ namespace {
         return false;
     }
 
-    // The hidden characters: the other forms the board has (kCharacterNames 18-23) of the characters on the screen
-    // they are chosen from, as the "Hidden characters" feature gives them for one who chooses the first form. (Gen's
-    // other form is left out: it is the style he changes to in a fight.)
-    constexpr struct {
-        uint8_t first, other;
-    } kHiddenForms[] = {{0, 23}, {2, 20}, {4, 18}, {15, 22}, {16, 21}};
+    // The hidden characters: the other forms the board has of the characters on the screen they are chosen from, as
+    // the "Hidden characters" feature gives them for one who chooses the first form (family.h)
+    using family::kHiddenForms;
     bool HiddenFormFor(int n) {
         const int who = FeatureValue("hidden_forms"); // 1 player 1, 2 player 2, 3 both
         return (who & (1 << n)) != 0;
@@ -315,8 +312,7 @@ void RegisterTraining() {
     AddHook(At(0x007914), "ChooseCharacters", ChooseCharacters);
     AddHook(At(0x0628D8), "CharacterChosen", CharacterChosen);
     game.features.push_back({"hidden_forms", "Game", "Hidden characters",
-                             "Choosing Ryu, Akuma, Chun-Li, Dhalsim or Zangief gives their hidden form instead: Evil Ryu, Shin "
-                             "Akuma, the classic Chun-Li, and Dhalsim's and Zangief's other forms. For player 1, player 2 or both.",
+                             family::kHiddenWords,
                              0, {"Off", "Player 1", "Player 2", "Both"}});
     session::Description d;
     d.player1 = kPlayer1;
