@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+## 0.4.0-beta.8
+
+Shaders: the Display page's Shader draws the picture through a RetroArch slang preset (CRT, CRT Lottes, CRT Royale,
+CRT Guest, CRT Light, four kinds of scanlines, xBRZ, ScaleFX or your own), on macOS, Linux (the Steam Deck and Steam
+Machine too) and Windows, with the launcher choosing which the in-game menu goes through. The speed's line at the
+bottom goes after a few seconds.
+
 - **Shaders on Linux** (the Steam Deck and Steam Machine too): the Linux releases carry `librashader.so` (built from
   source by `tools/librashader.sh`, now for Linux as well; the build image has Rust) and the presets beside the
   games, so the Display page's Shader is there as on macOS.

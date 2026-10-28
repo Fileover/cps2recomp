@@ -83,6 +83,12 @@ Each game's page has all it does, with pictures.
   Under Shader on the launcher's Features page, **In the game's menu** → **Choose** keeps the in-game menu's list to
   your favourites. The menu is drawn over the picture without the shader. A shader that cannot be made leaves the
   picture as it was.
+
+  | | | |
+  | --- | --- | --- |
+  | ![No shader](docs/screenshots/shaders/off.png)<br>Off | ![CRT (crt-geom-mini)](docs/screenshots/shaders/crt-geom-mini.png)<br>CRT | ![CRT Royale](docs/screenshots/shaders/crt-royale.png)<br>CRT Royale |
+  | ![CRT Lottes](docs/screenshots/shaders/crt-lottes.png)<br>CRT Lottes | ![Scanlines, light](docs/screenshots/shaders/scanline-fract.png)<br>Scanlines, light | ![xBRZ](docs/screenshots/shaders/xbrz.png)<br>xBRZ |
+
 - **The board's operator settings** (difficulty, damage, timer speed, game speed, rounds and the rest), each as
   the board is set unless you choose, and the game's own test menu.
 - **Straight to the title**: at a start or a reset, everything before the title runs unseen.
