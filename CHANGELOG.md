@@ -8,7 +8,17 @@
   rather than from the board's reset, and presses Start to challenge (protocol 4: the welcome says whether the host's
   player is in already). A player who comes and goes quiet before the match begins is let go after 5 seconds.
   `ARCADE=1 make check-online` checks it.
-
+- **Other regions' ROM sets** (issue #161): 32 more sets play, the same release of a game sold in another region, whose
+  program is the game's own code with another region in it. Each plays as the board does in its region (its warning
+  screen, its names): Marvel vs. Capcom's `mvscu`, `mvscj`, `mvsca`, `mvsch`, `mvscb`; Marvel Super Heroes' `mshu`,
+  `mshjr1`, `msha`, `mshbr1`; MSH vs. SF's `mshvsfu1`, `mshvsfj2`, `mshvsfh`, `mshvsfa`, `mshvsfb1`; X-Men vs. SF's
+  `xmvsfur1`, `xmvsfjr2`, `xmvsfar1`, `xmvsfh`; Alien vs. Predator's `avsp`, `avspj`, `avspa`, `avsph`; Super Gem
+  Fighter's `pfghtj`, `sgemfa`, `sgemfh`; Puzzle Fighter's `spf2ta`; Alpha's `sfzbr1`; Alpha 3's `sfa3`, `sfz3a`,
+  `sfa3h`; and Super Turbo's `ssf2ta` and `ssf2xj` (a later Japanese revision whose code is the same). Every clone set
+  in MAME's driver was compared with the game's own, deciphered, word by word; the rest are other revisions. A game's
+  `game.cfg` lists them (`other_set`), and `region_at` where the region is in an instruction rather than the header
+  (the port gives the variable the set's own value); the launcher finds them by name and says which it found; online,
+  both players need the same set (the hello says it). `docs/TOOLKIT.md` has how a set is found to belong.
 - **CI is quicker**: SDL 3, librashader and the shader presets are built once and kept between runs (by the scripts
   that make them), the compiler's objects too (ccache); a pull request's Mac build is Apple silicon alone
   (`MAC_ARCHS`); a change of words only (the README, `docs/`) runs the audit and builds nothing; and a pull request's

@@ -147,6 +147,7 @@ private:
     // (the handshake: the hello or the welcome, sent again until answered)
     std::vector<uint8_t> greeting;
     uint32_t build = 0;
+    std::string set; // (the ROM set's name: both must play the same one, a region of its own)
     uint64_t began = 0, sent = 0;
     bool found = false; // (hosting: the other player has said hello)
     bool hostIn = false;

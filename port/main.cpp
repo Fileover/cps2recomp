@@ -204,6 +204,30 @@ int WindowSize() {
     return kTimes[std::clamp(FeatureValue("window_size"), 0, 4)];
 }
 
+#ifdef GAME_REGION_AT
+namespace {
+    // Another region's set whose region is in the code, not the header (game.cfg's region_at: an instruction
+    // `move.w #region,d16(a5)`): the translated code has the set's own region in it, so once the instruction is past,
+    // its variable is given the one this set's instruction has. (Set once, as the set is read.)
+    uint32_t g_regionVariable = 0; // (its distance from A5)
+    uint16_t g_region = 0;
+    bool AfterRegion(M68K &c) {
+        SetRam16((c.a[5] + g_regionVariable) & 0xFFFFFF, g_region);
+        return false;
+    }
+    void RegisterRegion(uint32_t at) {
+        const uint8_t *op = ProgramOpcodes(at);
+        if (((op[0] << 8) | op[1]) != 0x3B7C) {
+            fprintf(stderr, "region_at %06X: not move.w #region,d16(a5)\n", at);
+            return;
+        }
+        g_region = static_cast<uint16_t>((op[2] << 8) | op[3]);
+        g_regionVariable = static_cast<uint32_t>(static_cast<int16_t>((op[4] << 8) | op[5]));
+        AddHook(at + 6, "Region", AfterRegion);
+    }
+} // namespace
+#endif
+
 bool Port::Init(std::string &error) {
 #ifndef GAME_BOARD
 #define GAME_BOARD ""
@@ -214,10 +238,16 @@ bool Port::Init(std::string &error) {
 #ifndef GAME_KEY
 #define GAME_KEY ""
 #endif
+#ifndef GAME_OTHER_SET
+#define GAME_OTHER_SET ""
+#endif
     const RomList list = ParseRomList(GAME_PROGRAM, GAME_GRAPHICS, GAME_SOUND_PROGRAM, GAME_SAMPLES, GAME_KEY, GAME_ROM_SET, GAME_ROM_PARENT,
-                                      GAME_BOARD, GAME_CPS_B);
+                                      GAME_BOARD, GAME_CPS_B, GAME_OTHER_SET);
     if (!LoadRomSet(opt.romPath, list, roms, error)) {
         return false;
+    }
+    if (!roms.name.empty()) {
+        fprintf(stderr, "%s: the set %s (%s)\n", GAME_NAME, roms.set.c_str(), roms.name.c_str());
     }
 #ifdef GAME_EXTRA_SET
     // Another set the game reads (another game made from the same program, say): from --rom2, or beside --rom
@@ -256,6 +286,11 @@ bool Port::Init(std::string &error) {
 #endif
     SetEeprom(&machine->eeprom);
     RegisterGame();
+#ifdef GAME_REGION_AT
+    if (!roms.name.empty()) {
+        RegisterRegion(static_cast<uint32_t>(strtoul(GAME_REGION_AT, nullptr, 16)));
+    }
+#endif
     machine->cpu.pointerFrom = PointerLoads(machine->cpu.extraLow, machine->cpu.extraHigh);
     machine->cpu.keepHistory = getenv("CPS2RECOMP_PC_HISTORY") != nullptr;
     RegisterPortFeatures();

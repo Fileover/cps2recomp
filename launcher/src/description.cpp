@@ -39,6 +39,9 @@ struct GameInfo {
     const char* extra_set;
     // The Multi game page's modes it takes part in (game.cfg's multi: "endless")
     const char* multi;
+    // Other sets of the game it plays as well (game.cfg's other_set: other regions of the same program;
+    // machine/romset.h)
+    const char* other_set;
 };
 #ifdef LAUNCHER_COLLECTION
 const GameInfo* game_of_set(const char* set);
@@ -56,6 +59,17 @@ const char* keep(std::string text) {
     return kept.back().c_str();
 }
 
+// The sets the game plays, by name: its own ("mvsc (Marvel Vs. Capcom ... (Europe 980123))"), then its others' ("or
+// another region's: mvscu, mvscj or mvsca")
+std::string sets_named(const GameInfo& game) {
+    std::string text = std::string(game.rom_set) + " (" + game.rom_name + ")";
+    const cps2recomp::RomList list = cps2recomp::ParseRomList("", "", "", "", "", "", "", "", "", game.other_set);
+    for (size_t n = 0; n < list.others.size(); n++) {
+        text += (n == 0 ? " or another region's: " : n + 1 == list.others.size() ? " or " : ", ") + list.others[n].set;
+    }
+    return text;
+}
+
 // A ROM set: the set's zip (with its parent set's zip beside it, if the collection keeps shared files
 // there) or a folder with the set's files. Every file is checked against the checksums the port was made
 // from, and the program is deciphered with the set's key, as the game itself does when it starts. The
@@ -70,15 +84,15 @@ launcher::FileCheck check_rom_set(const GameInfo& game, const std::string& path)
     // (the same reading the game does: its files by checksum, from the zip, its parent's or the folder)
     const cps2recomp::RomList list =
         cps2recomp::ParseRomList(game.program, game.graphics, game.sound_program, game.samples, game.key, game.rom_set, game.rom_parent,
-                                 game.board, game.cps_b);
+                                 game.board, game.cps_b, game.other_set);
     cps2recomp::RomSet set;
     std::string message;
     if (cps2recomp::LoadRomSet(path, list, set, message)) {
         check.result = launcher::FileCheck::Result::Good;
-        check.message = game.rom_name;
+        check.message = set.name.empty() ? game.rom_name : set.name;
     } else {
-        check.message = "Not usable: " + message + ". This port needs the set " + game.rom_set + " (" + game.rom_name + ")" +
-                        (*game.key ? ", with its key file" : "") + ". Other versions and regions of the game will not work.";
+        check.message = "Not usable: " + message + ". This port needs the set " + sets_named(game) + (*game.key ? ", with its key file" : "") +
+                        ". Other versions of the game will not work.";
     }
     return check;
 }
@@ -105,7 +119,11 @@ std::string rom_set_nearby(const GameInfo& game, const std::filesystem::path& pr
 // then the parent set's, which a merged collection names it by)
 std::vector<std::filesystem::path> rom_set_candidates(const GameInfo& game, const std::filesystem::path& folder) {
     std::vector<std::filesystem::path> list;
-    for (const std::string& name : {std::string(game.rom_set), std::string(game.rom_parent)}) {
+    std::vector<std::string> names = {game.rom_set, game.rom_parent};
+    for (const cps2recomp::RomList::Other& other : cps2recomp::ParseRomList("", "", "", "", "", "", "", "", "", game.other_set).others) {
+        names.push_back(other.set);
+    }
+    for (const std::string& name : names) {
         if (!name.empty()) {
             list.push_back(folder / (name + ".zip"));
             list.push_back(folder / name);
@@ -139,7 +157,7 @@ std::vector<FeatureSwitch> feature_switches(const std::string& all) {
 // What a launcher is told about one game
 launcher::Description describe_game(const GameInfo& game) {
     launcher::Description d;
-    const std::string set = std::string(game.rom_set) + " (" + game.rom_name + ")";
+    const std::string set = sets_named(game);
     d.original = "in the arcade";
     d.file_heading = "ROM SET";
     // (a game that names its own buttons is not a fighting game, and has no training mode; the collection's controls,
@@ -151,7 +169,8 @@ launcher::Description describe_game(const GameInfo& game) {
     const bool forAll = fighting;
 #endif
     d.file_intro = keep("Choose your own copy of the game: the arcade ROM set " + set + (*game.key ? ", with its key file" : "") +
-                        ". Only this version works. It stays where it is: the launcher only reads it.\n\nWhile playing, Esc or F1 on "
+                        (*game.other_set ? ". Only these versions work" : ". Only this version works") +
+                        ". It stays where it is: the launcher only reads it.\n\nWhile playing, Esc or F1 on "
                         "the keyboard, or the left stick's click (or Start and Select together) on a gamepad, opens the in-game menu: " +
                         (fighting ? "training mode and the other modes" : "the game's options") + ", save states, speed, and every feature.");
 #ifdef LAUNCHER_COLLECTION
@@ -413,12 +432,15 @@ const launcher::Collection& launcher::describe_collection() {
 #ifndef LAUNCHER_CPS_B
 #define LAUNCHER_CPS_B ""
 #endif
+#ifndef LAUNCHER_OTHER_SET
+#define LAUNCHER_OTHER_SET ""
+#endif
 
 const launcher::Description& launcher::describe() {
     static const Description about = describe_game({LAUNCHER_GAME_EXE, LAUNCHER_GAME_NAME, LAUNCHER_ROM_SET, LAUNCHER_ROM_PARENT, LAUNCHER_ROM_NAME,
                                                     LAUNCHER_ROM_PROGRAM, LAUNCHER_ROM_GRAPHICS, LAUNCHER_ROM_SOUND_PROGRAM, LAUNCHER_ROM_SAMPLES,
                                                     LAUNCHER_ROM_KEY, LAUNCHER_DISPLAY_SWITCHES, LAUNCHER_PLAYERS, LAUNCHER_BUTTONS,
-                                                    LAUNCHER_BOARD, LAUNCHER_CPS_B, "", ""});
+                                                    LAUNCHER_BOARD, LAUNCHER_CPS_B, "", "", LAUNCHER_OTHER_SET});
     return about;
 }
 

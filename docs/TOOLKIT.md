@@ -158,6 +158,30 @@ the include path) says what is its own.
 - The shared rewrites are checked against the other game's own code like any rewrite
   (`games/vampire_savior/check_family.sh`).
 
+## Other regions' sets of a game
+
+Capcom sold each release of a game in several regions, and for most the program is the same code: the region is a
+word in the header (0xC2, with the checksum after it), which the game reads to choose its warning screen, its
+names and the like, or, in some older games, the value of one instruction (`move.w #region,d16(a5)`). Such a set runs
+on the translation made from the game's own set, and a game lists them in its `game.cfg`:
+
+```
+other_set = mvscj | Marvel Vs. Capcom: Clash of Super Heroes (Japan 980123) | mvcj.03a:3df18879 mvcj.04a:07d212e8 mvc.05a:2d8c8e86 ... | mvscj.key:9dedbcaf
+region_at = 001078
+```
+
+One line a set: its name, MAME's name for it, its program files and its key; the graphics, the sound and the samples
+are the game's own set's. `machine/romset.cpp` reads the set the player chose (the zip or folder named for one of
+them comes first; then the game's own; then the others), and `RomSet::set` says which. With `region_at`, the
+translated code has the game's own set's region in it, so the port hooks the instruction after it and gives the
+variable the value the set's own instruction has (`port/main.cpp`, `RegisterRegion`). Online, both players must have
+the same set (it is in the hello).
+
+A set belongs in the list when its deciphered program is the game's own but for the header, data (tables the game
+reads) and the region's instruction: compare the two, word by word, deciphered and as on the chips (a word is the
+same if it is in either). Then run it: its warning screen says its region, the versus movie plays, and the game's
+own set's `--hash-log` is what it was. Other revisions (other dates) move the code, and are other ports.
+
 ## A CPS-1 game
 
 The CPS-2 grew out of the CPS-1, and the toolkit runs CPS-1 games with QSound (the "CPS-1.5": Cadillacs and Dinosaurs

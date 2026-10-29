@@ -19,7 +19,7 @@ title, the board's operator settings, cheats, save states, run-ahead, arcade tim
 > [report what you find](#feedback-and-contributing).
 
 **No game files are included.** You need your own copy of the game: the arcade ROM set `mshvsf` (Europe, 970625)
-with its key file, from a board you own. **Only that version works.** This project cannot help you get one.
+with its key file, from a board you own. **Only the sets named below work.** This project cannot help you get one.
 
 This project is not affiliated with, endorsed by, or sponsored by Capcom or Marvel. *Street Fighter* is a trademark
 of Capcom Co., Ltd.; *Marvel Super Heroes* and its characters are trademarks of Marvel Characters, Inc.
@@ -197,9 +197,10 @@ menu shows the board's own values.
 ## What you need
 
 - The ROM set `mshvsf` (*Marvel Super Heroes Vs. Street Fighter*, Europe 970625): `mshvsf.zip` or a folder with the
-  set's files, including `mshvsf.key`. The launcher checks every file by checksum and tells you which is missing or different.
-  Sets of other regions and revisions are refused: the port is made from this one version's program, and its
-  features use addresses found in it.
+  set's files, including `mshvsf.key`. The launcher checks every file by checksum and tells you which is missing or
+  different. The same release's other sets work too, each as the board plays in its region: `mshvsfu1` (USA 970625),
+  `mshvsfj2` (Japan 970625), `mshvsfh` (Hispanic 970625), `mshvsfa` (Asia 970625) and `mshvsfb1` (Brazil 970625). Other
+  revisions are refused: the port is made from this program, and its features use addresses found in it.
 - One of: macOS 13 or later (Apple silicon or Intel); Linux x86_64 or SteamOS; Windows 10 or 11, 64-bit.
 - A gamepad or stick with six buttons is recommended (and one more for Start, for the hidden characters).
 
