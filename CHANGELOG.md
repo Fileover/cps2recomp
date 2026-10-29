@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- **Training mode: Gauge refills** in Street Fighter Alpha 2 and 3, Alpha 2 Gold and the Vampire Savior games (issue
+  #174), as the other fighting games have it: both players' super combo gauge (in the Vampire Savior games, their
+  special gauges) kept full in a session, for practising supers and combos into them. In Alpha 2 and 3 it waits for a
+  Custom Combo to end before filling the gauge again. Alpha 2's Alpha counter dummy now points to it.
 - **Play at the top** of each game's page in the launcher, right under its name and the lines about it.
 - **Online: a waiting room, with invitations** (#155). The Online page lists the other players whose Online page is open
   and who have a name, and **Invite** hosts a match in the game chosen for one of them (`--net-invite TO:FROM`,

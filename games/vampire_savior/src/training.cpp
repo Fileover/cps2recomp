@@ -83,6 +83,15 @@ namespace {
         }
         return boxes;
     }
+
+    // The game's own aid: the special gauges kept full (as many stocks as the gauge holds, as the cheat gives them)
+    void Hud(Machine &, std::vector<HudLine> &, std::vector<HudBox> &) {
+        for (int n = 0; n < 2; n++) {
+            if (FeatureOn("gauge_refill") && Ram8(Player(n) + kStocks) < kStocksFull) {
+                SetRam8(Player(n) + kStocks, kStocksFull);
+            }
+        }
+    }
 } // namespace
 
 // A hit's damage is being taken off a player's health (from the hook in fight.cpp)
@@ -149,6 +158,7 @@ void RegisterTraining() {
     d.stageWords = "Where a training session's fight is: the game's own choice (at random, from those that go with player 2's "
                    "character) or a stage named here. Takes effect when the characters are next chosen.";
     d.framesPrintVariable = "VSAV_FRAMES";
+    d.hud = Hud;
     fight::DummyOptions &dummy = d.dummy;
     // While guarding: buttons pressed one after another, guarding still (pushing the attacker away); or a guard
     // cancel: towards, down, down and towards with a punch or a kick, again and again
@@ -183,6 +193,10 @@ void RegisterTraining() {
     dummy.getUpWords = "Where player 2 gets up after being knocked down: where it fell, or rolled towards player 1 or away.";
     dummy.downAfter = 34;
     session::Register(d);
+    // (after the session's own, so it follows "Health refills"; a training aid, as the session's are)
+    TheGame().features.push_back({"gauge_refill", modes::kTraining, "Gauge refills",
+                                  "Both players always have special gauges to spend (ES moves, EX moves, Dark Force)."});
+    TrainingAids({"gauge_refill"});
 }
 
 } // namespace cps2recomp
