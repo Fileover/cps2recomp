@@ -79,6 +79,9 @@ struct Online {
     const char *lobby = nullptr;
     const char *list_argument = nullptr; // "--net-list"
     const char *name_argument = nullptr; // "--net-name"
+    // Arcade while waiting: when the player switches it on ([online] arcade), Host adds `arcade_argument`, and the
+    // host plays the game alone until the other player comes, who joins the game as it is. nullptr: no such switch.
+    const char *arcade_argument = nullptr; // "--net-arcade"
 };
 
 struct InfoRow {
@@ -192,6 +195,10 @@ struct CollectionGame {
     const char *exe;         // its program, beside the launcher (as LAUNCHER_GAME_EXE)
     const char *home_env;    // a variable naming a folder to use instead of its own, for tests (LAUNCHER_HOME_ENV)
     Description description; // what a launcher of its own is told (its pages, if any, are not shown)
+    // The series it is one of, as the player reads it ("Street Fighter Alpha"), or nullptr. Two or more games of a series
+    // with a page of their own are under one row of the sidebar, which opens and closes and has a page of the series'
+    // games, and are kept together in the player's order and on the Games page.
+    const char *series = nullptr;
 };
 
 // A choice of a multi-game mode's: a row of its card on the Multi game page, kept in launcher.ini under

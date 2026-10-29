@@ -39,6 +39,8 @@ struct GameInfo {
     const char* extra_set;
     // The Multi game page's modes it takes part in (game.cfg's multi: "endless")
     const char* multi;
+    // The series the launcher puts it under, with the other games of it (game.cfg's series; "": none)
+    const char* series;
 };
 #ifdef LAUNCHER_COLLECTION
 const GameInfo* game_of_set(const char* set);
@@ -281,7 +283,7 @@ const launcher::Collection& launcher::describe_collection() {
         c.find_title = "Look in a folder";
         c.find_detail = "Finds each game's ROM set in a folder of them, by the set's name (sfa2u.zip, say).";
         for (const GameInfo& game : kGames) {
-            c.games.push_back({game.id, game.name, game.id, "", describe_game(game)});
+            c.games.push_back({game.id, game.name, game.id, "", describe_game(game), *game.series ? game.series : nullptr});
         }
         c.bindings = shared_table().table;
         // The Multi game page: the fighting games' endless battle (fight/battle.h), each game's every stage once and
@@ -417,7 +419,7 @@ const launcher::Description& launcher::describe() {
     static const Description about = describe_game({LAUNCHER_GAME_EXE, LAUNCHER_GAME_NAME, LAUNCHER_ROM_SET, LAUNCHER_ROM_PARENT, LAUNCHER_ROM_NAME,
                                                     LAUNCHER_ROM_PROGRAM, LAUNCHER_ROM_GRAPHICS, LAUNCHER_ROM_SOUND_PROGRAM, LAUNCHER_ROM_SAMPLES,
                                                     LAUNCHER_ROM_KEY, LAUNCHER_DISPLAY_SWITCHES, LAUNCHER_PLAYERS, LAUNCHER_BUTTONS,
-                                                    LAUNCHER_BOARD, LAUNCHER_CPS_B, "", ""});
+                                                    LAUNCHER_BOARD, LAUNCHER_CPS_B, "", "", ""});
     return about;
 }
 

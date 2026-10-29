@@ -30,7 +30,7 @@ def load(game=None):
 
 # What the collection's launcher is told of each game (launcher/src/description.cpp, GameInfo), in its order
 COLLECTION_KEYS = ["id", "name", "rom_set", "rom_parent", "rom_name", "program", "graphics", "sound_program", "samples", "key", "display",
-                   "players", "buttons", "board", "cps_b", "extra_set", "multi"]
+                   "players", "buttons", "board", "cps_b", "extra_set", "multi", "series"]
 
 
 def quoted(value):
@@ -49,8 +49,11 @@ def main():
     if len(args) >= 2 and args[0] == "--collection":
         lines = ["// Generated from games/*/game.cfg by tools/gamecfg.py --collection", "#pragma once", "",
                  "static const GameInfo kGames[] = {"]
-        # (in the order of their names, as the player reads them)
-        for game in sorted(args[2:], key=lambda g: load(g).get("name", g)):
+        # (in the order of their names, as the player reads them; a series' games together, where its name is)
+        def order(g):
+            cfg = load(g)
+            return (cfg.get("series") or cfg.get("name", g), cfg.get("name", g))
+        for game in sorted(args[2:], key=order):
             cfg = load(game)
             cfg.setdefault("id", game)
             lines.append("    {" + ", ".join(quoted(cfg.get(key, "")) for key in COLLECTION_KEYS) + "},")

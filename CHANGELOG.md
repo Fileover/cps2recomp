@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- **The launcher keeps a series' games together**: the Street Fighter Alpha games, the Darkstalkers games and the
+  Marvel games are each one row in the sidebar that opens to show them, with a page of their own to play any of them
+  (recomp-common: `CollectionGame::series`). A game's series is `series` in its `game.cfg`; Super Street Fighter II
+  Turbo is in Street Fighter II, a row of its own until another version comes.
 - **CI is quicker**: SDL 3, librashader and the shader presets are built once and kept between runs (by the scripts
   that make them), the compiler's objects too (ccache); a pull request's Mac build is Apple silicon alone
   (`MAC_ARCHS`); a change of words only (the README, `docs/`) runs the audit and builds nothing; and a pull request's
