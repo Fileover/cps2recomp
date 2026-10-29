@@ -6,6 +6,8 @@
 // beside a gamepad's and the keys.
 // They go where the window has room beside the picture (a phone's screen is wider than it), over its edges where
 // it has not. They are shown on Android until a gamepad or a key is used, and anywhere once the screen is touched.
+// With no finger on the screen for five seconds they are no longer drawn (the picture whole again); a touch brings
+// them back, and is a press of what is under it, as when they are drawn.
 // In the menu the stick moves through it and the first two buttons choose and go back.
 #pragma once
 
@@ -54,6 +56,8 @@ private:
     void Draw();
 
     bool m_shown = false, m_changed = true, m_menuPressed = false, m_zoomPressed = false;
+    bool m_idle = false;    // (shown, but no finger for a while: not drawn)
+    uint64_t m_touched = 0; // (when a finger was last on the screen, SDL_GetTicks)
     int m_width = 0, m_height = 0;
     SDL_FRect m_picture{};
     float m_stickX = 0, m_stickY = 0, m_stickRadius = 0; // the stick's middle and reach

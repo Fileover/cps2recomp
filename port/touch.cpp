@@ -22,6 +22,7 @@ using namespace cps2recomp;
 namespace {
 
 constexpr int kLeast = 4; // the frames a press lasts at least (a quick tap's down and up can come in one frame)
+constexpr uint64_t kIdleMs = 5000; // no finger for this long: not drawn
 
 // A colour, its alpha premultiplied, as the overlay takes it (red in the low byte)
 uint32_t Premultiplied(int r, int g, int b, float alpha) {
@@ -95,6 +96,7 @@ struct Picture {
 TouchControls::TouchControls() {
 #ifdef __ANDROID__
     m_shown = !SDL_HasGamepad(); // (a phone's own controls, unless a gamepad is there from the start)
+    m_touched = SDL_GetTicks();
 #endif
     // The game's buttons, if it names them (game.cfg's buttons: a beat-'em-up's two or three), else the six
     const std::string buttons = GameButtons();
@@ -193,8 +195,10 @@ bool TouchControls::Event(const SDL_Event &event) {
         return false;
     default: return false;
     }
-    if (!m_shown) {
+    m_touched = SDL_GetTicks();
+    if (!m_shown || m_idle) {
         m_shown = true;
+        m_idle = false;
         Changed();
     }
     const float x = event.tfinger.x * m_width, y = event.tfinger.y * m_height;
@@ -300,11 +304,15 @@ bool TouchControls::TakeZoomPress() {
 }
 
 bool TouchControls::TakePicture(std::vector<uint32_t> &pixels, int &width, int &height) {
+    if (m_shown && !m_idle && m_fingers.empty() && SDL_GetTicks() - m_touched > kIdleMs) {
+        m_idle = true;
+        Changed();
+    }
     if (!m_changed) {
         return false;
     }
     m_changed = false;
-    if (!m_shown || m_width <= 0 || m_height <= 0) {
+    if (!m_shown || m_idle || m_width <= 0 || m_height <= 0) {
         pixels.clear();
         return true;
     }

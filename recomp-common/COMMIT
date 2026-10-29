@@ -1,5 +1,5 @@
 # A copy of recomp-common's src/ and launcher/, made by tools/sync-common.sh. Do not change it here.
-commit 759f94702219bad0cc45662076a06dd302948f5f
+commit b711e872957cbcff40e1aa4e1742abd438ddc945
 4003a811a6a73dcd9f8df972f10f337809fd456f4b80caa8035105be0bd9cd89  folders.h
 3cdcd5d022ca8dc02d9c212dfc04784879a24107fdbf977c0a81f8b8ac00b516  launcher/embed_fonts.cmake
 5c9dc79aecc0bf0285e743b91c00bc34515b2c6665181d958edf134ef737bb9e  launcher/example/CMakeLists.txt
@@ -14,7 +14,7 @@ b89048144fc89354ab084792e874df967bc3f09e8ce0cfa557468834e6043af3  launcher/src/b
 c6780ba243206766c0297bfa8fb72e328403054922f2fc94c00cd110debd6453  launcher/src/game_process.h
 6e183c8ff16fc25a8126ca63f4e6176603b8cbdc0c4c627a2fdd44a573d40153  launcher/src/launcher.h
 e297cb3a21c631c9911c7ca1575933cb93cb38f223ddf142ea6d4955a3cd16a6  launcher/src/layout.h
-b1382eb25abb369148a45122ccf214c42902d615bbdc4db5d0b7fdd3daad8eb2  launcher/src/main.cpp
+a72f55585489d21d8ab731aaa4d8bde57ff2e7a543d9df4eec39e6ee01623fed  launcher/src/main.cpp
 7503e3f4b6b97aea85d689508d22f37d1d8e15e1b01a139afe455652a7d6d30e  launcher/src/online.cpp
 7593f886137b0d6f56e159b6c8e6656f3ca9497c9bb11ebced0153fcf5156ac1  launcher/src/online.h
 6d82da3e2dfebd9a7156973476687386fd137b2afe60e85f489bcc15d9df4a83  launcher/src/run_program.cpp

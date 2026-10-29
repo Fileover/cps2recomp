@@ -68,8 +68,10 @@ void back_is_escape(SDL_Event& event) {
     }
 }
 
+// Dark unless the system says light: where it says nothing (Steam's Gaming Mode, which has no desktop to ask; a
+// desktop with no preference) the launcher matches Steam's own dark look
 bool system_dark() {
-    return SDL_GetSystemTheme() == SDL_SYSTEM_THEME_DARK;
+    return SDL_GetSystemTheme() != SDL_SYSTEM_THEME_LIGHT;
 }
 
 // --press: keys as the window would get them, and the buttons of a gamepad that exists only in the program.
