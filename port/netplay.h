@@ -191,6 +191,7 @@ private:
     std::string seenAs; // ("IP:PORT")
     std::future<HttpAnswer> asking;
     uint64_t askedAt = 0;
+    uint64_t codeAt = 0; // (hosting: when the code was had, for how often it is asked about: Introduce)
     std::string secret;
     std::string invitation; // (hosting, --net-invite) what the service said came of it: Invitation()
     std::vector<NetAddress> candidates; // the other side's addresses

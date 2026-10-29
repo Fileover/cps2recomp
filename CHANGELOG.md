@@ -10,6 +10,14 @@
   so the Multi game page hands from one game to the next as elsewhere; online play works with any other system.
   The presenter draws an overlay over the picture (`Presenter::SetOverlay`). recomp-common: the launcher on Android.
 
+- **Online asks the service less often**, to stay within its free daily allowance. The launcher's Online page checks
+  every 10 seconds, or every 20 while the launcher isn't the window in front (it was every 5), and asks for the waiting
+  room and the open matches in one request (`POST /v1/room` with `lobby: true`). A waiting host asks every 2 seconds,
+  then every 5 after two minutes and every 10 after ten (it was every second and a half), and has its code again when
+  it runs out after 30 minutes instead of asking about a dead one. The lists say "Updates every 10 seconds" and show a
+  spinner while they're fetched. The service keeps the lobby in memory, told by each match at most every 10 seconds,
+  and keeps a waiting room player or a listed match for 30 and 25 seconds after they're last heard from.
+  recomp-common: `RoomCheckIn::lobby`, `Room::matches`.
 - **Training mode: Gauge refills** in Street Fighter Alpha 2 and 3, Alpha 2 Gold and the Vampire Savior games (issue
   #174), as the other fighting games have it: both players' super combo gauge (in the Vampire Savior games, their
   special gauges) kept full in a session, for practising supers and combos into them. In Alpha 2 and 3 it waits for a
