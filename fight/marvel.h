@@ -50,6 +50,8 @@ struct Engine {
     // the steps it stays frozen as a hit lands (a byte), and how near the picture's edge it is held (a byte)
     uint32_t state = 0x04, control = 0x06, x = 0x0C, y = 0x10, speedX = 0x14, speedY = 0x1C, pull = 0x20;
     uint32_t frame = 0x34, flip = 0, character = 0, action = 0xA0, attackPhase = 0, hitStop = 0, atEdge = 0xA9;
+    // The bits of the byte `attackPhase` that say an attack is going on (its phases: out, recovering)
+    uint8_t attackPhaseMask = 0xC0;
     // What a player does, by the byte `action`
     uint8_t actionStand = 0x00, actionWalk = 0x02, actionJump = 0x06, actionCrouch = 0x0C, actionGuard = 0x24,
             actionCrouchGuard = 0x26;
@@ -84,6 +86,13 @@ struct Engine {
     // keepCamera is the first's), and where each piece is over (the copy put back)
     uint32_t cameraWorkX = 0, cameraWorkY = 0;
     uint32_t keepCameraDown = 0, keptAcross = 0, keptDown = 0;
+    // Where the camera's place is kept between its ends, where that is not one routine but a piece of each stage's own
+    // (RegisterWidescreen's keepCamera then 0): the piece's place (a hook), and where the stage's code goes on after it
+    // (0: the piece ends the routine)
+    struct KeepCameraPlace {
+        uint32_t at, after;
+    };
+    std::vector<KeepCameraPlace> keepCameraPlaces;
     // How near the picture's edges a player can go (the game keeps it between the camera's word + 0x55 and + 0x1AB),
     // and a player's plane (a byte) and the table of the planes' cameras (a long by the plane: the camera word's place)
     int wall = 0x15;
@@ -98,6 +107,8 @@ struct Engine {
     uint32_t cameraWay = 0;
     uint8_t followsOne = 4;
     bool cameraWayTwice = false;
+    // A byte like `cameraWay` that the camera's step down goes by, where that is a piece of its own (none: one)
+    uint32_t cameraWayDown = 0;
     // The round's clock (a BCD byte)
     uint32_t clock = 0;
 
@@ -118,6 +129,8 @@ struct Engine {
     // game it is shown for (its top bit: the frame after it is the one the long after it names), and the picture (a
     // long); `groups` groups of at most `perGroup`. The ROM's code and data from `romLow` to `romHigh`.
     uint32_t animationLists = 0, frameBytes = 0x10;
+    // Where a frame has its time (a word) and its picture (a long, under `framePictureMask`), from its start
+    uint32_t frameTimeAt = 0x02, framePictureAt = 0x04, framePictureMask = 0xFFFFFFFF;
     int groups = 26, perGroup = 96;
     uint32_t romLow = 0x080000, romHigh = 0x380000;
     // A frame put in a player's record as the game's own routine puts it (what it copies of the frame, beyond what is
@@ -168,8 +181,9 @@ bool RingOutStep(M68K &c);
 
 // --- widescreen ---
 
-// The hooks: where the camera's step keeps it between its ends (A6 the camera's record), and where a player is kept
-// inside the picture of its plane (A6 the player's record); and the features
+// The hooks: where the camera's step keeps it between its ends (A6 the camera's record; 0 where the stages each keep their
+// own: Engine::keepCameraPlaces), and where a player is kept inside the picture of its plane (A6 the player's record);
+// and the features
 void RegisterWidescreen(uint32_t keepCamera, uint32_t keepIn);
 void WidescreenBeforeFrame(Machine &machine);
 void WidescreenState(Archive &ar); // (in the game's save state)

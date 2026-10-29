@@ -32,6 +32,7 @@ file). Only the versions named below work for each game, and this project cannot
 | [**Street Fighter Zero 2 Alpha**](games/sfz2al/README.md) (1996) | `sfz2al` (Asia 960826) | Alpha 2's later revision, with the EX characters |
 | [**Street Fighter Alpha 3**](games/sfa3/README.md) (1998) | `sfa3u` (USA 980904) | Team battle and tag; Balrog, Juni and Juli without codes |
 | [**Super Gem Fighter Mini Mix**](games/pocket_fighter/README.md) (1997) | `sgemf` (USA 970904) | |
+| [**X-Men: Children of the Atom**](games/xmcota/README.md) (1994) | `xmcota` (Euro 950331) | Juggernaut, Magneto and Akuma without codes |
 | [**Marvel Super Heroes**](games/msh/README.md) (1995) | `msh` (Europe 951024) | Dr. Doom and Thanos without codes |
 | [**X-Men vs. Street Fighter**](games/xmvsf/README.md) (1996) | `xmvsf` (Europe 961004) | Tag-team co-op, and 2 vs 2 for four players |
 | [**Marvel Super Heroes vs. Street Fighter**](games/mshvsf/README.md) (1997) | `mshvsf` (Europe 970625) | Tag-team co-op, and 2 vs 2 for four players |
