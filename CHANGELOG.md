@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+- **Online: a waiting room, with invitations** (#155). The Online page lists the other players whose Online page is open
+  and who have a name, and **Invite** hosts a match in the game chosen for one of them (`--net-invite TO:FROM`,
+  `--net-invite-name NAME`; the match isn't listed). The invitation waits on their Online page with Accept (joining
+  its code), Decline and Block; the host's wait says "Invited NAME", then "NAME declined" or "NAME couldn't be
+  invited". "Let others invite me" takes a player out of the room; blocked players see nothing of each other. The
+  service (`online/`) has a Room Durable Object, kept in memory, which launchers check in at every five seconds
+  (`POST /v1/room`); a player's id is made from a secret only their launcher keeps (`launcher.ini` `[online] room`).
+  recomp-common #34: `Collection::room`, `Online::invite_argument`.
+
 - **The launcher keeps a series' games together**: the Street Fighter Alpha games, the Darkstalkers games and the
   Marvel games are each one row in the sidebar that opens to show them, with a page of their own to play any of them
   (recomp-common: `CollectionGame::series`). A game's series is `series` in its `game.cfg`; Super Street Fighter II

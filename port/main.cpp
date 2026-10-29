@@ -610,6 +610,13 @@ void Port::Key(char key, unsigned n) {
 
 namespace {
 constexpr uint64_t kNextGameWait = 150; // ticks (so stopped too)
+
+// (hosting a player invited from the launcher's waiting room: whether they have been asked, or said no)
+std::string InvitationLine(const Netplay &net) {
+    return net.Invitation() == "declined" ? net.Invited() + " declined"
+           : net.Invitation() == "away"   ? net.Invited() + " couldn't be invited"
+                                          : "Invited " + net.Invited();
+}
 } // namespace
 
 bool Port::Tick() {
@@ -696,6 +703,9 @@ bool Port::Tick() {
                 lines.push_back({0.5f, 0, 0, "Match code " + net->code, 96, 230, 120});
                 if (net->Listed()) {
                     lines.push_back({0.5f, 0, 0, "Listed in the lobby"});
+                }
+                if (!net->Invited().empty()) {
+                    lines.push_back({0.5f, 0, 0, InvitationLine(*net)});
                 }
             }
             lines.push_back({0.5f, 0, 0, rejoin.empty() ? "Esc: give up" : "Esc: quit"});
@@ -840,6 +850,13 @@ void Port::Shown(std::vector<uint32_t> &pixels, std::vector<SDL_Rect> *panels) c
             if (!net->code.empty()) {
                 const std::string code = "MATCH CODE " + net->code + (net->Listed() ? "   IN THE LOBBY" : "");
                 status(code.c_str(), said++ * 14);
+                if (!net->Invited().empty()) {
+                    std::string invited = InvitationLine(*net);
+                    for (char &c : invited) {
+                        c = static_cast<char>(toupper(static_cast<unsigned char>(c)));
+                    }
+                    status(invited.c_str(), said++ * 14);
+                }
             }
         }
     }
@@ -1376,6 +1393,9 @@ void Port::Again(const std::string &why) {
             settings.renewCode = net->code.substr(0, 3) + net->code.substr(4);
             settings.renewSecret = net->Secret();
         }
+        // (the invited player is not invited again: they had the match, and know its code)
+        settings.invite.clear();
+        settings.inviteName.clear();
         opt.net = settings;
         EndSessionFeatures();
         machine->Reset();
@@ -1723,6 +1743,9 @@ void Usage() {
             "  --net-list             (hosting) the match in the lobby, the Online card's list of open matches\n"
             "  --net-name NAME        ... under this name\n"
             "  --net-arcade           (hosting) the game played alone until the other player comes, who then challenges\n"
+            "  --net-invite TO:FROM   (hosting) the player TO in the launcher's waiting room invited, from FROM (ids;\n"
+            "                         --net-name the inviter's name)\n"
+            "  --net-invite-name NAME ... TO's name, as the wait says it\n"
             "  --net-delay N          (hosting) frames each player's controls are held back, 2 unless said (0-8)\n"
             "  --net-fake MS[:JIT[:LOSS]]  (tests) each packet sent MS ms late, give or take JIT, LOSS in 100 lost\n"
             "  --test-switch FROM:TO  the operator's test switch held from frame FROM to TO\n"
@@ -1853,6 +1876,17 @@ bool ParseArgs(int argc, char **argv, port::Options &o) {
             o.net.arcade = true;
         } else if (a == "--net-name") {
             o.net.name = next();
+        } else if (a == "--net-invite") {
+            // (two waiting room ids: 12 hex digits each)
+            const std::string v = next();
+            const size_t colon = v.find(':');
+            const auto id = [](const std::string &t) { return t.size() == 12 && t.find_first_not_of("0123456789abcdef") == std::string::npos; };
+            if (colon != std::string::npos && id(v.substr(0, colon)) && id(v.substr(colon + 1))) {
+                o.net.invite = v.substr(0, colon);
+                o.net.from = v.substr(colon + 1);
+            }
+        } else if (a == "--net-invite-name") {
+            o.net.inviteName = next();
         } else if (a == "--net-service") {
             o.net.service = next();
         } else if (a == "--net-delay") {

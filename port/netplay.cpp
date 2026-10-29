@@ -664,7 +664,7 @@ bool Netplay::Introduce(uint64_t now, std::string &error) {
             const std::string again = settings.renewCode.empty() ? ""
                                       : "\"code\":\"" + settings.renewCode + "\",\"secret\":\"" + settings.renewSecret + "\",";
             std::string listed;
-            if (settings.listed) {
+            if (settings.listed || !settings.invite.empty()) {
                 // (the name, as JSON text: quotes and backslashes escaped, control characters left out)
                 std::string name;
                 for (const char c : settings.name) {
@@ -675,7 +675,11 @@ bool Netplay::Introduce(uint64_t now, std::string &error) {
                         name += c;
                     }
                 }
-                listed = ",\"listed\":true,\"name\":\"" + name + "\"";
+                listed = std::string(settings.listed ? ",\"listed\":true" : "") + ",\"name\":\"" + name + "\"";
+            }
+            // (a player invited from the waiting room: ids, hex digits)
+            if (!settings.invite.empty()) {
+                listed += ",\"invite\":\"" + settings.invite + "\",\"from\":\"" + settings.from + "\"";
             }
             ask("POST", "/v1/host", "{" + again + about + listed + ",\"addresses\":" + Addresses() + "}");
         } else {
@@ -746,6 +750,9 @@ bool Netplay::Introduce(uint64_t now, std::string &error) {
                 }
                 intro = Intro::Done;
                 return true;
+            }
+            if (answer.status == 200 && invitation.empty()) {
+                invitation = JsonText(answer.body, "invite");
             }
         }
         if (now - askedAt > 1500) {

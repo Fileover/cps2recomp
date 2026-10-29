@@ -23,6 +23,15 @@ game's listed matches whose host has asked about them in the last 10 seconds, un
 `GET /v1/lobby?protocol=N` lists them all, each with its game (the launcher's Online page); `GET /v1/lobby/GAME?protocol=N`
 one game's (a game page's Online card).
 
+The **waiting room** is the players whose launcher has its Online page open: a Durable Object (Room) they check in at
+every five seconds (`POST /v1/room`, with a name, the games they have and whether they can be invited), gone 15
+seconds after the last check-in, and kept in memory only (a room let go is made again by the next check-ins). Each is
+known by an id the service makes from a secret only their launcher has, and shown by name only. A host can name one
+to invite (`invite` and `from` in `POST /v1/host`): the Match gives the invitation to the room while the host asks
+about its match, and takes it back when someone joins; a player declines with `POST /v1/room/decline`, which the
+host's next question says (`invite: "declined"`, or `"away"` if it couldn't be given). Players block each other with
+ids their launchers keep, sent with each check-in.
+
 Two routers that each give every destination a port of its own ("symmetric" NAT, as some mobile networks do) can't be
 met this way; a relay would be needed, which the service doesn't have yet. Then the host's address, with its port
 forwarded, or a VPN such as Tailscale, still works.

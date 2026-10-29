@@ -228,6 +228,13 @@ private:
     void load_online();
     // The lobby's list from `url`, fetched again every five seconds while it is shown
     void follow_lobby(const std::string& url);
+    // The waiting room (Collection::room): checked in at every five seconds while the Online page is open and no game
+    // is running, and left when not; its card, and the invitations' card
+    void follow_room(bool here);
+    void room_card(float width, const std::vector<size_t>& playable);
+    void invitations_card(float width);
+    std::vector<std::string> invite_arguments(const launcher::Online& online, const launcher::RoomPlayer& player) const;
+    void block(const std::string& id);
     // A game that can be started now (its file chosen and good, its program there, not running)
     bool can_play(size_t which) const;
     // This launcher's version (LAUNCHER_VERSION, or ""), and whether a match's is the same (online play's must be)
@@ -312,6 +319,13 @@ private:
     std::string lobby_url_;
     bool lobby_failed_ = false;
     Uint64 lobby_at_ = 0;
+    // (the waiting room's: the check-in on another thread, its last answer, and the invitations answered here, which
+    // the service may still list until its next answer)
+    std::future<launcher::Room> room_fetch_;
+    launcher::Room room_;
+    Uint64 room_at_ = 0;
+    bool room_in_ = false;
+    std::vector<std::string> room_answered_;
 #ifdef LAUNCHER_UPDATE_REPO
     std::unique_ptr<launcher::Updater> updater_;
     bool relaunched_ = false;  // (the new version has been started: this one quits)
