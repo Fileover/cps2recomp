@@ -144,7 +144,7 @@ export default {
       }
       return json({ error: "no code free" }, 503);
     }
-    if (request.method === "POST" && parts[1] === "room" && parts.length <= 3) {
+    if (request.method === "POST" && parts[1] === "room" && parts.length <= 3 && parts[2] !== "count") {
       const room = env.ROOMS.get(env.ROOMS.idFromName("all"));
       return room.fetch(`https://room/${parts[2] || "here"}`, { method: "POST", body: await request.text() });
     }
@@ -260,7 +260,7 @@ export class Match {
         // (the stats told this host is waiting, now and then: it is counted as waiting while it has been told lately)
         this.waitingSaid = now;
         const stats = this.env.STATS.get(this.env.STATS.idFromName("all"));
-        await stats.fetch("https://stats/waiting", { method: "POST", body: JSON.stringify({ code: match.code, game: match.game }) }).catch(() => {});
+        await stats.fetch("https://stats/waiting", { method: "POST", body: JSON.stringify({ code: match.code, game: match.game, listed: match.listed }) }).catch(() => {});
       }
       if (!match.joiner) {
         await this.lobby(match, "seen", match.code);
@@ -509,7 +509,7 @@ export class Room {
 export class Stats {
   constructor(state) {
     this.state = state;
-    this.waiting = new Map(); // code -> {game, seen}
+    this.waiting = new Map(); // code -> {game, listed, seen}
   }
 
   async fetch(request) {
@@ -523,15 +523,17 @@ export class Stats {
     if (url.pathname === "/report") {
       const days = (await this.state.storage.get("days")) || {};
       const waiting = {};
+      let listed = 0;
       for (const w of this.waiting.values()) {
         waiting[w.game] = (waiting[w.game] || 0) + 1;
+        listed += w.listed ? 1 : 0;
       }
-      return json({ days, waiting });
+      return json({ days, waiting, listed });
     }
     const body = JSON.parse(await request.text());
     const game = typeof body.game === "string" && body.game ? body.game.slice(0, 32) : "?";
     if (url.pathname === "/waiting") {
-      this.waiting.set(String(body.code), { game, seen: now });
+      this.waiting.set(String(body.code), { game, listed: body.listed === true, seen: now });
       return json({});
     }
     if (url.pathname === "/hosted" || url.pathname === "/joined") {
@@ -561,7 +563,6 @@ async function statsPage(env, key) {
   }
   const stats = await (await env.STATS.get(env.STATS.idFromName("all")).fetch("https://stats/report")).json();
   const room = await (await env.ROOMS.get(env.ROOMS.idFromName("all")).fetch("https://room/count", { method: "POST", body: "{}" })).json();
-  const listed = (await (await env.LOBBIES.get(env.LOBBIES.idFromName("all")).fetch("https://lobby/list?protocol=3")).json()).matches.length;
   const sum = (o) => Object.values(o || {}).reduce((a, b) => a + b, 0);
   const escape = (t) => String(t).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
   const waitingNow = sum(stats.waiting);
@@ -577,7 +578,7 @@ async function statsPage(env, key) {
 th:first-child,td:first-child{text-align:left}.big{font-size:28px;font-weight:600}.n{display:inline-block;margin-right:32px}small{color:#999}</style>
 <h1>CPS-2 Recomp online</h1>
 <div class="n"><div class="big">${room.here}</div>Online page open<br><small>${room.named} with a name</small></div>
-<div class="n"><div class="big">${waitingNow}</div>hosts waiting<br><small>${listed} of them in the lobby</small></div>
+<div class="n"><div class="big">${waitingNow}</div>hosts waiting<br><small>${stats.listed || 0} of them in the lobby</small></div>
 <h2>The last 14 days (UTC)</h2>
 <table><tr><th>Day</th><th>Hosted</th><th>Joined</th>${games.map((g) => `<th>${escape(g)}<br><small>hosted / joined</small></th>`).join("")}</tr>${rows || '<tr><td colspan="3">Nothing yet.</td></tr>'}</table>
 <p><small>Counts only: nothing about who. A match hosted is a code given; joined, a player let in with it. Refresh for now.</small></p>`;
