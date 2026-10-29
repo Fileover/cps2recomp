@@ -16,19 +16,21 @@
 //   GET  /v1/code/CODE                                             -> {game, title, version, protocol} | 404 (which game a code is
 //                                                                     for, while it can be joined: the launcher's Join)
 //   GET  /v1/lobby?protocol=N                                      -> {matches: [{game, title, version, code, name, waiting}]}
-//   POST /v1/room                {secret, name, games, protocol, version, invitable, blocked}
+//   POST /v1/room                {secret, name, games, protocol, version, invitable, blocked, lobby}
 //                                                                  -> {id, players: [{id, name, games}], invitations: [{code, from,
-//                                                                     name, game, title, version}]}   (the waiting room: below)
+//                                                                     name, game, title, version}], matches}   (the waiting room:
+//                                                                     below; with `lobby: true`, also every game's open matches,
+//                                                                     as GET /v1/lobby says them: one request for the Online page)
 //   POST /v1/room/leave          {secret}                          -> {}
 //   POST /v1/room/decline        {secret, code}                    -> {}
 //   GET  /v1/stats?key=K                                           -> a page of numbers, for the service's keeper (STATS_KEY)
 //
 // A host that asks for it (`listed`, with a `name` and its `protocol`) is in the lobby, a Durable Object (Lobby) that
-// keeps every game's: there while it is asking whether someone has joined (seen in the last 10 seconds), and until
-// someone has.
+// keeps every game's: there while it is asking whether someone has joined (seen in the last 25 seconds), and until
+// someone has. A match tells the lobby it is still there at most every 10 seconds, however often its host asks.
 //
 // The waiting room (Room, a Durable Object) is the players whose launcher has its Online page open, each checking in
-// every few seconds, and gone 15 seconds after the last. A player is shown to the others with a name, and while they
+// every 10 to 20 seconds, and gone 30 seconds after the last. A player is shown to the others with a name, and while they
 // let others invite them; never their addresses. A player is known by an id the service makes from a secret only
 // their launcher has (so nobody can check in as them), and not kept anywhere but the Room's memory. A host may name
 // a player in the room to invite (`invite`, with its own `from` id and `name`): the invitation waits in the room for
@@ -80,8 +82,9 @@ function cleanName(text) {
   return name || "A player";
 }
 
-const kSeen = 10 * 1000; // (a listed host that has not asked for this long is not shown)
-const kHere = 15 * 1000; // (a player in the waiting room, or an invitation, not seen for this long is gone)
+const kSeen = 25 * 1000; // (a listed host that has not asked for this long is not shown)
+const kTell = 10 * 1000; // (a match's host asking: the lobby told it is still there, at most this often)
+const kHere = 30 * 1000; // (a player in the waiting room, or an invitation, not seen for this long is gone)
 
 // A waiting room id, "3f9a0c1e2b4d": a player's secret's SHA-256, its first 12 hex digits
 async function playerId(secret) {
@@ -146,7 +149,25 @@ export default {
     }
     if (request.method === "POST" && parts[1] === "room" && parts.length <= 3) {
       const room = env.ROOMS.get(env.ROOMS.idFromName("all"));
-      return room.fetch(`https://room/${parts[2] || "here"}`, { method: "POST", body: await request.text() });
+      const text = await request.text();
+      let lobby = null;
+      if (!parts[2]) {
+        // (a check-in that asks for the lobby too: the two asked at once, and said in one answer)
+        try {
+          const asked = JSON.parse(text);
+          if (asked.lobby === true) {
+            lobby = env.LOBBIES.get(env.LOBBIES.idFromName("all")).fetch(`https://lobby/list?protocol=${encodeURIComponent(Number(asked.protocol) || 0)}`);
+          }
+        } catch {
+          // (the room says what was wrong with it)
+        }
+      }
+      const answer = await room.fetch(`https://room/${parts[2] || "here"}`, { method: "POST", body: text });
+      if (!lobby || !answer.ok) {
+        return answer;
+      }
+      const listed = await lobby;
+      return json({ ...(await answer.json()), matches: listed.ok ? (await listed.json()).matches : [] });
     }
     if (request.method === "GET" && parts[1] === "lobby" && (parts.length === 2 || parts.length === 3)) {
       const lobby = env.LOBBIES.get(env.LOBBIES.idFromName("all"));
@@ -184,6 +205,7 @@ export class Match {
   constructor(state, env) {
     this.state = state;
     this.env = env;
+    this.told = 0; // (when the lobby was last told this match is still there: kTell)
   }
 
   // (the game's lobby told: added, still there, or gone)
@@ -240,6 +262,7 @@ export class Match {
       await this.invite(match);
       await this.state.storage.put("match", match);
       await this.state.storage.setAlarm(now + kLifetime);
+      this.told = now;
       await this.lobby(match, "seen", match.code);
       return json({ secret });
     }
@@ -262,8 +285,11 @@ export class Match {
         const stats = this.env.STATS.get(this.env.STATS.idFromName("all"));
         await stats.fetch("https://stats/waiting", { method: "POST", body: JSON.stringify({ code: match.code, game: match.game }) }).catch(() => {});
       }
-      if (!match.joiner) {
+      if (!match.joiner && now - this.told > kTell) {
+        this.told = now;
         await this.lobby(match, "seen", match.code);
+      }
+      if (!match.joiner) {
         if (match.invite && !match.invited) {
           await this.invite(match);
           if (match.invited) {
@@ -329,31 +355,28 @@ export class Match {
   }
 }
 
-// The open matches, every game's: the listed hosts still asking (kSeen), each by its code
+// The open matches, every game's: the listed hosts still asking (kSeen), each by its code. Kept in memory only, as the
+// waiting room is: a lobby that is let go is made again by the hosts' next questions (each says all the lobby shows).
 export class Lobby {
   constructor(state) {
     this.state = state;
+    this.matches = {};
   }
 
   async fetch(request) {
     const url = new URL(request.url);
     const now = Date.now();
-    const matches = (await this.state.storage.get("matches")) || {};
+    const matches = this.matches;
     if (url.pathname === "/list") {
       const protocol = Number(url.searchParams.get("protocol")) || 0;
       const game = url.searchParams.get("game");
-      let changed = false;
       const shown = [];
       for (const [code, m] of Object.entries(matches)) {
         if (now - m.seen > kSeen) {
           delete matches[code];
-          changed = true;
         } else if (m.protocol === protocol && (!game || m.game === game)) {
           shown.push({ game: m.game, title: m.title || m.game, version: m.version || "", code, name: m.name, waiting: Math.round((now - m.made) / 1000) });
         }
-      }
-      if (changed) {
-        await this.state.storage.put("matches", matches);
       }
       shown.sort((a, b) => a.waiting - b.waiting);
       return json({ matches: shown.slice(0, 200) });
@@ -367,7 +390,6 @@ export class Lobby {
     } else if (url.pathname === "/gone") {
       delete matches[body.code];
     }
-    await this.state.storage.put("matches", matches);
     return json({});
   }
 }
