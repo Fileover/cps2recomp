@@ -82,6 +82,10 @@ public:
     void SetScaling(Scaling scaling) {
         m_scaling = scaling;
     }
+    // What is drawn over the whole window with each picture after this (the touch controls: touch.h): `width` x
+    // `height` pixels, red in the low byte, each colour already multiplied by its alpha; stretched to the window.
+    // None (nullptr) draws nothing over it. Not through a shader preset.
+    void SetOverlay(const uint32_t *pixels, int width, int height);
 
     // For tests: the GPU path with no window. The picture is drawn into `outWidth` x `outHeight` at `where`
     // as Show would draw it, and read back. False (with the reason) where there is no GPU device.
@@ -92,7 +96,8 @@ private:
     bool OpenGpu(SDL_Window *window, std::string &error);
     bool MakePipeline(SDL_GPUTextureFormat target, std::string &error);
     bool Upload(SDL_GPUCommandBuffer *commands, const uint32_t *pixels, int width, int height);
-    void Draw(SDL_GPUCommandBuffer *commands, SDL_GPUTexture *target, const SDL_FRect &where, const Zoomed *zoomed);
+    void Draw(SDL_GPUCommandBuffer *commands, SDL_GPUTexture *target, const SDL_FRect &where, const Zoomed *zoomed, Uint32 targetWidth,
+              Uint32 targetHeight);
 
     SDL_Window *m_window = nullptr;
     Scaling m_scaling = Scaling::Sharp;
@@ -103,6 +108,16 @@ private:
     SDL_GPUTexture *m_picture = nullptr;
     SDL_GPUTransferBuffer *m_transfer = nullptr;
     int m_width = 0, m_height = 0;
+    // The overlay (SetOverlay): its pixels, waiting to be sent to the GPU texture or the renderer's when changed
+    std::vector<uint32_t> m_overlay;
+    int m_overlayWidth = 0, m_overlayHeight = 0;
+    bool m_overlayChanged = false;
+    SDL_GPUGraphicsPipeline *m_overlayPipeline = nullptr;
+    SDL_GPUTexture *m_overlayTexture = nullptr;
+    SDL_GPUTransferBuffer *m_overlayTransfer = nullptr;
+    int m_overlayTextureWidth = 0, m_overlayTextureHeight = 0;
+    SDL_Texture *m_overlayRendered = nullptr;
+    bool UploadOverlay(SDL_GPUCommandBuffer *commands);
     // SDL's renderer
     SDL_Renderer *m_renderer = nullptr;
     SDL_Texture *m_texture = nullptr, *m_enlarged = nullptr;

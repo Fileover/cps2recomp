@@ -8,6 +8,7 @@
 #include "port.h"
 #include "png_write.h"
 #include "present.h"
+#include "touch.h"
 
 #include "../runtime/game.h"
 
@@ -204,6 +205,9 @@ int RunWindowed(Port &port) {
             SDL_SetNumberProperty(properties, SDL_PROP_WINDOW_CREATE_X_NUMBER, at->x);
             SDL_SetNumberProperty(properties, SDL_PROP_WINDOW_CREATE_Y_NUMBER, at->y);
         }
+#ifdef __ANDROID__
+        fullscreen = true; // (a phone's whole screen, its bars hidden)
+#endif
         SDL_SetNumberProperty(properties, SDL_PROP_WINDOW_CREATE_FLAGS_NUMBER,
                               SDL_WINDOW_RESIZABLE | (fullscreen ? SDL_WINDOW_FULLSCREEN : 0) | (at && at->maximized ? SDL_WINDOW_MAXIMIZED : 0) |
                                   (opengl ? SDL_WINDOW_OPENGL : 0) | (getenv("CPS2RECOMP_HIDDEN_WINDOW") ? SDL_WINDOW_HIDDEN : 0)); // (hidden: for tests)
@@ -395,12 +399,20 @@ int RunWindowed(Port &port) {
     // A Multi game run (the launcher's Multi game page): N or a gamepad's left shoulder for the next game, F or
     // the left trigger held to fast-forward (each when the player has not given it to the game)
     const bool multi = !MultiGame().empty();
+    // (a touch screen's controls: touch.h)
+    TouchControls touch;
+    std::vector<uint32_t> touchPicture;
+    // (the menu's Zoom row, as last seen: a change there is the camera's, and a zoom's press is the row's)
+    int zoomRow = port.zoom.Choice();
     const double kFrameNs = 1e9 / Machine::kFramesPerSecond;
     uint64_t nextFrame = SDL_GetTicksNS();
     bool running = true;
     while (running && !port.quit && (port.opt.frames == 0 || port.frame < port.opt.frames)) {
         SDL_Event ev;
         while (SDL_PollEvent(&ev)) {
+            if (touch.Event(ev)) {
+                continue;
+            }
             switch (ev.type) {
             case SDL_EVENT_QUIT: running = false; break;
             case SDL_EVENT_KEY_DOWN:
@@ -412,7 +424,9 @@ int RunWindowed(Port &port) {
                     } else {
                         port.zoom.Press(ev.key.scancode == SDL_SCANCODE_E ? 1 : 0);
                     }
-                } else if (ev.key.scancode == SDL_SCANCODE_ESCAPE || ev.key.scancode == SDL_SCANCODE_F1 || (ev.key.scancode == SDL_SCANCODE_TAB && !KeyBound(SDL_SCANCODE_TAB))) {
+                } else if (ev.key.scancode == SDL_SCANCODE_ESCAPE || ev.key.scancode == SDL_SCANCODE_F1 || ev.key.scancode == SDL_SCANCODE_AC_BACK ||
+                           (ev.key.scancode == SDL_SCANCODE_TAB && !KeyBound(SDL_SCANCODE_TAB))) {
+                    // (AC_BACK: a phone's Back)
                     toggleMenu();
                 } else if (KeyBound(ev.key.scancode)) {
                     // (a key the player has given to the game does only that)
@@ -490,6 +504,23 @@ int RunWindowed(Port &port) {
             }
         }
 
+        if (touch.TakeMenuPress()) {
+            toggleMenu();
+        }
+        if (touch.TakeZoomPress()) {
+            port.zoom.Both();
+        }
+        if (Zoom::Possible()) {
+            const int asked = FeatureValue("zoom");
+            if (asked != zoomRow) {
+                port.zoom.Choose(asked);
+            }
+            zoomRow = port.zoom.Choice();
+            if (asked != zoomRow) {
+                SetFeatureForNow("zoom", zoomRow);
+                menuDirty = true;
+            }
+        }
         if (port.opt.moviePlay.empty() && !port.opt.autoPlay) {
             // The keyboard is every player's (each has the keys chosen for it); the first gamepad is player
             // 1's, a second player 2's, and so on
@@ -526,6 +557,7 @@ int RunWindowed(Port &port) {
                 }
                 port.zoom.Pan(std::clamp(across, -1, 1), std::clamp(down, -1, 1));
             }
+            pads[0] |= touch.Read(port.menu.IsOpen());
             bool trigger = false, both = false;
             const bool stepOnTrigger = !PadInputBound(g_bindings, Table(), {-1, SDL_GAMEPAD_AXIS_LEFT_TRIGGER});
             for (size_t i = 0; i < gamepads.size() && static_cast<int>(i) < Players(); i++) {
@@ -578,6 +610,7 @@ int RunWindowed(Port &port) {
                 menuNow |= SDL_GetGamepadButton(gp, SDL_GAMEPAD_BUTTON_SOUTH) ? recomp::kMenuConfirm : 0;
                 menuNow |= SDL_GetGamepadButton(gp, SDL_GAMEPAD_BUTTON_EAST) ? recomp::kMenuBack : 0;
             }
+            menuNow |= touch.Menu();
             unsigned menuPressed = menuNow & ~previousMenu;
             previousMenu = menuNow;
             if (both) {
@@ -639,6 +672,11 @@ int RunWindowed(Port &port) {
         presenter.Size(width, height);
         presenter.SetScaling(DisplayScaling());
         const SDL_FRect where = FitPicture(width, height, port.ShownWidth(), Video::kHeight, DisplayShape(), DisplayScaling());
+        touch.Layout(width, height, where);
+        int touchWidth = 0, touchHeight = 0;
+        if (touch.TakePicture(touchPicture, touchWidth, touchHeight)) {
+            presenter.SetOverlay(touchPicture.empty() ? nullptr : touchPicture.data(), touchWidth, touchHeight);
+        }
 
         if (port.menu.IsOpen()) {
             // The game's picture as it was, with the menu over it

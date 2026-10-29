@@ -10,6 +10,19 @@
   game's own set's (as built), not the player's. The `region_at` hook reads the program as it runs and is always
   there (a game's own set unchanged: the same `--hash-log`). `JOIN_ROM=<set> make check-online` checks it.
   Best effort: a word the list lacks stops the match as a desync does.
+- **Android** (issue #104): `CPS2Recomp-android.apk`, the launcher and every game in one app for 64-bit ARM phones and
+  tablets (Android 9 and later, Vulkan). The games show a stick, their buttons, Coin, Start and Menu on the screen,
+  beside the picture (`port/touch.cpp`; a gamepad hides them), and Back opens the in-game menu. The launcher's
+  **Add ROM sets…** copies the sets chosen with the system's picker into the app's folder, which a computer sees over
+  USB. Each game is a library run in a process of its own (`android/`, `tools/release/android.sh`, `make android`),
+  so the Multi game page hands from one game to the next as elsewhere; online play works with any other system.
+  The Display page's shaders work there too, through OpenGL ES 3 (librashader built for Android by
+  `tools/librashader.sh --android`; the presets unpacked by the app). The presenter draws an overlay over the picture
+  (`Presenter::SetOverlay`, with or without a shader). recomp-common: the launcher on Android, and the sidebar's list
+  scrolled with a finger.
+- **Zoom from the menu**: a Zoom row on the in-game menu's Display page (Off, Player 1, Player 2, Both fighters), kept
+  in step with the zoom's buttons, in every game that zooms; and on a touch screen a Zoom button, for both fighters.
+
 - **Online asks the service less often**, to stay within its free daily allowance. The launcher's Online page checks
   every 10 seconds, or every 20 while the launcher isn't the window in front (it was every 5), and asks for the waiting
   room and the open matches in one request (`POST /v1/room` with `lobby: true`). A waiting host asks every 2 seconds,

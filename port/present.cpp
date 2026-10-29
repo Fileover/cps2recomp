@@ -117,7 +117,10 @@ bool Presenter::MakePipeline(SDL_GPUTextureFormat target, std::string &error) {
                                        k_present_vert_msl, 0, 0);
     SDL_GPUShader *fragment = MakeShader(m_device, SDL_GPU_SHADERSTAGE_FRAGMENT, k_present_frag_spirv, sizeof(k_present_frag_spirv),
                                          k_present_frag_msl, 1, 1);
-    if (vertex && fragment) {
+    // (and the overlay's: its texture over the whole window, blended, its alpha premultiplied)
+    SDL_GPUShader *overlay = MakeShader(m_device, SDL_GPU_SHADERSTAGE_FRAGMENT, k_overlay_frag_spirv, sizeof(k_overlay_frag_spirv),
+                                        k_overlay_frag_msl, 1, 0);
+    if (vertex && fragment && overlay) {
         SDL_GPUColorTargetDescription colour = {};
         colour.format = target;
         SDL_GPUGraphicsPipelineCreateInfo info = {};
@@ -129,19 +132,24 @@ bool Presenter::MakePipeline(SDL_GPUTextureFormat target, std::string &error) {
         info.target_info.num_color_targets = 1;
         info.target_info.color_target_descriptions = &colour;
         m_pipeline = SDL_CreateGPUGraphicsPipeline(m_device, &info);
+        info.fragment_shader = overlay;
+        colour.blend_state.enable_blend = true;
+        colour.blend_state.src_color_blendfactor = colour.blend_state.src_alpha_blendfactor = SDL_GPU_BLENDFACTOR_ONE;
+        colour.blend_state.dst_color_blendfactor = colour.blend_state.dst_alpha_blendfactor = SDL_GPU_BLENDFACTOR_ONE_MINUS_SRC_ALPHA;
+        colour.blend_state.color_blend_op = colour.blend_state.alpha_blend_op = SDL_GPU_BLENDOP_ADD;
+        m_overlayPipeline = SDL_CreateGPUGraphicsPipeline(m_device, &info);
     }
-    if (vertex) {
-        SDL_ReleaseGPUShader(m_device, vertex);
-    }
-    if (fragment) {
-        SDL_ReleaseGPUShader(m_device, fragment);
+    for (SDL_GPUShader *shader : {vertex, fragment, overlay}) {
+        if (shader) {
+            SDL_ReleaseGPUShader(m_device, shader);
+        }
     }
     SDL_GPUSamplerCreateInfo sampler = {};
     sampler.min_filter = sampler.mag_filter = SDL_GPU_FILTER_LINEAR;
     sampler.mipmap_mode = SDL_GPU_SAMPLERMIPMAPMODE_NEAREST;
     sampler.address_mode_u = sampler.address_mode_v = sampler.address_mode_w = SDL_GPU_SAMPLERADDRESSMODE_CLAMP_TO_EDGE;
     m_sampler = SDL_CreateGPUSampler(m_device, &sampler);
-    if (!m_pipeline || !m_sampler) {
+    if (!m_pipeline || !m_overlayPipeline || !m_sampler) {
         error = SDL_GetError();
         return false;
     }
@@ -186,6 +194,7 @@ bool Presenter::OpenShaded(SDL_Window *window, const std::string &preset, std::s
         m_shading.reset();
         return false;
     }
+    m_overlayChanged = !m_overlay.empty(); // (the overlay, to the new window's OpenGL)
     return true;
 }
 
@@ -218,22 +227,35 @@ void Presenter::Close() {
         if (m_pipeline) {
             SDL_ReleaseGPUGraphicsPipeline(m_device, m_pipeline);
         }
+        if (m_overlayPipeline) {
+            SDL_ReleaseGPUGraphicsPipeline(m_device, m_overlayPipeline);
+        }
+        if (m_overlayTexture) {
+            SDL_ReleaseGPUTexture(m_device, m_overlayTexture);
+        }
+        if (m_overlayTransfer) {
+            SDL_ReleaseGPUTransferBuffer(m_device, m_overlayTransfer);
+        }
         if (m_window) {
             SDL_ReleaseWindowFromGPUDevice(m_device, m_window);
         }
         SDL_DestroyGPUDevice(m_device);
     }
     m_device = nullptr;
-    m_pipeline = nullptr;
+    m_pipeline = m_overlayPipeline = nullptr;
+    m_overlayTexture = nullptr;
+    m_overlayTransfer = nullptr;
+    m_overlayTextureWidth = m_overlayTextureHeight = 0;
+    m_overlayChanged = !m_overlay.empty(); // (sent again to whatever draws next)
     m_sampler = nullptr;
     m_picture = nullptr;
     m_transfer = nullptr;
-    for (SDL_Texture *texture : {m_texture, m_enlarged}) {
+    for (SDL_Texture *texture : {m_texture, m_enlarged, m_overlayRendered}) {
         if (texture) {
             SDL_DestroyTexture(texture);
         }
     }
-    m_texture = m_enlarged = nullptr;
+    m_texture = m_enlarged = m_overlayRendered = nullptr;
     if (m_renderer) {
         SDL_DestroyRenderer(m_renderer);
     }
@@ -299,7 +321,76 @@ bool Presenter::Upload(SDL_GPUCommandBuffer *commands, const uint32_t *pixels, i
     return true;
 }
 
-void Presenter::Draw(SDL_GPUCommandBuffer *commands, SDL_GPUTexture *target, const SDL_FRect &where, const Zoomed *zoomed) {
+void Presenter::SetOverlay(const uint32_t *pixels, int width, int height) {
+    if (!pixels) {
+        m_overlayChanged = m_overlayChanged || !m_overlay.empty();
+        m_overlay.clear();
+        return;
+    }
+    m_overlay.assign(pixels, pixels + static_cast<size_t>(width) * height);
+    m_overlayWidth = width;
+    m_overlayHeight = height;
+    m_overlayChanged = true;
+}
+
+bool Presenter::UploadOverlay(SDL_GPUCommandBuffer *commands) {
+    if (m_overlay.empty()) {
+        return false;
+    }
+    if (!m_overlayChanged) {
+        return m_overlayTexture != nullptr;
+    }
+    m_overlayChanged = false;
+    if (m_overlayWidth != m_overlayTextureWidth || m_overlayHeight != m_overlayTextureHeight) {
+        if (m_overlayTexture) {
+            SDL_ReleaseGPUTexture(m_device, m_overlayTexture);
+        }
+        if (m_overlayTransfer) {
+            SDL_ReleaseGPUTransferBuffer(m_device, m_overlayTransfer);
+        }
+        SDL_GPUTextureCreateInfo texture = {};
+        texture.type = SDL_GPU_TEXTURETYPE_2D;
+        texture.format = SDL_GPU_TEXTUREFORMAT_R8G8B8A8_UNORM;
+        texture.usage = SDL_GPU_TEXTUREUSAGE_SAMPLER;
+        texture.width = static_cast<Uint32>(m_overlayWidth);
+        texture.height = static_cast<Uint32>(m_overlayHeight);
+        texture.layer_count_or_depth = 1;
+        texture.num_levels = 1;
+        m_overlayTexture = SDL_CreateGPUTexture(m_device, &texture);
+        SDL_GPUTransferBufferCreateInfo transfer = {};
+        transfer.usage = SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD;
+        transfer.size = static_cast<Uint32>(m_overlayWidth * m_overlayHeight * 4);
+        m_overlayTransfer = SDL_CreateGPUTransferBuffer(m_device, &transfer);
+        m_overlayTextureWidth = m_overlayWidth;
+        m_overlayTextureHeight = m_overlayHeight;
+    }
+    if (!m_overlayTexture || !m_overlayTransfer) {
+        return false;
+    }
+    void *to = SDL_MapGPUTransferBuffer(m_device, m_overlayTransfer, true);
+    if (!to) {
+        return false;
+    }
+    memcpy(to, m_overlay.data(), m_overlay.size() * 4);
+    SDL_UnmapGPUTransferBuffer(m_device, m_overlayTransfer);
+    SDL_GPUCopyPass *copy = SDL_BeginGPUCopyPass(commands);
+    SDL_GPUTextureTransferInfo from = {};
+    from.transfer_buffer = m_overlayTransfer;
+    from.pixels_per_row = static_cast<Uint32>(m_overlayWidth);
+    from.rows_per_layer = static_cast<Uint32>(m_overlayHeight);
+    SDL_GPUTextureRegion region = {};
+    region.texture = m_overlayTexture;
+    region.w = static_cast<Uint32>(m_overlayWidth);
+    region.h = static_cast<Uint32>(m_overlayHeight);
+    region.d = 1;
+    SDL_UploadToGPUTexture(copy, &from, &region, true);
+    SDL_EndGPUCopyPass(copy);
+    return true;
+}
+
+void Presenter::Draw(SDL_GPUCommandBuffer *commands, SDL_GPUTexture *target, const SDL_FRect &where, const Zoomed *zoomed, Uint32 targetWidth,
+                     Uint32 targetHeight) {
+    const bool overlay = UploadOverlay(commands);
     SDL_GPUColorTargetInfo colour = {};
     colour.texture = target;
     colour.clear_color = {0, 0, 0, 1};
@@ -340,6 +431,16 @@ void Presenter::Draw(SDL_GPUCommandBuffer *commands, SDL_GPUTexture *target, con
             part({0, height, width, height}, inWindow(static_cast<float>(keep.x), static_cast<float>(keep.y), static_cast<float>(keep.w), static_cast<float>(keep.h)));
         }
     }
+    if (overlay && targetWidth && targetHeight) {
+        const SDL_Rect all = {0, 0, static_cast<int>(targetWidth), static_cast<int>(targetHeight)};
+        SDL_SetGPUScissor(pass, &all);
+        const SDL_GPUViewport whole = {0, 0, static_cast<float>(targetWidth), static_cast<float>(targetHeight), 0, 1};
+        SDL_SetGPUViewport(pass, &whole);
+        SDL_BindGPUGraphicsPipeline(pass, m_overlayPipeline);
+        const SDL_GPUTextureSamplerBinding over = {m_overlayTexture, m_sampler};
+        SDL_BindGPUFragmentSamplers(pass, 0, &over, 1);
+        SDL_DrawGPUPrimitives(pass, 3, 1, 0, 0);
+    }
     SDL_EndGPURenderPass(pass);
 }
 
@@ -351,6 +452,10 @@ void Presenter::Show(const uint32_t *pixels, int width, int height, const SDL_FR
             Compose(pixels, width, height, *zoomed, m_composed);
             pixels = m_composed.data();
         }
+        if (m_overlayChanged) {
+            m_overlayChanged = false;
+            m_shading->SetOverlay(m_overlay.empty() ? nullptr : m_overlay.data(), m_overlayWidth, m_overlayHeight);
+        }
         m_shading->Show(pixels, width, height, where, shade, shade ? zoomed : nullptr);
         return;
     }
@@ -360,10 +465,11 @@ void Presenter::Show(const uint32_t *pixels, int width, int height, const SDL_FR
             return;
         }
         SDL_GPUTexture *screen = nullptr;
+        Uint32 screenWidth = 0, screenHeight = 0;
         // (not the call that waits for a free picture of the window's: a frame that cannot be shown is left out)
-        if (SDL_AcquireGPUSwapchainTexture(commands, m_window, &screen, nullptr, nullptr) && screen &&
+        if (SDL_AcquireGPUSwapchainTexture(commands, m_window, &screen, &screenWidth, &screenHeight) && screen &&
             Upload(commands, pixels, width, zoomed ? 2 * height : height)) {
-            Draw(commands, screen, where, zoomed);
+            Draw(commands, screen, where, zoomed, screenWidth, screenHeight);
         }
         SDL_SubmitGPUCommandBuffer(commands);
         return;
@@ -403,12 +509,36 @@ void Presenter::Show(const uint32_t *pixels, int width, int height, const SDL_FR
             }
         }
     };
+    // (the overlay over all of it: SetOverlay)
+    auto overlay = [&] {
+        if (m_overlay.empty()) {
+            return;
+        }
+        if (m_overlayChanged || !m_overlayRendered) {
+            m_overlayChanged = false;
+            float w = 0, h = 0;
+            if (!m_overlayRendered || !SDL_GetTextureSize(m_overlayRendered, &w, &h) || w != m_overlayWidth || h != m_overlayHeight) {
+                if (m_overlayRendered) {
+                    SDL_DestroyTexture(m_overlayRendered);
+                }
+                m_overlayRendered = SDL_CreateTexture(m_renderer, SDL_PIXELFORMAT_ABGR8888, SDL_TEXTUREACCESS_STREAMING, m_overlayWidth, m_overlayHeight);
+                if (!m_overlayRendered) {
+                    return;
+                }
+                SDL_SetTextureBlendMode(m_overlayRendered, SDL_BLENDMODE_BLEND_PREMULTIPLIED);
+                SDL_SetTextureScaleMode(m_overlayRendered, SDL_SCALEMODE_LINEAR);
+            }
+            SDL_UpdateTexture(m_overlayRendered, nullptr, m_overlay.data(), m_overlayWidth * static_cast<int>(sizeof(uint32_t)));
+        }
+        SDL_RenderTexture(m_renderer, m_overlayRendered, nullptr, nullptr);
+    };
     if (m_scaling == Scaling::Smooth) {
         // (blended all over: the picture as it is, fitted smoothly)
         SDL_SetTextureScaleMode(m_texture, SDL_SCALEMODE_LINEAR);
         SDL_SetRenderDrawColor(m_renderer, 0, 0, 0, 255);
         SDL_RenderClear(m_renderer);
         draw(m_texture, 1);
+        overlay();
         SDL_RenderPresent(m_renderer);
         return;
     }
@@ -435,6 +565,7 @@ void Presenter::Show(const uint32_t *pixels, int width, int height, const SDL_FR
     SDL_SetRenderDrawColor(m_renderer, 0, 0, 0, 255);
     SDL_RenderClear(m_renderer);
     draw(m_enlarged ? m_enlarged : m_texture, m_enlarged ? static_cast<float>(by) : 1.0f);
+    overlay();
     SDL_RenderPresent(m_renderer);
 }
 
@@ -462,7 +593,7 @@ bool Presenter::Render(const uint32_t *pixels, int width, int height, int outWid
     SDL_GPUCommandBuffer *commands = SDL_AcquireGPUCommandBuffer(device);
     bool ok = target && download && commands && p.Upload(commands, pixels, width, zoomed ? 2 * height : height);
     if (ok) {
-        p.Draw(commands, target, where, zoomed);
+        p.Draw(commands, target, where, zoomed, static_cast<Uint32>(outWidth), static_cast<Uint32>(outHeight));
         SDL_GPUCopyPass *copy = SDL_BeginGPUCopyPass(commands);
         SDL_GPUTextureRegion region = {};
         region.texture = target;

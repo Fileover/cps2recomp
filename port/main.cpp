@@ -156,7 +156,7 @@ void RegisterPortFeatures() {
                                   "a little wider than 4:3. Fill: the whole window or screen, stretched to it.",
                                   0, {"4:3", "Square pixels", "Fill"}});
     // (display_shader: Port::ShaderPreset, shading.h; the presets are in shaders/ beside the program, kShaderPresets.
-    // librashader is in each release, tools/librashader.sh)
+    // librashader is in each release, tools/librashader.sh; on Android the presets are unpacked by GameActivity.java)
     TheGame().features.push_back({"display_shader", "Display", "Shader",
                                   "The picture drawn through one of RetroArch's shaders. CRT: a curved arcade monitor. CRT "
                                   "Lottes and CRT Guest: flat monitors, sharp and bright. CRT Royale: the closest to a real "
@@ -169,6 +169,15 @@ void RegisterPortFeatures() {
                                   kFeatureMenuChoices,
                                   {"Off", "CRT", "CRT Lottes", "CRT Royale", "CRT Guest", "CRT Light", "Scanlines: light",
                                    "Scanlines: strong", "Scanlines: OSSC", "Scanlines: dark", "xBRZ", "ScaleFX", "Your own"}});
+    // (zoom: the camera, port/zoom.h, from the menu as well as the zoom's buttons; for this run only, as they are)
+    if (Zoom::Possible()) {
+        TheGame().features.push_back({"zoom", "Display", "Zoom",
+                                      "The picture shown larger about a fighter, following it: player 1's or player 2's (1.5x; the "
+                                      "zoom's buttons change the size), or both fighters', as close as keeps them both in the "
+                                      "picture. Also the left stick's click held with a shoulder (with the right stick's: both), "
+                                      "Left Shift with Q, E or W, or a touch screen's Zoom button (both).",
+                                      kFeatureSession, {"Off", "Player 1", "Player 2", "Both fighters"}});
+    }
     // (online play's readout, each player's own: Port::Shown)
     TheGame().features.push_back({"online_ping", "Online", "Ping",
                                   "During an online match, the time a packet takes to the other player and back, at the bottom of "
@@ -1684,7 +1693,20 @@ static const char *const kExeSuffix = ".exe";
 static const char *const kExeSuffix = "";
 #endif
 
+// The list --list-features writes (on Android the launcher asks the game's library for it: port/android.cpp)
+std::string LauncherFeatureList() {
+    RegisterGame();
+    RegisterPortFeatures();
+    std::vector<recomp::FeatureInfo> list = FeatureList();
+    // (nor are the ones whose switch is on the launcher's first page: game.h, kFeatureFirstPage)
+    list.erase(std::remove_if(list.begin(), list.end(), [](const recomp::FeatureInfo &f) { return f.flags & kFeatureFirstPage; }), list.end());
+    return recomp::FeatureListText(list);
+}
+
 bool InCollection() {
+#ifdef __ANDROID__
+    return true; // (Android has only the collection's app)
+#endif
     static const bool collection = [] {
         const char *base = SDL_GetBasePath();
         std::error_code missing;
@@ -1911,12 +1933,7 @@ bool ParseArgs(int argc, char **argv, port::Options &o) {
         } else if (a == "--list-features") {
             // For the launcher: one optional feature per line (recomp-common/settings.h; the ones that last a
             // session, switched in the game's menu only, are not in it)
-            RegisterGame();
-            port::RegisterPortFeatures();
-            std::vector<recomp::FeatureInfo> list = FeatureList();
-            // (nor are the ones whose switch is on the launcher's first page: game.h, kFeatureFirstPage)
-            list.erase(std::remove_if(list.begin(), list.end(), [](const recomp::FeatureInfo &f) { return f.flags & kFeatureFirstPage; }), list.end());
-            fputs(recomp::FeatureListText(list).c_str(), stdout);
+            fputs(port::LauncherFeatureList().c_str(), stdout);
             exit(0);
         } else if (a == "--settings") {
             o.settingsPath = next();
@@ -1969,6 +1986,7 @@ bool ParseArgs(int argc, char **argv, port::Options &o) {
 // the launcher): the launcher beside it is started instead, straight into the game if the player has chosen
 // their ROM set in it before (its --play), or at its first page to choose one. The launcher is the game's own, or
 // the collection's (cps2recomp-launcher: then at this game's page, or --play ID). True: it was started.
+#ifndef __ANDROID__
 bool StartLauncher() {
     const char *base = SDL_GetBasePath();
     if (!base) {
@@ -2010,6 +2028,7 @@ bool StartLauncher() {
     SDL_DestroyProcess(process); // (only SDL's record of it: the launcher goes on)
     return true;
 }
+#endif
 
 // A start that went wrong: said on the standard error, and, with a window wanted, in a message box too (a
 // windowed program started by a double click has nowhere else to say it)
@@ -2030,9 +2049,13 @@ int main(int argc, char **argv) {
         freopen("CONOUT$", "w", stderr);
     }
 #endif
+#ifdef __ANDROID__
+    port::StartOnAndroid();
+#else
     if (argc == 1 && StartLauncher()) {
         return 0;
     }
+#endif
     port::Port p;
     if (!ParseArgs(argc, argv, p.opt)) {
         return 2;

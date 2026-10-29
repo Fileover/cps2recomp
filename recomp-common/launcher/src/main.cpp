@@ -25,6 +25,8 @@
 #include <SDL3/SDL_main.h>
 
 #include <algorithm>
+#include <cfloat>
+#include <cmath>
 #include <cstdio>
 #include <cstring>
 #include <string>
@@ -33,6 +35,7 @@
 #include "app.h"
 #include "imgui_impl_sdl3.h"
 #include "imgui_impl_sdlrenderer3.h"
+#include "imgui_internal.h"
 #include "ui.h"
 
 namespace {
@@ -55,6 +58,14 @@ bool save_picture(SDL_Renderer* renderer, const std::string& path) {
     bool saved = SDL_SavePNG(surface, path.c_str());
     SDL_DestroySurface(surface);
     return saved;
+}
+
+// A phone's Back is the launcher's Esc
+void back_is_escape(SDL_Event& event) {
+    if ((event.type == SDL_EVENT_KEY_DOWN || event.type == SDL_EVENT_KEY_UP) && event.key.scancode == SDL_SCANCODE_AC_BACK) {
+        event.key.scancode = SDL_SCANCODE_ESCAPE;
+        event.key.key = SDLK_ESCAPE;
+    }
 }
 
 bool system_dark() {
@@ -145,6 +156,92 @@ struct Presser {
                 SDL_SetJoystickVirtualButton(pad, known.button, down);
             }
         }
+    }
+};
+
+// A touch screen's: a finger dragged up or down scrolls what is under it (and goes on a little when let go, as a phone's
+// lists do), and is then not a press of what it started on. A tap is still a click (SDL makes a mouse of the finger).
+// The sidebar's list scrolls the same way (App::scroll_sidebar).
+struct TouchScroll {
+    SDL_Window* window = nullptr;
+    App* app = nullptr;
+    SDL_FingerID finger = 0;
+    bool down = false, dragging = false, sidebar = false;
+    float start_x = 0.0f, start_y = 0.0f, last_y = 0.0f, speed = 0.0f;  // (in the window's points)
+    ImGuiWindow* target = nullptr;
+
+    // The event is the scroll's (not to be given to Dear ImGui)
+    bool consume(const SDL_Event& event) {
+        int width = 0, height = 0;
+        SDL_GetWindowSize(window, &width, &height);
+        switch (event.type) {
+        case SDL_EVENT_FINGER_DOWN:
+            if (!down) {
+                down = true;
+                dragging = false;
+                finger = event.tfinger.fingerID;
+                start_x = event.tfinger.x * width;
+                start_y = last_y = event.tfinger.y * height;
+                speed = 0.0f;
+                // (a finger's drag is a scroll before it is a row dragged to another place: Dear ImGui waits longer)
+                ImGui::GetIO().MouseDragThreshold = 24.0f * ui::scale();
+            }
+            return false;
+        case SDL_EVENT_FINGER_MOTION:
+            if (down && event.tfinger.fingerID == finger) {
+                const float y = event.tfinger.y * height;
+                if (!dragging && std::fabs(y - start_y) > 10.0f * ui::scale()) {
+                    // (the sidebar's list, or the window under the finger, or the nearest around it that scrolls)
+                    sidebar = app->scroll_sidebar(start_x, 0.0f);
+                    target = sidebar ? nullptr : ImGui::GetCurrentContext()->HoveredWindow;
+                    while (target && target->ScrollMax.y <= 0.0f && target->ParentWindow) {
+                        target = target->ParentWindow;
+                    }
+                    dragging = sidebar || (target && target->ScrollMax.y > 0.0f);
+                    if (dragging) {
+                        // (the mouse taken away: what the finger went down on is not clicked when it is lifted)
+                        ImGui::GetIO().AddMousePosEvent(-FLT_MAX, -FLT_MAX);
+                        last_y = y;
+                    }
+                }
+                if (dragging) {
+                    scroll(last_y - y);
+                    speed = speed * 0.5f + (last_y - y) * 0.5f;
+                    last_y = y;
+                }
+            }
+            return dragging;
+        case SDL_EVENT_FINGER_UP:
+        case SDL_EVENT_FINGER_CANCELED:
+            if (event.tfinger.fingerID == finger) {
+                down = false;
+            }
+            return false;
+        case SDL_EVENT_MOUSE_MOTION:
+            return dragging && event.motion.which == SDL_TOUCH_MOUSEID;  // (the finger's, as a mouse)
+        default:
+            return false;
+        }
+    }
+    void scroll(float by) {
+        if (sidebar) {
+            app->scroll_sidebar(start_x, by);
+        } else if (target) {
+            ImGui::SetScrollY(target, std::clamp(target->Scroll.y + by, 0.0f, target->ScrollMax.y));
+        }
+    }
+    // Each frame: after the finger is lifted, the scroll slows to a stop
+    void frame() {
+        if (down || !dragging) {
+            return;
+        }
+        scroll(speed);
+        speed *= 0.92f;
+        if (std::fabs(speed) < 0.5f) {
+            dragging = sidebar = false;
+            target = nullptr;
+        }
+        ui::request_frames(2);
     }
 };
 
@@ -247,6 +344,9 @@ int main(int argc, char** argv) {
         SDL_ShowWindow(window);
         app.set_interactive();
     }
+    TouchScroll touch;
+    touch.window = window;
+    touch.app = &app;
     Presser presser;
     presser.window = window;
     presser.start(press);
@@ -261,14 +361,16 @@ int main(int argc, char** argv) {
         bool idle = screenshot_prefix.empty() && !ui::animating() && !app.busy();
         SDL_Event event;
         if (idle && SDL_WaitEventTimeout(&event, 250)) {
-            if (!app.consume(event)) {
+            back_is_escape(event);
+            if (!touch.consume(event) && !app.consume(event)) {
                 ImGui_ImplSDL3_ProcessEvent(&event);
             }
             running = event.type != SDL_EVENT_QUIT && event.type != SDL_EVENT_WINDOW_CLOSE_REQUESTED;
             ui::request_frames(3);
         }
         while (SDL_PollEvent(&event)) {
-            if (!app.consume(event)) {
+            back_is_escape(event);
+            if (!touch.consume(event) && !app.consume(event)) {
                 ImGui_ImplSDL3_ProcessEvent(&event);
             }
             if (event.type == SDL_EVENT_QUIT || event.type == SDL_EVENT_WINDOW_CLOSE_REQUESTED) {
@@ -292,6 +394,7 @@ int main(int argc, char** argv) {
         ImGui_ImplSDLRenderer3_NewFrame();
         ImGui_ImplSDL3_NewFrame();
         ImGui::NewFrame();
+        touch.frame();
         if (!screenshot_prefix.empty() && shot_frames == 0 && !pressing && page_id.empty()) {
             app.set_page(shot_page);
         }

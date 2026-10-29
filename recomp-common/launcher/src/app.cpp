@@ -18,6 +18,10 @@
 #ifdef __APPLE__
 #include <mach-o/dyld.h>
 #endif
+#ifdef __ANDROID__
+#include <dlfcn.h>
+#include <jni.h>
+#endif
 
 #include "folders.h"
 #include "layout.h"
@@ -51,6 +55,8 @@ float page_padding_top() {
 constexpr float kContentMaxWidth = 720.0f;
 constexpr size_t kAnyGame = static_cast<size_t>(-1);  // (a file or folder for whichever game takes it)
 
+void wake();
+
 // The folder the launcher program is in (the game program is beside it).
 std::filesystem::path base_path() {
 #ifdef __APPLE__
@@ -63,6 +69,13 @@ std::filesystem::path base_path() {
         if (!error) {
             return program.parent_path();
         }
+    }
+#endif
+#ifdef __ANDROID__
+    // (the folder the app's libraries are unpacked to: the launcher's, and each game's beside it)
+    Dl_info info;
+    if (dladdr(reinterpret_cast<void*>(&wake), &info) && info.dli_fname) {
+        return std::filesystem::path(info.dli_fname).parent_path();
     }
 #endif
     const char* base = SDL_GetBasePath();
@@ -78,9 +91,12 @@ void wake() {
 const char* kPresetNames[] = {"pure", "enhanced", "custom"};
 
 // A game's program beside the launcher. In a build folder the player build is <exe>_app (<exe> there is the
-// strict test build); in an app bundle or AppImage it's <exe>.
+// strict test build); in an app bundle or AppImage it's <exe>. On Android it is a library, lib<exe>.so.
 std::filesystem::path program_path(const std::string& exe) {
     std::filesystem::path base = base_path();
+#ifdef __ANDROID__
+    return base / ("lib" + exe + ".so");
+#endif
     std::error_code error;
     if (std::filesystem::exists(base / (exe + "_app"), error)) {
         return base / (exe + "_app");
@@ -94,6 +110,20 @@ std::filesystem::path program_path(const std::string& exe) {
 
 // The system's folder for a game's (or a collection's) things, named by it (SDL_GetPrefPath makes it)
 std::filesystem::path system_folder(const char* name) {
+#ifdef __ANDROID__
+    // (SDL_GetPrefPath is one folder for the whole app there: the app's own folder on the shared storage, which a
+    // computer sees over USB in Android/data, with a folder for each name in it)
+    const char* storage = SDL_GetAndroidExternalStoragePath();
+    if (!storage) {
+        storage = SDL_GetAndroidInternalStoragePath();
+    }
+    if (storage) {
+        std::filesystem::path folder = std::filesystem::path(storage) / std::filesystem::u8path(name);
+        std::error_code error;
+        std::filesystem::create_directories(folder, error);
+        return folder;
+    }
+#endif
     char* path = SDL_GetPrefPath("", name);
     std::filesystem::path folder = path ? std::filesystem::path(path) : base_path() / recomp::kPortableFolder / std::filesystem::u8path(name);
     SDL_free(path);
@@ -797,7 +827,78 @@ launcher::PageContext App::context(float width) {
 
 // ---- game file ---------------------------------------------------------------------------
 
+#ifdef __ANDROID__
+// Android: the system's picker gives documents, not files the games can open. The app's activity (in the port's
+// Java) copies those the player chooses into a folder of the launcher's, by their own names:
+//   void importFiles(String folder, boolean many)   the picker, then the copies
+//   String importResult()   the copies' paths, one a line ("" for none), or null while it is choosing and copying
+// Their paths, once that is done (on a thread of the caller's: it waits for the player)
+std::vector<std::string> import_files(const std::filesystem::path& folder, bool many) {
+    std::vector<std::string> paths;
+    std::error_code error;
+    std::filesystem::create_directories(folder, error);
+    JNIEnv* env = static_cast<JNIEnv*>(SDL_GetAndroidJNIEnv());
+    jobject activity = static_cast<jobject>(SDL_GetAndroidActivity());
+    if (!env || !activity) {
+        return paths;
+    }
+    jclass activity_class = env->GetObjectClass(activity);
+    jmethodID import = env->GetMethodID(activity_class, "importFiles", "(Ljava/lang/String;Z)V");
+    jmethodID result = env->GetMethodID(activity_class, "importResult", "()Ljava/lang/String;");
+    if (import && result) {
+        jstring folder_text = env->NewStringUTF(folder.string().c_str());
+        env->CallVoidMethod(activity, import, folder_text, static_cast<jboolean>(many));
+        env->DeleteLocalRef(folder_text);
+        for (;;) {
+            SDL_Delay(100);
+            jstring text = static_cast<jstring>(env->CallObjectMethod(activity, result));
+            if (env->ExceptionCheck()) {
+                env->ExceptionClear();
+                break;
+            }
+            if (!text) {
+                continue;
+            }
+            const char* chars = env->GetStringUTFChars(text, nullptr);
+            std::istringstream lines(chars ? chars : "");
+            for (std::string line; std::getline(lines, line);) {
+                if (!line.empty()) {
+                    paths.push_back(line);
+                }
+            }
+            env->ReleaseStringUTFChars(text, chars);
+            env->DeleteLocalRef(text);
+            break;
+        }
+    }
+    if (env->ExceptionCheck()) {
+        env->ExceptionClear();
+    }
+    env->DeleteLocalRef(activity_class);
+    env->DeleteLocalRef(activity);
+    return paths;
+}
+
+// Where those copies go: a folder beside the launcher's own (one game's file is still found among the others there)
+std::filesystem::path imported_folder() {
+    return player_folder(LAUNCHER_GAME_NAME, LAUNCHER_HOME_ENV) / "roms";
+}
+#endif
+
 void App::choose_game_file(size_t which) {
+#ifdef __ANDROID__
+    picked_for_ = which;
+    std::thread([this] {
+        std::vector<std::string> paths = import_files(imported_folder(), false);
+        if (!paths.empty()) {
+            std::lock_guard<std::mutex> lock(mutex_);
+            picked_ = paths.front();
+            picked_folder_ = false;
+        }
+        wake();
+    }).detach();
+    return;
+#endif
     const Slot& one = *slots_[which];
     std::string start = one.file_path.empty() ? std::string() : std::filesystem::path(one.file_path).parent_path().string();
     picked_for_ = which;
@@ -816,6 +917,18 @@ void App::choose_game_file(size_t which) {
 
 void App::choose_folder() {
     picked_for_ = kAnyGame;
+#ifdef __ANDROID__
+    // (the sets chosen, copied into the launcher's folder for them, which is then looked in for every game)
+    std::thread([this] {
+        if (!import_files(imported_folder(), true).empty()) {
+            std::lock_guard<std::mutex> lock(mutex_);
+            picked_ = imported_folder().u8string();
+            picked_folder_ = true;
+        }
+        wake();
+    }).detach();
+    return;
+#endif
     SDL_ShowOpenFolderDialog(
         [](void* self, const char* const* files, int) {
             if (files && files[0]) {
@@ -1216,6 +1329,15 @@ void App::frame() {
     page(viewport->Size.x - px(sidebar_width()), height);
     ImGui::End();
     popup_was_open_ = ImGui::IsPopupOpen("", ImGuiPopupFlags_AnyPopupId | ImGuiPopupFlags_AnyPopupLevel);
+}
+
+bool App::scroll_sidebar(float x, float by) {
+    if (x - ImGui::GetMainViewport()->Pos.x >= px(sidebar_width())) {
+        return false;
+    }
+    sidebar_scroll_ += by;  // (kept within the list: sidebar)
+    scrolled_for_ = page_;  // (and not brought back to the page shown)
+    return true;
 }
 
 void App::set_interactive() {
@@ -2569,8 +2691,16 @@ void App::library_page(float width) {
     Card find(width);
     std::string detail = finding_ ? std::string("Looking…") : find_message_.empty() ? std::string(collection_->find_detail) : find_message_;
     row(width, collection_->find_title, detail.c_str(), 150.0f, 36.0f, [&] {
-        if (ui::button("Choose folder…", Kind::Secondary, 150.0f, !finding_)) {
-            if (ui::gamepad_in_use()) {
+#ifdef __ANDROID__
+        // (Android: the sets themselves are chosen, and copied into the launcher's folder: choose_folder)
+        const char* label = "Add ROM sets…";
+        const bool browse = false;
+#else
+        const char* label = "Choose folder…";
+        const bool browse = ui::gamepad_in_use();
+#endif
+        if (ui::button(label, Kind::Secondary, 150.0f, !finding_)) {
+            if (browse) {
                 open_browser(kAnyGame, true);
             } else {
                 choose_folder();
@@ -2687,6 +2817,16 @@ void App::files_card(float width) {
     ui::text("YOUR FILES", Font::Semibold, ui::size::kDetail, p.secondary);
     ui::gap(10);
     Card card(width);
+#ifdef __ANDROID__
+    // (no file manager to show it in: a computer sees it over USB)
+    std::string shown = ui::fit_start(where.u8string(), Font::Regular, ui::size::kDetail, width - px(18 * 2));
+    row(width, "Kept in the app's folder", shown.c_str(), 0.0f, 0.0f, [] {});
+    card.end();
+    ui::gap(10);
+    ui::text("Settings, save states, each board's memory, the logs, and the ROM sets you added. A computer sees them over USB, in "
+             "Android/data.",
+             Font::Regular, ui::size::kDetail, p.secondary, width);
+#else
     std::string shown = ui::fit_start(where.u8string(), Font::Regular, ui::size::kDetail, width - px(18 * 2 + 110 + 24));
     row(width, !portable.empty() && !home ? "Kept with the launcher (portable)" : "Kept in your user folder", shown.c_str(), 110.0f, 36.0f, [&] {
         if (ui::button("Show", Kind::Secondary, 110.0f) && interactive_) {  // (pictures for a test open nothing)
@@ -2706,6 +2846,7 @@ void App::files_card(float width) {
                                                               "instead, on a drive you carry, put a file named portable.txt ") +
                                                       beside + ".";
     ui::text(about.c_str(), Font::Regular, ui::size::kDetail, p.secondary, width);
+#endif
 }
 
 #ifdef LAUNCHER_UPDATE_REPO
