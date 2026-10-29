@@ -2011,8 +2011,37 @@ void App::load_online() {
     }
 }
 
+Uint64 App::online_every() const {
+    return (SDL_GetWindowFlags(window_) & SDL_WINDOW_INPUT_FOCUS) ? 10000 : 20000;
+}
+
+void App::live_label(const char* text, float width, bool fetching) {
+    const ui::Palette& p = ui::palette();
+    const char* every = "Updates every 10 seconds";
+    const ImVec2 top = ImGui::GetCursorScreenPos();
+    const ImVec2 size = ui::text_size(every, Font::Regular, ui::size::kDetail);
+    ImGui::SetCursorScreenPos(ImVec2(top.x + width - size.x - px(4), top.y));
+    ui::text(every, Font::Regular, ui::size::kDetail, p.tertiary);
+    if (fetching) {
+        ui::spinner(ImVec2(top.x + width - size.x - px(16), top.y + size.y * 0.5f), px(5), p.tertiary);
+    }
+    ImGui::SetCursorScreenPos(top);
+    layout::label(text);
+}
+
+void App::empty_row(float width, const char* text, bool looking) {
+    const ui::Palette& p = ui::palette();
+    row(width, text, "", looking ? 24.0f : 0.0f, 24.0f, [&] {
+        if (looking) {
+            const ImVec2 at = ImGui::GetCursorScreenPos();
+            ui::spinner(at + ImVec2(px(12), px(12)), px(7), p.secondary);
+        }
+    });
+}
+
 void App::follow_lobby(const std::string& url) {
     const Uint64 now = SDL_GetTicks();
+    const bool online_page = collection_ && collection_->lobby && url == collection_->lobby;
     if (lobby_fetch_.valid() && lobby_fetch_.wait_for(std::chrono::seconds(0)) == std::future_status::ready) {
         auto [ok, matches] = lobby_fetch_.get();
         lobby_failed_ = !ok;
@@ -2027,11 +2056,17 @@ void App::follow_lobby(const std::string& url) {
         lobby_.clear();
         lobby_failed_ = false;
         lobby_at_ = 0;
+        if (online_page && room_in_) {
+            room_at_ = 0; // (the waiting room's check-in, which brings it, now)
+        }
         if (lobby_fetch_.valid()) {
             return;
         }
     }
-    if (!lobby_fetch_.valid() && (lobby_at_ == 0 || now - lobby_at_ > 5000)) {
+    if (online_page && room_in_ && room_lists_) {
+        return; // (follow_room's check-in brings it)
+    }
+    if (!lobby_fetch_.valid() && (lobby_at_ == 0 || now - lobby_at_ > online_every())) {
         lobby_fetch_ = std::async(std::launch::async, [url] {
             std::vector<launcher::OpenMatch> matches;
             const bool ok = launcher::fetch_lobby(url, matches);
@@ -2080,11 +2115,13 @@ void App::online_page(float width) {
     }
     // Every game's open matches, by game, in the sidebar's order
     follow_lobby(collection_->lobby);
-    layout::label("OPEN MATCHES");
+    live_label("OPEN MATCHES", width, lobby_fetch_.valid() || (room_in_ && room_lists_ && room_fetch_.valid()));
     Card list(width);
     if (lobby_.empty()) {
-        const char* empty = lobby_failed_ ? "Couldn't reach the online service." : lobby_at_ == 0 ? "Looking…" : "None right now. They show here as players host them.";
-        row(width, empty, "", 0.0f, 24.0f, [] {});
+        const char* empty = lobby_failed_    ? "Couldn't reach the online service."
+                            : lobby_at_ == 0 ? "Looking…"
+                                             : "None right now. They show here as players host them, up to 10 seconds after.";
+        empty_row(width, empty, !lobby_failed_ && lobby_at_ == 0);
     }
     // (the games of the collection's in the sidebar's order, then those it hasn't: another version's games, say)
     bool first = true;
@@ -2323,9 +2360,20 @@ void App::follow_room(bool here) {
                                                                         [&](const auto& i) { return i.code == code; });
                                                 }),
                                  room_answered_.end());
+            // (the Online page's lobby list, with it: shown if that page's list is the one followed)
+            room_lists_ = room.listed;
+            if (room.listed && collection_->lobby && lobby_url_ == collection_->lobby) {
+                lobby_ = std::move(room.matches);
+                lobby_failed_ = false;
+                lobby_at_ = room_at_;
+            }
             room_ = std::move(room);
         } else {
             room_.ok = false;
+            if (room_lists_ && collection_->lobby && lobby_url_ == collection_->lobby) {
+                lobby_failed_ = true;
+                lobby_at_ = room_at_;
+            }
         }
     }
     if (!here) {
@@ -2340,7 +2388,7 @@ void App::follow_room(bool here) {
         return;
     }
     room_in_ = true;
-    if (room_fetch_.valid() || (room_at_ != 0 && SDL_GetTicks() - room_at_ < 5000)) {
+    if (room_fetch_.valid() || (room_at_ != 0 && SDL_GetTicks() - room_at_ < online_every())) {
         return;
     }
     // (who this player is: a secret of their own, kept, from which the service makes their id)
@@ -2359,6 +2407,7 @@ void App::follow_room(bool here) {
     me.protocol = collection_->room_protocol;
     me.version = own_version();
     me.invitable = prefs_.get("online", "invitable") != "0";
+    me.lobby = collection_->lobby != nullptr;
     const std::string blocked = prefs_.get("online", "blocked");
     for (size_t at = 0; at < blocked.size();) {
         const size_t comma = std::min(blocked.find(',', at), blocked.size());
@@ -2474,7 +2523,7 @@ void App::invitations_card(float width) {
 // The waiting room: the other players whose Online page is open, each to invite to a match in a game chosen here
 void App::room_card(float width, const std::vector<size_t>& playable) {
     ui::gap(24);
-    layout::label("WAITING ROOM");
+    live_label("WAITING ROOM", width, room_fetch_.valid());
     Card card(width);
     const bool named = online_name_[0] != '\0';
     const bool invitable = prefs_.get("online", "invitable") != "0";
@@ -2503,8 +2552,9 @@ void App::room_card(float width, const std::vector<size_t>& playable) {
     if (room_.players.empty()) {
         const char* empty = room_at_ == 0 ? "Looking…"
                             : !room_.ok   ? "Couldn't reach the online service."
-                                          : "Nobody else is here right now. Players show here while their Online page is open.";
-        row(width, empty, "", 0.0f, 24.0f, [] {});
+                                          : "Nobody else is here right now. Players show here while their Online page is open, up to 10 seconds after "
+                                            "they open it.";
+        empty_row(width, empty, room_at_ == 0);
     }
     for (size_t n = 0; n < room_.players.size(); n++) {
         const launcher::RoomPlayer& player = room_.players[n];
@@ -2562,23 +2612,22 @@ void App::room_card(float width, const std::vector<size_t>& playable) {
     card.end();
 }
 
-// The lobby's open matches for the game, fetched every five seconds while they are shown
+// The lobby's open matches for the game, fetched every 10 seconds while they are shown
 void App::lobby_card(size_t which, float width, bool ready) {
     const ui::Palette& p = ui::palette();
     Slot& one = *slots_[which];
     const launcher::Online& online = one.about->online;
     follow_lobby(online.lobby);
     ui::gap(24);
-    ui::text("OPEN MATCHES", Font::Semibold, ui::size::kDetail, p.secondary);
-    ui::gap(6);
+    live_label("OPEN MATCHES", width, lobby_fetch_.valid());
     ui::text("Matches players are hosting in the lobby now. Join one to play its host.", Font::Regular, ui::size::kDetail, p.secondary, width);
     ui::gap(10);
     Card card(width);
     if (lobby_.empty()) {
         const char* empty = lobby_failed_       ? "Couldn't reach the online service."
                             : lobby_at_ == 0    ? "Looking…"
-                                                : "None right now. They show here as players host them in the lobby.";
-        row(width, empty, "", 0.0f, 24.0f, [] {});
+                                                : "None right now. They show here as players host them in the lobby, up to 10 seconds after.";
+        empty_row(width, empty, !lobby_failed_ && lobby_at_ == 0);
     }
     for (size_t n = 0; n < lobby_.size(); n++) {
         const launcher::OpenMatch& match = lobby_[n];

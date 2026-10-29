@@ -113,48 +113,6 @@ std::vector<LocalAddress> local_addresses() {
     return list;
 }
 
-bool fetch_lobby(const std::string& url, std::vector<OpenMatch>& matches) {
-    std::string json;
-    if (run_program(curl_program(), {"-sS", "--max-time", "8", url}, &json) != 0 || json.find("\"matches\"") == std::string::npos) {
-        return false;
-    }
-    // {"matches":[{"code":"K7QM2X","name":"...","waiting":12}, ...]}: the service's answer (cps2recomp's online/)
-    const auto text = [&](size_t from, const char* key, size_t end) {
-        std::string out;
-        const size_t at = json.find(std::string("\"") + key + "\":\"", from);
-        if (at == std::string::npos || at > end) {
-            return out;
-        }
-        for (size_t i = at + std::strlen(key) + 4; i < end && json[i] != '"'; i++) {
-            if (json[i] == '\\' && i + 1 < end) {
-                i++;
-            }
-            out += json[i];
-        }
-        return out;
-    };
-    matches.clear();
-    for (size_t at = json.find('{', json.find('[')); at != std::string::npos;) {
-        const size_t end = json.find('}', at);
-        if (end == std::string::npos) {
-            break;
-        }
-        OpenMatch match;
-        match.game = text(at, "game", end);
-        match.title = text(at, "title", end);
-        match.version = text(at, "version", end);
-        match.code = text(at, "code", end);
-        match.name = text(at, "name", end);
-        const size_t waiting = json.find("\"waiting\":", at);
-        match.waiting = waiting != std::string::npos && waiting < end ? std::atoi(json.c_str() + waiting + 10) : 0;
-        if (!match.code.empty()) {
-            matches.push_back(match);
-        }
-        at = json.find('{', end);
-    }
-    return true;
-}
-
 CodeLookup lookup_code(const std::string& url) {
     CodeLookup out;
     std::string body;
@@ -281,17 +239,43 @@ int Post(const std::string& url, const std::string& body, std::string* answer) {
     return run_program(curl_program(), {"-sS", "--max-time", "8", "-X", "POST", "-H", "content-type: application/json", "--data-binary", body, url}, answer);
 }
 
+// {"matches":[{"game","title","version","code","name","waiting"}, ...]}: the lobby's list in the service's answer (cps2recomp's
+// online/), alone or in a waiting room check-in's
+std::vector<OpenMatch> Matches(const std::string& json) {
+    std::vector<OpenMatch> matches;
+    for (const auto& [at, end] : Objects(json, "matches")) {
+        OpenMatch match{Text(json, at, end, "game"), Text(json, at, end, "title"), Text(json, at, end, "version"),
+                        Text(json, at, end, "code"), Text(json, at, end, "name")};
+        const size_t waiting = json.find("\"waiting\":", at);
+        match.waiting = waiting != std::string::npos && waiting < end ? std::atoi(json.c_str() + waiting + 10) : 0;
+        if (!match.code.empty()) {
+            matches.push_back(match);
+        }
+    }
+    return matches;
+}
+
 // (sent on a thread of its own: the launcher doesn't wait for the answer)
 void PostAway(const std::string& url, const std::string& body) {
     std::thread([url, body] { std::string ignored; Post(url, body, &ignored); }).detach();
 }
 }  // namespace
 
+bool fetch_lobby(const std::string& url, std::vector<OpenMatch>& matches) {
+    std::string json;
+    if (run_program(curl_program(), {"-sS", "--max-time", "8", url}, &json) != 0 || json.find("\"matches\"") == std::string::npos) {
+        return false;
+    }
+    matches = Matches(json);
+    return true;
+}
+
 Room room_check_in(const std::string& url, const RoomCheckIn& me) {
     Room room;
     const std::string body = "{\"secret\":" + Quoted(me.secret) + ",\"name\":" + Quoted(me.name) + ",\"games\":" + QuotedList(me.games) +
                              ",\"protocol\":" + std::to_string(me.protocol) + ",\"version\":" + Quoted(me.version) +
-                             ",\"invitable\":" + (me.invitable ? "true" : "false") + ",\"blocked\":" + QuotedList(me.blocked) + "}";
+                             ",\"invitable\":" + (me.invitable ? "true" : "false") + ",\"blocked\":" + QuotedList(me.blocked) +
+                             (me.lobby ? ",\"lobby\":true}" : "}");
     std::string json;
     if (Post(url, body, &json) != 0 || json.find("\"players\"") == std::string::npos) {
         return room;
@@ -299,6 +283,9 @@ Room room_check_in(const std::string& url, const RoomCheckIn& me) {
     // {"id":"...","players":[{"id","name","games":[...]}],"invitations":[{"code","from","name","game","title","version"}]}:
     // the service's answer (cps2recomp's online/)
     room.ok = true;
+    // (the lobby's list too, asked for: from a service that says it)
+    room.listed = json.find("\"matches\":[") != std::string::npos;
+    room.matches = Matches(json);
     const size_t players = json.find("\"players\":[");
     room.id = Text(json, 0, players, "id");
     for (const auto& [at, end] : Objects(json, "players")) {

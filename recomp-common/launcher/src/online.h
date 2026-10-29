@@ -59,12 +59,15 @@ struct RoomCheckIn {
     std::string version;
     bool invitable = true;
     std::vector<std::string> blocked; // (ids)
+    bool lobby = false;               // (every game's open matches in the answer too: Room::matches)
 };
 struct Room {
     bool ok = false; // (an answer came)
     std::string id;  // this player's
     std::vector<RoomPlayer> players;
     std::vector<Invitation> invitations;
+    bool listed = false; // (the lobby's list came with it: asked for (RoomCheckIn::lobby), and from a service that says it)
+    std::vector<OpenMatch> matches;
 };
 // A check-in at `url` (blocks: for another thread)
 Room room_check_in(const std::string& url, const RoomCheckIn& me);

@@ -229,11 +229,19 @@ private:
     // open matches
     void online_page(float width);
     void load_online();
-    // The lobby's list from `url`, fetched again every five seconds while it is shown
+    // How often the lobby is fetched and the waiting room checked in at (ms): every 10 seconds, or 20 while the launcher
+    // isn't the window in front (a player in the room is gone 30 seconds after their last check-in: online/)
+    Uint64 online_every() const;
+    // The lobby's list from `url`, fetched again every online_every() while it is shown; the Online page's comes with the
+    // waiting room's check-in instead (one request), from a service that gives it
     void follow_lobby(const std::string& url);
-    // The waiting room (Collection::room): checked in at every five seconds while the Online page is open and no game
+    // The waiting room (Collection::room): checked in at every online_every() while the Online page is open and no game
     // is running, and left when not; its card, and the invitations' card
     void follow_room(bool here);
+    // A card's small capitals, with "Updates every 10 seconds" at the right, and a spinner beside it while `fetching`
+    void live_label(const char* text, float width, bool fetching);
+    // A card's only row while there is nothing in it: `text`, with a spinner while `looking`
+    void empty_row(float width, const char* text, bool looking);
     void room_card(float width, const std::vector<size_t>& playable);
     void invitations_card(float width);
     std::vector<std::string> invite_arguments(const launcher::Online& online, const launcher::RoomPlayer& player) const;
@@ -328,6 +336,7 @@ private:
     launcher::Room room_;
     Uint64 room_at_ = 0;
     bool room_in_ = false;
+    bool room_lists_ = true; // (the check-in brings the Online page's lobby list too: until a service answers without it)
     std::vector<std::string> room_answered_;
 #ifdef LAUNCHER_UPDATE_REPO
     std::unique_ptr<launcher::Updater> updater_;
