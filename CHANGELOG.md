@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- **Online: arcade while waiting** (#159). A switch under Host a match, on the Online page and a game's Online card
+  (recomp-common #32, `--net-arcade`), lets the host play the game alone until someone joins. The match's code and
+  "WAITING FOR A CHALLENGER" are said at the bottom of the screen. The one who joins is sent the game as it is then,
+  rather than from the board's reset, and presses Start to challenge (protocol 4: the welcome says whether the host's
+  player is in already). A player who comes and goes quiet before the match begins is let go after 5 seconds.
+  `ARCADE=1 make check-online` checks it.
+
 - **CI is quicker**: SDL 3, librashader and the shader presets are built once and kept between runs (by the scripts
   that make them), the compiler's objects too (ccache); a pull request's Mac build is Apple silicon alone
   (`MAC_ARCHS`); a change of words only (the README, `docs/`) runs the audit and builds nothing; and a pull request's

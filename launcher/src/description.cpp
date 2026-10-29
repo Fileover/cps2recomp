@@ -212,6 +212,7 @@ launcher::Description describe_game(const GameInfo& game) {
     d.online.lobby = keep(std::string(port::Netplay::kService) + "/v1/lobby/" + game.id + "?protocol=" + std::to_string(port::Netplay::kProtocol));
     d.online.list_argument = "--net-list";
     d.online.name_argument = "--net-name";
+    d.online.arcade_argument = "--net-arcade"; // (the host plays alone until the other player comes: port/main.cpp, ArcadeFrame)
     d.display = {{"fullscreen", "Full screen", "F11 switches while playing.", false, nullptr}};  // (a window unless asked)
     for (const FeatureSwitch& one : switches) {
         d.display.push_back({keep(one.name), keep(one.title), keep(one.detail), false, nullptr});

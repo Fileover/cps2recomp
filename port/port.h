@@ -206,6 +206,7 @@ struct Port {
     void Streaks();     // (this side's player has pressed Start in the match: "PRESS START TO JOIN" is said until then)
     bool StartOnline(std::string &error);
     void Matched();
+    void ArcadeFrame(); // (--net-arcade: the host's own play while it waits for the other player)
     // A window's match that ended with the other side gone: the host waits for them to come back (the same code, or
     // its address), the joining side goes to the host again; the game starts over from the board's reset, the host's
     // sent whole to the other (Netplay's state). `rejoin` says why, while it is waited for.

@@ -1581,19 +1581,12 @@ void App::online_card(size_t which, float width, bool ready) {
                                       : "Waits for the other player, who joins this machine at " + (here.empty() ? std::string("its address") : here) + port +
                                             ". Over the internet: this network's public address, with that port forwarded to this machine.";
     const bool lobby = online.lobby && online.list_argument;
-    // (a match is in the lobby when the player has a name for it to be listed under; without one, only its code joins it)
-    const bool listed = lobby && online.name_argument && online_name_[0];
     row(width, "Host a match", detail.c_str(), 130.0f, 36.0f, [&] {
         if (ui::button("Host", Kind::Secondary, 130.0f, ready)) {
-            std::vector<std::string> args = {online.host_argument};
-            if (listed) {
-                args.push_back(online.list_argument);
-                args.push_back(online.name_argument);
-                args.push_back(online_name_);
-            }
-            play(which, args);
+            play(which, host_arguments(online));
         }
     });
+    arcade_row(width, online);
     if (lobby && online.name_argument) {
         inset_separator(width);
         row(width, "Your name",
@@ -1626,6 +1619,36 @@ void App::online_card(size_t which, float width, bool ready) {
     if (lobby) {
         lobby_card(which, width, ready);
     }
+}
+
+std::vector<std::string> App::host_arguments(const launcher::Online& online) const {
+    std::vector<std::string> args = {online.host_argument};
+    // (a match is in the lobby when the player has a name for it to be listed under; without one, only its code joins it)
+    if (online.lobby && online.list_argument && online.name_argument && online_name_[0]) {
+        args.push_back(online.list_argument);
+        args.push_back(online.name_argument);
+        args.push_back(online_name_);
+    }
+    if (online.arcade_argument && prefs_.get("online", "arcade") == "1") {
+        args.push_back(online.arcade_argument);
+    }
+    return args;
+}
+
+void App::arcade_row(float width, const launcher::Online& online) {
+    if (!online.arcade_argument) {
+        return;
+    }
+    inset_separator(width);
+    const bool on = prefs_.get("online", "arcade") == "1";
+    row(width, "Arcade while waiting",
+        "Play the game on your own until someone joins. They come into the game as it is, and press Start to challenge you.",
+        42.0f, 24.0f, [&] {
+            if (ui::toggle("##online_arcade", on)) {
+                prefs_.set("online", "arcade", on ? "0" : "1");
+                prefs_.save();
+            }
+        });
 }
 
 void App::load_online() {
@@ -1889,15 +1912,10 @@ void App::online_page(float width) {
                 }
                 ImGui::SameLine(0.0f, px(10));
                 if (ui::button("Host", Kind::Primary, 130.0f)) {
-                    std::vector<std::string> args = {online.host_argument};
-                    if (online.list_argument && online.name_argument && online_name_[0]) {
-                        args.push_back(online.list_argument);
-                        args.push_back(online.name_argument);
-                        args.push_back(online_name_);
-                    }
-                    play(which, args);
+                    play(which, host_arguments(online));
                 }
             });
+        arcade_row(width, online);
     }
     host.end();
     // The features about a match (Collection::online_features), as the Features page has them: set for every game

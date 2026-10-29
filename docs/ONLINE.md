@@ -15,6 +15,9 @@ Each player needs the game and its ROM set. The launcher's **Online** page (in t
 - **Host a match**: choose a game and press **Host**. The game shows the match's code to give the other player. If
   you've set **Your name**, the match is also listed in the lobby under it until someone joins; without a name, only
   those you give the code to can join.
+- **Arcade while waiting** (a switch under Host a match): play the game on your own while you wait, as at the arcade.
+  The match's code and "WAITING FOR A CHALLENGER" show at the bottom of the screen. When someone joins, they come
+  into your game as it is and press Start to challenge you. Esc asks whether to stop hosting.
 
 Both players need the **same version** of CPS-2 Recomp; the launcher shows its version at the top of the sidebar.
 A match on another version is greyed in Open matches, and a code for one says so.
@@ -24,6 +27,7 @@ host is player 1. The game's window says it is waiting until the other player co
 
 ```sh
 cps2recomp-launcher --play sfa3 -- --host                  # the host: shows a code, waits for the other player
+cps2recomp-launcher --play sfa3 -- --host --net-arcade     # ... playing the game meanwhile
 cps2recomp-launcher --play sfa3 -- --join CODE             # the other player: the host's code (or address)
 ```
 

@@ -79,6 +79,9 @@ struct Online {
     const char *lobby = nullptr;
     const char *list_argument = nullptr; // "--net-list"
     const char *name_argument = nullptr; // "--net-name"
+    // Arcade while waiting: when the player switches it on ([online] arcade), Host adds `arcade_argument`, and the
+    // host plays the game alone until the other player comes, who joins the game as it is. nullptr: no such switch.
+    const char *arcade_argument = nullptr; // "--net-arcade"
 };
 
 struct InfoRow {
