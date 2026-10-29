@@ -4,7 +4,10 @@
 
 #include <system_error>
 
-#ifdef _WIN32
+#if defined(__ANDROID__)
+#include <SDL3/SDL_system.h>
+#include <jni.h>
+#elif defined(_WIN32)
 #include <windows.h>
 #else
 #include <fcntl.h>
@@ -57,9 +60,57 @@ std::wstring command_line(const fs::path& program, const std::vector<std::string
 }
 #endif
 
+#ifdef __ANDROID__
+namespace {
+// Android has no curl, nor programs to run: the app's activity makes the request instead, from curl's arguments (in the
+// port's Java: String curl(String[] arguments), what curl would write, or null where curl would fail)
+int android_curl(const std::vector<std::string>& args, std::string* output) {
+    JNIEnv* env = static_cast<JNIEnv*>(SDL_GetAndroidJNIEnv());
+    jobject activity = static_cast<jobject>(SDL_GetAndroidActivity());
+    if (!env || !activity) {
+        return -1;
+    }
+    int code = -1;
+    jclass activity_class = env->GetObjectClass(activity);
+    jmethodID curl = env->GetMethodID(activity_class, "curl", "([Ljava/lang/String;)Ljava/lang/String;");
+    if (curl) {
+        jclass string_class = env->FindClass("java/lang/String");
+        jobjectArray arguments = env->NewObjectArray(static_cast<jsize>(args.size()), string_class, nullptr);
+        for (size_t i = 0; i < args.size(); i++) {
+            jstring arg = env->NewStringUTF(args[i].c_str());
+            env->SetObjectArrayElement(arguments, static_cast<jsize>(i), arg);
+            env->DeleteLocalRef(arg);
+        }
+        jstring answer = static_cast<jstring>(env->CallObjectMethod(activity, curl, arguments));
+        if (!env->ExceptionCheck() && answer) {
+            const char* chars = env->GetStringUTFChars(answer, nullptr);
+            if (output && chars) {
+                *output = chars;
+            }
+            env->ReleaseStringUTFChars(answer, chars);
+            env->DeleteLocalRef(answer);
+            code = 0;
+        } else {
+            code = 7;  // (curl's "could not connect")
+        }
+        env->DeleteLocalRef(arguments);
+        env->DeleteLocalRef(string_class);
+    }
+    if (env->ExceptionCheck()) {
+        env->ExceptionClear();
+    }
+    env->DeleteLocalRef(activity_class);
+    env->DeleteLocalRef(activity);
+    return code;
+}
+}  // namespace
+#endif
+
 // Runs a program (no shell) and waits for it: its exit code (-1: it did not start), and its output if asked
 int run_program(const fs::path& program, const std::vector<std::string>& args, std::string* output) {
-#ifdef _WIN32
+#if defined(__ANDROID__)
+    return program == curl_program() ? android_curl(args, output) : -1;
+#elif defined(_WIN32)
     SECURITY_ATTRIBUTES security{sizeof security, nullptr, TRUE};
     HANDLE read = nullptr, write = nullptr;
     if (!CreatePipe(&read, &write, &security, 0)) {
@@ -143,6 +194,8 @@ fs::path curl_program() {
     wchar_t system[MAX_PATH];
     UINT n = GetSystemDirectoryW(system, MAX_PATH);
     return n > 0 && n < MAX_PATH ? fs::path(system) / L"curl.exe" : fs::path(L"curl.exe");
+#elif defined(__ANDROID__)
+    return "curl";  // (run_program's own: android_curl)
 #else
     std::error_code error;
     return fs::exists("/usr/bin/curl", error) ? fs::path("/usr/bin/curl") : fs::path("curl");

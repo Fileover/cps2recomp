@@ -13,6 +13,7 @@
 #   make games          build every game whose ROM set is in rom/<id>/
 #   make collection     the collection's launcher, with the games built beside it (build/collection/)
 #   make collection-app macOS app bundle of the collection (build/collection/<Name>.app)
+#   make android        the Android app of the collection (build/release/CPS2Recomp-android.apk: tools/release/android.sh)
 #
 # The toolkit's own checks, none of which needs a game:
 #   make audit      nothing from a game, no keys, no personal paths (tools/audit.sh)
@@ -41,7 +42,7 @@ check-widescreen: port
 
 else
 
-.PHONY: check audit example smoke check-common clean games collection collection-app
+.PHONY: check audit example smoke check-common clean games collection collection-app android
 check: audit check-common smoke
 
 audit:
@@ -69,6 +70,9 @@ collection: games
 
 collection-app: collection
 	@tools/make_app.sh --collection
+
+android:
+	@tools/release/android.sh
 
 clean:
 	rm -rf example/build example/work
