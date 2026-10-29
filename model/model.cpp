@@ -22,6 +22,9 @@ namespace {
     constexpr int kSlowBy[] = {1, 2, 4, 8};
     constexpr int kFramesASecond = 60;
     constexpr int kNamedFor = 120;                 // frames an animation's name is shown for after it changes
+    // Frames a frame is shown for at most: a game holds some for good (the Marvel games' 7FFF, a fall that lies until
+    // the code stands the character up), and the animation, or "Play all", would stay on it
+    constexpr int kLongestFrame = 3 * kFramesASecond;
     constexpr int kHeldFirst = 20, kHeldEvery = 8; // frames a direction is held before it repeats, and between repeats
     // The colour editor's scan: frames of the copy run in a frame of the viewer's, and of an animation looked at
     constexpr int kScanFramesEach = 8, kScanFramesMost = 48;
@@ -130,6 +133,9 @@ namespace {
             }
         }
     }
+    int FrameTime(Machine &machine, uint32_t frame) {
+        return std::min(g_d.frameTime(machine, frame), kLongestFrame);
+    }
     void ScanAt(Machine &machine, int character, int choice) {
         g_scan.choice = choice;
         g_scan.first = g_scan.frame = AnimationAt(machine, character, choice);
@@ -190,7 +196,7 @@ namespace {
             g.table = table;
             g.number = number;
             g.first = g.frame = first;
-            g.left = g_d.frameTime(machine, first);
+            g.left = FrameTime(machine, first);
             g.held = 0;
             g.named = kNamedFor;
         } else if (g.held > 0) {
@@ -214,7 +220,7 @@ namespace {
                 g.left = 0;
             } else {
                 g.frame = next;
-                g.left = g_d.frameTime(machine, next);
+                g.left = FrameTime(machine, next);
             }
         }
         g_d.showFrame(machine, g.frame);
