@@ -71,7 +71,8 @@ each other.
   set your name, the match is also listed in the **lobby**, where anyone can pick it from **Open matches**. Nothing
   needs setting up on either router.
 - Both players need the same version of CPS-2 Recomp (the launcher shows yours at the top); a match on another
-  version is greyed in the list.
+  version is greyed in the list. Your ROM sets may be different regions of the game: the match is the host's region
+  (best effort: the same set is surest).
 - Each player presses Start to come in, as at the arcade. The match uses the host's board settings (difficulty,
   timer, rounds); cheats are off.
 - **On screen:** the ping (and the input delay, if you like), and the **win streak** of a player who keeps winning.

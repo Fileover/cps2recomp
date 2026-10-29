@@ -206,13 +206,14 @@ int WindowSize() {
 
 #ifdef GAME_REGION_AT
 namespace {
-    // Another region's set whose region is in the code, not the header (game.cfg's region_at: an instruction
-    // `move.w #region,d16(a5)`): the translated code has the set's own region in it, so once the instruction is past,
-    // its variable is given the one this set's instruction has. (Set once, as the set is read.)
-    uint32_t g_regionVariable = 0; // (its distance from A5)
-    uint16_t g_region = 0;
+    // Where the region is in the code, not the header (game.cfg's region_at: an instruction `move.w #region,d16(a5)`):
+    // the translated code has the game's own set's region in it, so once the instruction is past, its variable is
+    // given the one the program as it is now has there (another region's set, or online the host's: Netplay)
+    uint32_t g_regionAt = 0;
     bool AfterRegion(M68K &c) {
-        SetRam16((c.a[5] + g_regionVariable) & 0xFFFFFF, g_region);
+        const uint8_t *op = ProgramOpcodes(g_regionAt);
+        const int16_t variable = static_cast<int16_t>((op[4] << 8) | op[5]);
+        SetRam16((c.a[5] + variable) & 0xFFFFFF, static_cast<uint16_t>((op[2] << 8) | op[3]));
         return false;
     }
     void RegisterRegion(uint32_t at) {
@@ -221,8 +222,7 @@ namespace {
             fprintf(stderr, "region_at %06X: not move.w #region,d16(a5)\n", at);
             return;
         }
-        g_region = static_cast<uint16_t>((op[2] << 8) | op[3]);
-        g_regionVariable = static_cast<uint32_t>(static_cast<int16_t>((op[4] << 8) | op[5]));
+        g_regionAt = at;
         AddHook(at + 6, "Region", AfterRegion);
     }
 } // namespace
@@ -287,9 +287,7 @@ bool Port::Init(std::string &error) {
     SetEeprom(&machine->eeprom);
     RegisterGame();
 #ifdef GAME_REGION_AT
-    if (!roms.name.empty()) {
-        RegisterRegion(static_cast<uint32_t>(strtoul(GAME_REGION_AT, nullptr, 16)));
-    }
+    RegisterRegion(static_cast<uint32_t>(strtoul(GAME_REGION_AT, nullptr, 16)));
 #endif
     machine->cpu.pointerFrom = PointerLoads(machine->cpu.extraLow, machine->cpu.extraHigh);
     machine->cpu.keepHistory = getenv("CPS2RECOMP_PC_HISTORY") != nullptr;

@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+- **Online across regions**: two players with different regions' sets of a game (`mvsc` and `mvscj`, say: the sets
+  `other_set` lists) play each other, as the host's region. A game's `online_words` lists the words of the program
+  where its sets differ as the game reads them (the region, the checksum, Super Turbo's revised tables, the bytes a
+  ROM check adds up, data read past a table); the host sends its values there with its state and the joining side
+  takes them for the match (protocol 5). The build hash, which the hello and the online service compare, is now the
+  game's own set's (as built), not the player's. The `region_at` hook reads the program as it runs and is always
+  there (a game's own set unchanged: the same `--hash-log`). `JOIN_ROM=<set> make check-online` checks it.
+  Best effort: a word the list lacks stops the match as a desync does.
 - **Online: arcade while waiting** (#159). A switch under Host a match, on the Online page and a game's Online card
   (recomp-common #32, `--net-arcade`), lets the host play the game alone until someone joins. The match's code and
   "WAITING FOR A CHALLENGER" are said at the bottom of the screen. The one who joins is sent the game as it is then,
@@ -17,8 +25,8 @@
   `sfa3h`; and Super Turbo's `ssf2ta` and `ssf2xj` (a later Japanese revision whose code is the same). Every clone set
   in MAME's driver was compared with the game's own, deciphered, word by word; the rest are other revisions. A game's
   `game.cfg` lists them (`other_set`), and `region_at` where the region is in an instruction rather than the header
-  (the port gives the variable the set's own value); the launcher finds them by name and says which it found; online,
-  both players need the same set (the hello says it). `docs/TOOLKIT.md` has how a set is found to belong.
+  (the port gives the variable the set's own value); the launcher finds them by name and says which it found.
+  `docs/TOOLKIT.md` has how a set is found to belong.
 - **CI is quicker**: SDL 3, librashader and the shader presets are built once and kept between runs (by the scripts
   that make them), the compiler's objects too (ccache); a pull request's Mac build is Apple silicon alone
   (`MAC_ARCHS`); a change of words only (the README, `docs/`) runs the audit and builds nothing; and a pull request's

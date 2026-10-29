@@ -174,8 +174,17 @@ One line a set: its name, MAME's name for it, its program files and its key; the
 are the game's own set's. `machine/romset.cpp` reads the set the player chose (the zip or folder named for one of
 them comes first; then the game's own; then the others), and `RomSet::set` says which. With `region_at`, the
 translated code has the game's own set's region in it, so the port hooks the instruction after it and gives the
-variable the value the set's own instruction has (`port/main.cpp`, `RegisterRegion`). Online, both players must have
-the same set (it is in the hello).
+variable the value the program has there as it runs (`port/main.cpp`, `RegisterRegion`). Online, two sets of the game
+play together, as the host's: `online_words` lists the program's words where the game's sets differ as the game
+reads them, the host sends its values there before its state, and the joining side takes them for the match
+(`port/netplay.cpp`, protocol 5). The build hash is the game's own set's, not the player's. Elsewhere a set differs
+only in the cipher's other view, which the game mostly never reads; the list has the exceptions found so far: the
+words that differ both ways (the region, checksums, Super Turbo's revised tables), the bytes a ROM check adds up
+(every 4,095th of each 512 KB, as on the chips: the Marvel games at boot, the Alpha games, Gem Fighter and Puzzle
+Fighter), and data read pc-relative, so deciphered, where the keys differ (a Super Turbo jump table at 06CCB2 read
+past its end). Repeated `online_words` lines add up. Two sets that still come apart online stop the match as a desync
+does; `JOIN_ROM=<set> make GAME=<id> check-online` plays one set against another, and bisecting which of the other
+set's words the joining side needs (the host's `--record` replayed on each) finds the missing ones.
 
 A set belongs in the list when its deciphered program is the game's own but for the header, data (tables the game
 reads) and the region's instruction: compare the two, word by word, deciphered and as on the chips (a word is the

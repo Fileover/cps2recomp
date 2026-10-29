@@ -12,13 +12,17 @@
 # network, must give the same hashes: each player's controls drove their own player. At the board's pace: FRAMES
 # (3000 unless said) take FRAMES / 60 seconds.
 #
+# JOIN_ROM: the joining side's set, another region's (game.cfg's other_set): it plays the host's program, whose online_words
+# the host sends, so the two logs and the replay (of the host's set) must still be the same.
+#
 # ARCADE=1: the host plays alone while it waits (--net-arcade) and the other side joins a few seconds later, so that
 # the match begins from the game as the host's play left it, sent whole; the replay from the board's reset is not tried.
 #
-#   [ARCADE=1] GAME=<id> check_online.sh [FRAMES]   (make GAME=<id> check-online: from the repository's top, after `make`; ROM=your set)
+#   [ARCADE=1] [JOIN_ROM=<set>] GAME=<id> check_online.sh [FRAMES]   (make GAME=<id> check-online: from the repository's top, after `make`; ROM=your set)
 set -eu
 GAME=${GAME:?which game: GAME=<id>}
 ROM=${ROM:-rom/$GAME}
+JOIN_ROM=${JOIN_ROM:-$ROM}
 frames=${1:-3000}
 arcade=${ARCADE:-}
 work=work/$GAME/check
@@ -36,7 +40,8 @@ match=$(printf '%s\n' "$play" | tr ',' '\n' | grep -vxF "$cheats" | paste -sd, -
 port=$((7900 + RANDOM % 1000))
 side() { # host | join, then the program's arguments
     name=$1; shift
-    "build/$GAME/$GAME" --rom "$ROM" --headless --frames "$frames" --settings "$work/online-$name.ini" \
+    rom=$ROM; [ "$name" = join ] && rom=$JOIN_ROM
+    "build/$GAME/$GAME" --rom "$rom" --headless --frames "$frames" --settings "$work/online-$name.ini" \
         --eeprom "$work/online-$name.eeprom" --hash-log "$work/online-$name.txt" --net-fake 50:25:5 "$@" 2> "$work/online-$name.err"
 }
 side host --auto 11:0:1 --features "$play" --host "$port" --record "$work/online-host.mov" ${arcade:+--net-arcade} &
