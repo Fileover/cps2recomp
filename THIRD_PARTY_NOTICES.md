@@ -91,7 +91,7 @@ None of these is stored in this repository.
 
 | Component | License | Used for |
 | --- | --- | --- |
-| [SDL 3](https://libsdl.org) | zlib. Copyright (C) 1997-2026 Sam Lantinga | Window, input, audio, GPU (game and launcher); the system's where there is one |
+| [SDL 3](https://libsdl.org) | zlib. Copyright (C) 1997-2026 Sam Lantinga | Window, input, audio, GPU (game and launcher); the system's where there is one. In the Android app also its Java half (`android-project/`), compiled into the app unchanged |
 | [Dear ImGui](https://github.com/ocornut/imgui) 1.92.9b | MIT. Copyright (c) 2014-2026 Omar Cornut | The launcher's interface, compiled into the launcher |
 | [Inter](https://rsms.me/inter/) 4.1 | SIL Open Font License 1.1. Copyright (c) 2016 The Inter Project Authors | The launcher's font, compiled into the launcher |
 | [zlib](https://zlib.net) | zlib. Copyright (C) 1995-2024 Jean-loup Gailly and Mark Adler | Reading a ROM set's archive, screenshots (PNG); the system's |
@@ -103,12 +103,15 @@ license texts of SDL 3, Dear ImGui and Inter (the font is inside the launcher), 
 GPL-3.0 with the offer of source that goes with it (`SOURCE.txt`: the tag's source on GitHub). In release builds
 SDL 3 (3.4.16) is linked into every program; `zlib1.dll` is in the Windows archive, and there the MinGW-w64
 runtime (libstdc++, libgcc, winpthreads) is linked in: GPL-3.0 with the GCC Runtime Library Exception, and the
-MinGW-w64 runtime licence, whose texts the Windows archive carries too.
+MinGW-w64 runtime licence, whose texts the Windows archive carries too. The Android app carries the same texts in its
+assets, and the NDK's LLVM libc++ is linked into its libraries (Apache-2.0 with LLVM exceptions).
 
 ## Tools used to build (not included in builds)
 
 Python, CMake, Ninja, a C++ compiler; glslangValidator and SPIRV-Cross to regenerate
-`port/shaders.inc` from the shaders in `port/shaders/` (which are this project's).
+`port/shaders.inc` from the shaders in `port/shaders/` (which are this project's). For the Android app, the Android
+SDK and NDK, and Gradle with the Android Gradle plugin: `android/gradlew` and `android/gradle/wrapper/` are Gradle's
+wrapper (Apache-2.0, Copyright the Gradle authors), which downloads Gradle itself.
 
 ## What is not included
 

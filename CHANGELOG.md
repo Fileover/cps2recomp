@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+- **Android** (issue #104): `CPS2Recomp-android.apk`, the launcher and every game in one app for 64-bit ARM phones and
+  tablets (Android 9 and later, Vulkan). The games show a stick, their buttons, Coin, Start and Menu on the screen,
+  beside the picture (`port/touch.cpp`; a gamepad hides them), and Back opens the in-game menu. The launcher's
+  **Add ROM sets…** copies the sets chosen with the system's picker into the app's folder, which a computer sees over
+  USB. Each game is a library run in a process of its own (`android/`, `tools/release/android.sh`, `make android`),
+  so the Multi game page hands from one game to the next as elsewhere; online play works with any other system.
+  The presenter draws an overlay over the picture (`Presenter::SetOverlay`). recomp-common: the launcher on Android.
+
 - **Training mode: Gauge refills** in Street Fighter Alpha 2 and 3, Alpha 2 Gold and the Vampire Savior games (issue
   #174), as the other fighting games have it: both players' super combo gauge (in the Vampire Savior games, their
   special gauges) kept full in a session, for practising supers and combos into them. In Alpha 2 and 3 it waits for a

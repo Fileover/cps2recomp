@@ -1686,7 +1686,20 @@ static const char *const kExeSuffix = ".exe";
 static const char *const kExeSuffix = "";
 #endif
 
+// The list --list-features writes (on Android the launcher asks the game's library for it: port/android.cpp)
+std::string LauncherFeatureList() {
+    RegisterGame();
+    RegisterPortFeatures();
+    std::vector<recomp::FeatureInfo> list = FeatureList();
+    // (nor are the ones whose switch is on the launcher's first page: game.h, kFeatureFirstPage)
+    list.erase(std::remove_if(list.begin(), list.end(), [](const recomp::FeatureInfo &f) { return f.flags & kFeatureFirstPage; }), list.end());
+    return recomp::FeatureListText(list);
+}
+
 bool InCollection() {
+#ifdef __ANDROID__
+    return true; // (Android has only the collection's app)
+#endif
     static const bool collection = [] {
         const char *base = SDL_GetBasePath();
         std::error_code missing;
@@ -1913,12 +1926,7 @@ bool ParseArgs(int argc, char **argv, port::Options &o) {
         } else if (a == "--list-features") {
             // For the launcher: one optional feature per line (recomp-common/settings.h; the ones that last a
             // session, switched in the game's menu only, are not in it)
-            RegisterGame();
-            port::RegisterPortFeatures();
-            std::vector<recomp::FeatureInfo> list = FeatureList();
-            // (nor are the ones whose switch is on the launcher's first page: game.h, kFeatureFirstPage)
-            list.erase(std::remove_if(list.begin(), list.end(), [](const recomp::FeatureInfo &f) { return f.flags & kFeatureFirstPage; }), list.end());
-            fputs(recomp::FeatureListText(list).c_str(), stdout);
+            fputs(port::LauncherFeatureList().c_str(), stdout);
             exit(0);
         } else if (a == "--settings") {
             o.settingsPath = next();
@@ -1971,6 +1979,7 @@ bool ParseArgs(int argc, char **argv, port::Options &o) {
 // the launcher): the launcher beside it is started instead, straight into the game if the player has chosen
 // their ROM set in it before (its --play), or at its first page to choose one. The launcher is the game's own, or
 // the collection's (cps2recomp-launcher: then at this game's page, or --play ID). True: it was started.
+#ifndef __ANDROID__
 bool StartLauncher() {
     const char *base = SDL_GetBasePath();
     if (!base) {
@@ -2012,6 +2021,7 @@ bool StartLauncher() {
     SDL_DestroyProcess(process); // (only SDL's record of it: the launcher goes on)
     return true;
 }
+#endif
 
 // A start that went wrong: said on the standard error, and, with a window wanted, in a message box too (a
 // windowed program started by a double click has nowhere else to say it)
@@ -2032,9 +2042,13 @@ int main(int argc, char **argv) {
         freopen("CONOUT$", "w", stderr);
     }
 #endif
+#ifdef __ANDROID__
+    port::StartOnAndroid();
+#else
     if (argc == 1 && StartLauncher()) {
         return 0;
     }
+#endif
     port::Port p;
     if (!ParseArgs(argc, argv, p.opt)) {
         return 2;
