@@ -156,7 +156,7 @@ void RegisterPortFeatures() {
                                   "a little wider than 4:3. Fill: the whole window or screen, stretched to it.",
                                   0, {"4:3", "Square pixels", "Fill"}});
     // (display_shader: Port::ShaderPreset, shading.h; the presets are in shaders/ beside the program, kShaderPresets.
-    // librashader is in each release, tools/librashader.sh)
+    // librashader is in each release, tools/librashader.sh; on Android the presets are unpacked by GameActivity.java)
     TheGame().features.push_back({"display_shader", "Display", "Shader",
                                   "The picture drawn through one of RetroArch's shaders. CRT: a curved arcade monitor. CRT "
                                   "Lottes and CRT Guest: flat monitors, sharp and bright. CRT Royale: the closest to a real "
@@ -169,6 +169,15 @@ void RegisterPortFeatures() {
                                   kFeatureMenuChoices,
                                   {"Off", "CRT", "CRT Lottes", "CRT Royale", "CRT Guest", "CRT Light", "Scanlines: light",
                                    "Scanlines: strong", "Scanlines: OSSC", "Scanlines: dark", "xBRZ", "ScaleFX", "Your own"}});
+    // (zoom: the camera, port/zoom.h, from the menu as well as the zoom's buttons; for this run only, as they are)
+    if (Zoom::Possible()) {
+        TheGame().features.push_back({"zoom", "Display", "Zoom",
+                                      "The picture shown larger about a fighter, following it: player 1's or player 2's (1.5x; the "
+                                      "zoom's buttons change the size), or both fighters', as close as keeps them both in the "
+                                      "picture. Also the left stick's click held with a shoulder (with the right stick's: both), "
+                                      "Left Shift with Q, E or W, or a touch screen's Zoom button (both).",
+                                      kFeatureSession, {"Off", "Player 1", "Player 2", "Both fighters"}});
+    }
     // (online play's readout, each player's own: Port::Shown)
     TheGame().features.push_back({"online_ping", "Online", "Ping",
                                   "During an online match, the time a packet takes to the other player and back, at the bottom of "

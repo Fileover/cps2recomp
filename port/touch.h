@@ -2,7 +2,8 @@
 // Copyright (C) 2026 Tommy McLeroy. Part of cps2recomp.
 //
 // Controls on a touch screen (a phone): a stick at the left, the game's buttons at the right (six, or the game's
-// own: game.cfg's buttons), and Coin, Start and the menu at the top; player 1's, beside a gamepad's and the keys.
+// own: game.cfg's buttons), and Coin, Start, the menu and (where the game zooms) the zoom at the top; player 1's,
+// beside a gamepad's and the keys.
 // They go where the window has room beside the picture (a phone's screen is wider than it), over its edges where
 // it has not. They are shown on Android until a gamepad or a key is used, and anywhere once the screen is touched.
 // In the menu the stick moves through it and the first two buttons choose and go back.
@@ -32,8 +33,9 @@ public:
     // in one way goes on through its rows, as a held key does in a list.
     uint16_t Read(bool menuOpen);
     unsigned Menu() const;
-    // The menu button was pressed since this was last asked
+    // The menu button, or the zoom's (the camera on both fighters, or off: zoom.h), was pressed since this was last asked
     bool TakeMenuPress();
+    bool TakeZoomPress();
     // Their picture, when it changed since this was last asked (and for nothing shown, an empty one): the
     // presenter's overlay (present.h, SetOverlay), half the window's size
     bool TakePicture(std::vector<uint32_t> &pixels, int &width, int &height);
@@ -43,7 +45,7 @@ private:
         float x, y, radius; // in the window's pixels
         uint16_t bits;      // what it presses (none for the menu button)
         std::string label;
-        bool menu = false;
+        bool menu = false, zoom = false;
     };
     int Hit(float x, float y) const;
     void Changed() {
@@ -51,7 +53,7 @@ private:
     }
     void Draw();
 
-    bool m_shown = false, m_changed = true, m_menuPressed = false;
+    bool m_shown = false, m_changed = true, m_menuPressed = false, m_zoomPressed = false;
     int m_width = 0, m_height = 0;
     SDL_FRect m_picture{};
     float m_stickX = 0, m_stickY = 0, m_stickRadius = 0; // the stick's middle and reach

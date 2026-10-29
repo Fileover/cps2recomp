@@ -30,6 +30,12 @@ public:
     void Press(int player);
     // A press for both fighters at once: on, or off when it is on
     void Both();
+    // The in-game menu's Zoom row (the session feature zoom, main.cpp): 0 off, 1 or 2 that player's fighter (at the size
+    // it was at, 1.5x if none), 3 both; and what is chosen now, by the same numbers
+    void Choose(int choice);
+    int Choice() const {
+        return m_size == 0 ? 0 : m_player == kBoth ? 3 : m_player + 1;
+    }
     // The camera moved off its fighter by so many steps across and down (the d-pad or the arrows, while zooming), to
     // frame it as the player wants; kept until the zoom is off or looks at the other fighter
     void Pan(int across, int down);

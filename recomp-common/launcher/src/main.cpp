@@ -161,11 +161,13 @@ struct Presser {
 
 // A touch screen's: a finger dragged up or down scrolls what is under it (and goes on a little when let go, as a phone's
 // lists do), and is then not a press of what it started on. A tap is still a click (SDL makes a mouse of the finger).
+// The sidebar's list scrolls the same way (App::scroll_sidebar).
 struct TouchScroll {
     SDL_Window* window = nullptr;
+    App* app = nullptr;
     SDL_FingerID finger = 0;
-    bool down = false, dragging = false;
-    float start_y = 0.0f, last_y = 0.0f, speed = 0.0f;  // (in the window's points)
+    bool down = false, dragging = false, sidebar = false;
+    float start_x = 0.0f, start_y = 0.0f, last_y = 0.0f, speed = 0.0f;  // (in the window's points)
     ImGuiWindow* target = nullptr;
 
     // The event is the scroll's (not to be given to Dear ImGui)
@@ -178,20 +180,24 @@ struct TouchScroll {
                 down = true;
                 dragging = false;
                 finger = event.tfinger.fingerID;
+                start_x = event.tfinger.x * width;
                 start_y = last_y = event.tfinger.y * height;
                 speed = 0.0f;
+                // (a finger's drag is a scroll before it is a row dragged to another place: Dear ImGui waits longer)
+                ImGui::GetIO().MouseDragThreshold = 24.0f * ui::scale();
             }
             return false;
         case SDL_EVENT_FINGER_MOTION:
             if (down && event.tfinger.fingerID == finger) {
                 const float y = event.tfinger.y * height;
                 if (!dragging && std::fabs(y - start_y) > 10.0f * ui::scale()) {
-                    // (the window under the finger, or the nearest around it that scrolls)
-                    target = ImGui::GetCurrentContext()->HoveredWindow;
+                    // (the sidebar's list, or the window under the finger, or the nearest around it that scrolls)
+                    sidebar = app->scroll_sidebar(start_x, 0.0f);
+                    target = sidebar ? nullptr : ImGui::GetCurrentContext()->HoveredWindow;
                     while (target && target->ScrollMax.y <= 0.0f && target->ParentWindow) {
                         target = target->ParentWindow;
                     }
-                    dragging = target != nullptr;
+                    dragging = sidebar || (target && target->ScrollMax.y > 0.0f);
                     if (dragging) {
                         // (the mouse taken away: what the finger went down on is not clicked when it is lifted)
                         ImGui::GetIO().AddMousePosEvent(-FLT_MAX, -FLT_MAX);
@@ -218,7 +224,9 @@ struct TouchScroll {
         }
     }
     void scroll(float by) {
-        if (target) {
+        if (sidebar) {
+            app->scroll_sidebar(start_x, by);
+        } else if (target) {
             ImGui::SetScrollY(target, std::clamp(target->Scroll.y + by, 0.0f, target->ScrollMax.y));
         }
     }
@@ -230,7 +238,7 @@ struct TouchScroll {
         scroll(speed);
         speed *= 0.92f;
         if (std::fabs(speed) < 0.5f) {
-            dragging = false;
+            dragging = sidebar = false;
             target = nullptr;
         }
         ui::request_frames(2);
@@ -338,6 +346,7 @@ int main(int argc, char** argv) {
     }
     TouchScroll touch;
     touch.window = window;
+    touch.app = &app;
     Presser presser;
     presser.window = window;
     presser.start(press);

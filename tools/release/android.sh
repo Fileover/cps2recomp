@@ -7,7 +7,8 @@
 # (android/: GameActivity.java); the launcher is recomp-common's, as a library too. Needs the translated code of
 # a build of each game with its ROM set (lib.sh), CMake and Ninja, a JDK 17 and the Android SDK with platform 34,
 # build-tools and NDK 27.2 (ANDROID_HOME; Homebrew's android-commandlinetools is found on its own: brew install
-# openjdk@17 android-commandlinetools). SDL 3 is built from source (its Java half is compiled into the app).
+# openjdk@17 android-commandlinetools), and Rust for librashader (tools/librashader.sh: the Display page's shaders).
+# SDL 3 is built from source (its Java half is compiled into the app).
 #
 #   ROM_SETS=<folder> tools/release/android.sh
 #       a development build with your own ROM sets packed in (the folder's zips), to try on your own phone: the
@@ -73,6 +74,13 @@ for game in $GAMES; do
 done
 "$STRIP" --strip-unneeded "$LIBS"/*.so
 add_notices "$STAGED/assets" "$BUILD/launcher"
+# (the Display page's shaders, port/shading.h: librashader, with OpenGL ES, and the presets, which GameActivity.java
+# unpacks: tools/librashader.sh)
+LIBRA=$("$ROOT/tools/librashader.sh" --android "$NDK")
+cp "$LIBRA/librashader.so" "$LIBS/"
+cp -R "$LIBRA/shaders" "$STAGED/assets/"
+cp "$LIBRA/librashader-LICENSE.md" "$STAGED/assets/licenses/librashader-MPL-2.0.txt"
+cp "$LIBRA/librashader-LICENSE-GPL.md" "$STAGED/assets/licenses/librashader-GPL-3.0.txt"
 APK="$ARCHIVE-android.apk"
 if [ -n "${ROM_SETS:-}" ]; then
     # (LauncherActivity.java unpacks assets/roms/ and sets up the games roms/games.txt names)

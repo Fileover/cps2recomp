@@ -194,6 +194,7 @@ bool Presenter::OpenShaded(SDL_Window *window, const std::string &preset, std::s
         m_shading.reset();
         return false;
     }
+    m_overlayChanged = !m_overlay.empty(); // (the overlay, to the new window's OpenGL)
     return true;
 }
 
@@ -450,6 +451,10 @@ void Presenter::Show(const uint32_t *pixels, int width, int height, const SDL_FR
         if (zoomed && !shade) {
             Compose(pixels, width, height, *zoomed, m_composed);
             pixels = m_composed.data();
+        }
+        if (m_overlayChanged) {
+            m_overlayChanged = false;
+            m_shading->SetOverlay(m_overlay.empty() ? nullptr : m_overlay.data(), m_overlayWidth, m_overlayHeight);
         }
         m_shading->Show(pixels, width, height, where, shade, shade ? zoomed : nullptr);
         return;

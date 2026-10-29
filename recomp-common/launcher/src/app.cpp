@@ -1331,6 +1331,15 @@ void App::frame() {
     popup_was_open_ = ImGui::IsPopupOpen("", ImGuiPopupFlags_AnyPopupId | ImGuiPopupFlags_AnyPopupLevel);
 }
 
+bool App::scroll_sidebar(float x, float by) {
+    if (x - ImGui::GetMainViewport()->Pos.x >= px(sidebar_width())) {
+        return false;
+    }
+    sidebar_scroll_ += by;  // (kept within the list: sidebar)
+    scrolled_for_ = page_;  // (and not brought back to the page shown)
+    return true;
+}
+
 void App::set_interactive() {
     interactive_ = true;
     show_focus_ = SDL_HasGamepad();

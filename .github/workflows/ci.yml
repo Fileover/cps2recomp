@@ -161,7 +161,7 @@ jobs:
       - uses: actions/cache@v4
         with:
           path: build/deps
-          key: deps-android-${{ hashFiles('tools/release/lib.sh', 'tools/release/android.sh') }}
+          key: deps-android-${{ hashFiles('tools/release/lib.sh', 'tools/release/android.sh', 'tools/librashader.sh', 'tools/shaders.py') }}
       - uses: actions/cache@v4
         with:
           path: ~/.cache/ccache

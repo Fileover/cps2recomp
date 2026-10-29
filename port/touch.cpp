@@ -6,6 +6,7 @@
 #include "touch.h"
 
 #include "bindings.h"
+#include "zoom.h"
 #include "../machine/machine.h"
 #include "../recomp-common/menu.h"
 #include "../recomp-common/text.h"
@@ -148,6 +149,11 @@ void TouchControls::Layout(int width, int height, const SDL_FRect &picture) {
     Control menu{side * 0.25f, top, small, 0, "MENU"};
     menu.menu = true;
     m_controls.push_back(menu);
+    if (Zoom::Possible()) {
+        Control zoom{side * 0.75f, top, small, 0, "ZOOM"};
+        zoom.zoom = true;
+        m_controls.push_back(zoom);
+    }
     m_controls.push_back({w - side * 0.75f, top, small, kCoin, "COIN"});
     m_controls.push_back({w - side * 0.25f, top, small, kStart, "START"});
     Changed();
@@ -221,6 +227,9 @@ bool TouchControls::Event(const SDL_Event &event) {
         if (hit >= 0 && m_controls[static_cast<size_t>(hit)].menu) {
             m_menuPressed = true;
         }
+        if (hit >= 0 && m_controls[static_cast<size_t>(hit)].zoom) {
+            m_zoomPressed = true;
+        }
         it = m_fingers.emplace(finger, Finger{stick ? -1 : hit, 0}).first;
     } else if (it == m_fingers.end()) {
         return true;
@@ -243,8 +252,9 @@ bool TouchControls::Event(const SDL_Event &event) {
     } else if (event.type == SDL_EVENT_FINGER_MOTION) {
         // (a finger slid from one button onto another presses that one instead, as on a panel)
         const int hit = Hit(x, y);
-        if (hit >= 0 && hit != it->second.control && !m_controls[static_cast<size_t>(hit)].menu &&
-            !m_controls[static_cast<size_t>(it->second.control)].menu) {
+        // (not onto or off the menu's or the zoom's: those are pressed once, where the finger goes down)
+        const auto own = [&](int control) { return m_controls[static_cast<size_t>(control)].menu || m_controls[static_cast<size_t>(control)].zoom; };
+        if (hit >= 0 && hit != it->second.control && !own(hit) && !own(it->second.control)) {
             it->second = {hit, 0};
         }
     }
@@ -280,6 +290,12 @@ unsigned TouchControls::Menu() const {
 bool TouchControls::TakeMenuPress() {
     const bool pressed = m_menuPressed;
     m_menuPressed = false;
+    return pressed;
+}
+
+bool TouchControls::TakeZoomPress() {
+    const bool pressed = m_zoomPressed;
+    m_zoomPressed = false;
     return pressed;
 }
 

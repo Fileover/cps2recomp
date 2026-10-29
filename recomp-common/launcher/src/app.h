@@ -66,6 +66,9 @@ public:
     // main.cpp switches them off for those frames. (A collection's launcher, whose games can run several at
     // once, is paused only while one runs and the launcher's window is not the one in front.)
     bool navigation_paused() const;
+    // A finger dragged on a touch screen (main.cpp): over the sidebar (x, in the window's points, is in it) its list is
+    // scrolled by `by` points, as the mouse wheel scrolls it; false where it is not the sidebar's
+    bool scroll_sidebar(float x, float by);
 
 private:
     // One game the launcher starts: a port's launcher has one, a collection's one for each of its games.

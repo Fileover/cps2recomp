@@ -3,12 +3,18 @@
 package io.github.tmcleroy.cps2recomp;
 
 import android.content.Intent;
+import android.content.pm.PackageInfo;
 import android.os.Bundle;
 import android.system.ErrnoException;
 import android.system.Os;
 import android.util.Log;
 
 import org.libsdl.app.SDLActivity;
+
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.InputStream;
+import java.io.OutputStream;
 
 // A game: its library (lib<id>.so), loaded in a process of its own, whose main() SDL calls on its own thread with the
 // arguments the launcher gave (LauncherActivity.startGame). What main() returns is the activity's result, which the
@@ -33,10 +39,56 @@ public class GameActivity extends SDLActivity {
         try {
             Os.setenv("RECOMP_FOLDER", text(intent.getStringExtra(EXTRA_FOLDER)), true);
             Os.setenv("RECOMP_LOG", text(intent.getStringExtra(EXTRA_LOG)), true);
+            Os.setenv("CPS2RECOMP_SHADERS", unpackShaders().getPath(), true);
         } catch (ErrnoException e) {
             Log.w("cps2recomp", "setenv: " + e);
         }
         super.onCreate(savedInstanceState);
+    }
+
+    // The Display page's shader presets (port/main.cpp, Port::ShaderPreset), which librashader reads as files: the app's
+    // assets/shaders/ unpacked into its own folder, once for each version of the app
+    private File unpackShaders() {
+        File shaders = new File(getFilesDir(), "shaders");
+        try {
+            PackageInfo info = getPackageManager().getPackageInfo(getPackageName(), 0);
+            File done = new File(shaders, ".unpacked-" + info.lastUpdateTime);
+            if (!done.exists()) {
+                deleteAll(shaders);
+                unpack("shaders", shaders);
+                done.createNewFile();
+            }
+        } catch (Exception e) {
+            Log.w("cps2recomp", "shaders: " + e);
+        }
+        return shaders;
+    }
+
+    private void unpack(String asset, File to) throws Exception {
+        String[] inside = getAssets().list(asset);
+        if (inside != null && inside.length > 0) {
+            to.mkdirs();
+            for (String name : inside) {
+                unpack(asset + "/" + name, new File(to, name));
+            }
+            return;
+        }
+        try (InputStream in = getAssets().open(asset); OutputStream out = new FileOutputStream(to)) {
+            byte[] buffer = new byte[1 << 16];
+            for (int got; (got = in.read(buffer)) > 0;) {
+                out.write(buffer, 0, got);
+            }
+        }
+    }
+
+    private static void deleteAll(File file) {
+        File[] inside = file.listFiles();
+        if (inside != null) {
+            for (File one : inside) {
+                deleteAll(one);
+            }
+        }
+        file.delete();
     }
 
     private static String text(String s) {

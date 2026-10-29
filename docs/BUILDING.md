@@ -123,8 +123,9 @@ tools/release/all.sh        # all four and SHA256SUMS.txt
 tools/release/android.sh    # build/release/CPS2Recomp-android.apk
 ```
 
-The Android app needs CMake, Ninja, a JDK 17 and the Android SDK with platform 34 and NDK 27.2 (with Homebrew:
-`brew install openjdk@17 android-commandlinetools`, then `sdkmanager "platforms;android-34" "ndk;27.2.12479018"`).
+The Android app needs CMake, Ninja, a JDK 17, the Android SDK with platform 34 and NDK 27.2 (with Homebrew:
+`brew install openjdk@17 android-commandlinetools`, then `sdkmanager "platforms;android-34" "ndk;27.2.12479018"`),
+and Rust for librashader (`rustup`; its `aarch64-linux-android` target is added on its own).
 Each game is a library there that the app starts in a process of its own (`android/`), and the launcher is
 recomp-common's, a library too. It is signed with your key when `~/.config/cps2recomp/android-signing.env` names one
 (`KEYSTORE`, `KEYSTORE_PASSWORD`, `KEY_ALIAS`, `KEY_PASSWORD`), else with Android's debug key, which is fine for your

@@ -402,6 +402,8 @@ int RunWindowed(Port &port) {
     // (a touch screen's controls: touch.h)
     TouchControls touch;
     std::vector<uint32_t> touchPicture;
+    // (the menu's Zoom row, as last seen: a change there is the camera's, and a zoom's press is the row's)
+    int zoomRow = port.zoom.Choice();
     const double kFrameNs = 1e9 / Machine::kFramesPerSecond;
     uint64_t nextFrame = SDL_GetTicksNS();
     bool running = true;
@@ -504,6 +506,20 @@ int RunWindowed(Port &port) {
 
         if (touch.TakeMenuPress()) {
             toggleMenu();
+        }
+        if (touch.TakeZoomPress()) {
+            port.zoom.Both();
+        }
+        if (Zoom::Possible()) {
+            const int asked = FeatureValue("zoom");
+            if (asked != zoomRow) {
+                port.zoom.Choose(asked);
+            }
+            zoomRow = port.zoom.Choice();
+            if (asked != zoomRow) {
+                SetFeatureForNow("zoom", zoomRow);
+                menuDirty = true;
+            }
         }
         if (port.opt.moviePlay.empty() && !port.opt.autoPlay) {
             // The keyboard is every player's (each has the keys chosen for it); the first gamepad is player
