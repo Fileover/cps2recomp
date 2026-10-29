@@ -61,7 +61,8 @@ public:
     static constexpr int kDefaultPort = 7845;
     // The packets' layout (2: the host's state sent at the start); two copies must have the same to play, and the
     // lobby shows only matches of this one (the launcher asks with it too)
-    static constexpr int kProtocol = 4; // (3: the version said in the hello and to the service; 4: the welcome's flags)
+    static constexpr int kProtocol = 5; // (3: the version said in the hello and to the service; 4: the welcome's flags;
+                                        // 5: the welcome's program words, so two regions' sets play together)
     static constexpr int kMostAhead = 8;   // frames run on guessed controls at most
     static constexpr int kKept = 16;       // states kept (more than the most a rollback goes back)
     static constexpr int kInputs = 128;    // controls kept, each side's
@@ -158,7 +159,6 @@ private:
     // (the handshake: the hello or the welcome, sent again until answered)
     std::vector<uint8_t> greeting;
     uint32_t build = 0;
-    std::string set; // (the ROM set's name: both must play the same one, a region of its own)
     uint64_t began = 0, sent = 0;
     bool found = false; // (hosting: the other player has said hello)
     bool hostIn = false;

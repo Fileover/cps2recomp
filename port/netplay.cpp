@@ -25,6 +25,7 @@
 
 #include <zlib.h>
 #include <algorithm>
+#include <array>
 #include <chrono>
 #include <cmath>
 #include <cstring>
@@ -76,7 +77,7 @@ namespace {
     struct Reader {
         const uint8_t *at, *end;
         bool ok = true;
-        Reader(const uint8_t *data, size_t size) : at(data + 5), end(data + size) {}
+        Reader(const uint8_t *data, size_t size, size_t from = 5) : at(data + from), end(data + size) {} // (after the magic and kind)
         bool Has(size_t n) {
             ok = ok && static_cast<size_t>(end - at) >= n;
             return ok;
@@ -120,12 +121,37 @@ namespace {
         return Share::Off;
     }
 
-    // What both sides must have the same of: the game, and the program as this build reads it
+    // What both sides must have the same of: the game as this build is made (the set its code was translated from)
+    // and the sound program. The program itself may be another region's set's (game.cfg's other_set), which differs
+    // only in its online_words: the host's are sent in the welcome, so the match is played as the host's region
     uint32_t BuildHash(const Port &port) {
         uLong h = crc32(0, nullptr, 0);
-        h = crc32(h, port.roms.opcodes.data(), static_cast<uInt>(port.roms.opcodes.size()));
+        h = crc32(h, reinterpret_cast<const Bytef *>(GAME_PROGRAM), static_cast<uInt>(strlen(GAME_PROGRAM)));
         h = crc32(h, port.roms.soundProgram.data(), static_cast<uInt>(port.roms.soundProgram.size()));
         return static_cast<uint32_t>(h);
+    }
+#ifndef GAME_ONLINE_WORDS
+#define GAME_ONLINE_WORDS ""
+#endif
+    // The program's words two sets of the game have differently (game.cfg's online_words: the region, the checksum
+    // and the like), in both views (the rest of a set's program differs only where the game never reads it: the
+    // cipher's other view)
+    std::vector<uint32_t> OnlineWords() {
+        std::vector<uint32_t> words;
+        for (const char *at = GAME_ONLINE_WORDS; *at;) {
+            char *end;
+            const unsigned long word = strtoul(at, &end, 16);
+            if (end == at) {
+                at++; // (" || " between the lines of them)
+                continue;
+            }
+            words.push_back(static_cast<uint32_t>(word));
+            at = end;
+        }
+        return words;
+    }
+    std::string SetName(const Port &port) {
+        return port.roms.name.empty() ? port.roms.set : port.roms.set + " (" + port.roms.name + ")";
     }
     // A match's code as the service keeps it ("K7QM2X"), from what was typed ("k7q-m2x"), or "" if it is not one
     // (an address has a dot or a colon)
@@ -404,9 +430,21 @@ void Netplay::Welcome(Port &port) {
         }
     }
     welcome.Text(features);
-    // (the game as it is now: the state the match begins from, sent in pieces)
+    // (the game as it is now: the state the match begins from, sent in pieces, after this side's program's words
+    // where another set's may differ, which the other side takes: their count, then each one's address and both views)
     std::vector<uint8_t> raw;
     port.KeepState(raw);
+    const std::vector<uint32_t> words = OnlineWords();
+    Writer program(kWelcome);
+    program.U16(static_cast<uint16_t>(words.size()));
+    for (const uint32_t word : words) {
+        const size_t at = std::min<size_t>(word, port.roms.program.size() - 2);
+        program.U32(word);
+        for (const uint8_t b : {port.roms.program[at], port.roms.program[at + 1], port.roms.opcodes[at], port.roms.opcodes[at + 1]}) {
+            program.U8(b);
+        }
+    }
+    raw.insert(raw.begin(), program.out.begin() + 5, program.out.end());
     uLongf packed = compressBound(static_cast<uLong>(raw.size()));
     state.resize(packed);
     compress2(state.data(), &packed, raw.data(), static_cast<uLong>(raw.size()), 6);
@@ -417,6 +455,8 @@ void Netplay::Welcome(Port &port) {
     welcome.U32(static_cast<uint32_t>(state.size()));
     // (flags: 1, this side's player is already in the game, which was played while it waited)
     welcome.U8(port.cameIn ? 1 : 0);
+    // (this side's set: the other side says so when it has another region's)
+    welcome.Text(SetName(port));
     greeting = welcome.out;
 }
 
@@ -427,7 +467,6 @@ bool Netplay::Begin(Port &port, std::string &error) {
     local = settings.hosting ? 0 : 1;
     remote = 1 - local;
     build = BuildHash(port);
-    set = port.roms.set;
     began = NowMs();
     if (settings.hosting) {
         StartAt(settings.delay);
@@ -439,7 +478,6 @@ bool Netplay::Begin(Port &port, std::string &error) {
         hello.Text(GAME_ID);
         hello.U32(build);
         hello.Text(RECOMP_VERSION);
-        hello.Text(set);
         greeting = hello.out;
         // A match's code (K7Q-M2X: six letters and digits), or the host's address
         joinCode = CodeOf(settings.address);
@@ -795,7 +833,6 @@ int Netplay::Waiting(Port &port, std::string &error) {
                 const std::string game = in.Text();
                 const uint32_t theirs = in.U32();
                 const std::string version = in.Text();
-                const std::string theirSet = in.Text();
                 std::string why;
                 if (protocol == kProtocol && version != RECOMP_VERSION) {
                     why = "The other player has version " + version + " and this one " RECOMP_VERSION ": both need the same version.";
@@ -803,8 +840,6 @@ int Netplay::Waiting(Port &port, std::string &error) {
                     why = "The two copies of the game are different versions: update both.";
                 } else if (game != GAME_ID) {
                     why = "The other player started " + game + ", this side " GAME_ID ".";
-                } else if (theirSet != set) {
-                    why = "One player has the ROM set " + set + ", the other " + theirSet + ": both need the same set (the same region).";
                 } else if (theirs != build) {
                     why = "The two copies of the game are different builds: use the same release on both.";
                 }
@@ -926,6 +961,26 @@ int Netplay::Waiting(Port &port, std::string &error) {
                     error = "The host's game did not come whole.";
                     return -1;
                 }
+                // (the host's program's words first: where this side's set differs, the host's are taken in)
+                Reader program(raw.data(), raw.size(), 0);
+                std::vector<std::pair<uint32_t, std::array<uint8_t, 4>>> words(program.U16());
+                for (auto &[word, bytes] : words) {
+                    word = program.U32();
+                    for (uint8_t &b : bytes) {
+                        b = program.U8();
+                    }
+                }
+                if (!program.ok) {
+                    error = "The host's game did not come whole.";
+                    return -1;
+                }
+                for (const auto &[word, bytes] : words) {
+                    if (word + 2 <= port.roms.program.size()) {
+                        memcpy(&port.roms.program[word], &bytes[0], 2);
+                        memcpy(&port.roms.opcodes[word], &bytes[2], 2);
+                    }
+                }
+                raw.erase(raw.begin(), raw.begin() + (program.at - raw.data()));
                 port.PutBackState(raw);
                 lastHeard = now;
                 fprintf(stderr, "online: the match is on: you are player 2 (%d frame%s of delay)\n", delay, delay == 1 ? "" : "s");
@@ -968,9 +1023,14 @@ int Netplay::Waiting(Port &port, std::string &error) {
             return -1;
         }
         hostIn = (in.U8() & 1) != 0;
+        // (the host's set: where this side's is another region's, the match is played as the host's)
+        const std::string hostSet = in.Text();
         if (!in.ok) {
             error = "The host's welcome did not make sense.";
             return -1;
+        }
+        if (hostSet != SetName(port)) {
+            fprintf(stderr, "online: playing the host's set, %s\n", hostSet.c_str());
         }
         chunks = static_cast<uint32_t>((state.size() + kChunk - 1) / kChunk);
         had.assign(chunks, false);
