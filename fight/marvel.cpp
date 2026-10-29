@@ -111,7 +111,7 @@ bool PlayerStep(M68K &c) {
     view.control = Ram16(player + e.control) == 0 ? fight::StepView::Own : fight::StepView::Reeling;
     view.frozen = stop != 0;
     view.canAct = CanAct(player);
-    view.attacking = (Ram8(player + e.attackPhase) & 0xC0) != 0;
+    view.attacking = (Ram8(player + e.attackPhase) & e.attackPhaseMask) != 0;
     view.jumping = Ram8(player + e.action) == e.actionJump || InAir(player);
     view.attackOut = AttackOut(player);
     session::Step(n, view);
@@ -291,9 +291,23 @@ namespace {
             }
             return false;
         }
-        if (modes::CameraAt().beyondEnds) {
-            Return(c);
+        // (where the stages each keep their own camera, the stage's code goes on after the piece that keeps it)
+        uint32_t after = 0;
+        for (const Engine::KeepCameraPlace &place : e.keepCameraPlaces) {
+            if (place.at == c.pc) {
+                after = place.after;
+            }
+        }
+        const auto done = [&] {
+            if (after) {
+                c.pc = after;
+            } else {
+                Return(c);
+            }
             return true;
+        };
+        if (modes::CameraAt().beyondEnds) {
+            return done();
         }
         if (!g_play) {
             return false;
@@ -304,8 +318,7 @@ namespace {
         const int y = Word(camera + e.cameraY);
         const int top = Word(camera + e.cameraTop), bottom = Word(camera + e.cameraTop + 2);
         SetRam16(camera + e.cameraY, static_cast<uint16_t>(std::clamp(y, top, std::max(top, bottom))));
-        Return(c);
-        return true;
+        return done();
     }
 
     // The game's own keeping of the camera's copy down (with cameraWorkY): not done for a mode's camera wanted beyond
@@ -440,7 +453,12 @@ void WideForPort(Machine &) {
 
 void RegisterWidescreen(uint32_t keepCamera, uint32_t keepIn) {
     TheGame().widestPicture = [] { return Video::kWidth + (FeatureOn("widescreen") ? 2 * kSide : 0); };
-    AddHook(keepCamera, "KeepCamera", KeepCamera);
+    if (keepCamera) {
+        AddHook(keepCamera, "KeepCamera", KeepCamera);
+    }
+    for (const Engine::KeepCameraPlace &place : e.keepCameraPlaces) {
+        AddHook(place.at, "KeepCamera", KeepCamera);
+    }
     if (e.keepCameraDown) {
         AddHook(e.keepCameraDown, "KeepCameraDown", KeepCameraDown);
     }
@@ -499,9 +517,9 @@ namespace {
     bool InRom(uint32_t address) {
         return address >= e.romLow && address < e.romHigh && !(address & 1);
     }
-    constexpr uint32_t kFrameTime = 0x02, kFramePicture = 0x04;
     bool IsFrame(Machine &machine, uint32_t frame) {
-        return InRom(frame) && InRom(Read32(machine, frame + kFramePicture)) && (machine.Read16(frame + kFrameTime) & 0x7FFF) != 0;
+        return InRom(frame) && InRom(Read32(machine, frame + e.framePictureAt) & e.framePictureMask) &&
+               (machine.Read16(frame + e.frameTimeAt) & 0x7FFF) != 0;
     }
     // Where an animation of the character's starts (by its number in the menu: its word `character` is twice it)
     uint32_t AnimationAt(Machine &machine, int character, int group, int number) {
@@ -514,10 +532,10 @@ namespace {
         return IsFrame(machine, frame) ? frame : 0;
     }
     int FrameTime(Machine &machine, uint32_t frame) {
-        return machine.Read16(frame + kFrameTime) & 0x7FFF;
+        return machine.Read16(frame + e.frameTimeAt) & 0x7FFF;
     }
     uint32_t NextFrame(Machine &machine, uint32_t frame) {
-        const uint32_t next = machine.Read16(frame + kFrameTime) & 0x8000 ? Read32(machine, frame + e.frameBytes) : frame + e.frameBytes;
+        const uint32_t next = machine.Read16(frame + e.frameTimeAt) & 0x8000 ? Read32(machine, frame + e.frameBytes) : frame + e.frameBytes;
         return next == frame || !IsFrame(machine, next) ? 0 : next;
     }
     // A frame put in player 1's record as the game puts it (back to standing: the character's first animation, which is
@@ -584,6 +602,9 @@ namespace {
             if (e.cameraWayTwice) {
                 SetRam8(e.cameraWay + 2, e.followsOne);
             }
+        }
+        if (down && !across && e.cameraWayDown && g.on && !g.starting) {
+            SetRam8(e.cameraWayDown, e.followsOne);
         }
         const CameraWanted &wanted = modes::CameraAt();
         const uint32_t camera = c.a[6] & 0xFFFFFF;

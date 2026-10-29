@@ -2,6 +2,20 @@
 
 ## Unreleased
 
+- **Another game: X-Men: Children of the Atom** (`games/xmcota`, issue #135; ROM set `xmcota`, *X-Men: Children of
+  the Atom*, Euro 950331, the parent set and the last revision, which Fightcade plays; `xmcotah` and `xmcotab`, the
+  same release's Hispanic and Brazil sets, play too). Capcom's first Marvel fighting game, on the toolkit's Marvel
+  engine (`fight/marvel.h`) as Marvel Super Heroes is, with everything the other fighting games have: training mode
+  (with the X-Power gauge kept full), the alternative modes (attract mode, the stage and model viewers, survival,
+  endless battle, ring out), widescreen and invisible walls, custom colours and the colour editor, the hidden
+  characters with no code (Start held as a character is chosen: light punch Juggernaut, medium punch Magneto, hard
+  punch Akuma), free play, straight to the title, the board's settings, cheats and a custom soundtrack with its music
+  named ([its progress](games/xmcota/PROGRESS.md)).
+- **The Marvel engine** (`fight/marvel.h`) takes the first game of the engine as it is: a frame of another layout
+  (`frameTimeAt`, `framePictureAt`, `framePictureMask`), an attack's phase in other bits (`attackPhaseMask`), a camera
+  that each stage's routine keeps between its ends itself (`keepCameraPlaces`, each with where the stage's code goes
+  on), and a camera whose step down goes by a way of its own (`cameraWayDown`). The other Marvel games describe none of
+  these and run as before.
 - **Training mode: Gauge refills** in Street Fighter Alpha 2 and 3, Alpha 2 Gold and the Vampire Savior games (issue
   #174), as the other fighting games have it: both players' super combo gauge (in the Vampire Savior games, their
   special gauges) kept full in a session, for practising supers and combos into them. In Alpha 2 and 3 it waits for a

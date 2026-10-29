@@ -16,6 +16,7 @@ the build tells you which one is missing or different.
 | [Street Fighter Alpha 3](../games/sfa3/README.md) | `sfa3` | `sfa3u` (USA 980904) |
 | [Vampire Savior](../games/vampire_savior/README.md) | `vampire_savior` | `vsavj` (Japan 970519) |
 | [Super Gem Fighter Mini Mix](../games/pocket_fighter/README.md) | `pocket_fighter` | `sgemf` (USA 970904) |
+| [X-Men: Children of the Atom](../games/xmcota/README.md) | `xmcota` | `xmcota` (Euro 950331) |
 | [Marvel Super Heroes](../games/msh/README.md) | `msh` | `msh` (Europe 951024) |
 | [X-Men vs. Street Fighter](../games/xmvsf/README.md) | `xmvsf` | `xmvsf` (Europe 961004) |
 | [Marvel Super Heroes vs. Street Fighter](../games/mshvsf/README.md) | `mshvsf` | `mshvsf` (Europe 970625) |
