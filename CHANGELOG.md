@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- **Play at the top** of each game's page in the launcher, right under its name and the lines about it.
 - **Online: a waiting room, with invitations** (#155). The Online page lists the other players whose Online page is open
   and who have a name, and **Invite** hosts a match in the game chosen for one of them (`--net-invite TO:FROM`,
   `--net-invite-name NAME`; the match isn't listed). The invitation waits on their Online page with Accept (joining

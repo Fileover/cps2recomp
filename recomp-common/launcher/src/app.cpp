@@ -1716,7 +1716,7 @@ void App::display_cards(size_t which, float width) {
 }
 
 // Play, what went wrong with the last start, and (Linux) Add to Steam
-void App::play_button(size_t which, float width) {
+bool App::play_button(size_t which, float width) {
     const ui::Palette& p = ui::palette();
     Slot& one = *slots_[which];
     FileCheck file;
@@ -1759,6 +1759,12 @@ void App::play_button(size_t which, float width) {
         std::string text = "The game stopped with code " + std::to_string(one.game.exit_code()) + ".";
         ui::text(text.c_str(), Font::Regular, ui::size::kDetail, p.danger, width);
     }
+    return ready;
+}
+
+void App::play_cards(size_t which, float width, bool ready) {
+    const ui::Palette& p = ui::palette();
+    Slot& one = *slots_[which];
     online_card(which, width, ready);
     // Linux and Steam Deck: shortcuts for Steam's Game Mode.
     static const bool steam = can_add_to_steam();
@@ -2488,13 +2494,14 @@ void App::lobby_card(size_t which, float width, bool ready) {
 
 void App::game_page(float width) {
     layout::heading(LAUNCHER_GAME_NAME, about_.file_intro, width);
+    bool ready = play_button(0, width);
+    ui::gap(28);
 #ifdef LAUNCHER_UPDATE_REPO
     update_card(width, true);
 #endif
     file_card(0, width);
     display_cards(0, width);
-    ui::gap(28);
-    play_button(0, width);
+    play_cards(0, width, ready);
     files_card(width);
 #ifdef LAUNCHER_UPDATE_REPO
     update_card(width, false);
@@ -2728,10 +2735,11 @@ void App::title_page(size_t which, float width) {
     const ui::Palette& p = ui::palette();
     Slot& one = *slots_[which];
     layout::heading(one.name.c_str(), one.about->file_intro, width);
+    bool ready = play_button(which, width);
+    ui::gap(28);
     file_card(which, width);
     display_cards(which, width);
-    ui::gap(28);
-    play_button(which, width);
+    play_cards(which, width, ready);
     // Its place in the sidebar's list (which can be dragged there too), or in its series'
     std::vector<std::vector<size_t>> places = units();
     std::vector<size_t> list;
