@@ -61,7 +61,7 @@ public:
     static constexpr int kDefaultPort = 7845;
     // The packets' layout (2: the host's state sent at the start); two copies must have the same to play, and the
     // lobby shows only matches of this one (the launcher asks with it too)
-    static constexpr int kProtocol = 3; // (3: the version said in the hello and to the service)
+    static constexpr int kProtocol = 4; // (3: the version said in the hello and to the service; 4: the welcome's flags)
     static constexpr int kMostAhead = 8;   // frames run on guessed controls at most
     static constexpr int kKept = 16;       // states kept (more than the most a rollback goes back)
     static constexpr int kInputs = 128;    // controls kept, each side's
@@ -81,6 +81,9 @@ public:
         std::string renewCode, renewSecret; // (hosting again after the other player left: the code they know, kept)
         bool listed = false;  // (--net-list) the match in the lobby: on the Online card's list of open matches
         std::string name;     // (--net-name) ... under this name
+        // (--net-arcade) hosting: the game played meanwhile, alone, as offline (with the match's features); the match
+        // begins from the game as it is when the other player comes, who presses Start to challenge
+        bool arcade = false;
         // (tests: each packet sent late by this many ms, give or take `jitter`, and this many in a hundred lost)
         int fakeLag = 0, fakeJitter = 0, fakeLoss = 0;
     };
@@ -101,6 +104,17 @@ public:
     }
     bool Listed() const {
         return settings.listed;
+    }
+    bool Arcade() const {
+        return settings.hosting && settings.arcade;
+    }
+    // (hosting) someone has come, and is being sent the game: the game waits for them now
+    bool Found() const {
+        return found;
+    }
+    // (joining) the host's player has already pressed Start: the host was playing while it waited (--net-arcade)
+    bool HostIn() const {
+        return hostIn;
     }
     // The time a packet takes there and back (ms; the frame's wait for it to be read taken off), and how long since the
     // other side was last heard
@@ -135,6 +149,8 @@ private:
     uint32_t build = 0;
     uint64_t began = 0, sent = 0;
     bool found = false; // (hosting: the other player has said hello)
+    bool hostIn = false;
+    void Welcome(Port &port); // (hosting: the welcome, and the game as it is, for the one who has come)
     int joinPort = 0;
     void StartAt(int frames);
     // The game as the match begins: the host's, sent to the joining side in pieces (compressed), which it takes as

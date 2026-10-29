@@ -367,7 +367,7 @@ int RunWindowed(Port &port) {
         if (port.net) {
             // (online: no menu, the game goes on for both players; Esc gives up a wait, and in a match asks whether to
             // leave it: Port::leaving)
-            if (port.connecting) {
+            if (port.connecting && !port.net->Arcade()) {
                 port.quit = true;
             } else {
                 port.leaving = !port.leaving;

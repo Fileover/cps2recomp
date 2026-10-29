@@ -12,11 +12,15 @@
 # network, must give the same hashes: each player's controls drove their own player. At the board's pace: FRAMES
 # (3000 unless said) take FRAMES / 60 seconds.
 #
-#   GAME=<id> check_online.sh [FRAMES]   (make GAME=<id> check-online: from the repository's top, after `make`; ROM=your set)
+# ARCADE=1: the host plays alone while it waits (--net-arcade) and the other side joins a few seconds later, so that
+# the match begins from the game as the host's play left it, sent whole; the replay from the board's reset is not tried.
+#
+#   [ARCADE=1] GAME=<id> check_online.sh [FRAMES]   (make GAME=<id> check-online: from the repository's top, after `make`; ROM=your set)
 set -eu
 GAME=${GAME:?which game: GAME=<id>}
 ROM=${ROM:-rom/$GAME}
 frames=${1:-3000}
+arcade=${ARCADE:-}
 work=work/$GAME/check
 mkdir -p "$work"
 : > "$work/online-host.ini"
@@ -35,9 +39,9 @@ side() { # host | join, then the program's arguments
     "build/$GAME/$GAME" --rom "$ROM" --headless --frames "$frames" --settings "$work/online-$name.ini" \
         --eeprom "$work/online-$name.eeprom" --hash-log "$work/online-$name.txt" --net-fake 50:25:5 "$@" 2> "$work/online-$name.err"
 }
-side host --auto 11:0:1 --features "$play" --host "$port" --record "$work/online-host.mov" &
+side host --auto 11:0:1 --features "$play" --host "$port" --record "$work/online-host.mov" ${arcade:+--net-arcade} &
 host=$!
-sleep 0.5
+if [ -n "$arcade" ]; then sleep 4; else sleep 0.5; fi
 status=0
 side join --auto 12:0:1 --join "127.0.0.1:$port" || { echo "FAILED: the joining side stopped"; tail -3 "$work/online-join.err"; status=1; }
 wait "$host" || { echo "FAILED: the host stopped"; tail -3 "$work/online-host.err"; status=1; }
@@ -53,6 +57,20 @@ elif cmp -s <(head -n "$lines" "$work/online-host.txt") <(head -n "$lines" "$wor
 else
     echo "FAILED: the two sides differ from frame $(diff <(head -n "$lines" "$work/online-host.txt") <(head -n "$lines" "$work/online-join.txt") | grep '^<' | head -1 | cut -d' ' -f2)"
     status=1
+fi
+if [ -n "$arcade" ]; then
+    # (the host played before the other side came: the match began from there)
+    played=$(sed -n 's/^online: the match begins after \([0-9]*\) frames of the host.s play.*/\1/p' "$work/online-host.err")
+    if [ "${played:-0}" -lt 120 ]; then
+        echo "FAILED: the host had not played while it waited (${played:-no} frames)"
+        status=1
+    else
+        echo "ok: the match began after $played frames of the host's own play"
+    fi
+    for name in host join; do
+        echo "$name: $(grep '^online: frame' "$work/online-$name.err" | tail -1 | sed 's/^online: //')"
+    done
+    exit $status
 fi
 # And the match is what the game does with those controls: both players' (--record), replayed without the network
 : > "$work/online-replay.ini"
