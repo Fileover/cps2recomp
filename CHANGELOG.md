@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- **Play at the top** of each game's page in the launcher, right under its name and the lines about it.
 - **The launcher keeps a series' games together**: the Street Fighter Alpha games, the Darkstalkers games and the
   Marvel games are each one row in the sidebar that opens to show them, with a page of their own to play any of them
   (recomp-common: `CollectionGame::series`). A game's series is `series` in its `game.cfg`; Super Street Fighter II

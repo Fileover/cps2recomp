@@ -215,8 +215,11 @@ private:
                       bool whole = true);
     void file_card(size_t which, float width);
     void display_cards(size_t which, float width);
-    void play_button(size_t which, float width);
+    // Play, under the page's heading, and why the game didn't start; whether it can be played now (online_card's `ready`)
+    bool play_button(size_t which, float width);
     void online_card(size_t which, float width, bool ready);
+    // Under the game's other cards: its Online card, and Steam's (Linux)
+    void play_cards(size_t which, float width, bool ready);
     // Host's arguments for a game's Online: listed under the player's name if they have one, and arcade while waiting
     // if they switched it on; and the row with that switch
     std::vector<std::string> host_arguments(const launcher::Online& online) const;
