@@ -18,7 +18,7 @@ to the title, the board's operator settings, cheats, save states, run-ahead, arc
 > [report what you find](#feedback-and-contributing).
 
 **No game files are included.** You need your own copy of the game: the arcade ROM set `sgemf` (USA, 970904)
-with its key file, from a board you own. **Only that version works.** This project cannot help you get one.
+with its key file, from a board you own. **Only the sets named below work.** This project cannot help you get one.
 
 This project is not affiliated with, endorsed by, or sponsored by Capcom. *Super Gem Fighter* and *Pocket Fighter*
 are trademarks of Capcom Co., Ltd.
@@ -180,9 +180,10 @@ menu shows the board's own values.
 ## What you need
 
 - The ROM set `sgemf` (*Super Gem Fighter: Mini Mix*, USA 970904): `sgemf.zip` or a folder with the set's files,
-  including `sgemf.key`. The launcher checks every file by checksum and tells you which is missing or different.
-  Sets of other regions are refused (`pfghtj`, the Japanese *Pocket Fighter*, among them): the port is made from
-  this one version's program, and its features use addresses found in it.
+  including `sgemf.key`. The launcher checks every file by checksum and tells you which is missing or different. The
+  same release's other sets work too, each as the board plays in its region: `pfghtj` (Japan 970904), `sgemfa` (Asia
+  970904) and `sgemfh` (Hispanic 970904). Other revisions are refused: the port is made from this program, and its
+  features use addresses found in it.
 - One of: macOS 13 or later (Apple silicon or Intel); Linux x86_64 or SteamOS; Windows 10 or 11, 64-bit.
 - A gamepad or stick with three buttons or more is recommended (and one more for Start, for the hidden characters).
 

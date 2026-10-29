@@ -37,6 +37,10 @@ struct RomSet {
     // The QSound chip's samples: signed bytes
     std::vector<uint8_t> samples;
 
+    // Which set it is (RomList::set, or one of its others: its set, and the name ROM collections give it; "" for the
+    // set's own)
+    std::string set, name;
+
     uint32_t key[2] = {};     // the board's 64-bit key
     uint32_t encryptedEnd = 0; // program below this address is enciphered
 
@@ -57,18 +61,29 @@ struct RomList {
     // The set's name in ROM collections, and its parent set's (collections often keep the files a set
     // shares with its parent only in the parent's zip)
     std::string set, parent;
+    // Other sets of the same game the port plays as well (game.cfg's other_set: another region, whose program
+    // is the same code, with the region in the header or in one instruction): their own program files and key,
+    // the rest the set's. Read when the set's own program is not there.
+    struct Other {
+        std::string set, name;
+        std::vector<RomFile> program, key;
+    };
+    std::vector<Other> others;
     // Where the first graphics file sits in the graphics space (a list that starts "@800000": boards with
     // few graphics ROMs have them in the last sockets, and the game's tile numbers count from the first)
     size_t graphicsBase = 0;
     Board board;
 };
-// (board, cpsB: game.cfg's `board` and `cps_b`, or "")
+// (board, cpsB: game.cfg's `board` and `cps_b`, or ""; others: its other_set, "set | name | program | key" with
+// " || " between two)
 RomList ParseRomList(const char *program, const char *graphics, const char *soundProgram, const char *samples,
-                     const char *key, const char *set = "", const char *parent = "", const char *board = "", const char *cpsB = "");
+                     const char *key, const char *set = "", const char *parent = "", const char *board = "", const char *cpsB = "",
+                     const char *others = "");
 
 // Reads the set from `path`: a folder of its files, or a zip (<set>.zip; files not in it are looked for in
 // the parent's and the set's zips beside it, and a folder's files can be in such zips inside it). Files in
-// zips are found by checksum, whatever they are called. Nothing is written or changed.
+// zips are found by checksum, whatever they are called. Nothing is written or changed. Where the set's own
+// program is not there, each of its others' is tried (RomSet::set says which was read).
 // False with a message if a file is missing or is not the one expected.
 bool LoadRomSet(const std::string &path, const RomList &list, RomSet &set, std::string &error);
 

@@ -346,7 +346,7 @@ def main():
                     help="the game's sources (folders, with %s between): translated code stops by for a hook wherever they say "
                          "AddHook(0x...) or AddRewrite(0x...)" % os.pathsep)
     ap.add_argument("--hooks", default=None,
-                    help="more places translated code stops by for a hook (a file of them, hex, one a line)")
+                    help="more places translated code stops by for a hook (files of them, hex, one a line, with %s between)" % os.pathsep)
     ap.add_argument("--places", default=None,
                     help="for sources shared with another game: the list of where the places they name as At(0x...) are in "
                          "this one (a game's family.h: {0x..., 0x...} pairs)")
@@ -401,8 +401,9 @@ def main():
                     hooks.add(names[where])
                 else:
                     sys.exit("recomp: the sources hook %s, and nothing says where that is" % where)
-    if args.hooks and os.path.exists(args.hooks):
-        hooks |= {int(line, 16) for line in open(args.hooks).read().split()}
+    for path in (args.hooks or "").split(os.pathsep):
+        if path and os.path.exists(path):
+            hooks |= {int(line, 16) for line in open(path).read().split()}
     hooks = sorted(hooks - {0})  # (0: a place the game does not have, lift.h's kNoPlace)
     entries += hooks  # (a hook's place is a place to translate from)
     entries = [e for e in dict.fromkeys(entries) if e < limit and not e & 1]

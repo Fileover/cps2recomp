@@ -229,7 +229,7 @@ namespace {
 } // namespace
 
 RomList ParseRomList(const char *program, const char *graphics, const char *soundProgram, const char *samples,
-                     const char *key, const char *set, const char *parent, const char *board, const char *cpsB) {
+                     const char *key, const char *set, const char *parent, const char *board, const char *cpsB, const char *others) {
     RomList list;
     list.board.cps1 = std::string(board) == "cps1";
     if (list.board.cps1) {
@@ -268,6 +268,24 @@ RomList ParseRomList(const char *program, const char *graphics, const char *soun
     list.soundProgram = ParseFiles(soundProgram);
     list.samples = ParseFiles(samples);
     list.key = ParseFiles(key);
+    // (others: "set | name | program | key", " || " between two)
+    const std::string all = others ? others : "";
+    for (size_t at = 0; at < all.size();) {
+        const size_t end = std::min(all.find(" || ", at), all.size());
+        std::vector<std::string> parts;
+        for (size_t from = at; from <= end;) {
+            const size_t bar = std::min(all.find('|', from), end);
+            std::string part = all.substr(from, bar - from);
+            part.erase(0, part.find_first_not_of(' '));
+            part.erase(part.find_last_not_of(' ') + 1);
+            parts.push_back(part);
+            from = bar + 1;
+        }
+        if (parts.size() == 4 && !parts[0].empty()) {
+            list.others.push_back({parts[0], parts[1], ParseFiles(parts[2].c_str()), ParseFiles(parts[3].c_str())});
+        }
+        at = end + 4;
+    }
     return list;
 }
 
@@ -290,7 +308,11 @@ bool LoadRomSet(const std::string &path, const RomList &list, RomSet &set, std::
             const size_t slash = path.find_last_of('/');
             beside = slash == std::string::npos ? "." : path.substr(0, slash);
         }
-        for (const std::string &name : {list.set, list.parent}) {
+        std::vector<std::string> names = {list.set, list.parent};
+        for (const RomList::Other &other : list.others) {
+            names.push_back(other.set);
+        }
+        for (const std::string &name : names) {
             if (!name.empty() && beside + "/" + name + ".zip" != path) {
                 zips.push_back(beside + "/" + name + ".zip");
             }
@@ -306,26 +328,70 @@ bool LoadRomSet(const std::string &path, const RomList &list, RomSet &set, std::
         }
     }
 
-    // Program: the files hold each 16-bit word low byte first
-    set.program.clear();
-    for (const RomFile &file : list.program) {
-        if (!ReadFile(folder, file, data, error)) {
+    // Program: the files hold each 16-bit word low byte first; the set's own, else one of its others' (the first
+    // whose files are all there), with its key
+    auto readProgram = [&](const std::vector<RomFile> &program, const std::vector<RomFile> &key, std::string &why) {
+        set.program.clear();
+        for (const RomFile &file : program) {
+            if (!ReadFile(folder, file, data, why)) {
+                return false;
+            }
+            for (size_t i = 0; i + 1 < data.size(); i += 2) {
+                set.program.push_back(data[i + 1]);
+                set.program.push_back(data[i]);
+            }
+        }
+        if (list.board.cps1) {
+            return true;
+        }
+        if (key.empty() || !ReadFile(folder, key[0], data, why) || !DecodeKey(data, set)) {
+            if (why.empty()) {
+                why = "the key file is not a CPS-2 key";
+            }
             return false;
         }
-        for (size_t i = 0; i + 1 < data.size(); i += 2) {
-            set.program.push_back(data[i + 1]);
-            set.program.push_back(data[i]);
+        return true;
+    };
+    // (the set the zip or folder chosen is named for comes first: mvscj.zip is that set, even with the set's own zip
+    // beside it, which a collection of split sets keeps the files they share in)
+    std::string chosen = path;
+    while (!chosen.empty() && (chosen.back() == '/' || chosen.back() == '\\')) {
+        chosen.pop_back();
+    }
+    chosen = chosen.substr(chosen.find_last_of("/\\") + 1);
+    if (chosen.size() > 4 && chosen.compare(chosen.size() - 4, 4, ".zip") == 0) {
+        chosen.resize(chosen.size() - 4);
+    }
+    std::vector<const RomList::Other *> order;
+    for (const RomList::Other &other : list.others) {
+        if (other.set == chosen) {
+            order.insert(order.begin(), &other);
+        } else {
+            order.push_back(&other);
+        }
+    }
+    auto take = [&](const RomList::Other &other) {
+        std::string why;
+        if (!readProgram(other.program, other.key, why)) {
+            return false;
+        }
+        set.set = other.set;
+        set.name = other.name;
+        return true;
+    };
+    set.set = list.set;
+    if (order.empty() || order[0]->set != chosen || !take(*order[0])) {
+        if (!readProgram(list.program, list.key, error)) {
+            if (std::none_of(order.begin(), order.end(), [&](const RomList::Other *other) { return take(*other); })) {
+                return false; // (what was missing of the set's own)
+            }
+            error.clear();
         }
     }
 
     set.board = list.board;
     if (list.board.cps1) {
         set.opcodes = set.program; // (a CPS-1's program is not enciphered)
-    } else if (list.key.empty() || !ReadFile(folder, list.key[0], data, error) || !DecodeKey(data, set)) {
-        if (error.empty()) {
-            error = "the key file is not a CPS-2 key";
-        }
-        return false;
     }
     if (!list.board.cps1) {
         const size_t words = set.program.size() / 2;

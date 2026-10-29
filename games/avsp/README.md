@@ -69,9 +69,11 @@ program; what the program expects of the board is code written for this project,
 ## What you need
 
 - The ROM set `avspu` (*Alien vs. Predator*, USA 940520): `avspu.zip` (with `avsp.zip` beside it, if your collection
-  keeps the shared files there) or a folder with the set's files, including `avspu.key`. The launcher checks every
-  file by checksum and tells you which is missing or different. Some older collections have the set without its key
-  file, or with older dumps of four graphics ROMs (`avp.14m`, `16m`, `18m`, `20m`): those will not do.
+  keeps the shared files there) or a folder with the set's files, including `avspu.key`. The launcher checks every file
+  by checksum and tells you which is missing or different. The same release's other sets work too, each as the board
+  plays in its region: `avsp` (Europe 940520), `avspj` (Japan 940520), `avspa` (Asia 940520) and `avsph` (Hispanic
+  940520). Some older collections have the set without its key file, or with older dumps of four graphics ROMs
+  (`avp.14m`, `16m`, `18m`, `20m`): those will not do.
 - One of: macOS 13 or later (Apple silicon or Intel); Linux x86_64 or SteamOS; Windows 10 or 11, 64-bit.
 - For three players: three gamepads, or keys chosen for the second and third players on the Controllers page.
 

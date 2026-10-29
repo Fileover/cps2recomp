@@ -427,6 +427,7 @@ bool Netplay::Begin(Port &port, std::string &error) {
     local = settings.hosting ? 0 : 1;
     remote = 1 - local;
     build = BuildHash(port);
+    set = port.roms.set;
     began = NowMs();
     if (settings.hosting) {
         StartAt(settings.delay);
@@ -438,6 +439,7 @@ bool Netplay::Begin(Port &port, std::string &error) {
         hello.Text(GAME_ID);
         hello.U32(build);
         hello.Text(RECOMP_VERSION);
+        hello.Text(set);
         greeting = hello.out;
         // A match's code (K7Q-M2X: six letters and digits), or the host's address
         joinCode = CodeOf(settings.address);
@@ -774,6 +776,7 @@ int Netplay::Waiting(Port &port, std::string &error) {
                 const std::string game = in.Text();
                 const uint32_t theirs = in.U32();
                 const std::string version = in.Text();
+                const std::string theirSet = in.Text();
                 std::string why;
                 if (protocol == kProtocol && version != RECOMP_VERSION) {
                     why = "The other player has version " + version + " and this one " RECOMP_VERSION ": both need the same version.";
@@ -781,6 +784,8 @@ int Netplay::Waiting(Port &port, std::string &error) {
                     why = "The two copies of the game are different versions: update both.";
                 } else if (game != GAME_ID) {
                     why = "The other player started " + game + ", this side " GAME_ID ".";
+                } else if (theirSet != set) {
+                    why = "One player has the ROM set " + set + ", the other " + theirSet + ": both need the same set (the same region).";
                 } else if (theirs != build) {
                     why = "The two copies of the game are different builds: use the same release on both.";
                 }
