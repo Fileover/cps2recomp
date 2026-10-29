@@ -23,6 +23,7 @@
 //                                                                     as GET /v1/lobby says them: one request for the Online page)
 //   POST /v1/room/leave          {secret}                          -> {}
 //   POST /v1/room/decline        {secret, code}                    -> {}
+//   GET  /v1/stats?key=K                                           -> a page of numbers, for the service's keeper (STATS_KEY)
 //
 // A host that asks for it (`listed`, with a `name` and its `protocol`) is in the lobby, a Durable Object (Lobby) that
 // keeps every game's: there while it is asking whether someone has joined (seen in the last 25 seconds), and until
@@ -36,6 +37,9 @@
 // that player's next check-in while the host asks about its match, until someone joins it, or the player declines
 // (the host's next question is answered `invite: "declined"`), or it can't be given (`invite: "away"`). A player
 // who blocks another (`blocked`, ids their launcher keeps) sees nothing of them, nor they of the player.
+//
+// Stats (a Durable Object) counts, by day and game, the matches hosted and joined, and which hosts are waiting now:
+// counts only, nothing about who. The page also says how many players have their Online page open (the Room).
 //
 // `addresses` are "IP:PORT" strings (IPv4, or [IPv6]:PORT), at most 8: each side's own, as STUN and its network say them.
 
@@ -96,9 +100,17 @@ function cleanIds(list) {
 }
 
 export default {
-  async fetch(request, env) {
+  async fetch(request, env, ctx) {
     const url = new URL(request.url);
     const parts = url.pathname.split("/").filter(Boolean);
+    // (a count for the stats, after the answer: it never holds the answer up)
+    const count = (what, body) => {
+      const stats = env.STATS.get(env.STATS.idFromName("all"));
+      ctx.waitUntil(stats.fetch(`https://stats/${what}`, { method: "POST", body: JSON.stringify(body) }).catch(() => {}));
+    };
+    if (request.method === "GET" && parts[1] === "stats" && parts.length === 2) {
+      return statsPage(env, url.searchParams.get("key") || "");
+    }
     if (parts[0] !== "v1") {
       // (someone who came here in a browser: to the project)
       return Response.redirect("https://github.com/tmcleroy/cps2recomp", 302);
@@ -127,6 +139,9 @@ export default {
         const answer = await match.fetch(`https://match/host?code=${code}`, { method: "POST", body: JSON.stringify({ ...asked, code: undefined, secret: undefined }) });
         if (answer.status !== 409) {
           const body = await answer.json();
+          if (answer.ok) {
+            count("hosted", { game: cleanText(asked.game) });
+          }
           return json(answer.ok ? { code, secret: body.secret } : body, answer.status);
         }
       }
@@ -171,7 +186,16 @@ export default {
       return match.fetch(`https://match/poll?secret=${encodeURIComponent(url.searchParams.get("secret") || "")}`);
     }
     if (request.method === "POST" && parts[1] === "join") {
-      return match.fetch("https://match/join", { method: "POST", body: await request.text() });
+      const text = await request.text();
+      const answer = await match.fetch("https://match/join", { method: "POST", body: text });
+      if (answer.ok) {
+        let game = "";
+        try {
+          game = cleanText(JSON.parse(text).game);
+        } catch {}
+        count("joined", { game, code });
+      }
+      return answer;
     }
     return json({ error: "not here" }, 404);
   },
@@ -254,6 +278,12 @@ export class Match {
     if (url.pathname === "/poll") {
       if (url.searchParams.get("secret") !== match.secret) {
         return json({ error: "no such code" }, 404);
+      }
+      if (!match.joiner && now - (this.waitingSaid || 0) > 15000) {
+        // (the stats told this host is waiting, now and then: it is counted as waiting while it has been told lately)
+        this.waitingSaid = now;
+        const stats = this.env.STATS.get(this.env.STATS.idFromName("all"));
+        await stats.fetch("https://stats/waiting", { method: "POST", body: JSON.stringify({ code: match.code, game: match.game }) }).catch(() => {});
       }
       if (!match.joiner && now - this.told > kTell) {
         this.told = now;
@@ -409,6 +439,14 @@ export class Room {
       return json({ error: "not JSON" }, 400);
     }
     this.sweep(now);
+    if (url.pathname === "/count") {
+      // (for the stats page: how many have their Online page open, and how many of them with a name)
+      let named = 0;
+      for (const player of this.players.values()) {
+        named += player.name ? 1 : 0;
+      }
+      return json({ here: this.players.size, named });
+    }
     if (url.pathname === "/invite" || url.pathname === "/uninvite") {
       // (from a match: body.to invited to body.code, or no longer)
       const to = cleanIds([body.to])[0];
@@ -487,3 +525,84 @@ export class Room {
     return json({ id, players: players.slice(0, 200), invitations });
   }
 }
+
+// The stats: by day (UTC), the matches hosted and joined by game; and the hosts waiting now (told every 15 seconds while
+// they wait, forgotten 30 seconds after the last)
+export class Stats {
+  constructor(state) {
+    this.state = state;
+    this.waiting = new Map(); // code -> {game, seen}
+  }
+
+  async fetch(request) {
+    const url = new URL(request.url);
+    const now = Date.now();
+    for (const [code, w] of this.waiting) {
+      if (now - w.seen > 30000) {
+        this.waiting.delete(code);
+      }
+    }
+    if (url.pathname === "/report") {
+      const days = (await this.state.storage.get("days")) || {};
+      const waiting = {};
+      for (const w of this.waiting.values()) {
+        waiting[w.game] = (waiting[w.game] || 0) + 1;
+      }
+      return json({ days, waiting });
+    }
+    const body = JSON.parse(await request.text());
+    const game = typeof body.game === "string" && body.game ? body.game.slice(0, 32) : "?";
+    if (url.pathname === "/waiting") {
+      this.waiting.set(String(body.code), { game, seen: now });
+      return json({});
+    }
+    if (url.pathname === "/hosted" || url.pathname === "/joined") {
+      if (url.pathname === "/joined") {
+        this.waiting.delete(String(body.code));
+      }
+      const day = new Date(now).toISOString().slice(0, 10);
+      const days = (await this.state.storage.get("days")) || {};
+      const today = (days[day] = days[day] || { hosted: {}, joined: {} });
+      const kind = url.pathname.slice(1);
+      today[kind][game] = (today[kind][game] || 0) + 1;
+      // (90 days kept)
+      for (const old of Object.keys(days).sort().slice(0, -90)) {
+        delete days[old];
+      }
+      await this.state.storage.put("days", days);
+      return json({});
+    }
+    return json({ error: "not here" }, 404);
+  }
+}
+
+// The page of numbers, for whoever has the key (a Worker secret: wrangler secret put STATS_KEY)
+async function statsPage(env, key) {
+  if (!env.STATS_KEY || key !== env.STATS_KEY) {
+    return json({ error: "not here" }, 404);
+  }
+  const stats = await (await env.STATS.get(env.STATS.idFromName("all")).fetch("https://stats/report")).json();
+  const room = await (await env.ROOMS.get(env.ROOMS.idFromName("all")).fetch("https://room/count", { method: "POST", body: "{}" })).json();
+  const listed = (await (await env.LOBBIES.get(env.LOBBIES.idFromName("all")).fetch("https://lobby/list?protocol=3")).json()).matches.length;
+  const sum = (o) => Object.values(o || {}).reduce((a, b) => a + b, 0);
+  const escape = (t) => String(t).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+  const waitingNow = sum(stats.waiting);
+  const days = Object.keys(stats.days).sort().reverse().slice(0, 14);
+  const games = [...new Set(days.flatMap((d) => [...Object.keys(stats.days[d].hosted), ...Object.keys(stats.days[d].joined)]))].sort();
+  const rows = days
+    .map((d) => `<tr><td>${d}</td><td>${sum(stats.days[d].hosted)}</td><td>${sum(stats.days[d].joined)}</td>${games
+      .map((g) => `<td>${stats.days[d].hosted[g] || 0} / ${stats.days[d].joined[g] || 0}</td>`)
+      .join("")}</tr>`)
+    .join("");
+  const html = `<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>CPS-2 Recomp online</title>
+<style>body{font:15px system-ui;margin:24px;background:#16171a;color:#e8e8ea}td,th{padding:4px 10px;text-align:right;border-bottom:1px solid #333}
+th:first-child,td:first-child{text-align:left}.big{font-size:28px;font-weight:600}.n{display:inline-block;margin-right:32px}small{color:#999}</style>
+<h1>CPS-2 Recomp online</h1>
+<div class="n"><div class="big">${room.here}</div>Online page open<br><small>${room.named} with a name</small></div>
+<div class="n"><div class="big">${waitingNow}</div>hosts waiting<br><small>${listed} of them in the lobby</small></div>
+<h2>The last 14 days (UTC)</h2>
+<table><tr><th>Day</th><th>Hosted</th><th>Joined</th>${games.map((g) => `<th>${escape(g)}<br><small>hosted / joined</small></th>`).join("")}</tr>${rows || '<tr><td colspan="3">Nothing yet.</td></tr>'}</table>
+<p><small>Counts only: nothing about who. A match hosted is a code given; joined, a player let in with it. Refresh for now.</small></p>`;
+  return new Response(html, { headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" } });
+}
+

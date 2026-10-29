@@ -40,12 +40,18 @@ Two routers that each give every destination a port of its own ("symmetric" NAT,
 met this way; a relay would be needed, which the service doesn't have yet. Then the host's address, with its port
 forwarded, or a VPN such as Tailscale, still works.
 
+**Stats** for whoever runs the service: the Stats Durable Object counts matches hosted and joined per UTC day, by
+game (90 days kept), and knows the hosts asking about a match in the last 30 seconds; nothing about who. `GET
+/v1/stats?key=KEY` shows them, with how many have the Online page open, if the Worker has the secret `STATS_KEY`
+(without it the page is closed).
+
 ## Running it
 
 ```sh
 cd online
 npx wrangler login     # once: Cloudflare's tool, signed in to the account in a browser
 npx wrangler deploy    # https://cps2recomp-online.<the account's subdomain>.workers.dev
+npx wrangler secret put STATS_KEY   # once, for the stats page
 npx wrangler dev       # or on this machine, at http://localhost:8787, for tests
 ```
 
