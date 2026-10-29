@@ -70,11 +70,12 @@ gen:
 		python3 $(CR)/tools/graft.py --spec games/$(GAME)/graft.cfg --work $(WORK) \
 			--base $(shell $(CFG) extra_base $(GAME)) --out $(GEN)/graft_data.h; \
 	fi
+	@region=$$($(CFG) region_at $(GAME)); if [ -n "$$region" ]; then printf '%X\n' $$((0x$$region + 6)); fi > $(GEN)/region_hooks.txt
 	@if [ -f $(PROGRAM) ]; then \
 		python3 $(CR)/tools/recomp.py --program $(PROGRAM) --entries $(ENTRIES) --out $(GEN) \
 			--limit $(shell $(CFG) code_end $(GAME)) --list $(WORK)/program.lst \
 			--guess $(WORK)/guessed.txt --data $(PROGRAM).data \
-			--hook-sources "$(HOOK_SOURCES)" --places games/$(GAME)/family.h --hooks $(GEN)/graft_data_hooks.txt; \
+			--hook-sources "$(HOOK_SOURCES)" --places games/$(GAME)/family.h --hooks $(GEN)/graft_data_hooks.txt:$(GEN)/region_hooks.txt; \
 	fi
 	@if [ -f $(PROGRAM).z80 ]; then \
 		python3 $(CR)/tools/recompz80.py --program $(PROGRAM).z80 --entries $(ENTRIES).z80 --out $(GEN) \
@@ -156,7 +157,8 @@ launcher: port
 	  -DROM_SAMPLES="$(shell $(CFG) samples $(GAME))" -DROM_KEY="$(shell $(CFG) key $(GAME))" \
 	  -DDISPLAY_SWITCHES="$(shell $(CFG) display $(GAME))" \
 	  -DPLAYERS="$(shell $(CFG) players $(GAME))" -DBUTTONS="$(shell $(CFG) buttons $(GAME))" \
-	  -DBOARD="$(shell $(CFG) board $(GAME))" -DCPS_B="$(shell $(CFG) cps_b $(GAME))" > /dev/null
+	  -DBOARD="$(shell $(CFG) board $(GAME))" -DCPS_B="$(shell $(CFG) cps_b $(GAME))" \
+	  -DOTHER_SET="$(shell $(CFG) other_set $(GAME))" > /dev/null
 	@cmake --build $(B)/launcher
 	@echo "built $(B)/$(GAME)-launcher"
 

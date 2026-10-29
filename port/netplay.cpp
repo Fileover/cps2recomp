@@ -390,6 +390,36 @@ void Netplay::StartAt(int frames) {
     localUpTo = remoteUpTo = static_cast<uint64_t>(delay);
 }
 
+// The welcome for the one who has come: the delay, the board settings, the features that change play, and the game
+// as it is now (the board's reset, or, with --net-arcade, wherever the host's play has got to)
+void Netplay::Welcome(Port &port) {
+    Writer welcome(kWelcome);
+    welcome.U16(kProtocol);
+    welcome.U8(static_cast<uint8_t>(delay));
+    welcome.Bytes(port.machine->eeprom.words, sizeof(port.machine->eeprom.words));
+    std::string features;
+    for (const Feature &feature : TheGame().features) {
+        if (Shared(feature) == Share::Host && FeatureSetting(feature.name)) {
+            features += std::string(feature.name) + "=" + std::to_string(FeatureSetting(feature.name)) + ",";
+        }
+    }
+    welcome.Text(features);
+    // (the game as it is now: the state the match begins from, sent in pieces)
+    std::vector<uint8_t> raw;
+    port.KeepState(raw);
+    uLongf packed = compressBound(static_cast<uLong>(raw.size()));
+    state.resize(packed);
+    compress2(state.data(), &packed, raw.data(), static_cast<uLong>(raw.size()), 6);
+    state.resize(packed);
+    stateSize = raw.size();
+    chunks = static_cast<uint32_t>((state.size() + kChunk - 1) / kChunk);
+    welcome.U32(static_cast<uint32_t>(stateSize));
+    welcome.U32(static_cast<uint32_t>(state.size()));
+    // (flags: 1, this side's player is already in the game, which was played while it waited)
+    welcome.U8(port.cameIn ? 1 : 0);
+    greeting = welcome.out;
+}
+
 bool Netplay::Begin(Port &port, std::string &error) {
     if (!socket.Open(settings.hosting ? settings.port : 0, error)) {
         return false;
@@ -397,33 +427,11 @@ bool Netplay::Begin(Port &port, std::string &error) {
     local = settings.hosting ? 0 : 1;
     remote = 1 - local;
     build = BuildHash(port);
+    set = port.roms.set;
     began = NowMs();
     if (settings.hosting) {
         StartAt(settings.delay);
         Settle(true, {});
-        Writer welcome(kWelcome);
-        welcome.U16(kProtocol);
-        welcome.U8(static_cast<uint8_t>(delay));
-        welcome.Bytes(port.machine->eeprom.words, sizeof(port.machine->eeprom.words));
-        std::string features;
-        for (const Feature &feature : TheGame().features) {
-            if (Shared(feature) == Share::Host && FeatureSetting(feature.name)) {
-                features += std::string(feature.name) + "=" + std::to_string(FeatureSetting(feature.name)) + ",";
-            }
-        }
-        welcome.Text(features);
-        // (the game as it is, waiting: the state the match begins from, sent in pieces once someone has come)
-        std::vector<uint8_t> raw;
-        port.KeepState(raw);
-        uLongf packed = compressBound(static_cast<uLong>(raw.size()));
-        state.resize(packed);
-        compress2(state.data(), &packed, raw.data(), static_cast<uLong>(raw.size()), 6);
-        state.resize(packed);
-        stateSize = raw.size();
-        chunks = static_cast<uint32_t>((state.size() + kChunk - 1) / kChunk);
-        welcome.U32(static_cast<uint32_t>(stateSize));
-        welcome.U32(static_cast<uint32_t>(state.size()));
-        greeting = welcome.out;
         waiting = "Waiting for the other player (UDP port " + std::to_string(settings.port) + ")";
     } else {
         Writer hello(kHello);
@@ -431,6 +439,7 @@ bool Netplay::Begin(Port &port, std::string &error) {
         hello.Text(GAME_ID);
         hello.U32(build);
         hello.Text(RECOMP_VERSION);
+        hello.Text(set);
         greeting = hello.out;
         // A match's code (K7Q-M2X: six letters and digits), or the host's address
         joinCode = CodeOf(settings.address);
@@ -767,6 +776,7 @@ int Netplay::Waiting(Port &port, std::string &error) {
                 const std::string game = in.Text();
                 const uint32_t theirs = in.U32();
                 const std::string version = in.Text();
+                const std::string theirSet = in.Text();
                 std::string why;
                 if (protocol == kProtocol && version != RECOMP_VERSION) {
                     why = "The other player has version " + version + " and this one " RECOMP_VERSION ": both need the same version.";
@@ -774,6 +784,8 @@ int Netplay::Waiting(Port &port, std::string &error) {
                     why = "The two copies of the game are different versions: update both.";
                 } else if (game != GAME_ID) {
                     why = "The other player started " + game + ", this side " GAME_ID ".";
+                } else if (theirSet != set) {
+                    why = "One player has the ROM set " + set + ", the other " + theirSet + ": both need the same set (the same region).";
                 } else if (theirs != build) {
                     why = "The two copies of the game are different builds: use the same release on both.";
                 }
@@ -787,8 +799,11 @@ int Netplay::Waiting(Port &port, std::string &error) {
                 if (!found) {
                     peer = from;
                     found = true;
+                    chunksHad = 0;
+                    Welcome(port);
                     fprintf(stderr, "online: the other player is here\n");
                 }
+                lastHeard = now;
                 Send(greeting);
                 sent = now;
             } else if (found && from == peer && packet[4] == kControls) {
@@ -796,6 +811,7 @@ int Netplay::Waiting(Port &port, std::string &error) {
                 break;
             } else if (found && from == peer && packet[4] == kPieceAck) {
                 chunksHad = std::max(chunksHad, in.U32());
+                lastHeard = now;
             } else if (found && from == peer && packet[4] == kBye) {
                 found = false; // (they left before it began)
                 chunksHad = 0;
@@ -805,6 +821,12 @@ int Netplay::Waiting(Port &port, std::string &error) {
             lastHeard = now;
             fprintf(stderr, "online: the match is on: you are player 1 (%d frame%s of delay)\n", delay, delay == 1 ? "" : "s");
             return 1;
+        }
+        if (found && now - lastHeard > 5000) {
+            // (they went quiet before it began: waited for again, and the game, if it is played meanwhile, goes on)
+            fprintf(stderr, "online: the other player went quiet before the match began\n");
+            found = false;
+            chunksHad = 0;
         }
         if (found && now - sent > 250 && chunksHad == 0) {
             Send(greeting);
@@ -923,6 +945,11 @@ int Netplay::Waiting(Port &port, std::string &error) {
         stateSize = in.U32();
         state.assign(in.U32(), 0);
         if (!in.ok || stateSize == 0 || state.empty() || state.size() > (16u << 20)) {
+            error = "The host's welcome did not make sense.";
+            return -1;
+        }
+        hostIn = (in.U8() & 1) != 0;
+        if (!in.ok) {
             error = "The host's welcome did not make sense.";
             return -1;
         }

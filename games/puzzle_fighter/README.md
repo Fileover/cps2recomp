@@ -15,8 +15,8 @@ a training mode.
 > please [report what you find](#feedback-and-contributing).
 
 **No game files are included.** You need your own copy of the game: the arcade ROM set `spf2t`
-(Europe, 960529) with its key file, from a board you own. **Only that version works**: the sets of
-other regions and revisions (`spf2tu`, `spf2xj`, `spf2ta`, `spf2th` and the rest) do not. This
+(Europe, 960529) with its key file, from a board you own. **Only `spf2t` and `spf2ta` (Asia,
+960529) work**: the other revisions (`spf2tu`, `spf2xj`, `spf2th` and the rest) do not. This
 project cannot help you get one.
 
 This project is not affiliated with, endorsed by, or sponsored by Capcom. *Super Puzzle Fighter II
@@ -217,10 +217,11 @@ nothing until there are files), off in Pure.
 
 ## What you need
 
-- The ROM set `spf2t` (*Super Puzzle Fighter II Turbo*, Europe 960529): `spf2t.zip` or a folder
-  with the set's files, including `spf2t.key`. The launcher checks every file by checksum and tells
-  you which is missing or different. Sets of other regions and revisions are refused: the port is
-  made from this one version's program, and its features use addresses found in it.
+- The ROM set `spf2t` (*Super Puzzle Fighter II Turbo*, Europe 960529): `spf2t.zip` or a folder with
+  the set's files, including `spf2t.key`. The launcher checks every file by checksum and tells you
+  which is missing or different. The same release's other sets work too, each as the board plays in
+  its region: `spf2ta` (Asia 960529). Other revisions are refused: the port is made from this
+  program, and its features use addresses found in it.
 - One of: macOS 13 or later (Apple silicon or Intel); Linux x86_64 or SteamOS; Windows 10 or 11,
   64-bit.
 - A gamepad or stick is recommended.

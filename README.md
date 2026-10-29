@@ -12,7 +12,7 @@ mode, online play with rollback, widescreen and new modes.
 **[Get started →](#getting-started)**
 
 **No game files are included.** You need your own copy of each game: its arcade ROM set (a CPS-2 game's with its key
-file). Only the version named below works for each game, and this project cannot help you get one.
+file). Only the versions named below work for each game, and this project cannot help you get one.
 
 ![The model viewer: Psylocke at 1.5x, going through her animations](docs/screenshots/msh/model-viewer-psylocke.gif)
 
@@ -128,8 +128,10 @@ together).
 
 - The ROM set of each game you want, as named in the table above: a zip (with its parent set's zip beside it if your
   collection keeps the shared files there) or a folder of its files. The launcher checks every file and says which
-  is missing or different. Other regions and revisions don't work: each port is made from that one version.
-  Vampire Savior Definitive needs both `vsavj` and `vsav2`.
+  is missing or different. **Other regions** of the same release work too, played as the board plays in that region:
+  the Marvel games', Super Gem Fighter's (*Pocket Fighter* in Japan), Puzzle Fighter's, Alpha's, Alpha 3's, Super
+  Turbo's and Alien vs. Predator's; each game's page names them. Other revisions don't work: each port is made from
+  one version's program. Vampire Savior Definitive needs both `vsavj` and `vsav2`.
 - macOS 13 or later (Apple silicon or Intel), Linux x86_64 or ARM64 (SteamOS included), or Windows 10 or 11, 64-bit.
 - A gamepad or stick is recommended (six buttons for the fighting games).
 

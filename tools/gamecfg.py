@@ -24,13 +24,15 @@ def load(game=None):
             if not line or line.startswith("#") or "=" not in line:
                 continue
             key, value = line.split("=", 1)
-            cfg[key.strip()] = value.strip()
+            key, value = key.strip(), value.strip()
+            # (a key given again adds to it: other_set, a line a set)
+            cfg[key] = cfg[key] + " || " + value if key in cfg else value
     return cfg
 
 
 # What the collection's launcher is told of each game (launcher/src/description.cpp, GameInfo), in its order
 COLLECTION_KEYS = ["id", "name", "rom_set", "rom_parent", "rom_name", "program", "graphics", "sound_program", "samples", "key", "display",
-                   "players", "buttons", "board", "cps_b", "extra_set", "multi", "series"]
+                   "players", "buttons", "board", "cps_b", "extra_set", "multi", "other_set", "series"]
 
 
 def quoted(value):

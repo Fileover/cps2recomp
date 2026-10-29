@@ -204,6 +204,30 @@ int WindowSize() {
     return kTimes[std::clamp(FeatureValue("window_size"), 0, 4)];
 }
 
+#ifdef GAME_REGION_AT
+namespace {
+    // Another region's set whose region is in the code, not the header (game.cfg's region_at: an instruction
+    // `move.w #region,d16(a5)`): the translated code has the set's own region in it, so once the instruction is past,
+    // its variable is given the one this set's instruction has. (Set once, as the set is read.)
+    uint32_t g_regionVariable = 0; // (its distance from A5)
+    uint16_t g_region = 0;
+    bool AfterRegion(M68K &c) {
+        SetRam16((c.a[5] + g_regionVariable) & 0xFFFFFF, g_region);
+        return false;
+    }
+    void RegisterRegion(uint32_t at) {
+        const uint8_t *op = ProgramOpcodes(at);
+        if (((op[0] << 8) | op[1]) != 0x3B7C) {
+            fprintf(stderr, "region_at %06X: not move.w #region,d16(a5)\n", at);
+            return;
+        }
+        g_region = static_cast<uint16_t>((op[2] << 8) | op[3]);
+        g_regionVariable = static_cast<uint32_t>(static_cast<int16_t>((op[4] << 8) | op[5]));
+        AddHook(at + 6, "Region", AfterRegion);
+    }
+} // namespace
+#endif
+
 bool Port::Init(std::string &error) {
 #ifndef GAME_BOARD
 #define GAME_BOARD ""
@@ -214,10 +238,16 @@ bool Port::Init(std::string &error) {
 #ifndef GAME_KEY
 #define GAME_KEY ""
 #endif
+#ifndef GAME_OTHER_SET
+#define GAME_OTHER_SET ""
+#endif
     const RomList list = ParseRomList(GAME_PROGRAM, GAME_GRAPHICS, GAME_SOUND_PROGRAM, GAME_SAMPLES, GAME_KEY, GAME_ROM_SET, GAME_ROM_PARENT,
-                                      GAME_BOARD, GAME_CPS_B);
+                                      GAME_BOARD, GAME_CPS_B, GAME_OTHER_SET);
     if (!LoadRomSet(opt.romPath, list, roms, error)) {
         return false;
+    }
+    if (!roms.name.empty()) {
+        fprintf(stderr, "%s: the set %s (%s)\n", GAME_NAME, roms.set.c_str(), roms.name.c_str());
     }
 #ifdef GAME_EXTRA_SET
     // Another set the game reads (another game made from the same program, say): from --rom2, or beside --rom
@@ -256,6 +286,11 @@ bool Port::Init(std::string &error) {
 #endif
     SetEeprom(&machine->eeprom);
     RegisterGame();
+#ifdef GAME_REGION_AT
+    if (!roms.name.empty()) {
+        RegisterRegion(static_cast<uint32_t>(strtoul(GAME_REGION_AT, nullptr, 16)));
+    }
+#endif
     machine->cpu.pointerFrom = PointerLoads(machine->cpu.extraLow, machine->cpu.extraHigh);
     machine->cpu.keepHistory = getenv("CPS2RECOMP_PC_HISTORY") != nullptr;
     RegisterPortFeatures();
@@ -638,6 +673,16 @@ bool Port::Tick() {
             SetHud({});
             return false;
         }
+        if (state == 0 && net->Arcade()) {
+            // (--net-arcade: the game played meanwhile, as offline but with the match's features, the wait said at
+            // the bottom (Shown); until someone has come, who is then sent the game as it is, and it waits for them)
+            SetHud({});
+            if (net->Found() || leaving) {
+                return false;
+            }
+            ArcadeFrame();
+            return true;
+        }
         if (state == 0) {
             // (short lines, each its own panel: one wider than the picture is not drawn; the dots padded so that the
             // line keeps its width; the code in green)
@@ -784,6 +829,20 @@ void Port::Shown(std::vector<uint32_t> &pixels, std::vector<SDL_Rect> *panels) c
             status("PRESS START TO JOIN", said++ * 14);
         }
     }
+    // (--net-arcade: the host playing while it waits; the wait, and the match's code to give, at the bottom)
+    if (net && connecting && net->Arcade()) {
+        if (net->Found()) {
+            status("A CHALLENGER IS COMING", said++ * 14);
+        } else {
+            static const char *const kDots[] = {"   ", ".  ", ".. ", "..."};
+            const std::string waiting = std::string("WAITING FOR A CHALLENGER") + kDots[(tick / 30) % 4];
+            status(waiting.c_str(), said++ * 14);
+            if (!net->code.empty()) {
+                const std::string code = "MATCH CODE " + net->code + (net->Listed() ? "   IN THE LOBBY" : "");
+                status(code.c_str(), said++ * 14);
+            }
+        }
+    }
     // (what the camera's zoom was set to, for a few seconds: above that if both are said)
     if (*zoom.Label()) {
         status(zoom.Label(), said * 14);
@@ -807,14 +866,15 @@ void Port::Shown(std::vector<uint32_t> &pixels, std::vector<SDL_Rect> *panels) c
         }
     }
     // (online: Esc's question, in the middle, over the game, which goes on; the port's own, not the readout, which the
-    // game's sources set every frame)
+    // game's sources set every frame. --net-arcade's wait: whether to stop hosting, the game stopped meanwhile)
     if (net && leaving) {
         const recomp::text::Canvas canvas{pixels.data(), across, Video::kHeight};
+        const bool hosting = connecting;
         const struct {
             const char *text;
             recomp::text::Color colour;
-        } lines[] = {{"Leave the match?", {255, 255, 255, 255}},
-                     {"Confirm (A, Enter): leave", {255, 130, 120, 255}},
+        } lines[] = {{hosting ? "Stop hosting and quit?" : "Leave the match?", {255, 255, 255, 255}},
+                     {hosting ? "Confirm (A, Enter): quit" : "Confirm (A, Enter): leave", {255, 130, 120, 255}},
                      {"Back (B, Backspace, Esc): stay", {255, 255, 255, 255}}};
         float y = Video::kHeight / 2.0f - 30;
         for (const auto &line : lines) {
@@ -1292,7 +1352,7 @@ bool Port::StartOnline(std::string &error) {
         return false;
     }
     net = std::make_unique<Netplay>(opt.net);
-    if (opt.headless) {
+    if (opt.headless && !net->Arcade()) {
         if (!net->Connect(*this, error)) {
             net.reset();
             return false;
@@ -1323,6 +1383,7 @@ void Port::Again(const std::string &why) {
     }
     fprintf(stderr, "online: %s Waiting for the match again.\n", why.c_str());
     rejoin = why;
+    cameIn = false;
     frame = 0;
     net.reset(); // (the socket closed: the host's port is free for the new one)
     net = std::make_unique<Netplay>(settings);
@@ -1335,9 +1396,23 @@ void Port::Again(const std::string &why) {
     }
 }
 
+// --net-arcade: a frame of the host's own play while it waits, player 1's controls only (the other players' are the
+// one who comes's); counted as the match's are, from the first frame of the play
+void Port::ArcadeFrame() {
+    for (int player = 1; player < Machine::kMaxPlayers; player++) {
+        pad[player] = 0;
+    }
+    RunFrame();
+}
+
 void Port::Matched() {
     connecting = false;
-    cameIn = otherIn = false;
+    // (the host's player, playing while it waited, is in already; the joining side is told so in the welcome)
+    cameIn = net->Arcade() && cameIn;
+    otherIn = !net->Hosting() && net->HostIn();
+    if (net->Arcade()) {
+        fprintf(stderr, "online: the match begins after %llu frames of the host's play\n", static_cast<unsigned long long>(frame));
+    }
     streak[0] = streak[1] = roundsWon[0] = roundsWon[1] = 0;
     roundCounted = false;
     rejoin.clear();
@@ -1448,7 +1523,10 @@ void Port::RunFrame() {
     if (!net && AtFrame(opt.stateLoad, frame, path) && !LoadState(path, error)) {
         fprintf(stderr, "%s\n", error.c_str());
     }
-    if (net) {
+    if (net && connecting) {
+        Step(pressed); // (--net-arcade: the host playing while it waits)
+        cameIn = cameIn || (pressed[0] & kStart);
+    } else if (net) {
         net->Frame(*this, pressed[0]); // (this side's player plays with player 1's controls)
         cameIn = cameIn || (pressed[0] & kStart);
         otherIn = otherIn || (machine->players[1 - net->Local()] & kStart);
@@ -1644,6 +1722,7 @@ void Usage() {
             "  --net-service URL      the online service that gives hosts codes (online/), or off\n"
             "  --net-list             (hosting) the match in the lobby, the Online card's list of open matches\n"
             "  --net-name NAME        ... under this name\n"
+            "  --net-arcade           (hosting) the game played alone until the other player comes, who then challenges\n"
             "  --net-delay N          (hosting) frames each player's controls are held back, 2 unless said (0-8)\n"
             "  --net-fake MS[:JIT[:LOSS]]  (tests) each packet sent MS ms late, give or take JIT, LOSS in 100 lost\n"
             "  --test-switch FROM:TO  the operator's test switch held from frame FROM to TO\n"
@@ -1770,6 +1849,8 @@ bool ParseArgs(int argc, char **argv, port::Options &o) {
             o.net.address = next();
         } else if (a == "--net-list") {
             o.net.listed = true;
+        } else if (a == "--net-arcade") {
+            o.net.arcade = true;
         } else if (a == "--net-name") {
             o.net.name = next();
         } else if (a == "--net-service") {
