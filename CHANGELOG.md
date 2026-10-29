@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- **The launcher keeps a series' games together**: the Street Fighter Alpha games, the Darkstalkers games and the
+  Marvel games are each one row in the sidebar that opens to show them, with a page of their own to play any of them
+  (recomp-common: `CollectionGame::series`). A game's series is `series` in its `game.cfg`; Super Street Fighter II
+  Turbo is in Street Fighter II, a row of its own until another version comes.
 - **Online: arcade while waiting** (#159). A switch under Host a match, on the Online page and a game's Online card
   (recomp-common #32, `--net-arcade`), lets the host play the game alone until someone joins. The match's code and
   "WAITING FOR A CHALLENGER" are said at the bottom of the screen. The one who joins is sent the game as it is then,

@@ -11,6 +11,7 @@
 #include <cstring>
 #include <fstream>
 #include <iterator>
+#include <map>
 #include <random>
 #include <sstream>
 
@@ -150,7 +151,7 @@ const launcher::Description& the_description() {
 // Who a game is, as the launcher keeps it: a port's one game, or one of a collection's.
 struct Target {
     const launcher::Description* about = nullptr;
-    std::string id, name, exe, file_section = "game", video_section = "video";
+    std::string id, name, exe, series, file_section = "game", video_section = "video";
     std::filesystem::path folder;
 };
 
@@ -165,6 +166,7 @@ std::vector<Target> targets() {
             target.id = game.id;
             target.name = game.name;
             target.exe = game.exe;
+            target.series = game.series ? game.series : "";
             target.file_section = std::string("game.") + game.id;
             target.video_section = std::string("video.") + game.id;
             const char* own = game.home_env && *game.home_env ? std::getenv(game.home_env) : nullptr;
@@ -383,6 +385,7 @@ App::App(SDL_Window* window)
         slot->id = target.id;
         slot->name = target.name;
         slot->exe = target.exe;
+        slot->series = target.series;
         slot->file_section = target.file_section;
         slot->video_section = target.video_section;
         slot->folder = target.folder;
@@ -546,7 +549,7 @@ int App::fixed_pages() const {
 
 int App::page_count() const {
     if (collection_) {
-        return fixed_pages() + static_cast<int>(titled().size());
+        return fixed_pages() + static_cast<int>(rows().size());
     }
     return static_cast<int>(about_.pages.size()) + (about_.game_page ? 3 : 2);
 }
@@ -558,9 +561,17 @@ void App::set_page(const std::string& id) {
     if (id == "online" && collection_ && collection_->lobby) {
         page_ = fixed_pages() - 1;
     }
-    std::vector<size_t> list = titled();
+    // (a game in a closed series: the series opened)
+    for (const std::vector<size_t>& unit : units()) {
+        for (size_t which : unit) {
+            if (unit.size() > 1 && slots_[which]->id == id && !series_open(slots_[which]->series)) {
+                open_series(slots_[which]->series, true);
+            }
+        }
+    }
+    std::vector<Row> list = rows();
     for (size_t i = 0; i < list.size(); i++) {
-        if (slots_[list[i]]->id == id) {
+        if (!list[i].series && slots_[list[i].game]->id == id) {
             page_ = fixed_pages() + static_cast<int>(i);
         }
     }
@@ -581,39 +592,171 @@ void App::load_order() {
             order_.push_back(which);
         }
     }
+    group_order();
+}
+
+void App::group_order() {
+    std::vector<size_t> list = titled();
+    std::vector<size_t> grouped;
+    for (size_t which : order_) {
+        const std::string& series = slots_[which]->series;
+        if (series.empty()) {
+            grouped.push_back(which);
+            continue;
+        }
+        auto same = [&](size_t one) { return slots_[one]->series == series; };
+        auto first = std::find_if(list.begin(), list.end(), same);
+        if (which == (first != list.end() ? *first : *std::find_if(order_.begin(), order_.end(), same))) {
+            std::copy_if(order_.begin(), order_.end(), std::back_inserter(grouped), same);
+        }
+    }
+    order_ = grouped;
+}
+
+std::vector<std::vector<size_t>> App::units() const {
+    std::vector<std::vector<size_t>> list;
+    for (size_t which : titled()) {
+        const std::string& series = slots_[which]->series;
+        if (!series.empty() && !list.empty() && slots_[list.back().front()]->series == series) {
+            list.back().push_back(which);
+        } else {
+            list.push_back({which});
+        }
+    }
+    return list;
+}
+
+std::vector<App::Row> App::rows() const {
+    std::vector<Row> list;
+    for (const std::vector<size_t>& unit : units()) {
+        if (unit.size() == 1) {
+            list.push_back({unit.front()});
+            continue;
+        }
+        list.push_back({unit.front(), true});
+        if (series_open(slots_[unit.front()]->series)) {
+            for (size_t which : unit) {
+                list.push_back({which, false, true});
+            }
+        }
+    }
+    return list;
+}
+
+bool App::series_open(const std::string& series) const {
+    std::stringstream names(prefs_.get("games", "open"));
+    for (std::string name; std::getline(names, name, ',');) {
+        if (name == series) {
+            return true;
+        }
+    }
+    return false;
+}
+
+void App::open_series(const std::string& series, bool open) {
+    std::stringstream names(prefs_.get("games", "open"));
+    std::string kept;
+    for (std::string name; std::getline(names, name, ',');) {
+        if (name != series && !name.empty()) {
+            kept += (kept.empty() ? "" : ",") + name;
+        }
+    }
+    if (open) {
+        kept += (kept.empty() ? "" : ",") + series;
+        opened_ = series;
+    }
+    prefs_.set("games", "open", kept);
+    prefs_.save();
+}
+
+void App::keep_page(const std::function<void()>& change) {
+    size_t which = 0;
+    Page kind = own_page(page_, &which);
+    std::string series = kind == Page::Series ? slots_[which]->series : std::string();
+    change();
+    if (kind != Page::Title && kind != Page::Series) {
+        return;
+    }
+    std::vector<Row> list = rows();
+    for (size_t i = 0; i < list.size(); i++) {
+        const Row& row = list[i];
+        bool same = kind == Page::Series ? row.series && slots_[row.game]->series == series
+                                         : !row.series && row.game == which;
+        // (a game of a series that has closed: the series)
+        bool closed = kind == Page::Title && row.series && slots_[row.game]->series == slots_[which]->series;
+        if (same || closed) {
+            page_ = fixed_pages() + static_cast<int>(i);
+            if (same) {
+                break;
+            }
+        }
+    }
+}
+
+void App::reorder(const std::vector<size_t>& list) {
+    keep_page([&] {
+        // (the games with a page take the places such games had; those without stay where they are)
+        std::vector<size_t> before = titled();
+        size_t next = 0;
+        for (size_t& one : order_) {
+            if (next < list.size() && std::find(before.begin(), before.end(), one) != before.end()) {
+                one = list[next++];
+            }
+        }
+        group_order();
+        std::string ids;
+        for (size_t one : order_) {
+            ids += (ids.empty() ? "" : ",") + slots_[one]->id;
+        }
+        prefs_.set("games", "order", ids);
+        prefs_.save();
+    });
 }
 
 void App::move_game(size_t which, int place) {
-    std::vector<size_t> list = titled();
-    auto at = std::find(list.begin(), list.end(), which);
-    if (at == list.end() || list.size() < 2) {
+    std::vector<std::vector<size_t>> list = units();
+    for (size_t unit = 0; unit < list.size(); unit++) {
+        std::vector<size_t>& games = list[unit];
+        auto at = std::find(games.begin(), games.end(), which);
+        if (at == games.end()) {
+            continue;
+        }
+        if (games.size() == 1) {
+            move_unit(unit, place);
+            return;
+        }
+        place = std::clamp(place, 0, static_cast<int>(games.size()) - 1);
+        if (at - games.begin() == place) {
+            return;
+        }
+        games.erase(at);
+        games.insert(games.begin() + place, which);
+        std::vector<size_t> flat;
+        for (const std::vector<size_t>& one : list) {
+            flat.insert(flat.end(), one.begin(), one.end());
+        }
+        reorder(flat);
+        return;
+    }
+}
+
+void App::move_unit(size_t unit, int place) {
+    std::vector<std::vector<size_t>> list = units();
+    if (unit >= list.size() || list.size() < 2) {
         return;
     }
     place = std::clamp(place, 0, static_cast<int>(list.size()) - 1);
-    if (at - list.begin() == place) {
+    if (static_cast<int>(unit) == place) {
         return;
     }
-    size_t shown_game = 0;
-    bool shown_title = own_page(page_, &shown_game) == Page::Title;
-    std::vector<size_t> before = list;
-    list.erase(at);
-    list.insert(list.begin() + place, which);
-    // (the games with a page take the places such games had; those without stay where they are)
-    size_t next = 0;
-    for (size_t& one : order_) {
-        if (std::find(before.begin(), before.end(), one) != before.end()) {
-            one = list[next++];
-        }
+    std::vector<size_t> moved = list[unit];
+    list.erase(list.begin() + static_cast<long>(unit));
+    list.insert(list.begin() + place, moved);
+    std::vector<size_t> flat;
+    for (const std::vector<size_t>& one : list) {
+        flat.insert(flat.end(), one.begin(), one.end());
     }
-    std::string ids;
-    for (size_t one : order_) {
-        ids += (ids.empty() ? "" : ",") + slots_[one]->id;
-    }
-    prefs_.set("games", "order", ids);
-    prefs_.save();
-    if (shown_title) {
-        set_page(slots_[shown_game]->id);
-    }
+    reorder(flat);
 }
 
 // The launcher's own page at a place in the sidebar (a port's pages come first), or Page::Count; for a
@@ -628,14 +771,15 @@ Page App::own_page(int index, size_t* which) const {
                    : index == 3 && !collection_->multi.empty() ? Page::Multi
                                                                : Page::Online;
         }
-        std::vector<size_t> list = titled();
-        if (static_cast<size_t>(index - fixed) >= list.size()) {
+        std::vector<Row> list = rows();
+        if (index < fixed || static_cast<size_t>(index - fixed) >= list.size()) {
             return Page::Count;
         }
+        const Row& row = list[static_cast<size_t>(index - fixed)];
         if (which) {
-            *which = list[static_cast<size_t>(index - fixed)];
+            *which = row.game;
         }
-        return Page::Title;
+        return row.series ? Page::Series : Page::Title;
     }
     int own = index - static_cast<int>(about_.pages.size());
     if (own < 0) {
@@ -1161,7 +1305,7 @@ void App::sidebar(float height) {
     ImGui::SetCursorScreenPos(ImVec2(origin.x + px(24), ImGui::GetCursorScreenPos().y));
     ui::text("Version " LAUNCHER_VERSION, Font::Regular, ui::size::kSmall, p.tertiary);
 #endif
-    const char* own[] = {"Game", about_.features_name, "Controllers", "Games", "", "Multi game", "Online", ""};
+    const char* own[] = {"Game", about_.features_name, "Controllers", "Games", "", "Multi game", "Online", "", ""};
     float fixed = static_cast<float>(fixed_pages());
     float top = std::max(collection_ ? px(108) : px(100), ImGui::GetCursorScreenPos().y - origin.y + px(24));
     float step = px(38);
@@ -1202,16 +1346,35 @@ void App::sidebar(float height) {
     ImGui::PushClipRect(origin + ImVec2(0, view_top), origin + ImVec2(px(sidebar_width()) - 1.0f, view_bottom), true);
     ImGuiID indicator = ImHashStr("nav-indicator");
     // A game's row (a collection's) can be dragged up or down: it follows the mouse, the others make room, and the
-    // game takes the place it is over (move_game, once the rows are drawn)
-    int games = collection_ ? static_cast<int>(titled().size()) : 0;
+    // game takes the place it is over (move_game, once the rows are drawn). A series' row is dragged closed, with its
+    // games; a game's under it, among them.
+    std::vector<Row> list = collection_ ? rows() : std::vector<Row>();
+    int games = static_cast<int>(list.size());
     int dropped = -1;  // (the row let go of: that is not a click on it)
+    bool dropped_series = dragging_series_;
     if (dragging_ >= 0 && (!ImGui::IsMouseDown(ImGuiMouseButton_Left) || games < 2)) {
         dropped = dragging_;
         dragging_ = -1;
     }
-    float drag_at = std::clamp(mouse_y + scroll - drag_grab_, row_y(fixed), row_y(fixed - 1.0f + static_cast<float>(games)));  // (in the list)
+    // (the dragged row's, and the rows it can go among: its series' games, or the whole list)
+    int drag_row = -1, first_row = 0, last_row = games - 1;
+    for (int i = 0; i < games && dragging_ >= 0; i++) {
+        if (static_cast<int>(list[i].game) == dragging_ && list[i].series == dragging_series_) {
+            drag_row = i;
+        }
+    }
+    if (drag_row >= 0 && list[drag_row].inside) {
+        const std::string& series = slots_[list[drag_row].game]->series;
+        for (first_row = drag_row; first_row > 0 && list[first_row - 1].inside && slots_[list[first_row - 1].game]->series == series; first_row--) {
+        }
+        for (last_row = drag_row; last_row + 1 < games && list[last_row + 1].inside && slots_[list[last_row + 1].game]->series == series; last_row++) {
+        }
+    }
+    float drag_at = std::clamp(mouse_y + scroll - drag_grab_, row_y(fixed + static_cast<float>(first_row)), row_y(fixed + static_cast<float>(std::max(first_row, last_row))));  // (in the list)
     size_t shown_game = 0;
-    bool dragging_shown = dragging_ >= 0 && own_page(page_, &shown_game) == Page::Title && static_cast<int>(shown_game) == dragging_;
+    Page shown_kind = own_page(page_, &shown_game);
+    bool dragging_shown = dragging_ >= 0 && static_cast<int>(shown_game) == dragging_ &&
+                          (dragging_series_ ? shown_kind == Page::Series : shown_kind == Page::Title);
     if (dragging_shown) {
         ui::set_value(indicator, drag_at);
     }
@@ -1221,7 +1384,7 @@ void App::sidebar(float height) {
     ImGui::GetWindowDrawList()->AddRectFilled(pill, pill + ImVec2(px(inner), px(36)), p.control_hover, px(10));
     if (collection_) {
         ImGui::SetCursorScreenPos(origin + ImVec2(px(24), row_y(fixed) - scroll - px(26)));
-        ui::text(titled().empty() ? "YOUR GAMES: NONE YET" : "YOUR GAMES", Font::Semibold, ui::size::kSmall, p.tertiary, px(inner));
+        ui::text(list.empty() ? "YOUR GAMES: NONE YET" : "YOUR GAMES", Font::Semibold, ui::size::kSmall, p.tertiary, px(inner));
     }
     // With the arrow keys or a gamepad: from a page, left goes to the row of the page shown and to no
     // other; once there, up and down change the page; right goes into it.
@@ -1229,16 +1392,27 @@ void App::sidebar(float height) {
     int shown = page_;
     bool in_sidebar = false;
     int move_to = -1;
+    std::string toggle;       // (a series' row pressed: it opens or closes)
+    std::string close_drag;   // (a series' row taken hold of while open: it closes)
+    float series_y = 0.0f;    // (the last series' row's place: its games' rows come out from under it)
     focus_row_ = -1;
     for (int i = 0; i < count; i++) {
         size_t which = 0;
         Page kind = own_page(i, &which);
         float y = row_y(static_cast<float>(i));
-        if (kind == Page::Title) {
-            // (by the game's id, so that its row is the same row wherever it is)
-            ImGui::PushID(slots_[which]->id.c_str());
+        int k = i - static_cast<int>(fixed);  // (in the list)
+        const Row* row = kind == Page::Title || kind == Page::Series ? &list[static_cast<size_t>(k)] : nullptr;
+        if (row) {
+            // (by the game's id, or the series' name, so that its row is the same row wherever it is)
+            ImGui::PushID(row->series ? ("series:" + slots_[which]->series).c_str() : slots_[which]->id.c_str());
             ImGuiID place = ImGui::GetID("place");
-            if (static_cast<int>(which) == dragging_) {
+            if (row->series) {
+                series_y = y;
+            }
+            if (row->inside && opened_ == slots_[which]->series) {
+                ui::set_value(place, series_y);
+            }
+            if (k == drag_row) {
                 ui::set_value(place, drag_at);
                 y = drag_at;
             } else {
@@ -1249,16 +1423,28 @@ void App::sidebar(float height) {
         }
         y -= scroll;
         ImGui::SetCursorScreenPos(origin + ImVec2(px(20), y));
-        const char* name = i < custom ? about_.pages[i].name : kind == Page::Title ? slots_[which]->name.c_str() : own[static_cast<int>(kind)];
-        if (ui::nav_item(name, shown == i, inner, in_sidebar_ || shown == i) && !(kind == Page::Title && static_cast<int>(which) == dropped)) {
+        const char* name = i < custom ? about_.pages[i].name
+                           : !row     ? own[static_cast<int>(kind)]
+                           : row->series ? slots_[which]->series.c_str()
+                                         : slots_[which]->name.c_str();
+        int fold = row && row->series ? (series_open(slots_[which]->series) ? 1 : 0) : -1;
+        bool was_dropped = row && static_cast<int>(which) == dropped && row->series == dropped_series;
+        if (ui::nav_item(name, shown == i, inner, in_sidebar_ || shown == i, row && row->inside ? 14.0f : 0.0f, fold) && !was_dropped) {
             page_ = i;
+            if (row && row->series) {
+                toggle = slots_[which]->series;
+            }
         }
-        if (kind == Page::Title && games > 1 && ImGui::IsItemActive()) {
+        if (row && games > 1 && ImGui::IsItemActive()) {
             if (dragging_ < 0 && ImGui::IsMouseDragging(ImGuiMouseButton_Left)) {
                 dragging_ = static_cast<int>(which);
+                dragging_series_ = row->series;
                 drag_grab_ = ImGui::GetIO().MouseClickedPos[ImGuiMouseButton_Left].y - origin.y - y;
+                if (fold == 1) {
+                    close_drag = slots_[which]->series;
+                }
             }
-            if (static_cast<int>(which) == dragging_) {
+            if (row && k == drag_row) {
                 ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeNS);
                 move_to = static_cast<int>(std::floor((drag_at - row_y(fixed)) / step + 0.5f));
             }
@@ -1276,6 +1462,7 @@ void App::sidebar(float height) {
         }
         ImGui::PopID();
     }
+    opened_.clear();
     ImGui::PopClipRect();
     // (a line where the list goes on out of view)
     float line = std::max(1.0f, std::floor(ui::scale()));
@@ -1286,8 +1473,42 @@ void App::sidebar(float height) {
         ImGui::GetWindowDrawList()->AddRectFilled(origin + ImVec2(0, view_bottom - line), origin + ImVec2(px(sidebar_width()) - 1.0f, view_bottom),
                                                   p.separator);
     }
-    if (move_to >= 0) {
-        move_game(static_cast<size_t>(dragging_), move_to);
+    if (move_to >= 0 && drag_row >= 0) {
+        if (list[drag_row].inside) {
+            move_game(list[drag_row].game, move_to - first_row);
+        } else {
+            // (past the places it is over: a series' rows are passed once the dragged row is over its last, going down,
+            // or its first, going up)
+            std::vector<std::vector<size_t>> places = units();
+            int unit = -1, target = -1, place = -1;
+            for (int i = 0; i < games; i++) {
+                if (list[i].inside) {
+                    continue;
+                }
+                place++;
+                int last = i;
+                while (last + 1 < games && list[last + 1].inside) {
+                    last++;
+                }
+                if (i == drag_row) {
+                    unit = place;
+                } else if (i > drag_row && last <= move_to) {
+                    target = place;
+                } else if (i < drag_row && i >= move_to && target < 0) {
+                    target = place;
+                }
+            }
+            if (unit >= 0 && target >= 0) {
+                move_unit(static_cast<size_t>(unit), target);
+            }
+        }
+    }
+    if (!close_drag.empty()) {
+        keep_page([&] { open_series(close_drag, false); });
+    }
+    if (!toggle.empty()) {
+        bool open = !series_open(toggle);
+        keep_page([&] { open_series(toggle, open); });
     }
     in_sidebar_ = in_sidebar;
     focus_seen_ = focused;
@@ -1303,8 +1524,10 @@ void App::page(float width, float height) {
     ImGui::PushItemFlag(ImGuiItemFlags_NoNav, true);
     // (a collection's game's page by the game's id, so that it stays the same page when the game moves in the list)
     size_t shown_game = 0;
-    ImGuiID child = own_page(page_, &shown_game) == Page::Title ? ImHashStr(slots_[shown_game]->id.c_str())
-                                                                : static_cast<ImGuiID>(page_ + 100);
+    Page shown_kind = own_page(page_, &shown_game);
+    ImGuiID child = shown_kind == Page::Title    ? ImHashStr(slots_[shown_game]->id.c_str())
+                    : shown_kind == Page::Series ? ImHashStr(("series:" + slots_[shown_game]->series).c_str())
+                                                 : static_cast<ImGuiID>(page_ + 100);
     ImGui::BeginChild(child, ImVec2(width, height), ImGuiChildFlags_AlwaysUseWindowPadding);
     ImGui::PushItemFlag(ImGuiItemFlags_NoNav, false);
     // (The sidebar and the page are apart for the arrow keys and a gamepad: ImGui's own search would go from
@@ -1342,6 +1565,9 @@ void App::page(float width, float height) {
         break;
     case Page::Title:
         title_page(which, content);
+        break;
+    case Page::Series:
+        series_page(which, content);
         break;
     case Page::Online:
         online_page(content);
@@ -2051,6 +2277,12 @@ void App::library_page(float width) {
         });
         first = false;
     }
+    // (a series' games under its name, where two or more of them are on the page)
+    std::map<std::string, int> in_series;
+    for (size_t which : order_) {
+        in_series[slots_[which]->series] += shown(which) ? 1 : 0;
+    }
+    std::string series;
     for (size_t which : order_) {
         Slot& one = *slots_[which];
         if (!shown(which)) {
@@ -2060,6 +2292,15 @@ void App::library_page(float width) {
             inset_separator(width);
         }
         first = false;
+        if (one.series != series && !one.series.empty() && in_series[one.series] > 1) {
+            ImVec2 at = ImGui::GetCursorScreenPos();
+            ImGui::SetCursorScreenPos(at + ImVec2(px(18), px(14)));
+            std::string heading = one.series;
+            std::transform(heading.begin(), heading.end(), heading.begin(), [](unsigned char c) { return static_cast<char>(std::toupper(c)); });
+            ui::text(heading.c_str(), Font::Semibold, ui::size::kSmall, p.secondary);
+            ImGui::SetCursorScreenPos(ImVec2(at.x, ImGui::GetCursorScreenPos().y - px(8)));
+        }
+        series = one.series;
         FileCheck file;
         {
             std::lock_guard<std::mutex> lock(mutex_);
@@ -2222,8 +2463,20 @@ void App::title_page(size_t which, float width) {
     display_cards(which, width);
     ui::gap(28);
     play_button(which, width);
-    // Its place in the sidebar's list (which can be dragged there too)
-    std::vector<size_t> list = titled();
+    // Its place in the sidebar's list (which can be dragged there too), or in its series'
+    std::vector<std::vector<size_t>> places = units();
+    std::vector<size_t> list;
+    for (const std::vector<size_t>& unit : places) {
+        if (unit.size() > 1 && std::find(unit.begin(), unit.end(), which) != unit.end()) {
+            list = unit;
+        }
+    }
+    bool in_series = !list.empty();
+    if (!in_series) {
+        for (const std::vector<size_t>& unit : places) {
+            list.push_back(unit.front());
+        }
+    }
     if (list.size() > 1) {
         int place = static_cast<int>(std::find(list.begin(), list.end(), which) - list.begin());
         ui::gap(36);
@@ -2231,7 +2484,8 @@ void App::title_page(size_t which, float width) {
         ui::gap(10);
         Card card(width);
         std::string detail = std::to_string(place + 1) + " of " + std::to_string(list.size()) +
-                             " in the sidebar. Its row there can be dragged up or down too.";
+                             (in_series ? " in " + one.series + ". Its row there can be dragged up or down among them too."
+                                        : std::string(" in the sidebar. Its row there can be dragged up or down too."));
         row(width, "Its place in the list", detail.c_str(), 230.0f, 36.0f, [&] {
             if (ui::button("Move up", Kind::Secondary, 110.0f, place > 0)) {
                 move_game(which, place - 1);
@@ -2268,6 +2522,62 @@ void App::title_page(size_t which, float width) {
         [&](const FeatureRow& feature, int value) { set_feature(one, feature.index, value); },
         [&](const FeatureRow& feature) { return recomp::MenuChoices(one.settings, one.features[feature.index]); },
         [&](const FeatureRow& feature, const std::vector<bool>& offered) { set_menu_choices(one, feature.index, offered); });
+}
+
+// A series' page: its games, each to play or go to, and the series' place in the sidebar's list
+void App::series_page(size_t which, float width) {
+    const std::string series = slots_[which]->series;
+    std::vector<std::vector<size_t>> places = units();
+    size_t unit = 0;
+    while (unit + 1 < places.size() && slots_[places[unit].front()]->series != series) {
+        unit++;
+    }
+    const std::vector<size_t> games = places[unit];
+    std::string intro = std::to_string(games.size()) + " of your games are " + series +
+                        " games. Play one here, or go to its page for its ROM set, its Display switches and what only it has.";
+    layout::heading(series.c_str(), intro.c_str(), width);
+    layout::label("ITS GAMES");
+    Card card(width);
+    for (size_t i = 0; i < games.size(); i++) {
+        Slot& one = *slots_[games[i]];
+        if (i > 0) {
+            inset_separator(width);
+        }
+        ImGui::PushID(one.id.c_str());
+        std::string status;
+        {
+            std::lock_guard<std::mutex> lock(mutex_);
+            status = one.file.message;
+        }
+        row(width, one.name.c_str(), status.c_str(), 230.0f, 36.0f, [&] {
+            if (ui::button(one.game.running() ? "Playing…" : "Play", Kind::Primary, 110.0f, can_play(games[i]))) {
+                play(games[i]);
+            }
+            ImGui::SameLine(0.0f, px(10));
+            if (ui::button("Its page", Kind::Secondary, 110.0f)) {
+                set_page(one.id);
+            }
+        });
+        ImGui::PopID();
+    }
+    card.end();
+    if (places.size() > 1) {
+        ui::gap(36);
+        layout::label("YOUR GAMES");
+        Card place(width);
+        std::string detail = std::to_string(unit + 1) + " of " + std::to_string(places.size()) +
+                             " in the sidebar, its games with it. Its row there can be dragged up or down too.";
+        row(width, "Its place in the list", detail.c_str(), 230.0f, 36.0f, [&] {
+            if (ui::button("Move up", Kind::Secondary, 110.0f, unit > 0)) {
+                move_unit(unit, static_cast<int>(unit) - 1);
+            }
+            ImGui::SameLine(0.0f, px(10));
+            if (ui::button("Move down", Kind::Secondary, 110.0f, unit + 1 < places.size())) {
+                move_unit(unit, static_cast<int>(unit) + 1);
+            }
+        });
+        place.end();
+    }
 }
 
 // ---- Multi game ------------------------------------------------------------------------------
