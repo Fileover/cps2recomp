@@ -229,6 +229,12 @@ struct Port {
 int RunWindowed(Port &port);
 // The game was started by the collection's launcher (cps2recomp-launcher is beside it, and no launcher of its own)
 bool InCollection();
+// The optional features as the launcher lists them (--list-features)
+std::string LauncherFeatureList();
+#ifdef __ANDROID__
+// Android (port/android.cpp): the game's folder and log, which its activity says, before anything else
+void StartOnAndroid();
+#endif
 
 // The Display page's choices (the port's display_* and window_size features): how the picture is fitted to
 // the window, and how many times the board's lines the window opens

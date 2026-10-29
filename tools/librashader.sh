@@ -7,10 +7,12 @@
 #   librashader.dylib   librashader's C API with its OpenGL runtime only, built from its source (Rust: rustup's
 #   (.so, .dll)         stable cargo; on macOS with the aarch64-apple-darwin and x86_64-apple-darwin targets, Apple
 #                       silicon and Intel in one; on Linux for the processor it runs on; for Windows with the
-#                       x86_64-pc-windows-gnu target and MinGW-w64)
+#                       x86_64-pc-windows-gnu target and MinGW-w64; for Android with the aarch64-linux-android
+#                       target and the NDK, whose OpenGL ES 3 it draws with)
 #   shaders/            the presets of RetroArch's slang-shaders the Display page names, with the files they use
 #                       (tools/shaders.py)
-# Each source is checked against its checksum. macOS, Linux and (--windows) Windows. Prints the folder.
+# Each source is checked against its checksum. macOS, Linux, (--windows) Windows and (--android NDK) Android. Prints
+# the folder.
 set -eu
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 DEPS="$ROOT/build/deps"
@@ -18,9 +20,11 @@ DEPS="$ROOT/build/deps"
 # Windows x64's, cross-compiled with MinGW-w64 as tools/release/windows.sh builds the games)
 SYSTEM="$(uname -s)"
 [ "${1:-}" != "--windows" ] || SYSTEM=Windows
+[ "${1:-}" != "--android" ] || { SYSTEM=Android; NDK="$2"; }
 case "$SYSTEM" in
     Darwin) OUT="$DEPS/librashader" ;;
     Windows) OUT="$DEPS/librashader-windows-x64" ;;
+    Android) OUT="$DEPS/librashader-android" ;;
     *) OUT="$DEPS/librashader-linux-$(uname -m)" ;;
 esac
 LIBRASHADER_VERSION=0.12.1
@@ -43,6 +47,7 @@ SOURCE="$DEPS/librashader-librashader-v$LIBRASHADER_VERSION"
 case "$SYSTEM" in
     Darwin) LIB=librashader.dylib; TARGETS="aarch64-apple-darwin x86_64-apple-darwin" ;;
     Windows) LIB=librashader.dll; TARGETS="" ;;
+    Android) LIB=librashader.so; TARGETS="" ;;
     *) LIB=librashader.so; TARGETS="" ;;
 esac
 if [ ! -f "$OUT/$LIB" ] || [ ! -f "$OUT/version-$LIBRASHADER_VERSION" ]; then
@@ -80,6 +85,18 @@ if [ ! -f "$OUT/$LIB" ] || [ ! -f "$OUT/version-$LIBRASHADER_VERSION" ]; then
         build x86_64-pc-windows-gnu
         cp "$SOURCE/target/x86_64-pc-windows-gnu/release/librashader_capi.dll" "$OUT/$LIB"
         x86_64-w64-mingw32-strip --strip-unneeded "$OUT/$LIB"
+    elif [ "$SYSTEM" = Android ]; then
+        # (the NDK's compilers for the C++ librashader builds (glslang, SPIRV-Cross), its C++ library linked in)
+        rustup target add aarch64-linux-android >/dev/null 2>&1 || true
+        BIN=$(ls -d "$NDK"/toolchains/llvm/prebuilt/*/bin | head -1)
+        export CARGO_TARGET_DIR="$SOURCE/target-android" CXXSTDLIB=c++_static
+        export CC_aarch64_linux_android="$BIN/aarch64-linux-android28-clang" CXX_aarch64_linux_android="$BIN/aarch64-linux-android28-clang++"
+        export AR_aarch64_linux_android="$BIN/llvm-ar" CARGO_TARGET_AARCH64_LINUX_ANDROID_LINKER="$BIN/aarch64-linux-android28-clang"
+        # (and linked into the library: nothing but the system's own libraries is needed beside it)
+        FLAGS="$FLAGS -C link-arg=-l:libc++_static.a -C link-arg=-l:libc++abi.a -C link-arg=-Wl,--no-undefined"
+        build aarch64-linux-android
+        cp "$SOURCE/target-android/aarch64-linux-android/release/liblibrashader_capi.so" "$OUT/$LIB"
+        "$BIN/llvm-strip" --strip-unneeded "$OUT/$LIB"
     else
         export CARGO_TARGET_DIR="$SOURCE/target-linux-$(uname -m)"
         build

@@ -27,7 +27,10 @@ Each player needs the game and its ROM set. The launcher's **Online** page (in t
   into your game as it is and press Start to challenge you. Esc asks whether to stop hosting.
 
 Both players need the **same version** of CPS-2 Recomp; the launcher shows its version at the top of the sidebar.
-A match on another version is greyed in Open matches, and a code for one says so.
+A match on another version is greyed in Open matches, and a code for one says so. Your ROM sets can be different
+regions of the same game (`mvscj` against `mvsc`, say): the match is played as the host's region. That is best
+effort: if the game reads a part of its program where the two sets still differ, the match stops as a desync does
+(the same set is surest).
 
 Each game's own page has the same under Play, in its **Online** card. Nothing needs setting up on either router. The
 host is player 1. The game's window says it is waiting until the other player comes (Esc gives up). From a terminal:

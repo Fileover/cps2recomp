@@ -2,6 +2,12 @@
 // Copyright (C) 2026 Tommy McLeroy. Part of cps2recomp.
 
 #include "shading.h"
+
+#ifdef __ANDROID__
+#include <dlfcn.h>
+
+#include <filesystem>
+#endif
 #include "present.h"
 
 #include <algorithm>
@@ -40,21 +46,32 @@ namespace {
             const char *name = "librashader.so";
 #endif
             // (beside the program; in a macOS app, its Frameworks folder; else wherever the system finds it)
-            const char *base = SDL_GetBasePath();
             std::vector<std::string> paths;
-            if (base) {
+#ifdef __ANDROID__
+            // (on Android, beside the game's own library: the app's folder of them)
+            Dl_info self;
+            if (dladdr(reinterpret_cast<void *>(&Shading::Available), &self) && self.dli_fname) {
+                paths.push_back((std::filesystem::path(self.dli_fname).parent_path() / name).string());
+            }
+#else
+            if (const char *base = SDL_GetBasePath()) {
                 paths.push_back(std::string(base) + name);
                 paths.push_back(std::string(base) + "../Frameworks/" + name);
             }
+#endif
             paths.push_back(name);
             SDL_SharedObject *object = nullptr;
+            std::string failed; // (why the first place, beside the game, did not do)
             for (const std::string &path : paths) {
                 if ((object = SDL_LoadObject(path.c_str()))) {
                     break;
                 }
+                if (failed.empty()) {
+                    failed = SDL_GetError();
+                }
             }
             if (!object) {
-                why = std::string("no ") + name + " beside the game";
+                why = std::string("no ") + name + " beside the game (" + failed + ")";
                 return false;
             }
             bool all = true;
@@ -113,6 +130,8 @@ namespace {
         GL_UNPACK_ALIGNMENT = 0x0CF5, GL_UNPACK_ROW_LENGTH = 0x0CF2, GL_SCISSOR_TEST = 0x0C11,
         GL_READ_FRAMEBUFFER = 0x8CA8, GL_DRAW_FRAMEBUFFER = 0x8CA9, GL_COLOR_ATTACHMENT0 = 0x8CE0, GL_COLOR_BUFFER_BIT = 0x4000,
         GL_PACK_ALIGNMENT = 0x0D05,
+        GL_VERTEX_SHADER = 0x8B31, GL_FRAGMENT_SHADER = 0x8B30, GL_BLEND = 0x0BE2, GL_ONE_MINUS_SRC_ALPHA = 0x0303,
+        GL_TRIANGLES = 0x0004, GL_TEXTURE0 = 0x84C0, GL_FRAMEBUFFER = 0x8D40,
     };
     struct Gl {
         void(GL_CALL *GenTextures)(GLsizei, GLuint *);
@@ -131,6 +150,26 @@ namespace {
         void(GL_CALL *Clear)(unsigned);
         void(GL_CALL *Disable)(GLenum);
         void(GL_CALL *ReadPixels)(GLint, GLint, GLsizei, GLsizei, GLenum, GLenum, void *);
+        // (the overlay's: a texture drawn over the window, blended)
+        GLuint(GL_CALL *CreateShader)(GLenum);
+        void(GL_CALL *ShaderSource)(GLuint, GLsizei, const char *const *, const GLint *);
+        void(GL_CALL *CompileShader)(GLuint);
+        void(GL_CALL *DeleteShader)(GLuint);
+        GLuint(GL_CALL *CreateProgram)();
+        void(GL_CALL *AttachShader)(GLuint, GLuint);
+        void(GL_CALL *LinkProgram)(GLuint);
+        void(GL_CALL *DeleteProgram)(GLuint);
+        void(GL_CALL *UseProgram)(GLuint);
+        GLint(GL_CALL *GetUniformLocation)(GLuint, const char *);
+        void(GL_CALL *Uniform1i)(GLint, GLint);
+        void(GL_CALL *GenVertexArrays)(GLsizei, GLuint *);
+        void(GL_CALL *DeleteVertexArrays)(GLsizei, const GLuint *);
+        void(GL_CALL *BindVertexArray)(GLuint);
+        void(GL_CALL *DrawArrays)(GLenum, GLint, GLsizei);
+        void(GL_CALL *Enable)(GLenum);
+        void(GL_CALL *BlendFunc)(GLenum, GLenum);
+        void(GL_CALL *ActiveTexture)(GLenum);
+        void(GL_CALL *Viewport)(GLint, GLint, GLsizei, GLsizei);
         bool Load() {
             bool all = true;
             auto take = [&](auto &function, const char *symbol) {
@@ -153,6 +192,25 @@ namespace {
             take(Clear, "glClear");
             take(Disable, "glDisable");
             take(ReadPixels, "glReadPixels");
+            take(CreateShader, "glCreateShader");
+            take(ShaderSource, "glShaderSource");
+            take(CompileShader, "glCompileShader");
+            take(DeleteShader, "glDeleteShader");
+            take(CreateProgram, "glCreateProgram");
+            take(AttachShader, "glAttachShader");
+            take(LinkProgram, "glLinkProgram");
+            take(DeleteProgram, "glDeleteProgram");
+            take(UseProgram, "glUseProgram");
+            take(GetUniformLocation, "glGetUniformLocation");
+            take(Uniform1i, "glUniform1i");
+            take(GenVertexArrays, "glGenVertexArrays");
+            take(DeleteVertexArrays, "glDeleteVertexArrays");
+            take(BindVertexArray, "glBindVertexArray");
+            take(DrawArrays, "glDrawArrays");
+            take(Enable, "glEnable");
+            take(BlendFunc, "glBlendFunc");
+            take(ActiveTexture, "glActiveTexture");
+            take(Viewport, "glViewport");
             return all;
         }
     } gl;
@@ -201,18 +259,30 @@ bool Shading::Open(SDL_Window *window, std::string &error) {
         return false;
     }
     m_window = window;
+#ifdef __ANDROID__
+    // (OpenGL ES 3, which librashader draws with too: 3.2 where there is one, else 3.0)
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_ES);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 2);
+    m_context = SDL_GL_CreateContext(window);
+    if (!m_context) {
+        SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 0);
+        m_context = SDL_GL_CreateContext(window);
+    }
+#else
     // (OpenGL 3.3's core, the least librashader takes: on macOS that gives its newest, 4.1)
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_FORWARD_COMPATIBLE_FLAG);
     m_context = SDL_GL_CreateContext(window);
+#endif
     if (!m_context) {
         error = SDL_GetError();
         return false;
     }
     if (!gl.Load()) {
-        error = "the window's OpenGL is too old for shaders (3.3 is needed)";
+        error = "the window's OpenGL is too old for shaders (3.3, or OpenGL ES 3, is needed)";
         Close();
         return false;
     }
@@ -227,7 +297,11 @@ void Shading::Close() {
         if (m_chain) {
             TheLibrary(error)->chain_free(Chain(m_chain));
         }
-        for (GLuint *texture : {&m_picture, &m_drawn, &m_readout}) {
+        if (m_overlayProgram) {
+            gl.DeleteProgram(m_overlayProgram);
+            gl.DeleteVertexArrays(1, &m_overlayArray);
+        }
+        for (GLuint *texture : {&m_picture, &m_drawn, &m_readout, &m_overlay}) {
             if (*texture) {
                 gl.DeleteTextures(1, texture);
             }
@@ -243,6 +317,8 @@ void Shading::Close() {
     m_context = nullptr;
     m_preset.clear();
     m_picture = m_drawn = m_readout = m_pictureFrame = m_drawnFrame = m_readoutFrame = 0;
+    m_overlay = m_overlayProgram = m_overlayArray = 0;
+    m_overlayWidth = m_overlayHeight = 0;
     m_width = m_height = m_drawnWidth = m_drawnHeight = 0;
 }
 
@@ -258,7 +334,11 @@ bool Shading::Load(const std::string &preset, std::string &error) {
     }
     filter_chain_gl_opt_t options = {};
     options.version = LIBRASHADER_CURRENT_VERSION;
+#ifdef __ANDROID__
+    options.glsl_version = 0; // (the context's own: OpenGL ES 3's)
+#else
     options.glsl_version = 410;
+#endif
     options.disable_cache = true; // (the cache needs OpenGL 4.5, which macOS has not)
     libra_gl_filter_chain_t chain = nullptr;
     auto loader = [](const char *name) { return reinterpret_cast<const void *>(SDL_GL_GetProcAddress(name)); };
@@ -376,10 +456,98 @@ void Shading::Show(const uint32_t *pixels, int width, int height, const SDL_FRec
         gl.BlitFramebuffer(0, 0, width, height, left, top, right, foot, GL_COLOR_BUFFER_BIT, GL_LINEAR);
     }
     gl.BindFramebuffer(GL_READ_FRAMEBUFFER, 0);
+    DrawOverlay(windowWidth, windowHeight);
     if (keepLast) {
         Keep();
     }
     SDL_GL_SwapWindow(m_window);
+}
+
+void Shading::SetOverlay(const uint32_t *pixels, int width, int height) {
+    if (!m_context) {
+        return;
+    }
+    SDL_GL_MakeCurrent(m_window, m_context);
+    if (!pixels) {
+        if (m_overlay) {
+            gl.DeleteTextures(1, &m_overlay);
+        }
+        m_overlay = 0;
+        m_overlayWidth = m_overlayHeight = 0;
+        return;
+    }
+    if (!m_overlay || width != m_overlayWidth || height != m_overlayHeight) {
+        if (m_overlay) {
+            gl.DeleteTextures(1, &m_overlay);
+        }
+        gl.GenTextures(1, &m_overlay);
+        gl.BindTexture(GL_TEXTURE_2D, m_overlay);
+        gl.TexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+        gl.TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        gl.TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        gl.TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        gl.TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        gl.TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 0);
+        m_overlayWidth = width;
+        m_overlayHeight = height;
+    }
+    gl.BindTexture(GL_TEXTURE_2D, m_overlay);
+    gl.PixelStorei(GL_UNPACK_ALIGNMENT, 4);
+    gl.PixelStorei(GL_UNPACK_ROW_LENGTH, width);
+    gl.TexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
+    gl.BindTexture(GL_TEXTURE_2D, 0);
+}
+
+void Shading::DrawOverlay(int windowWidth, int windowHeight) {
+    if (!m_overlay) {
+        return;
+    }
+    if (!m_overlayProgram) {
+        // The whole window from three corners, the texture's first row at its top
+#ifdef __ANDROID__
+        const char *version = "#version 300 es\nprecision mediump float;\n";
+#else
+        const char *version = "#version 330 core\n";
+#endif
+        const char *vertex = "out vec2 uv;\n"
+                             "void main() {\n"
+                             "    vec2 at = vec2(float((gl_VertexID << 1) & 2), float(gl_VertexID & 2));\n"
+                             "    uv = vec2(at.x, 1.0 - at.y);\n"
+                             "    gl_Position = vec4(at * 2.0 - 1.0, 0.0, 1.0);\n"
+                             "}\n";
+        const char *fragment = "in vec2 uv;\nuniform sampler2D overlay;\nout vec4 colour;\n"
+                               "void main() { colour = texture(overlay, uv); }\n";
+        auto compile = [&](GLenum kind, const char *body) {
+            const GLuint shader = gl.CreateShader(kind);
+            const char *parts[] = {version, body};
+            gl.ShaderSource(shader, 2, parts, nullptr);
+            gl.CompileShader(shader);
+            return shader;
+        };
+        const GLuint v = compile(GL_VERTEX_SHADER, vertex), f = compile(GL_FRAGMENT_SHADER, fragment);
+        m_overlayProgram = gl.CreateProgram();
+        gl.AttachShader(m_overlayProgram, v);
+        gl.AttachShader(m_overlayProgram, f);
+        gl.LinkProgram(m_overlayProgram);
+        gl.DeleteShader(v);
+        gl.DeleteShader(f);
+        gl.GenVertexArrays(1, &m_overlayArray);
+    }
+    // (premultiplied: present.h, SetOverlay)
+    gl.BindFramebuffer(GL_FRAMEBUFFER, 0);
+    gl.Viewport(0, 0, windowWidth, windowHeight);
+    gl.UseProgram(m_overlayProgram);
+    gl.BindVertexArray(m_overlayArray);
+    gl.ActiveTexture(GL_TEXTURE0);
+    gl.BindTexture(GL_TEXTURE_2D, m_overlay);
+    gl.Uniform1i(gl.GetUniformLocation(m_overlayProgram, "overlay"), 0);
+    gl.Enable(GL_BLEND);
+    gl.BlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
+    gl.DrawArrays(GL_TRIANGLES, 0, 3);
+    gl.Disable(GL_BLEND);
+    gl.BindTexture(GL_TEXTURE_2D, 0);
+    gl.BindVertexArray(0);
+    gl.UseProgram(0);
 }
 
 void Shading::Keep() {

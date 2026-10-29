@@ -5,7 +5,7 @@
 [![License: GPL-3.0](https://img.shields.io/badge/license-GPL--3.0-blue)](LICENSE)
 
 **Unofficial native PC ports of Capcom's CPS-2 arcade games (and a CPS-1 one), for macOS, Linux (Steam Deck and
-ARM64 included) and Windows, in one download with one launcher.** Each game's program is translated ahead of time
+ARM64 included), Windows and Android, in one download with one launcher.** Each game's program is translated ahead of time
 into C++ and runs on a machine written for this project, not an emulator. The fighting games add a full training
 mode, online play with rollback, widescreen and new modes.
 
@@ -74,7 +74,8 @@ each other.
 - The **waiting room** lists the players whose Online page is open: **Invite** one to a match in any game, and they
   **Accept** from their launcher.
 - Both players need the same version of CPS-2 Recomp (the launcher shows yours at the top); a match on another
-  version is greyed in the list.
+  version is greyed in the list. Your ROM sets may be different regions of the game: the match is the host's region
+  (best effort: the same set is surest).
 - Each player presses Start to come in, as at the arcade. The match uses the host's board settings (difficulty,
   timer, rounds); cheats are off.
 - **On screen:** the ping (and the input delay, if you like), and the **win streak** of a player who keeps winning.
@@ -119,6 +120,17 @@ together).
 - **Windows:** run `cps2recomp-launcher.exe`.
 - **Linux:** run `cps2recomp-launcher`.
 
+### Android
+
+1. Download `CPS2Recomp-android.apk` from the releases page on your phone or tablet and open it to install it
+   (Android 9 or later, 64-bit ARM; allow installs from your browser or file manager when asked).
+2. Open CPS-2 Recomp and press **Add ROM sets…** on its Games page: choose your sets' zips, as many at once as you
+   like. They are copied into the app's folder.
+3. Press **Play** beside a game.
+
+The games show a stick and buttons on the screen; a gamepad connected over Bluetooth or USB works too, and takes their
+place. Back, or the screen's **Menu**, opens the in-game menu.
+
 ### Steam Deck
 
 1. In Desktop Mode, download `CPS2Recomp-linux-x86_64.tar.gz` from the releases page, extract it, and move the
@@ -135,7 +147,8 @@ together).
   the Marvel games', Super Gem Fighter's (*Pocket Fighter* in Japan), Puzzle Fighter's, Alpha's, Alpha 3's, Super
   Turbo's and Alien vs. Predator's; each game's page names them. Other revisions don't work: each port is made from
   one version's program. Vampire Savior Definitive needs both `vsavj` and `vsav2`.
-- macOS 13 or later (Apple silicon or Intel), Linux x86_64 or ARM64 (SteamOS included), or Windows 10 or 11, 64-bit.
+- macOS 13 or later (Apple silicon or Intel), Linux x86_64 or ARM64 (SteamOS included), Windows 10 or 11, 64-bit, or
+  Android 9 or later on 64-bit ARM, with Vulkan.
 - A gamepad or stick is recommended (six buttons for the fighting games).
 
 ## How it works

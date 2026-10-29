@@ -16,6 +16,27 @@
   that each stage's routine keeps between its ends itself (`keepCameraPlaces`, each with where the stage's code goes
   on), and a camera whose step down goes by a way of its own (`cameraWayDown`). The other Marvel games describe none of
   these and run as before.
+- **Online across regions**: two players with different regions' sets of a game (`mvsc` and `mvscj`, say: the sets
+  `other_set` lists) play each other, as the host's region. A game's `online_words` lists the words of the program
+  where its sets differ as the game reads them (the region, the checksum, Super Turbo's revised tables, the bytes a
+  ROM check adds up, data read past a table); the host sends its values there with its state and the joining side
+  takes them for the match (protocol 5). The build hash, which the hello and the online service compare, is now the
+  game's own set's (as built), not the player's. The `region_at` hook reads the program as it runs and is always
+  there (a game's own set unchanged: the same `--hash-log`). `JOIN_ROM=<set> make check-online` checks it.
+  Best effort: a word the list lacks stops the match as a desync does.
+- **Android** (issue #104): `CPS2Recomp-android.apk`, the launcher and every game in one app for 64-bit ARM phones and
+  tablets (Android 9 and later, Vulkan). The games show a stick, their buttons, Coin, Start and Menu on the screen,
+  beside the picture (`port/touch.cpp`; a gamepad hides them), and Back opens the in-game menu. The launcher's
+  **Add ROM sets…** copies the sets chosen with the system's picker into the app's folder, which a computer sees over
+  USB. Each game is a library run in a process of its own (`android/`, `tools/release/android.sh`, `make android`),
+  so the Multi game page hands from one game to the next as elsewhere; online play works with any other system.
+  The Display page's shaders work there too, through OpenGL ES 3 (librashader built for Android by
+  `tools/librashader.sh --android`; the presets unpacked by the app). The presenter draws an overlay over the picture
+  (`Presenter::SetOverlay`, with or without a shader). recomp-common: the launcher on Android, and the sidebar's list
+  scrolled with a finger.
+- **Zoom from the menu**: a Zoom row on the in-game menu's Display page (Off, Player 1, Player 2, Both fighters), kept
+  in step with the zoom's buttons, in every game that zooms; and on a touch screen a Zoom button, for both fighters.
+
 - **Online asks the service less often**, to stay within its free daily allowance. The launcher's Online page checks
   every 10 seconds, or every 20 while the launcher isn't the window in front (it was every 5), and asks for the waiting
   room and the open matches in one request (`POST /v1/room` with `lobby: true`). A waiting host asks every 2 seconds,
@@ -57,8 +78,8 @@
   `sfa3h`; and Super Turbo's `ssf2ta` and `ssf2xj` (a later Japanese revision whose code is the same). Every clone set
   in MAME's driver was compared with the game's own, deciphered, word by word; the rest are other revisions. A game's
   `game.cfg` lists them (`other_set`), and `region_at` where the region is in an instruction rather than the header
-  (the port gives the variable the set's own value); the launcher finds them by name and says which it found; online,
-  both players need the same set (the hello says it). `docs/TOOLKIT.md` has how a set is found to belong.
+  (the port gives the variable the set's own value); the launcher finds them by name and says which it found.
+  `docs/TOOLKIT.md` has how a set is found to belong.
 - **CI is quicker**: SDL 3, librashader and the shader presets are built once and kept between runs (by the scripts
   that make them), the compiler's objects too (ccache); a pull request's Mac build is Apple silicon alone
   (`MAC_ARCHS`); a change of words only (the README, `docs/`) runs the audit and builds nothing; and a pull request's

@@ -34,8 +34,11 @@ set(LAUNCHER_PORT_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/src/description.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/../machine/kabuki.cpp)
 set(LAUNCHER_COLLECTION ${COLLECTION})
 if(COLLECTION)
-    # (the collection updates itself from the releases: each system's manifest and archive, tools/release/lib.sh)
-    set(LAUNCHER_UPDATE_REPO tmcleroy/cps2recomp)
+    # (the collection updates itself from the releases: each system's manifest and archive, tools/release/lib.sh;
+    # not the Android app, which the system installs)
+    if(NOT ANDROID)
+        set(LAUNCHER_UPDATE_REPO tmcleroy/cps2recomp)
+    endif()
     # (VERSION's, or the release scripts' COLLECTION_VERSION, which their manifests say too)
     if(COLLECTION_VERSION)
         set(LAUNCHER_VERSION ${COLLECTION_VERSION})

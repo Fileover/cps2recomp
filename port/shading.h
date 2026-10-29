@@ -6,7 +6,7 @@
 // beside the program (librashader.dylib, .so, .dll), opened when a shader is first asked for: without it, or with
 // a preset it cannot make, there is no shader and the picture goes to the window as it always did (present.h).
 // librashader needs the window's own OpenGL, which SDL's GPU API keeps to itself, so a window that shows a shader
-// is an OpenGL window (SDL_WINDOW_OPENGL) with nothing else drawing to it.
+// is an OpenGL window (SDL_WINDOW_OPENGL) with nothing else drawing to it. On Android, OpenGL ES 3.
 #pragma once
 
 #include <SDL3/SDL.h>
@@ -40,6 +40,8 @@ public:
     // pictures, one above the other), the preset draws the whole of the one above, and of what it drew the part
     // `view` fills `where`, as a camera would close in on a monitor; the readout's panels over it, as they are
     void Show(const uint32_t *pixels, int width, int height, const SDL_FRect &where, bool shade, const Zoomed *zoomed = nullptr);
+    // What is drawn over the whole window after the picture (present.h, Presenter::SetOverlay); nullptr: nothing
+    void SetOverlay(const uint32_t *pixels, int width, int height);
     // For the checks (CPS2RECOMP_SHADER_SHOT): each picture shown kept, and the last one, its first row its top
     bool keepLast = false;
     bool ReadBack(std::vector<uint32_t> &pixels, int &width, int &height);
@@ -57,6 +59,10 @@ private:
     std::vector<uint32_t> m_last;
     int m_lastWidth = 0, m_lastHeight = 0;
     void Keep();
+    // (the overlay: its texture, and the program that blends it over the window)
+    uint32_t m_overlay = 0, m_overlayProgram = 0, m_overlayArray = 0;
+    int m_overlayWidth = 0, m_overlayHeight = 0;
+    void DrawOverlay(int windowWidth, int windowHeight);
 };
 
 } // namespace port

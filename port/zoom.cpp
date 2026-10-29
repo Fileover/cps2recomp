@@ -77,6 +77,27 @@ void Zoom::Both() {
     Said();
 }
 
+void Zoom::Choose(int choice) {
+    if (!Possible() || choice == Choice()) {
+        return;
+    }
+    if (choice == 3) {
+        Both();
+        return;
+    }
+    if (choice <= 0) {
+        m_size = 0;
+        m_player = 0;
+    } else {
+        if (m_size == 0 || m_player == kBoth) {
+            m_size = 2; // (1.5x)
+        }
+        m_player = choice - 1;
+    }
+    m_panX = m_panY = 0;
+    Said();
+}
+
 void Zoom::Pan(int across, int down) {
     if (m_size == 0) {
         return;
