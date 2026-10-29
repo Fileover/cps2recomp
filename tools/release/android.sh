@@ -9,6 +9,10 @@
 # build-tools and NDK 27.2 (ANDROID_HOME; Homebrew's android-commandlinetools is found on its own: brew install
 # openjdk@17 android-commandlinetools). SDL 3 is built from source (its Java half is compiled into the app).
 #
+#   ROM_SETS=<folder> tools/release/android.sh
+#       a development build with your own ROM sets packed in (the folder's zips), to try on your own phone: the
+#       app copies them into its folder the first time it opens, set up for every game. Never share that APK.
+#
 # Signing: with KEYSTORE, KEYSTORE_PASSWORD, KEY_ALIAS and KEY_PASSWORD the APK is signed with that key. They are
 # also read from the file SIGNING names (default ~/.config/cps2recomp/android-signing.env, outside the
 # repository), as lines of NAME="value". Without either it is signed with the Android debug key, which is fine for
@@ -24,6 +28,10 @@ if [ -z "${KEYSTORE:-}" ] && [ -f "$SIGNING" ]; then
 fi
 if [ -n "${RELEASE:-}" ] && [ -z "${KEYSTORE:-}" ]; then
     echo "error: a release APK needs the signing key ($SIGNING)" >&2
+    exit 1
+fi
+if [ -n "${RELEASE:-}" ] && [ -n "${ROM_SETS:-}" ]; then
+    echo "error: a release APK can't have ROM sets packed in" >&2
     exit 1
 fi
 
@@ -65,11 +73,20 @@ for game in $GAMES; do
 done
 "$STRIP" --strip-unneeded "$LIBS"/*.so
 add_notices "$STAGED/assets" "$BUILD/launcher"
+APK="$ARCHIVE-android.apk"
+if [ -n "${ROM_SETS:-}" ]; then
+    # (LauncherActivity.java unpacks assets/roms/ and sets up the games roms/games.txt names)
+    mkdir -p "$STAGED/assets/roms"
+    cp "$ROM_SETS"/*.zip "$STAGED/assets/roms/"
+    printf '%s\n' $GAMES > "$STAGED/assets/roms/games.txt"
+    APK="$ARCHIVE-android-with-roms-DO-NOT-SHARE.apk"
+    echo "packing the ROM sets in $ROM_SETS: a development build, not to be shared"
+fi
 
 set -- -PstagedDir="$STAGED" -PsdlDir="$DEPS/SDL3-$SDL_VERSION"
 if [ -n "${KEYSTORE:-}" ]; then
     set -- "$@" -PkeyStore="$KEYSTORE" -PkeyStorePassword="$KEYSTORE_PASSWORD" -PkeyAlias="$KEY_ALIAS" -PkeyPassword="$KEY_PASSWORD"
 fi
 (cd "$ROOT/android" && ./gradlew --console=plain -q assembleRelease "$@")
-cp "$ROOT/android/app/build/outputs/apk/release/app-release.apk" "$OUT/$ARCHIVE-android.apk"
-echo "wrote $OUT/$ARCHIVE-android.apk ($(du -h "$OUT/$ARCHIVE-android.apk" | cut -f1))"
+cp "$ROOT/android/app/build/outputs/apk/release/app-release.apk" "$OUT/$APK"
+echo "wrote $OUT/$APK ($(du -h "$OUT/$APK" | cut -f1))"

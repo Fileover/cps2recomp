@@ -5,13 +5,19 @@ package io.github.tmcleroy.cps2recomp;
 import android.content.Intent;
 import android.database.Cursor;
 import android.net.Uri;
+import android.os.Bundle;
 import android.provider.OpenableColumns;
 import android.util.Log;
 
 import org.libsdl.app.SDLActivity;
 
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileOutputStream;
+import java.io.FileWriter;
+import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.ArrayList;
@@ -37,6 +43,57 @@ public class LauncherActivity extends SDLActivity {
     @Override
     protected String[] getLibraries() {
         return new String[] {"SDL3", "cps2recomp-launcher"};
+    }
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        unpackRomSets();
+        super.onCreate(savedInstanceState);
+    }
+
+    // A development build's own ROM sets (tools/release/android.sh, ROM_SETS: assets/roms/), copied into the launcher's
+    // folder for them as Add ROM sets... would, and each game of roms/games.txt set up to find its set there
+    private void unpackRomSets() {
+        try {
+            String[] files = getAssets().list("roms");
+            if (files == null || files.length == 0) {
+                return;
+            }
+            File home = new File(getExternalFilesDir(null), getString(R.string.app_name));
+            File roms = new File(home, "roms");
+            roms.mkdirs();
+            for (String name : files) {
+                if (!name.endsWith(".zip") || new File(roms, name).exists()) {
+                    continue;
+                }
+                File partial = new File(roms, name + ".part");
+                try (InputStream in = getAssets().open("roms/" + name); OutputStream out = new FileOutputStream(partial)) {
+                    byte[] buffer = new byte[1 << 16];
+                    for (int got; (got = in.read(buffer)) > 0;) {
+                        out.write(buffer, 0, got);
+                    }
+                }
+                partial.renameTo(new File(roms, name));
+            }
+            // (launcher.ini: a game's set is its section's rom; one already chosen is kept)
+            File ini = new File(home, "launcher.ini");
+            String text = ini.exists() ? new String(Files.readAllBytes(ini.toPath()), StandardCharsets.UTF_8) : "";
+            StringBuilder more = new StringBuilder();
+            try (BufferedReader games = new BufferedReader(new InputStreamReader(getAssets().open("roms/games.txt"), StandardCharsets.UTF_8))) {
+                for (String id; (id = games.readLine()) != null;) {
+                    if (!id.isEmpty() && !text.contains("[game." + id + "]")) {
+                        more.append("\n[game.").append(id).append("]\nrom=").append(roms.getPath()).append('\n');
+                    }
+                }
+            }
+            if (more.length() > 0) {
+                try (FileWriter out = new FileWriter(ini, true)) {
+                    out.write(more.toString());
+                }
+            }
+        } catch (Exception e) {
+            Log.w("cps2recomp", "the packed ROM sets: " + e);
+        }
     }
 
     // Starts the game whose library is lib<library>.so, with these arguments, in its folder, its output to log
