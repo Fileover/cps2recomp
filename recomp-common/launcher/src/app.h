@@ -31,7 +31,7 @@
 // The launcher's own pages. A port's: Game, Features, Controllers. A collection's: Games (Library), Features and
 // Controllers (for all the games), Multi game (if it has modes that play several games: launcher.h, MultiMode), then
 // one page for each game whose file is chosen (Title).
-enum class Page { Game, Features, Controllers, Library, Title, Multi, Online, Count };
+enum class Page { Game, Features, Controllers, Library, Title, Multi, Online, Series, Count };
 
 // --play: straight into the game set up earlier (a collection's: --play ID), with `extra` after the launcher's
 // own arguments for it; the exit code
@@ -73,6 +73,7 @@ private:
         const launcher::Description* about = nullptr;
         std::string id;                  // a collection's game's (a port's: "")
         std::string name;                // its name; its player folder is named by it
+        std::string series;              // a collection's game's series (launcher::CollectionGame::series), or ""
         std::string exe;                 // its program, beside the launcher
         std::string file_section;        // launcher.ini: where its file is ("game", or "game.<id>")
         std::string video_section;       // its Display switches ("video", or "video.<id>")
@@ -126,7 +127,28 @@ private:
     // after those that are, in the collection's order). The player changes it by dragging a game's row in the
     // sidebar, or with Move up and Move down on the game's page.
     void load_order();
-    void move_game(size_t which, int place);  // to that place among titled(); the page shown stays the one it was
+    // order_ with each series' games together, where its first game with a page is (else its first game)
+    void group_order();
+    // The games with a page as the places of the sidebar's list, in the player's order: a game, or a series' games
+    // (two or more of them with a page: launcher::CollectionGame::series), which move together
+    std::vector<std::vector<size_t>> units() const;
+    // A row of the sidebar after the collection's own pages: a game's, or a series' (its games', shown under it
+    // while it is open). A series' row is its page: its games, each to play or go to.
+    struct Row {
+        size_t game = 0;       // the game's; a series': its first game's
+        bool series = false;   // the series' row
+        bool inside = false;   // a game's row under its series'
+    };
+    std::vector<Row> rows() const;
+    // launcher.ini, [games] open: the series whose rows are open (their names)
+    bool series_open(const std::string& series) const;
+    void open_series(const std::string& series, bool open);
+    // A change to the sidebar's rows (a series opened or closed, a game moved), the page shown staying the one it was
+    // (a game's in a series that closes: the series')
+    void keep_page(const std::function<void()>& change);
+    void reorder(const std::vector<size_t>& list);  // titled() in a new order, kept in launcher.ini
+    void move_game(size_t which, int place);  // to that place among its series' games (or as move_unit, one of none)
+    void move_unit(size_t unit, int place);   // to that place among units()
 
     // Game file.
     void choose_game_file(size_t which);
@@ -179,6 +201,7 @@ private:
     void game_page(float width);
     void library_page(float width);
     void title_page(size_t which, float width);
+    void series_page(size_t which, float width);  // a series' page (`which`: one of its games)
     void features_page(float width);
     void controllers_page(float width);
     // The rows of a page's features under their categories, with the search box over them; set(row, value)
@@ -192,8 +215,11 @@ private:
                       bool whole = true);
     void file_card(size_t which, float width);
     void display_cards(size_t which, float width);
-    void play_button(size_t which, float width);
+    // Play, under the page's heading, and why the game didn't start; whether it can be played now (online_card's `ready`)
+    bool play_button(size_t which, float width);
     void online_card(size_t which, float width, bool ready);
+    // Under the game's other cards: its Online card, and Steam's (Linux)
+    void play_cards(size_t which, float width, bool ready);
     // Host's arguments for a game's Online: listed under the player's name if they have one, and arcade while waiting
     // if they switched it on; and the row with that switch
     std::vector<std::string> host_arguments(const launcher::Online& online) const;
@@ -203,8 +229,23 @@ private:
     // open matches
     void online_page(float width);
     void load_online();
-    // The lobby's list from `url`, fetched again every five seconds while it is shown
+    // How often the lobby is fetched and the waiting room checked in at (ms): every 10 seconds, or 20 while the launcher
+    // isn't the window in front (a player in the room is gone 30 seconds after their last check-in: online/)
+    Uint64 online_every() const;
+    // The lobby's list from `url`, fetched again every online_every() while it is shown; the Online page's comes with the
+    // waiting room's check-in instead (one request), from a service that gives it
     void follow_lobby(const std::string& url);
+    // The waiting room (Collection::room): checked in at every online_every() while the Online page is open and no game
+    // is running, and left when not; its card, and the invitations' card
+    void follow_room(bool here);
+    // A card's small capitals, with "Updates every 10 seconds" at the right, and a spinner beside it while `fetching`
+    void live_label(const char* text, float width, bool fetching);
+    // A card's only row while there is nothing in it: `text`, with a spinner while `looking`
+    void empty_row(float width, const char* text, bool looking);
+    void room_card(float width, const std::vector<size_t>& playable);
+    void invitations_card(float width);
+    std::vector<std::string> invite_arguments(const launcher::Online& online, const launcher::RoomPlayer& player) const;
+    void block(const std::string& id);
     // A game that can be started now (its file chosen and good, its program there, not running)
     bool can_play(size_t which) const;
     // This launcher's version (LAUNCHER_VERSION, or ""), and whether a match's is the same (online play's must be)
@@ -251,6 +292,8 @@ private:
     std::vector<std::unique_ptr<Slot>> slots_;
     std::vector<size_t> order_;  // slots_, in the player's order (load_order)
     int dragging_ = -1;          // the game whose sidebar row is being dragged, or -1
+    bool dragging_series_ = false;  // (its series' row: the series is being dragged)
+    std::string opened_;         // the series opened in the last frame (its games' rows come out from under its row)
     float drag_grab_ = 0.0f;     //   (where in its row it was taken hold of)
     size_t slot_ = 0;       // the game the page shown is about
     const launcher::Description& about_;  // a port's (a collection's: its first game's, for what they all share)
@@ -287,6 +330,14 @@ private:
     std::string lobby_url_;
     bool lobby_failed_ = false;
     Uint64 lobby_at_ = 0;
+    // (the waiting room's: the check-in on another thread, its last answer, and the invitations answered here, which
+    // the service may still list until its next answer)
+    std::future<launcher::Room> room_fetch_;
+    launcher::Room room_;
+    Uint64 room_at_ = 0;
+    bool room_in_ = false;
+    bool room_lists_ = true; // (the check-in brings the Online page's lobby list too: until a service answers without it)
+    std::vector<std::string> room_answered_;
 #ifdef LAUNCHER_UPDATE_REPO
     std::unique_ptr<launcher::Updater> updater_;
     bool relaunched_ = false;  // (the new version has been started: this one quits)

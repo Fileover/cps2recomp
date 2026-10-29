@@ -15,6 +15,13 @@ Each player needs the game and its ROM set. The launcher's **Online** page (in t
 - **Host a match**: choose a game and press **Host**. The game shows the match's code to give the other player. If
   you've set **Your name**, the match is also listed in the lobby under it until someone joins; without a name, only
   those you give the code to can join.
+- **Waiting room**: the other players whose Online page is open now, under their names. Choose a game and press
+  **Invite** next to someone: your game starts and hosts a match, and they see the invitation on their Online page,
+  naming you and the game, with **Accept** and **Decline** (and **Add…** if they haven't that game's ROM set). Accept
+  starts their game and joins yours; your game's wait says if they declined. You're in the waiting room while your
+  Online page is open and you've set **Your name**, unless you switch off **Let others invite me**. An invitation never
+  interrupts a game: it waits on the Online page. **Block** (on a player or an invitation) hides the two of you from
+  each other; **Unblock all** undoes it. Nobody's address is shown, only names.
 - **Arcade while waiting** (a switch under Host a match): play the game on your own while you wait, as at the arcade.
   The match's code and "WAITING FOR A CHALLENGER" show at the bottom of the screen. When someone joins, they come
   into your game as it is and press Start to challenge you. Esc asks whether to stop hosting.

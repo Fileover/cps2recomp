@@ -82,6 +82,11 @@ struct Online {
     // Arcade while waiting: when the player switches it on ([online] arcade), Host adds `arcade_argument`, and the
     // host plays the game alone until the other player comes, who joins the game as it is. nullptr: no such switch.
     const char *arcade_argument = nullptr; // "--net-arcade"
+    // Inviting a player from the waiting room (Collection::room): Host with `invite_argument THEIRS:MINE` (the two
+    // players' ids) and `invite_name_argument NAME` (theirs), and the player's own name with `name_argument`; the match
+    // isn't listed. nullptr: no Invite.
+    const char *invite_argument = nullptr;      // "--net-invite"
+    const char *invite_name_argument = nullptr; // "--net-invite-name"
 };
 
 struct InfoRow {
@@ -195,6 +200,10 @@ struct CollectionGame {
     const char *exe;         // its program, beside the launcher (as LAUNCHER_GAME_EXE)
     const char *home_env;    // a variable naming a folder to use instead of its own, for tests (LAUNCHER_HOME_ENV)
     Description description; // what a launcher of its own is told (its pages, if any, are not shown)
+    // The series it is one of, as the player reads it ("Street Fighter Alpha"), or nullptr. Two or more games of a series
+    // with a page of their own are under one row of the sidebar, which opens and closes and has a page of the series'
+    // games, and are kept together in the player's order and on the Games page.
+    const char *series = nullptr;
 };
 
 // A choice of a multi-game mode's: a row of its card on the Multi game page, kept in launcher.ini under
@@ -258,6 +267,12 @@ struct Collection {
     // for ({"game", "title"}; 404: none), so that the right game is started with its Online's join argument and the
     // code. nullptr: no such section.
     const char *code_lookup = nullptr;
+    // The waiting room, on the Online page: the URL a launcher checks in at every few seconds while the page is open
+    // (online.h: room_check_in; `/leave` and `/decline` after it), which lists the other players there to invite to
+    // a match (with their game's Online::invite_argument), and gives the invitations waiting for this one, each
+    // accepted by joining its code. `protocol` is said with it: only players with the same are listed. nullptr: none.
+    const char *room = nullptr;
+    int room_protocol = 0;
     const char *file_name = "game file"; // what a game's file is called, as the Online page says it ("ROM set")
     // The category of the features the Online page shows too, as the Features page does (what a match shows: the
     // ping...), or nullptr

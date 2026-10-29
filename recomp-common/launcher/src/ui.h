@@ -88,7 +88,9 @@ bool search_box(const char* id, char* buffer, size_t size, const char* hint, flo
 // what is in it changed.
 bool text_field(const char* id, char* buffer, size_t size, const char* hint, float width);
 // (`reachable`: false keeps the arrow keys and a gamepad off it)
-bool nav_item(const char* label, bool active, float width, bool reachable = true);
+// `indent`: its words further in (a row under another's). `fold`: a row that opens and closes the rows under it shows a
+// chevron at its end, pointing right while it is closed (0) and down while it is open (1); -1: none.
+bool nav_item(const char* label, bool active, float width, bool reachable = true, float indent = 0.0f, int fold = -1);
 bool list_item(const char* label, bool active, float width);
 bool key_chip(const char* id, const char* label, bool capturing, float width, ImRect& rect);
 float keycap(const char* key);

@@ -140,6 +140,7 @@ own test menu instead.
 | Frame data log | `frame_log` | Writes every move's frame data to frame_data.csv, beside the settings file: the character, what was held as it began, startup, active, recovery and the advantage after a hit or a guarded one. |
 | Frame meter | `frame_meter` | A row of cells for each player, one for every step of the game: green before a move can hit, red while it can, blue after; yellow reeling from a hit, light blue from a guarded one; grey in the air. |
 | Health refills | `health_refill` | A player's health comes back when they have not been hit for a moment. |
+| Gauge refills | `gauge_refill` | Both players' super combo gauge kept full (three levels), filled again after a Custom Combo. |
 | Fixed damage | `fixed_damage` | The damage of a hit has no random part (the average of the game's own in its place), so the same combo always does the same damage. (On the board each hit's damage varies a little.) |
 
 ## Dummy
@@ -154,7 +155,7 @@ own test menu instead.
 | Replay any slot | `dummy_replay_any` | Player 2 does what was recorded, over and over, each time from a slot picked at random. |
 | Recording slot | `dummy_slot` | Which of three recordings Record makes and Replay plays. Choices: 1, 2, 3. |
 | Guards | `dummy_guard` | Player 2 guards player 1's attacks, standing or crouching as each needs: always; only for a moment after being hit (to see whether a combo really is one); or one attack in two, at random. Choices: Off, Always, After a hit, At random. |
-| While guarding | `dummy_guard_action` | What player 2 does while guarding a hit: an Alpha counter (back, down-back, down with a punch or a kick; it costs a level of the super combo gauge, so pair it with "Full gauge, player 2"). Choices: Nothing, Alpha counter, punch, Alpha counter, kick, At random. |
+| While guarding | `dummy_guard_action` | What player 2 does while guarding a hit: an Alpha counter (back, down-back, down with a punch or a kick; it costs a level of the super combo gauge, so pair it with "Gauge refills"). Choices: Nothing, Alpha counter, punch, Alpha counter, kick, At random. |
 | Answers with the recording | `dummy_reversal` | Player 2 plays the recording once as soon as it can act after guarding, after being hit (or knocked down, or thrown), or both. Choices: Off, After guarding, After being hit, After either. |
 | Answers now and then | `dummy_reversal_random` | With an answer chosen: player 2 answers only one time in two, with any slot that has a recording, so you cannot learn when or how it will. |
 | Softens throws | `dummy_tech` | Player 2 does a throw's own command while being thrown (a "tech hit", which takes less damage). Choices: Off, Always, At random. |

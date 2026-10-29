@@ -10,6 +10,32 @@
   game's own set's (as built), not the player's. The `region_at` hook reads the program as it runs and is always
   there (a game's own set unchanged: the same `--hash-log`). `JOIN_ROM=<set> make check-online` checks it.
   Best effort: a word the list lacks stops the match as a desync does.
+- **Online asks the service less often**, to stay within its free daily allowance. The launcher's Online page checks
+  every 10 seconds, or every 20 while the launcher isn't the window in front (it was every 5), and asks for the waiting
+  room and the open matches in one request (`POST /v1/room` with `lobby: true`). A waiting host asks every 2 seconds,
+  then every 5 after two minutes and every 10 after ten (it was every second and a half), and has its code again when
+  it runs out after 30 minutes instead of asking about a dead one. The lists say "Updates every 10 seconds" and show a
+  spinner while they're fetched. The service keeps the lobby in memory, told by each match at most every 10 seconds,
+  and keeps a waiting room player or a listed match for 30 and 25 seconds after they're last heard from.
+  recomp-common: `RoomCheckIn::lobby`, `Room::matches`.
+- **Training mode: Gauge refills** in Street Fighter Alpha 2 and 3, Alpha 2 Gold and the Vampire Savior games (issue
+  #174), as the other fighting games have it: both players' super combo gauge (in the Vampire Savior games, their
+  special gauges) kept full in a session, for practising supers and combos into them. In Alpha 2 and 3 it waits for a
+  Custom Combo to end before filling the gauge again. Alpha 2's Alpha counter dummy now points to it.
+- **Play at the top** of each game's page in the launcher, right under its name and the lines about it.
+- **Online: a waiting room, with invitations** (#155). The Online page lists the other players whose Online page is open
+  and who have a name, and **Invite** hosts a match in the game chosen for one of them (`--net-invite TO:FROM`,
+  `--net-invite-name NAME`; the match isn't listed). The invitation waits on their Online page with Accept (joining
+  its code), Decline and Block; the host's wait says "Invited NAME", then "NAME declined" or "NAME couldn't be
+  invited". "Let others invite me" takes a player out of the room; blocked players see nothing of each other. The
+  service (`online/`) has a Room Durable Object, kept in memory, which launchers check in at every five seconds
+  (`POST /v1/room`); a player's id is made from a secret only their launcher keeps (`launcher.ini` `[online] room`).
+  recomp-common #34: `Collection::room`, `Online::invite_argument`.
+
+- **The launcher keeps a series' games together**: the Street Fighter Alpha games, the Darkstalkers games and the
+  Marvel games are each one row in the sidebar that opens to show them, with a page of their own to play any of them
+  (recomp-common: `CollectionGame::series`). A game's series is `series` in its `game.cfg`; Super Street Fighter II
+  Turbo is in Street Fighter II, a row of its own until another version comes.
 - **Online: arcade while waiting** (#159). A switch under Host a match, on the Online page and a game's Online card
   (recomp-common #32, `--net-arcade`), lets the host play the game alone until someone joins. The match's code and
   "WAITING FOR A CHALLENGER" are said at the bottom of the screen. The one who joins is sent the game as it is then,

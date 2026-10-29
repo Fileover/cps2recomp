@@ -210,6 +210,18 @@ namespace {
         return text;
     }
 
+    // The game's own aid: the super combo gauge kept full (in a fight, and not while a V-ism custom combo goes on: its
+    // time runs down with the gauge, and it is filled again once the combo is over)
+    void Hud(Machine &, std::vector<HudLine> &, std::vector<HudBox> &) {
+        for (int n = 0; n < 2; n++) {
+            const uint32_t player = Player(n);
+            if (FeatureOn("gauge_refill") && Ram8(player + kState) == 2 && !Ram8(player + kCustomCombo) &&
+                Ram16(player + kSpecialGauge) < kSpecialGaugeFull) {
+                SetRam16(player + kSpecialGauge, kSpecialGaugeFull);
+            }
+        }
+    }
+
     // Under each player's bar: the custom combo's time, the combo readout and the stun line (or the stun line alone)
     void PlayerReadout(int n, const fight::Combos &combos, std::vector<HudLine> &lines) {
         if (FeatureOn("custom_combo_readout")) {
@@ -313,6 +325,7 @@ void RegisterTraining() {
     d.inputWords = "What each player presses and for how many frames: the stick as a keypad number from the player's side (6 forward, "
                    "4 back, 2 down), then the buttons.";
     d.framesPrintVariable = "SFA3_FRAMES";
+    d.hud = Hud;
     d.readoutFeatures = {{"stun_readout", "Training mode", "Stun readout",
                           "Under each bar: how much stun the player has taken and how much stuns them (it drains when they are left "
                           "alone for a while)."},
@@ -343,6 +356,10 @@ void RegisterTraining() {
                                return (frame / 2) % 2 ? 0 : static_cast<uint16_t>(kKick1 | kKick2);
                            }});
     session::Register(d);
+    // (after the session's own, so it follows "Health refills"; a training aid, as the session's are)
+    game.features.push_back({"gauge_refill", modes::kTraining, "Gauge refills",
+                             "Both players' super combo gauge kept full (every ism's), filled again after a custom combo."});
+    TrainingAids({"gauge_refill"});
     game.features.push_back({"dummy_stun_mash", "Dummy", "Mashes out of stun",
                              "Stunned, the dummy works the stick and the buttons as fast as it can, as a player does to get out sooner."});
     game.features.push_back({"dummy_computer", "Dummy", "Played by the game",

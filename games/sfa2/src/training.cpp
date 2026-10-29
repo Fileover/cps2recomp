@@ -214,6 +214,18 @@ namespace {
         }
     }
 
+    // The game's own aid: the super combo gauge kept full (in a fight, and not while a Custom Combo goes on: the gauge
+    // is spent as it begins, and filled again once it is over)
+    void Hud(Machine &, std::vector<HudLine> &, std::vector<HudBox> &) {
+        for (int n = 0; n < 2; n++) {
+            const uint32_t player = Player(n);
+            if (FeatureOn("gauge_refill") && Ram8(player + kState) == 2 && !Ram8(player + kCustomCombo) &&
+                Ram16(player + kSpecialGauge) < kSpecialGaugeFull) {
+                SetRam16(player + kSpecialGauge, kSpecialGaugeFull);
+            }
+        }
+    }
+
     // Under each player's bar: the Custom Combo's time, the combo readout and the stun line (or the stun line alone)
     void PlayerReadout(int n, const fight::Combos &combos, std::vector<HudLine> &lines) {
         if (FeatureOn("custom_combo_readout")) {
@@ -362,6 +374,7 @@ void RegisterTraining() {
     d.inputWords = "What each player presses and for how many frames: the stick as a keypad number from the player's side (6 forward, "
                    "4 back, 2 down), then the buttons.";
     d.framesPrintVariable = "SFA2_FRAMES";
+    d.hud = Hud;
     d.readoutFeatures = {{"stun_readout", "Training mode", "Stun readout",
                           "Under each bar: how much stun the player has taken and how much stuns them (it drains when they are left "
                           "alone for a while)."},
@@ -383,7 +396,7 @@ void RegisterTraining() {
                                       return at == 0 ? away : at == 1 ? static_cast<uint16_t>(away | kDown) : at == 2 ? static_cast<uint16_t>(kDown | kKick2) : 0;
                                   }});
     dummy.guardActionsWords = "What player 2 does while guarding a hit: an Alpha counter (back, down-back, down with a punch or a kick; "
-                              "it costs a level of the super combo gauge, so pair it with \"Full gauge, player 2\").";
+                              "it costs a level of the super combo gauge, so pair it with \"Gauge refills\").";
     dummy.heldAction = [](int frame, uint16_t, uint16_t away) -> uint16_t {
         return static_cast<uint16_t>(away | ((frame & 1) ? (kPunch2 | kPunch3) : 0));
     };
@@ -396,6 +409,10 @@ void RegisterTraining() {
                                return at == 0 ? kDown : at == 1 ? static_cast<uint16_t>(kDown | away) : at == 2 ? away : static_cast<uint16_t>(away | kPunch1);
                            }});
     session::Register(d);
+    // (after the session's own, so it follows "Health refills"; a training aid, as the session's are)
+    game.features.push_back({"gauge_refill", modes::kTraining, "Gauge refills",
+                             "Both players' super combo gauge kept full (three levels), filled again after a Custom Combo."});
+    TrainingAids({"gauge_refill"});
     game.features.push_back({"dummy_stun_mash", "Dummy", "Mashes out of stun",
                              "Stunned, the dummy works the stick and the buttons as fast as it can, as a player does to get out sooner."});
     game.features.push_back({"dummy_computer", "Dummy", "Played by the game",

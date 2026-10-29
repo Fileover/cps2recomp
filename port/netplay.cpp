@@ -702,7 +702,7 @@ bool Netplay::Introduce(uint64_t now, std::string &error) {
             const std::string again = settings.renewCode.empty() ? ""
                                       : "\"code\":\"" + settings.renewCode + "\",\"secret\":\"" + settings.renewSecret + "\",";
             std::string listed;
-            if (settings.listed) {
+            if (settings.listed || !settings.invite.empty()) {
                 // (the name, as JSON text: quotes and backslashes escaped, control characters left out)
                 std::string name;
                 for (const char c : settings.name) {
@@ -713,7 +713,11 @@ bool Netplay::Introduce(uint64_t now, std::string &error) {
                         name += c;
                     }
                 }
-                listed = ",\"listed\":true,\"name\":\"" + name + "\"";
+                listed = std::string(settings.listed ? ",\"listed\":true" : "") + ",\"name\":\"" + name + "\"";
+            }
+            // (a player invited from the waiting room: ids, hex digits)
+            if (!settings.invite.empty()) {
+                listed += ",\"invite\":\"" + settings.invite + "\",\"from\":\"" + settings.from + "\"";
             }
             ask("POST", "/v1/host", "{" + again + about + listed + ",\"addresses\":" + Addresses() + "}");
         } else {
@@ -732,6 +736,7 @@ bool Netplay::Introduce(uint64_t now, std::string &error) {
                 secret = JsonText(answer.body, "secret");
                 waiting = "Waiting for the other player"; // (the code said under it, and the lobby: Port::Tick)
                 fprintf(stderr, "online: the match's code is %s%s\n", code.c_str(), seenAs.empty() ? "" : (" (seen at " + seenAs + ")").c_str());
+                codeAt = now;
                 intro = Intro::Polling;
             } else {
                 fprintf(stderr, "online: no code: the online service did not answer (%d)\n", answer.status);
@@ -764,8 +769,9 @@ bool Netplay::Introduce(uint64_t now, std::string &error) {
                                        : "Couldn't reach the online service (is this machine on the internet?).";
         return false;
     }
-    case Intro::Polling:
-        // (hosting: asked every second and a half until someone has joined; then their addresses are sent to)
+    case Intro::Polling: {
+        // (hosting: asked until someone has joined, every 2 seconds, then 5 after two minutes and 10 after ten, the
+        // most the joiner's 30 seconds of waiting allow; then their addresses are sent to)
         if (asking.valid()) {
             if (!answered()) {
                 return true;
@@ -785,11 +791,24 @@ bool Netplay::Introduce(uint64_t now, std::string &error) {
                 intro = Intro::Done;
                 return true;
             }
+            if (answer.status == 200 && invitation.empty()) {
+                invitation = JsonText(answer.body, "invite");
+            }
+            if (answer.status == 404) {
+                // (the code has run out (30 minutes): the same one had again, for whoever was given it, and asked on)
+                fprintf(stderr, "online: the code ran out: asking for it again\n");
+                settings.renewCode = code.substr(0, 3) + code.substr(4);
+                settings.renewSecret = secret;
+                intro = Intro::Stun;
+                return true;
+            }
         }
-        if (now - askedAt > 1500) {
+        const uint64_t waited = now - codeAt;
+        if (now - askedAt > (waited < 120000 ? 2000u : waited < 600000 ? 5000u : 10000u)) {
             ask("GET", "/v1/host/" + code.substr(0, 3) + code.substr(4) + "?secret=" + secret, "");
         }
         return true;
+    }
     }
     return true;
 }

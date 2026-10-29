@@ -70,6 +70,8 @@ each other.
 - **Host** a match and give the other player its **code**: they type it on the launcher's **Online** page. If you've
   set your name, the match is also listed in the **lobby**, where anyone can pick it from **Open matches**. Nothing
   needs setting up on either router.
+- The **waiting room** lists the players whose Online page is open: **Invite** one to a match in any game, and they
+  **Accept** from their launcher.
 - Both players need the same version of CPS-2 Recomp (the launcher shows yours at the top); a match on another
   version is greyed in the list. Your ROM sets may be different regions of the game: the match is the host's region
   (best effort: the same set is surest).
@@ -78,7 +80,7 @@ each other.
 - **On screen:** the ping (and the input delay, if you like), and the **win streak** of a player who keeps winning.
 - A dropped connection waits for the other player to come back with the same code.
 
-**[More about online play →](docs/ONLINE.md)**: the lobby, joining by address, and how rollback works.
+**[More about online play →](docs/ONLINE.md)**: the lobby, the waiting room, joining by address, and how rollback works.
 
 ## Everything else
 

@@ -42,6 +42,8 @@ struct GameInfo {
     // Other sets of the game it plays as well (game.cfg's other_set: other regions of the same program;
     // machine/romset.h)
     const char* other_set;
+    // The series the launcher puts it under, with the other games of it (game.cfg's series; "": none)
+    const char* series;
 };
 #ifdef LAUNCHER_COLLECTION
 const GameInfo* game_of_set(const char* set);
@@ -232,6 +234,8 @@ launcher::Description describe_game(const GameInfo& game) {
     d.online.list_argument = "--net-list";
     d.online.name_argument = "--net-name";
     d.online.arcade_argument = "--net-arcade"; // (the host plays alone until the other player comes: port/main.cpp, ArcadeFrame)
+    d.online.invite_argument = "--net-invite"; // (a player in the waiting room invited: online/, Collection::room)
+    d.online.invite_name_argument = "--net-invite-name";
     d.display = {{"fullscreen", "Full screen", "F11 switches while playing.", false, nullptr}};  // (a window unless asked)
     for (const FeatureSwitch& one : switches) {
         d.display.push_back({keep(one.name), keep(one.title), keep(one.detail), false, nullptr});
@@ -301,7 +305,7 @@ const launcher::Collection& launcher::describe_collection() {
         c.find_title = "Look in a folder";
         c.find_detail = "Finds each game's ROM set in a folder of them, by the set's name (sfa2u.zip, say).";
         for (const GameInfo& game : kGames) {
-            c.games.push_back({game.id, game.name, game.id, "", describe_game(game)});
+            c.games.push_back({game.id, game.name, game.id, "", describe_game(game), *game.series ? game.series : nullptr});
         }
         c.bindings = shared_table().table;
         // The Multi game page: the fighting games' endless battle (fight/battle.h), each game's every stage once and
@@ -312,10 +316,15 @@ const launcher::Collection& launcher::describe_collection() {
         c.lobby = lobby.c_str();
         static const std::string lookup = std::string(port::Netplay::kService) + "/v1/code/";
         c.code_lookup = lookup.c_str();
+        // (the waiting room: online/, the players whose Online page is open, to invite to a match)
+        static const std::string room = std::string(port::Netplay::kService) + "/v1/room";
+        c.room = room.c_str();
+        c.room_protocol = port::Netplay::kProtocol;
         c.file_name = "ROM set";
         c.online_features = "Online"; // (the ping and the input delay on the screen: port/main.cpp)
         c.online_intro = "Play someone on another machine: join a match a player is hosting, or host one in any of your games for others to "
-                         "join. A game's own page has its Online card too, for a match with a code only the people you give it to know.";
+                         "join, or invite someone from the waiting room. A game's own page has its Online card too, for a match with a code only the people "
+                         "you give it to know.";
         launcher::MultiMode endless;
         endless.key = "endless";
         endless.title = "Endless battle";
@@ -440,7 +449,7 @@ const launcher::Description& launcher::describe() {
     static const Description about = describe_game({LAUNCHER_GAME_EXE, LAUNCHER_GAME_NAME, LAUNCHER_ROM_SET, LAUNCHER_ROM_PARENT, LAUNCHER_ROM_NAME,
                                                     LAUNCHER_ROM_PROGRAM, LAUNCHER_ROM_GRAPHICS, LAUNCHER_ROM_SOUND_PROGRAM, LAUNCHER_ROM_SAMPLES,
                                                     LAUNCHER_ROM_KEY, LAUNCHER_DISPLAY_SWITCHES, LAUNCHER_PLAYERS, LAUNCHER_BUTTONS,
-                                                    LAUNCHER_BOARD, LAUNCHER_CPS_B, "", "", LAUNCHER_OTHER_SET});
+                                                    LAUNCHER_BOARD, LAUNCHER_CPS_B, "", "", LAUNCHER_OTHER_SET, ""});
     return about;
 }
 

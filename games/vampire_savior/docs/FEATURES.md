@@ -139,6 +139,7 @@ test menu instead.
 | Frame data | `frame_data` | After a move: the step it can first hit on (startup), how many it can hit for (active) and how many follow before the player can act (recovery). After a hit or a guarded one: who can act first, by how many steps (+: the attacker). |
 | Frame meter | `frame_meter` | A row of cells for each player, one for every step of the game: green before a move can hit, red while it can, blue after; yellow reeling from a hit, light blue from a guarded one; grey in the air. |
 | Health refills | `health_refill` | A player's health comes back when they have not been hit for a moment. |
+| Gauge refills | `gauge_refill` | Both players always have special gauges to spend (ES moves, EX moves, Dark Force). |
 
 ## Dummy
 
