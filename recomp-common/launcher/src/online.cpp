@@ -16,9 +16,12 @@
 #endif
 
 #include <algorithm>
+#include <chrono>
 #include <cstdint>
 #include <cstdlib>
 #include <cstring>
+#include <random>
+#include <thread>
 
 namespace launcher {
 
@@ -183,6 +186,155 @@ CodeLookup lookup_code(const std::string& url) {
     out.version = text("version");
     out.error = text("error");
     return out;
+}
+
+namespace {
+// JSON text: quotes and backslashes escaped, control characters left out
+std::string Quoted(const std::string& text) {
+    std::string out = "\"";
+    for (const char c : text) {
+        if (c == '"' || c == '\\') {
+            out += '\\';
+        }
+        if (static_cast<unsigned char>(c) >= 0x20) {
+            out += c;
+        }
+    }
+    return out + "\"";
+}
+
+std::string QuotedList(const std::vector<std::string>& list) {
+    std::string out = "[";
+    for (const std::string& item : list) {
+        out += (out.size() > 1 ? "," : "") + Quoted(item);
+    }
+    return out + "]";
+}
+
+// A string's value in json[from, end) (its first "key":"..."), unescaped as far as quotes and backslashes go
+std::string Text(const std::string& json, size_t from, size_t end, const char* key) {
+    std::string out;
+    const size_t at = json.find(std::string("\"") + key + "\":\"", from);
+    if (at == std::string::npos || at >= end) {
+        return out;
+    }
+    for (size_t i = at + std::strlen(key) + 4; i < end && json[i] != '"'; i++) {
+        if (json[i] == '\\' && i + 1 < end) {
+            i++;
+        }
+        out += json[i];
+    }
+    return out;
+}
+
+// The objects of the list "key":[{...}, ...] (none with objects or lists of objects inside), each as its [begin, end)
+std::vector<std::pair<size_t, size_t>> Objects(const std::string& json, const char* key) {
+    std::vector<std::pair<size_t, size_t>> out;
+    size_t at = json.find(std::string("\"") + key + "\":[");
+    if (at == std::string::npos) {
+        return out;
+    }
+    at += std::strlen(key) + 4;
+    while (at < json.size() && json[at] != ']') {
+        if (json[at] == '{') {
+            bool quoted = false;
+            size_t end = at + 1;
+            for (; end < json.size() && (quoted || json[end] != '}'); end++) {
+                if (json[end] == '\\') {
+                    end++;
+                } else if (json[end] == '"') {
+                    quoted = !quoted;
+                }
+            }
+            out.push_back({at, end});
+            at = end + 1;
+        } else {
+            at++;
+        }
+    }
+    return out;
+}
+
+// The strings of "key":["...", ...] in json[from, end)
+std::vector<std::string> Strings(const std::string& json, size_t from, size_t end, const char* key) {
+    std::vector<std::string> out;
+    size_t at = json.find(std::string("\"") + key + "\":[", from);
+    if (at == std::string::npos || at >= end) {
+        return out;
+    }
+    for (at += std::strlen(key) + 4; at < end && json[at] != ']'; at++) {
+        if (json[at] == '"') {
+            std::string item;
+            for (at++; at < end && json[at] != '"'; at++) {
+                if (json[at] == '\\' && at + 1 < end) {
+                    at++;
+                }
+                item += json[at];
+            }
+            out.push_back(item);
+        }
+    }
+    return out;
+}
+
+int Post(const std::string& url, const std::string& body, std::string* answer) {
+    return run_program(curl_program(), {"-sS", "--max-time", "8", "-X", "POST", "-H", "content-type: application/json", "--data-binary", body, url}, answer);
+}
+
+// (sent on a thread of its own: the launcher doesn't wait for the answer)
+void PostAway(const std::string& url, const std::string& body) {
+    std::thread([url, body] { std::string ignored; Post(url, body, &ignored); }).detach();
+}
+}  // namespace
+
+Room room_check_in(const std::string& url, const RoomCheckIn& me) {
+    Room room;
+    const std::string body = "{\"secret\":" + Quoted(me.secret) + ",\"name\":" + Quoted(me.name) + ",\"games\":" + QuotedList(me.games) +
+                             ",\"protocol\":" + std::to_string(me.protocol) + ",\"version\":" + Quoted(me.version) +
+                             ",\"invitable\":" + (me.invitable ? "true" : "false") + ",\"blocked\":" + QuotedList(me.blocked) + "}";
+    std::string json;
+    if (Post(url, body, &json) != 0 || json.find("\"players\"") == std::string::npos) {
+        return room;
+    }
+    // {"id":"...","players":[{"id","name","games":[...]}],"invitations":[{"code","from","name","game","title","version"}]}:
+    // the service's answer (cps2recomp's online/)
+    room.ok = true;
+    const size_t players = json.find("\"players\":[");
+    room.id = Text(json, 0, players, "id");
+    for (const auto& [at, end] : Objects(json, "players")) {
+        RoomPlayer player{Text(json, at, end, "id"), Text(json, at, end, "name"), Strings(json, at, end, "games")};
+        if (!player.id.empty()) {
+            room.players.push_back(player);
+        }
+    }
+    for (const auto& [at, end] : Objects(json, "invitations")) {
+        Invitation invitation{Text(json, at, end, "code"),  Text(json, at, end, "from"),  Text(json, at, end, "name"),
+                              Text(json, at, end, "game"),  Text(json, at, end, "title"), Text(json, at, end, "version")};
+        if (!invitation.code.empty()) {
+            room.invitations.push_back(invitation);
+        }
+    }
+    return room;
+}
+
+void room_leave(const std::string& url, const std::string& secret) {
+    PostAway(url + "/leave", "{\"secret\":" + Quoted(secret) + "}");
+}
+
+void room_decline(const std::string& url, const std::string& secret, const std::string& code) {
+    PostAway(url + "/decline", "{\"secret\":" + Quoted(secret) + ",\"code\":" + Quoted(code) + "}");
+}
+
+std::string new_room_secret() {
+    std::random_device device;
+    std::mt19937_64 random((static_cast<uint64_t>(device()) << 32) ^ device() ^
+                           static_cast<uint64_t>(std::chrono::steady_clock::now().time_since_epoch().count()));
+    static const char kHex[] = "0123456789abcdef";
+    std::string secret;
+    for (int i = 0; i < 32; i++) {
+        secret += kHex[random() & 15];
+    }
+    return secret;
 }
 
 }  // namespace launcher

@@ -81,6 +81,9 @@ public:
         std::string renewCode, renewSecret; // (hosting again after the other player left: the code they know, kept)
         bool listed = false;  // (--net-list) the match in the lobby: on the Online card's list of open matches
         std::string name;     // (--net-name) ... under this name
+        // (--net-invite TO:FROM, --net-invite-name NAME) hosting: a player in the launcher's waiting room (online/)
+        // invited to the match, by their id, from this player's (named `name`); the invited player's name, as said
+        std::string invite, from, inviteName;
         // (--net-arcade) hosting: the game played meanwhile, alone, as offline (with the match's features); the match
         // begins from the game as it is when the other player comes, who presses Start to challenge
         bool arcade = false;
@@ -104,6 +107,14 @@ public:
     }
     bool Listed() const {
         return settings.listed;
+    }
+    // (hosting, --net-invite) the invited player, by name, and what came of it: "" (waiting for them), "declined", or
+    // "away" (they couldn't be given it: gone from the waiting room)
+    const std::string &Invited() const {
+        return settings.inviteName;
+    }
+    const std::string &Invitation() const {
+        return invitation;
     }
     bool Arcade() const {
         return settings.hosting && settings.arcade;
@@ -181,6 +192,7 @@ private:
     std::future<HttpAnswer> asking;
     uint64_t askedAt = 0;
     std::string secret;
+    std::string invitation; // (hosting, --net-invite) what the service said came of it: Invitation()
     std::vector<NetAddress> candidates; // the other side's addresses
     uint64_t punchedAt = 0;
     bool Introduce(uint64_t now, std::string &error);

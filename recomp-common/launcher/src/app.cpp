@@ -1550,6 +1550,9 @@ void App::page(float width, float height) {
         launcher::PageContext shown = context(content);
         about_.pages[page_].draw(shown);
     }
+    if (collection_ && collection_->room) {
+        follow_room(kind == Page::Online && !any_running());
+    }
     switch (kind) {
     case Page::Game:
         game_page(content);
@@ -1959,6 +1962,9 @@ void App::online_page(float width) {
             playable.push_back(which);
         }
     }
+    if (collection_->room) {
+        invitations_card(width);
+    }
     // Every game's open matches, by game, in the sidebar's order
     follow_lobby(collection_->lobby);
     layout::label("OPEN MATCHES");
@@ -2114,7 +2120,10 @@ void App::online_page(float width) {
     ui::gap(24);
     layout::label("HOST A MATCH");
     Card host(width);
-    row(width, "Your name", "With a name, the matches you host are listed in the lobby under it. Without one, they're joined only by their code.",
+    row(width, "Your name",
+        collection_->room ? "With a name, the matches you host are listed in the lobby under it, and you're in the waiting room below. Without "
+                            "one, your matches are joined only by their code."
+                          : "With a name, the matches you host are listed in the lobby under it. Without one, they're joined only by their code.",
         190.0f, 36.0f, [&] {
         if (ui::text_field("##online_page_name", online_name_, sizeof(online_name_), "Your name", 190.0f)) {
             prefs_.set("online", "name", online_name_);
@@ -2150,6 +2159,9 @@ void App::online_page(float width) {
         arcade_row(width, online);
     }
     host.end();
+    if (collection_->room) {
+        room_card(width, playable);
+    }
     // The features about a match (Collection::online_features), as the Features page has them: set for every game
     if (collection_->online_features) {
         std::vector<FeatureRow> rows;
@@ -2178,6 +2190,263 @@ void App::online_page(float width) {
         }
     }
     (void)p;
+}
+
+void App::follow_room(bool here) {
+    const std::string url = collection_->room;
+    if (room_fetch_.valid() && room_fetch_.wait_for(std::chrono::seconds(0)) == std::future_status::ready) {
+        launcher::Room room = room_fetch_.get();
+        room_at_ = SDL_GetTicks();
+        if (!room_in_) {
+            // (left while it was asked: out again)
+            if (room.ok) {
+                launcher::room_leave(url, prefs_.get("online", "room"));
+            }
+        } else if (room.ok) {
+            // (the invitations answered here and no longer listed are forgotten)
+            room_answered_.erase(std::remove_if(room_answered_.begin(), room_answered_.end(),
+                                                [&](const std::string& code) {
+                                                    return std::none_of(room.invitations.begin(), room.invitations.end(),
+                                                                        [&](const auto& i) { return i.code == code; });
+                                                }),
+                                 room_answered_.end());
+            room_ = std::move(room);
+        } else {
+            room_.ok = false;
+        }
+    }
+    if (!here) {
+        if (room_in_) {
+            room_in_ = false;
+            room_ = {};
+            room_at_ = 0;
+            if (!room_fetch_.valid()) {
+                launcher::room_leave(url, prefs_.get("online", "room"));
+            }
+        }
+        return;
+    }
+    room_in_ = true;
+    if (room_fetch_.valid() || (room_at_ != 0 && SDL_GetTicks() - room_at_ < 5000)) {
+        return;
+    }
+    // (who this player is: a secret of their own, kept, from which the service makes their id)
+    if (prefs_.get("online", "room").size() != 32) {
+        prefs_.set("online", "room", launcher::new_room_secret());
+        prefs_.save();
+    }
+    launcher::RoomCheckIn me;
+    me.secret = prefs_.get("online", "room");
+    me.name = online_name_;
+    for (size_t which = 0; which < slots_.size(); which++) {
+        if (can_play(which) || (slots_[which]->game.running())) {
+            me.games.push_back(slots_[which]->id);
+        }
+    }
+    me.protocol = collection_->room_protocol;
+    me.version = own_version();
+    me.invitable = prefs_.get("online", "invitable") != "0";
+    const std::string blocked = prefs_.get("online", "blocked");
+    for (size_t at = 0; at < blocked.size();) {
+        const size_t comma = std::min(blocked.find(',', at), blocked.size());
+        if (comma > at) {
+            me.blocked.push_back(blocked.substr(at, comma - at));
+        }
+        at = comma + 1;
+    }
+    room_fetch_ = std::async(std::launch::async, [url, me] { return launcher::room_check_in(url, me); });
+}
+
+void App::block(const std::string& id) {
+    std::string blocked = prefs_.get("online", "blocked");
+    if (id.empty() || (',' + blocked + ',').find(',' + id + ',') != std::string::npos) {
+        return;
+    }
+    prefs_.set("online", "blocked", blocked.empty() ? id : blocked + "," + id);
+    prefs_.save();
+    // (gone from here at once; the service's next answer leaves them out too)
+    room_.players.erase(std::remove_if(room_.players.begin(), room_.players.end(), [&](const launcher::RoomPlayer& player) { return player.id == id; }),
+                        room_.players.end());
+    for (const launcher::Invitation& invitation : room_.invitations) {
+        if (invitation.from == id) {
+            launcher::room_decline(collection_->room, prefs_.get("online", "room"), invitation.code);
+            room_answered_.push_back(invitation.code);
+        }
+    }
+    room_at_ = 0;
+}
+
+std::vector<std::string> App::invite_arguments(const launcher::Online& online, const launcher::RoomPlayer& player) const {
+    // (the match isn't listed: it is for the player invited, or anyone given its code)
+    std::vector<std::string> args = {online.host_argument, online.name_argument, online_name_, online.invite_argument, player.id + ":" + room_.id};
+    if (online.invite_name_argument) {
+        args.push_back(online.invite_name_argument);
+        args.push_back(player.name);
+    }
+    if (online.arcade_argument && prefs_.get("online", "arcade") == "1") {
+        args.push_back(online.arcade_argument);
+    }
+    return args;
+}
+
+// The invitations waiting for this player, each from a player in the waiting room to a match in one of the games
+void App::invitations_card(float width) {
+    std::vector<const launcher::Invitation*> shown;
+    for (const launcher::Invitation& invitation : room_.invitations) {
+        if (std::find(room_answered_.begin(), room_answered_.end(), invitation.code) == room_answered_.end()) {
+            shown.push_back(&invitation);
+        }
+    }
+    if (shown.empty()) {
+        return;
+    }
+    layout::label("INVITATIONS");
+    Card card(width);
+    int n = 0;
+    for (const launcher::Invitation* invitation : shown) {
+        if (n > 0) {
+            inset_separator(width);
+        }
+        size_t which = slots_.size();
+        for (size_t i = 0; i < slots_.size(); i++) {
+            if (slots_[i]->id == invitation->game) {
+                which = i;
+            }
+        }
+        const bool known = which < slots_.size();
+        bool file = false;
+        if (known) {
+            std::lock_guard<std::mutex> lock(mutex_);
+            file = !slots_[which]->checking && slots_[which]->file.usable();
+        }
+        const std::string game = known ? slots_[which]->name : invitation->title;
+        const std::string title = invitation->name + " invites you to " + game;
+        const std::string detail = !known ? "Your version of " LAUNCHER_GAME_NAME " hasn't " + game + ": update to play it."
+                                   : file ? "Accept starts the game and joins their match."
+                                          : "Add your " + game + " " + collection_->file_name + " to accept.";
+        ImGui::PushID(n++);
+        row(width, title.c_str(), detail.c_str(), 370.0f, 36.0f, [&] {
+            if (known && file) {
+                if (ui::button("Accept", Kind::Primary, 130.0f, can_play(which))) {
+                    room_answered_.push_back(invitation->code);
+                    play(which, {slots_[which]->about->online.join_argument, invitation->code});
+                }
+            } else if (known) {
+                if (ui::button("Add…", Kind::Secondary, 130.0f, !slots_[which]->checking)) {
+                    if (ui::gamepad_in_use()) {
+                        open_browser(which, false);
+                    } else {
+                        choose_game_file(which);
+                    }
+                }
+            } else {
+                ui::button("Accept", Kind::Primary, 130.0f, false);
+            }
+            ImGui::SameLine(0.0f, px(10));
+            if (ui::button("Decline", Kind::Secondary, 120.0f)) {
+                room_answered_.push_back(invitation->code);
+                launcher::room_decline(collection_->room, prefs_.get("online", "room"), invitation->code);
+            }
+            ImGui::SameLine(0.0f, px(10));
+            if (ui::button("Block", Kind::Secondary, 100.0f)) {
+                block(invitation->from);
+            }
+        });
+        ImGui::PopID();
+    }
+    card.end();
+    ui::gap(24);
+}
+
+// The waiting room: the other players whose Online page is open, each to invite to a match in a game chosen here
+void App::room_card(float width, const std::vector<size_t>& playable) {
+    ui::gap(24);
+    layout::label("WAITING ROOM");
+    Card card(width);
+    const bool named = online_name_[0] != '\0';
+    const bool invitable = prefs_.get("online", "invitable") != "0";
+    // (the game to invite to: one this player can play)
+    size_t which = slots_.size();
+    if (!playable.empty()) {
+        std::vector<std::string> names;
+        int chosen = 0;
+        const std::string last = prefs_.get("online", "invite_game").empty() ? prefs_.get("online", "game") : prefs_.get("online", "invite_game");
+        for (size_t n = 0; n < playable.size(); n++) {
+            names.push_back(slots_[playable[n]]->name);
+            if (slots_[playable[n]]->id == last) {
+                chosen = static_cast<int>(n);
+            }
+        }
+        which = playable[static_cast<size_t>(chosen)];
+        row(width, "Invite to", "The game a player you invite is asked to play. You host the match; they see your invitation in their launcher.",
+            260.0f, 36.0f, [&] {
+                if (ui::dropdown("##invite_game", names, chosen, 260.0f)) {
+                    prefs_.set("online", "invite_game", slots_[playable[static_cast<size_t>(chosen)]]->id);
+                    prefs_.save();
+                }
+            });
+        inset_separator(width);
+    }
+    if (room_.players.empty()) {
+        const char* empty = room_at_ == 0 ? "Looking…"
+                            : !room_.ok   ? "Couldn't reach the online service."
+                                          : "Nobody else is here right now. Players show here while their Online page is open.";
+        row(width, empty, "", 0.0f, 24.0f, [] {});
+    }
+    for (size_t n = 0; n < room_.players.size(); n++) {
+        const launcher::RoomPlayer& player = room_.players[n];
+        if (n > 0) {
+            inset_separator(width);
+        }
+        std::string detail;
+        if (which < slots_.size()) {
+            const std::string& game = slots_[which]->name;
+            detail = std::find(player.games.begin(), player.games.end(), slots_[which]->id) != player.games.end()
+                         ? "Has " + game + "."
+                         : "Hasn't added " + game + " yet: they can when invited.";
+        }
+        if (!named) {
+            detail += (detail.empty() ? "" : " ") + std::string("Give yourself a name above to invite.");
+        }
+        const launcher::Online* online = which < slots_.size() ? &slots_[which]->about->online : nullptr;
+        ImGui::PushID(static_cast<int>(n));
+        row(width, player.name.c_str(), detail.c_str(), 240.0f, 36.0f, [&] {
+            if (ui::button("Invite", Kind::Secondary, 130.0f, named && online && online->invite_argument && !room_.id.empty() && can_play(which))) {
+                play(which, invite_arguments(*online, player));
+            }
+            ImGui::SameLine(0.0f, px(10));
+            if (ui::button("Block", Kind::Secondary, 100.0f)) {
+                block(player.id);
+            }
+        });
+        ImGui::PopID();
+    }
+    inset_separator(width);
+    row(width, "Let others invite me",
+        named ? "While your Online page is open, you're in the waiting room under your name, and others can invite you to a match. An "
+                "invitation never interrupts a game: it waits here."
+              : "With a name, you're in the waiting room while your Online page is open, and others can invite you to a match.",
+        42.0f, 24.0f, [&] {
+            if (ui::toggle("##online_invitable", invitable)) {
+                prefs_.set("online", "invitable", invitable ? "0" : "1");
+                prefs_.save();
+                room_at_ = 0;  // (said at once)
+            }
+        });
+    const std::string blocked = prefs_.get("online", "blocked");
+    if (!blocked.empty()) {
+        inset_separator(width);
+        const size_t count = static_cast<size_t>(std::count(blocked.begin(), blocked.end(), ',')) + 1;
+        const std::string title = count == 1 ? "1 player blocked" : std::to_string(count) + " players blocked";
+        row(width, title.c_str(), "You see nothing of a player you've blocked, nor they of you.", 130.0f, 36.0f, [&] {
+            if (ui::button("Unblock all", Kind::Secondary, 130.0f)) {
+                prefs_.set("online", "blocked", "");
+                prefs_.save();
+                room_at_ = 0;
+            }
+        });
+    }
+    card.end();
 }
 
 // The lobby's open matches for the game, fetched every five seconds while they are shown
