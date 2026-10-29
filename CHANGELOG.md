@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- **The launcher is dark in Steam's Gaming Mode**, as Steam is: dark unless the system says light (recomp-common #39).
+  It was always light on the Steam Deck and Steam Machine, which have no desktop there to say.
 - **The touch controls step aside**: with no finger on the screen for five seconds they are no longer drawn, and the
   picture is whole again; a touch brings them back (and presses what is under it, as when they are shown).
 - **Another game: X-Men: Children of the Atom** (`games/xmcota`, issue #135; ROM set `xmcota`, *X-Men: Children of
