@@ -8,11 +8,11 @@
 - **Host from the game**: the in-game menu's Online page has **Host a match**: the game goes on, alone, until someone
   joins (as Arcade while waiting), with the code at the bottom of the screen and the match in the lobby under the
   launcher's name. Esc stops hosting, and leaving the match goes back to playing alone.
-- **Names and chat online**: each player's name is under their life bar (Names, on the Online page), and the players
-  can chat during a match: T, a gamepad's right stick click or the touch screen's Chat button, then type on a keyboard
-  or the system's on-screen keyboard (Steam Deck, Android). Chat goes straight between the two games, never through the
-  service. The launcher gives the player's name to Join too (recomp-common #43). Online protocol 6: both players need
-  this version.
+- **Names and chat online**: each player's name is under their life bar (Hide names, on the Online page, hides
+  them), and the players can chat during a match: T, a gamepad's right stick click or the touch screen's Chat button,
+  then type on a keyboard or the system's on-screen keyboard (Steam Deck, Android). Chat goes straight between the two
+  games, never through the service. The launcher gives the player's name to Join too (recomp-common #43). Online
+  protocol 6: both players need this version.
 
 ## 1.1.0
 

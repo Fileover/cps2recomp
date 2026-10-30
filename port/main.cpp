@@ -188,10 +188,11 @@ void RegisterPortFeatures() {
                                   "and the match's code is at the bottom of the screen to give them (with your name from the "
                                   "launcher's Online page, it's in the lobby too). Esc stops hosting.",
                                   nullptr});
-    TheGame().features.push_back({"online_names", "Online", "Names",
-                                  "During an online match, each player's name under their life bar: the name each gave on the "
-                                  "launcher's Online page.",
-                                  kFeatureEnhanced});
+    // (names: shown unless hidden, whatever the preset, so a switch that hides them)
+    TheGame().features.push_back({"online_hide_names", "Online", "Hide names",
+                                  "During an online match, each player's name is under their life bar (the name each gave on "
+                                  "the launcher's Online page): this hides them.",
+                                  0});
     TheGame().features.push_back({"online_delay", "Online", "Input delay",
                                   "During an online match, how many frames each player's own controls are held back, at the bottom "
                                   "of the picture (\"DELAY 2\"): the host chooses it.",
@@ -911,7 +912,7 @@ void Port::Shown(std::vector<uint32_t> &pixels, std::vector<SDL_Rect> *panels) c
         for (int side = 0; side < 2; side++) {
             float y = 38.0f;
             const std::string name = net->Name(side);
-            if (FeatureOn("online_names") && !name.empty()) {
+            if (!FeatureOn("online_hide_names") && !name.empty()) {
                 under(side, y, name, {255, 255, 255, 255});
                 y += 12;
             }
