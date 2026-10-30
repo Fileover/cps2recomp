@@ -586,10 +586,10 @@ int App::page_count() const {
 
 void App::set_page(const std::string& id) {
     if (id == "multi" && !collection_->multi.empty()) {
-        page_ = 3;
+        page_ = fixed_pages() - 1;
     }
     if (id == "online" && collection_ && collection_->lobby) {
-        page_ = fixed_pages() - 1;
+        page_ = 1;
     }
     // (a game in a closed series: the series opened)
     for (const std::vector<size_t>& unit : units()) {
@@ -795,11 +795,13 @@ Page App::own_page(int index, size_t* which) const {
     if (collection_) {
         int fixed = fixed_pages();
         if (index < fixed) {
-            return index == 0   ? Page::Library
-                   : index == 1 ? Page::Features
-                   : index == 2 ? Page::Controllers
-                   : index == 3 && !collection_->multi.empty() ? Page::Multi
-                                                               : Page::Online;
+            // (Games, then Online where there is one: the pages played from; then the settings, then Multi game)
+            int online = collection_->lobby ? 1 : 0;
+            return index == 0          ? Page::Library
+                   : index < 1 + online ? Page::Online
+                   : index == 1 + online ? Page::Features
+                   : index == 2 + online ? Page::Controllers
+                                         : Page::Multi;
         }
         std::vector<Row> list = rows();
         if (index < fixed || static_cast<size_t>(index - fixed) >= list.size()) {

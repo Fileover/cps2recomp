@@ -56,7 +56,8 @@ cps2recomp-launcher --play sfa3 -- --join CODE             # the other player: t
 - **Each player presses Start to come in**, as at the arcade: the first to press plays the computer until the other
   presses theirs ("Here comes a new challenger").
 - **Each player plays with their own player 1 controls**, and hears and sees the game as their own settings have it
-  (the Display page, the shader, the zoom, the custom soundtrack). The match takes the host's board settings
+  (the Display page, the shader, the custom soundtrack). There's no zoom online: both see the whole picture, as the
+  board shows it. The match takes the host's board settings
   (difficulty, timer, rounds...) and the host's features that change play (free play, arcade timing,
   widescreen, hidden characters...), for the match only: the other player's own are left as they are.
 - **Rollback**: each side runs the game with both players' controls, its own player's held back 2 frames (as a
