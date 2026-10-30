@@ -427,14 +427,10 @@ namespace {
 } // namespace
 
 bool Netplay::ModeOn() {
-    for (const Feature &feature : TheGame().features) {
-        const std::string name = feature.name;
-        if (Shared(feature) == Share::Off && std::string(feature.category) != "Cheats" && name != "run_ahead" && name != "custom_colours" &&
-            FeatureSetting(feature.name)) {
-            return true;
-        }
-    }
-    return false;
+    // (as the game's sources say: a training session, or a mode whose workings a save state doesn't wholly hold, which
+    // the other player's game is sent; a mode's choices and the training aids set for later are not one running)
+    const Game &game = TheGame();
+    return (game.inTraining && game.inTraining()) || (game.noRunAhead && game.noRunAhead());
 }
 
 void Netplay::StartAt(int frames) {

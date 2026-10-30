@@ -93,8 +93,8 @@ public:
         int fakeLag = 0, fakeJitter = 0, fakeLoss = 0;
     };
     explicit Netplay(const Settings &settings) : settings(settings) {}
-    // A mode of the game's is on (training, an alternative mode: what online play turns off, as it does the cheats):
-    // hosting from the in-game menu starts again from the board's reset rather than take it away mid-game
+    // A mode of the game's is running (a training session, endless or tag battle, a viewer): hosting from the in-game
+    // menu starts again from the board's reset rather than take it away mid-game
     static bool ModeOn();
     // The socket, the other side found and agreed with (blocks until then; false and `error` if it did not go)
     bool Connect(Port &port, std::string &error);
