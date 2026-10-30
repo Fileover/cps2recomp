@@ -22,6 +22,11 @@ Each player needs the game and its ROM set. The launcher's **Online** page (in t
   Online page is open and you've set **Your name**, unless you switch off **Let others invite me**. An invitation never
   interrupts a game: it waits on the Online page. **Block** (on a player or an invitation) hides the two of you from
   each other; **Unblock all** undoes it. Nobody's address is shown, only names.
+- **Host from the game**: playing a game on your own, open its menu (Esc), go to **Online** and choose **Host a
+  match**. Your game goes on as it is while you wait, the match's code shows at the bottom of the screen, and with a
+  name set on the launcher's Online page the match is in the lobby too. Whoever joins comes into the game as it is and
+  presses Start to challenge you. Esc stops hosting, and leaving a match hosted this way goes back to playing alone. (If
+  a mode or training is on, the game starts over from the title, as online play turns those off.)
 - **Arcade while waiting** (a switch under Host a match): play the game on your own while you wait, as at the arcade.
   The match's code and "WAITING FOR A CHALLENGER" show at the bottom of the screen. When someone joins, they come
   into your game as it is and press Start to challenge you. Esc asks whether to stop hosting.

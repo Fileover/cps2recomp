@@ -93,6 +93,9 @@ public:
         int fakeLag = 0, fakeJitter = 0, fakeLoss = 0;
     };
     explicit Netplay(const Settings &settings) : settings(settings) {}
+    // A mode of the game's is on (training, an alternative mode: what online play turns off, as it does the cheats):
+    // hosting from the in-game menu starts again from the board's reset rather than take it away mid-game
+    static bool ModeOn();
     // The socket, the other side found and agreed with (blocks until then; false and `error` if it did not go)
     bool Connect(Port &port, std::string &error);
     // ... or a step at a time, for a window that shows the wait: Begin, then Waiting each tick until it is not 0 (1:

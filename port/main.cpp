@@ -183,6 +183,11 @@ void RegisterPortFeatures() {
                                   "During an online match, the time a packet takes to the other player and back, at the bottom of "
                                   "the picture (\"PING 42 ms\").",
                                   kFeatureEnhanced});
+    TheGame().commands.push_back({"online_host", "Online", "Host a match",
+                                  "Others can join you online while you play on: the game goes on, alone, until someone joins, "
+                                  "and the match's code is at the bottom of the screen to give them (with your name from the "
+                                  "launcher's Online page, it's in the lobby too). Esc stops hosting.",
+                                  nullptr});
     TheGame().features.push_back({"online_names", "Online", "Names",
                                   "During an online match, each player's name under their life bar: the name each gave on the "
                                   "launcher's Online page.",
@@ -569,13 +574,17 @@ void Port::MenuAct(Menu::Action action) {
 
 void Port::RunCommand(size_t index) {
     const auto &commands = TheGame().commands;
+    if (index < commands.size() && !strcmp(commands[index].name, "online_host")) {
+        HostFromMenu();
+        return;
+    }
     if (index < commands.size() && commands[index].run) {
         commands[index].run(*machine);
     }
 }
 
 void Port::Key(char key, unsigned n) {
-    if (net && key != 'z' && key != 'm' && key != 'l') {
+    if (net && key != 'z' && key != 'm' && key != 'l' && key != 'y') {
         return; // (online: only the leave question, and the zoom's, which does nothing: Zoom::Forbid)
     }
     switch (key) {
@@ -593,6 +602,11 @@ void Port::Key(char key, unsigned n) {
     case '=': menu.Faster(1); break;
     case 'h': hurry = !hurry; break; // (tests: the frontend sets it while F is held)
     case 'l': leaving = net && !leaving; break; // (tests: online, Esc's "Leave the match?")
+    case 'y': // (tests: ... answered yes)
+        if (leaving) {
+            LeaveOnline();
+        }
+        break;
     case 'z': // (tests: the zoom pressed for player n + 1; 2: for both)
         if (n == Zoom::kBoth) {
             zoom.Both();
@@ -928,11 +942,13 @@ void Port::Shown(std::vector<uint32_t> &pixels, std::vector<SDL_Rect> *panels) c
     if (net && leaving) {
         const recomp::text::Canvas canvas{pixels.data(), across, Video::kHeight};
         const bool hosting = connecting;
+        const char *question = hostedFromMenu ? (hosting ? "Stop hosting?" : "Leave the match?") : hosting ? "Stop hosting and quit?" : "Leave the match?";
+        const char *confirm = hostedFromMenu ? "Confirm (A, Enter): play alone" : hosting ? "Confirm (A, Enter): quit" : "Confirm (A, Enter): leave";
         const struct {
             const char *text;
             recomp::text::Color colour;
-        } lines[] = {{hosting ? "Stop hosting and quit?" : "Leave the match?", {255, 255, 255, 255}},
-                     {hosting ? "Confirm (A, Enter): quit" : "Confirm (A, Enter): leave", {255, 130, 120, 255}},
+        } lines[] = {{question, {255, 255, 255, 255}},
+                     {confirm, {255, 130, 120, 255}},
                      {"Back (B, Backspace, Esc): stay", {255, 255, 255, 255}}};
         float y = Video::kHeight / 2.0f - 30;
         for (const auto &line : lines) {
@@ -1435,6 +1451,107 @@ void Port::HearChat() {
     }
 }
 
+#ifdef _WIN32
+static const char *const kExeSuffix = ".exe";
+#else
+static const char *const kExeSuffix = "";
+#endif
+
+// The launcher's player name ([online] name in its launcher.ini: the collection's, or the game's own launcher's),
+// for a match hosted from the in-game menu
+namespace {
+    std::string LauncherName() {
+        const char *base = SDL_GetBasePath();
+        if (!base) {
+            return "";
+        }
+        std::error_code missing;
+        const bool collection = !std::filesystem::exists(std::string(base) + GAME_ID "-launcher" + kExeSuffix, missing);
+        const char *name = collection ? "CPS-2 Recomp" : GAME_NAME;
+        std::filesystem::path folder = recomp::PortableFolder(base);
+        if (!folder.empty()) {
+            folder /= std::filesystem::u8path(name);
+        } else if (char *pref = SDL_GetPrefPath("", name)) {
+            folder = pref;
+            SDL_free(pref);
+        }
+        if (folder.empty()) {
+            return "";
+        }
+        recomp::Ini prefs(folder / "launcher.ini");
+        prefs.load();
+        return prefs.get("online", "name");
+    }
+}
+
+void Port::HostFromMenu() {
+    menu.Close();
+    if (net || opt.headless) {
+        return;
+    }
+    Netplay::Settings settings = opt.net;
+    settings.hosting = true;
+    settings.arcade = true;
+    settings.port = Netplay::kDefaultPort;
+    settings.name = LauncherName();
+    settings.listed = !settings.name.empty();
+    ownFeatures.clear();
+    for (const Feature &feature : TheGame().features) {
+        ownFeatures[feature.name] = FeatureSetting(feature.name);
+    }
+    // (a mode on, or training: the match from the board's reset, the mode off; else the game goes on as it is)
+    const bool reset = Netplay::ModeOn();
+    net = std::make_unique<Netplay>(settings);
+    std::string error;
+    if (!net->Begin(*this, error)) {
+        net.reset();
+        StopHosting();
+        fprintf(stderr, "online: %s\n", error.c_str());
+        menu.Open(true);
+        menu.Note(error);
+        return;
+    }
+    if (reset) {
+        EndSessionFeatures();
+        machine->Reset();
+        machine->audio.clear();
+    }
+    opt.net = settings;
+    hostedFromMenu = true;
+    connecting = true;
+    cameIn = !reset; // (playing already: in the game when someone comes)
+    zoom.Forbid();
+    fprintf(stderr, "online: hosting from the menu%s\n", reset ? " (from the board's reset: a mode was on)" : "");
+}
+
+void Port::StopHosting() {
+    if (net && !connecting) {
+        net->Leave();
+        net->Report(true);
+    }
+    net.reset();
+    connecting = leaving = typing = false;
+    hostedFromMenu = false;
+    rejoin.clear();
+    chat.clear();
+    for (const auto &[name, value] : ownFeatures) {
+        SetFeatureForNow(name.c_str(), value);
+    }
+    ownFeatures.clear();
+    zoom.Forbid(false);
+    machine->SetBoardTiming(FeatureOn("arcade_timing"));
+}
+
+void Port::LeaveOnline() {
+    leaving = false;
+    if (hostedFromMenu) {
+        fprintf(stderr, "online: stopped hosting; playing alone again\n");
+        StopHosting();
+    } else {
+        quit = true;
+    }
+}
+
 bool Port::StartOnline(std::string &error) {
     if (opt.rollbackTest || !opt.moviePlay.empty() || !opt.stateLoad.empty()) {
         error = "online play: not with --rollback-test, --movie or --state-load";
@@ -1754,12 +1871,6 @@ void Port::Finish() {
               std::vector<uint32_t>(machine->soundCpu.newEntries.begin(), machine->soundCpu.newEntries.end()), "%04X\n");
     }
 }
-
-#ifdef _WIN32
-static const char *const kExeSuffix = ".exe";
-#else
-static const char *const kExeSuffix = "";
-#endif
 
 // The list --list-features writes (on Android the launcher asks the game's library for it: port/android.cpp)
 std::string LauncherFeatureList() {

@@ -24,8 +24,8 @@ public:
     static constexpr int kSizeCount = static_cast<int>(sizeof(kSizes) / sizeof(kSizes[0]));
     // Whether the game can be zoomed at all (not in online play: Forbid)
     static bool Possible();
-    // Online play (issue #196): no zoom from here on, for either player; the whole picture shown again at once
-    void Forbid();
+    // Online play (issue #196): no zoom while it lasts, for either player; the whole picture shown again at once
+    void Forbid(bool forbid = true);
 
     static constexpr int kBoth = 2; // (the "player" the camera follows when it keeps both in the picture)
     // A press for player `player` (0 or 1)

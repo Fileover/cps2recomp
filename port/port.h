@@ -220,6 +220,16 @@ struct Port {
     void Say();       // (the typed line: sent, and said with the rest)
     void HearChat();  // (the other side's lines that have come)
     bool StartOnline(std::string &error);
+    // The in-game menu's Online page (issue #196): a match hosted from the game being played, which goes on, alone,
+    // until someone joins (as --net-arcade); listed in the lobby under the launcher's name, if the player has one.
+    // Stopping (Esc while it waits, or leaving the match) goes back to playing alone, the player's own features again.
+    void HostFromMenu();
+    void StopHosting();
+    bool hostedFromMenu = false;
+    std::map<std::string, int> ownFeatures; // (as they were before the match's: put back by StopHosting)
+    // Esc's question answered yes: the match left (or the hosting stopped), and the game with it unless it was hosted
+    // from the menu
+    void LeaveOnline();
     void Matched();
     void ArcadeFrame(); // (--net-arcade: the host's own play while it waits for the other player)
     // A window's match that ended with the other side gone: the host waits for them to come back (the same code, or

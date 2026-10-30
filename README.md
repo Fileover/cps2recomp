@@ -68,7 +68,8 @@ Every fighting game has a full training mode, from the in-game menu:
 Two players on two machines, with **rollback** netcode. Any mix of macOS, Linux, the Steam Deck and Windows can play
 each other.
 
-- **Host** a match and give the other player its **code**: they type it on the launcher's **Online** page. If you've
+- **Host** a match from the launcher, or from the game you're playing (its menu's **Online** page: you play on until
+  someone joins), and give the other player its **code**: they type it on the launcher's **Online** page. If you've
   set your name, the match is also listed in the **lobby**, where anyone can pick it from **Open matches**. Nothing
   needs setting up on either router.
 - The **waiting room** lists the players whose Online page is open: **Invite** one to a match in any game, and they

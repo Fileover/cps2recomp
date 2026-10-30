@@ -426,6 +426,17 @@ namespace {
     }
 } // namespace
 
+bool Netplay::ModeOn() {
+    for (const Feature &feature : TheGame().features) {
+        const std::string name = feature.name;
+        if (Shared(feature) == Share::Off && std::string(feature.category) != "Cheats" && name != "run_ahead" && name != "custom_colours" &&
+            FeatureSetting(feature.name)) {
+            return true;
+        }
+    }
+    return false;
+}
+
 void Netplay::StartAt(int frames) {
     delay = std::clamp(frames, 0, kMostAhead); // (the first `delay` frames: nobody's controls)
     localUpTo = remoteUpTo = static_cast<uint64_t>(delay);

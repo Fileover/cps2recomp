@@ -5,6 +5,9 @@
 - **No zoom online** (#196): in an online match both players see the whole picture, as the board shows it; the zoom's
   buttons and the touch screen's Zoom button do nothing there (and the button isn't drawn).
 - **The launcher's Online page is second**, after Games (recomp-common #40).
+- **Host from the game**: the in-game menu's Online page has **Host a match**: the game goes on, alone, until someone
+  joins (as Arcade while waiting), with the code at the bottom of the screen and the match in the lobby under the
+  launcher's name. Esc stops hosting, and leaving the match goes back to playing alone.
 - **Names and chat online**: each player's name is under their life bar (Names, on the Online page), and the players
   can chat during a match: T, a gamepad's right stick click or the touch screen's Chat button, then type on a keyboard
   or the system's on-screen keyboard (Steam Deck, Android). Chat goes straight between the two games, never through the
