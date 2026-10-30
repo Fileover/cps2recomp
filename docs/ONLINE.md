@@ -76,6 +76,13 @@ cps2recomp-launcher --play sfa3 -- --join CODE             # the other player: t
   itself. The two games then start over together from the title. (The host closing their game ends the match.)
 - **Win streaks**: in the fighting games, a player who wins two or more matches in a row against the other has it
   said under their life bar ("STREAK 3"), counted from when both have pressed Start, until the streak ends.
+- **Names**: each player's name, as set on the launcher's Online page, is under their life bar (Names on the Online
+  page turns it off).
+- **Chat**: press T on the keyboard, a gamepad's right stick click, or the touch screen's Chat button, type a line and
+  press Enter (Esc, or the click again, puts it away). The Steam Deck and phones show their own on-screen keyboard.
+  The last few lines show at the bottom left for a few seconds. Chat goes straight from one game to the other, as the
+  controls do: nothing of it passes through our service. While you type, the keyboard is the chat's, so a keyboard
+  player's fighter stands still; a gamepad still plays.
 - **Leaving a match**: Esc, or the gamepad's menu button, asks **Leave the match?** over the game (which goes on);
   Confirm leaves, Back stays.
 - **Off during a match**: the cheats (on both sides, for a fair match), the in-game menu, save states, pause, the speed, run-ahead, the training mode and the

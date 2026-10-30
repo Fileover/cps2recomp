@@ -1971,7 +1971,7 @@ void App::online_card(size_t which, float width, bool ready) {
         address.erase(0, address.find_first_not_of(" \t"));
         address.erase(address.find_last_not_of(" \t") + 1);
         if (ui::button("Join", Kind::Secondary, 130.0f, ready && !address.empty())) {
-            play(which, {online.join_argument, address});
+            play(which, join_arguments(online, address));
         }
     });
     card.end();
@@ -1983,13 +1983,25 @@ void App::online_card(size_t which, float width, bool ready) {
 std::vector<std::string> App::host_arguments(const launcher::Online& online) const {
     std::vector<std::string> args = {online.host_argument};
     // (a match is in the lobby when the player has a name for it to be listed under; without one, only its code joins it)
-    if (online.lobby && online.list_argument && online.name_argument && online_name_[0]) {
-        args.push_back(online.list_argument);
+    // (the name: the game shows it to the other player as well)
+    if (online.name_argument && online_name_[0]) {
+        if (online.lobby && online.list_argument) {
+            args.push_back(online.list_argument);
+        }
         args.push_back(online.name_argument);
         args.push_back(online_name_);
     }
     if (online.arcade_argument && prefs_.get("online", "arcade") == "1") {
         args.push_back(online.arcade_argument);
+    }
+    return args;
+}
+
+std::vector<std::string> App::join_arguments(const launcher::Online& online, const std::string& match) const {
+    std::vector<std::string> args = {online.join_argument, match};
+    if (online.name_argument && online_name_[0]) {
+        args.push_back(online.name_argument);
+        args.push_back(online_name_);
     }
     return args;
 }
@@ -2181,7 +2193,7 @@ void App::online_page(float width) {
                             }
                         }
                     } else if (ui::button("Join", Kind::Secondary, 130.0f, ready)) {
-                        play(which, {one.about->online.join_argument, match.code});
+                        play(which, join_arguments(one.about->online, match.code));
                     }
                 },
                 !file || other);
@@ -2232,7 +2244,7 @@ void App::online_page(float width) {
             if (found.status == 200 && !version_matches(found.version)) {
                 join_said_ = "That match is on version " + found.version + ", and you have " + own_version() + ": both need the same version.";
             } else if (found.status == 200 && which < slots_.size() && can_play(which)) {
-                play(which, {slots_[which]->about->online.join_argument, join_code_});
+                play(which, join_arguments(slots_[which]->about->online, join_code_));
             } else if (found.status == 200 && which < slots_.size()) {
                 join_said_ = "That's a " + slots_[which]->name + " match: add your " + collection_->file_name + " to join it.";
                 join_needs_ = static_cast<int>(which);
@@ -2502,7 +2514,7 @@ void App::invitations_card(float width) {
             if (known && file) {
                 if (ui::button("Accept", Kind::Primary, 130.0f, can_play(which))) {
                     room_answered_.push_back(invitation->code);
-                    play(which, {slots_[which]->about->online.join_argument, invitation->code});
+                    play(which, join_arguments(slots_[which]->about->online, invitation->code));
                 }
             } else if (known) {
                 if (ui::button("Add…", Kind::Secondary, 130.0f, !slots_[which]->checking)) {
@@ -2656,7 +2668,7 @@ void App::lobby_card(size_t which, float width, bool ready) {
             width, match.name.c_str(), waited.c_str(), 130.0f, 36.0f,
             [&] {
                 if (ui::button("Join", Kind::Secondary, 130.0f, ready && !other)) {
-                    play(which, {online.join_argument, match.code});
+                    play(which, join_arguments(online, match.code));
                 }
             },
             other);

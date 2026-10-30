@@ -183,6 +183,10 @@ void RegisterPortFeatures() {
                                   "During an online match, the time a packet takes to the other player and back, at the bottom of "
                                   "the picture (\"PING 42 ms\").",
                                   kFeatureEnhanced});
+    TheGame().features.push_back({"online_names", "Online", "Names",
+                                  "During an online match, each player's name under their life bar: the name each gave on the "
+                                  "launcher's Online page.",
+                                  kFeatureEnhanced});
     TheGame().features.push_back({"online_delay", "Online", "Input delay",
                                   "During an online match, how many frames each player's own controls are held back, at the bottom "
                                   "of the picture (\"DELAY 2\"): the host chooses it.",
@@ -728,7 +732,14 @@ bool Port::Tick() {
     if (net) {
         // Online: a frame a tick when the other side's controls allow (and as fast as it goes while the game's
         // sources take it somewhere); no stopping, slowing or speeding up
-        if (!net->Ready(frame)) {
+        const bool ready = net->Ready(frame);
+        HearChat();
+        if (!opt.netSay.empty() && frame >= 120) {
+            typed = opt.netSay;
+            opt.netSay.clear();
+            Say();
+        }
+        if (!ready) {
             if (!net->ended.empty()) {
                 // (the other side gone: a window waits for them again; the host's leaving ends the joining side's)
                 const bool again = !opt.headless && (net->Hosting() ? net->left || net->lost : net->lost);
@@ -871,22 +882,45 @@ void Port::Shown(std::vector<uint32_t> &pixels, std::vector<SDL_Rect> *panels) c
     if (*zoom.Label()) {
         status(zoom.Label(), said * 14);
     }
-    // (online: a win streak of two or more under its side's life bar)
+    // (online: each player's name under their side's life bar, and under it a win streak of two or more)
     if (net && !connecting) {
         const recomp::text::Canvas canvas{pixels.data(), across, Video::kHeight};
-        for (int side = 0; side < 2; side++) {
-            if (streak[side] < 2) {
-                continue;
-            }
-            char text[32];
-            snprintf(text, sizeof(text), "STREAK %d", streak[side]);
-            const float width = recomp::text::TextWidth(text, 1);
-            const float x = side == 0 ? 10.0f : across - 10.0f - width, y = 38.0f;
+        auto under = [&](int side, float y, const std::string &text, recomp::text::Color colour) {
+            const float width = recomp::text::TextWidth(text.c_str(), 1);
+            const float x = side == 0 ? 10.0f : across - 10.0f - width;
             canvas.Fill(x - 3, y - 2, width + 6, 12, {20, 22, 30, 220});
-            canvas.Text(x, y, 1, 0, {255, 210, 80, 255}, text);
+            canvas.Text(x, y, 1, 0, colour, text.c_str());
             if (panels) {
                 panels->push_back({static_cast<int>(x) - 3, static_cast<int>(y) - 2, static_cast<int>(width) + 7, 12});
             }
+        };
+        for (int side = 0; side < 2; side++) {
+            float y = 38.0f;
+            const std::string name = net->Name(side);
+            if (FeatureOn("online_names") && !name.empty()) {
+                under(side, y, name, {255, 255, 255, 255});
+                y += 12;
+            }
+            if (streak[side] >= 2) {
+                under(side, y, "STREAK " + std::to_string(streak[side]), {255, 210, 80, 255});
+            }
+        }
+        // The chat: its lines at the left, above the super gauges, the newest lowest, and the line being typed under them
+        float y = Video::kHeight - 44.0f;
+        auto line = [&](const std::string &text, recomp::text::Color colour) {
+            const float width = recomp::text::TextWidth(text.c_str(), 1);
+            canvas.Fill(7, y - 2, width + 6, 12, {20, 22, 30, 200});
+            canvas.Text(10, y, 1, 0, colour, text.c_str());
+            if (panels) {
+                panels->push_back({7, static_cast<int>(y) - 2, static_cast<int>(width) + 7, 12});
+            }
+            y -= 12;
+        };
+        if (typing) {
+            line("Say: " + typed + ((tick / 20) % 2 ? "_" : " "), {255, 210, 80, 255});
+        }
+        for (auto it = chat.rbegin(); it != chat.rend(); ++it) {
+            line(it->text, it->own ? recomp::text::Color{170, 200, 255, 255} : recomp::text::Color{255, 255, 255, 255});
         }
     }
     // (online: Esc's question, in the middle, over the game, which goes on; the port's own, not the readout, which the
@@ -1370,6 +1404,37 @@ void Port::Streaks() {
 
 // Online play (netplay.h): the other side found and agreed with before the first frame; with a window, a step a tick
 // (Tick), the wait shown on the screen, and without, here
+// The chat's lines, each said for eight seconds, five at most (the oldest go first)
+namespace {
+    constexpr uint64_t kChatTicks = 8 * 60;
+    constexpr size_t kChatLines = 5;
+}
+
+void Port::Say() {
+    std::string line = typed;
+    typing = false;
+    typed.clear();
+    if (!net || connecting) {
+        return;
+    }
+    net->Say(line);
+    const std::string name = net->Name(net->Local());
+    if (line.find_first_not_of(' ') != std::string::npos) {
+        chat.push_back({(name.empty() ? "You" : name) + ": " + line.substr(0, Netplay::kChatMost), tick + kChatTicks, true});
+    }
+}
+
+void Port::HearChat() {
+    const std::string name = net->Name(1 - net->Local());
+    for (const std::string &line : net->TakeHeard()) {
+        fprintf(stderr, "online: chat: %s: %s\n", name.empty() ? "(no name)" : name.c_str(), line.c_str());
+        chat.push_back({(name.empty() ? "Them" : name) + ": " + line, tick + kChatTicks, false});
+    }
+    while (!chat.empty() && (chat.size() > kChatLines || chat.front().until <= tick)) {
+        chat.pop_front();
+    }
+}
+
 bool Port::StartOnline(std::string &error) {
     if (opt.rollbackTest || !opt.moviePlay.empty() || !opt.stateLoad.empty()) {
         error = "online play: not with --rollback-test, --movie or --state-load";
@@ -1438,6 +1503,8 @@ void Port::Matched() {
     // (the host's player, playing while it waited, is in already; the joining side is told so in the welcome)
     cameIn = net->Arcade() && cameIn;
     otherIn = !net->Hosting() && net->HostIn();
+    fprintf(stderr, "online: player 1 %s, player 2 %s\n", net->Name(0).empty() ? "(no name)" : net->Name(0).c_str(),
+            net->Name(1).empty() ? "(no name)" : net->Name(1).c_str());
     if (net->Arcade()) {
         fprintf(stderr, "online: the match begins after %llu frames of the host's play\n", static_cast<unsigned long long>(frame));
     }
@@ -1762,7 +1829,8 @@ void Usage() {
             "                         code names (the online service says where the host is)\n"
             "  --net-service URL      the online service that gives hosts codes (online/), or off\n"
             "  --net-list             (hosting) the match in the lobby, the Online card's list of open matches\n"
-            "  --net-name NAME        ... under this name\n"
+            "  --net-name NAME        ... under this name; and either side's: shown to the other player\n"
+            "  --net-say TEXT         (tests) TEXT said in the chat two seconds into the match\n"
             "  --net-arcade           (hosting) the game played alone until the other player comes, who then challenges\n"
             "  --net-invite TO:FROM   (hosting) the player TO in the launcher's waiting room invited, from FROM (ids;\n"
             "                         --net-name the inviter's name)\n"
@@ -1897,6 +1965,8 @@ bool ParseArgs(int argc, char **argv, port::Options &o) {
             o.net.arcade = true;
         } else if (a == "--net-name") {
             o.net.name = next();
+        } else if (a == "--net-say") {
+            o.netSay = next();
         } else if (a == "--net-invite") {
             // (two waiting room ids: 12 hex digits each)
             const std::string v = next();
