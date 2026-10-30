@@ -5,6 +5,8 @@
 - **No zoom online** (#196): in an online match both players see the whole picture, as the board shows it; the zoom's
   buttons and the touch screen's Zoom button do nothing there (and the button isn't drawn).
 - **The launcher's Online page is second**, after Games (recomp-common #40).
+- **Online from an Android phone**: joining or hosting a match said "Couldn't reach the online service": the game
+  asked for the system's curl, which Android hasn't. It now asks through the app, as the launcher does.
 
 ## 1.1.0
 
