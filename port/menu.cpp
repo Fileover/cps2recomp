@@ -33,9 +33,14 @@ void Menu::Open(bool withStates) {
     const cps2recomp::Game &game = cps2recomp::TheGame();
     recomp::MenuConfig config;
     // Online, Display and Game first (issue #196), then the game's pages that belong at the head; then three groups
-    // with a line between them: the save states, what the game offers, and leaving
+    // with a line between them: the save states, what the game offers, and leaving. Under Game: the speed, Mute, and
+    // the Board, Cheats and Sound pages (a first page of fewer rows).
     config.groups.push_back({{recomp::MenuRow::Page, 0, "Online"}, {recomp::MenuRow::Page, 0, "Display"},
                              {recomp::MenuRow::Page, 0, "Game"}});
+    config.pages.push_back({"Game", "", "", true, {recomp::MenuRow::Speed, recomp::MenuRow::Mute}});
+    for (const char *under : {"Board", "Cheats", "Sound"}) {
+        config.pages.push_back({under, "Game"});
+    }
     std::vector<recomp::MenuRow> top;
     for (const cps2recomp::Page &page : game.pages) {
         // (such pages are ways of running the game: their rows do not count features that are on)
@@ -52,8 +57,6 @@ void Menu::Open(bool withStates) {
     }
     config.groups.push_back({
         {recomp::MenuRow::Pages},
-        {recomp::MenuRow::Speed},
-        {recomp::MenuRow::Mute},
         {recomp::MenuRow::Action, kCoin, "Insert coin", "Puts a coin in the first slot."},
         {recomp::MenuRow::Action, kStart2, "Player 2 joins",
          "Presses player 2's Start: with a coin in (or free play), a second player to practise against."},
