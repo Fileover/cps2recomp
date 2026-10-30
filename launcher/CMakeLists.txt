@@ -29,7 +29,7 @@ set(LAUNCHER_GAME_EXE "${GAME_EXE}")
 set(LAUNCHER_APP_ID "${APP_ID}")
 set(LAUNCHER_HOME_ENV "${HOME_ENV}")
 set(LAUNCHER_DISCLAIMER "${DISCLAIMER}")
-set(LAUNCHER_PORT_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/src/description.cpp
+set(LAUNCHER_PORT_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/src/description.cpp ${CMAKE_CURRENT_SOURCE_DIR}/src/romcheck.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/../machine/romset.cpp ${CMAKE_CURRENT_SOURCE_DIR}/../machine/cps2crypt.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/../machine/kabuki.cpp)
 set(LAUNCHER_COLLECTION ${COLLECTION})
@@ -48,6 +48,9 @@ if(COLLECTION)
     endif()
 endif()
 include(../recomp-common/launcher/launcher.cmake)
+# (this folder's own headers: description.cpp and romcheck.h, which the shared launcher's app.h includes for the
+# check of the player's roms folder)
+target_include_directories(launcher PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
 if(COLLECTION)
     find_package(Python3 REQUIRED COMPONENTS Interpreter)
     set(GAMES_HEADER "${CMAKE_CURRENT_BINARY_DIR}/collection/games.h")

@@ -23,6 +23,7 @@
 #include "game_process.h"
 #include "launcher.h"
 #include "online.h"
+#include "romcheck.h"
 #include "settings.h"
 #ifdef LAUNCHER_UPDATE_REPO
 #include "update.h"
@@ -195,6 +196,15 @@ private:
     void open_browser(size_t which, bool folders);
     void list_folder(const std::filesystem::path& folder);
     void browser();
+
+    // The `roms` folder beside the launcher, checked when it opens (romcheck.h): on a thread, and what it found shown
+    // over the window when it is done. A launcher with no such folder checks nothing.
+    void rom_check_start();
+    void rom_check_modal();
+    std::future<romcheck::Report> rom_check_;
+    bool rom_check_running_ = false;  // (the thread is still reading the folder)
+    bool rom_check_open_ = false;     // (what it found is to be shown)
+    romcheck::Report rom_report_;
 
     void navigation();
     void sidebar(float height);

@@ -67,11 +67,13 @@ build_programs() {
         -DDISCLAIMER="Not affiliated with Capcom." -DCOLLECTION_VERSION="$VERSION" "$@" >/dev/null
     cmake --build "$build/launcher"
 }
-# Every game's program and the launcher, from $1 (build_programs') into $2 (the end of a program's name: $3)
+# Every game's program (in $2/games/, under the launcher) and the launcher, from $1 (build_programs') into $2 (the
+# end of a program's name: $3)
 copy_programs() {
     cp "$1/launcher/$EXE-launcher$3" "$2/"
+    mkdir -p "$2/games"
     for game in $GAMES; do
-        cp "$1/game-$game/$game$3" "$2/"
+        cp "$1/game-$game/$game$3" "$2/games/"
     done
 }
 check_archive() { # the archive

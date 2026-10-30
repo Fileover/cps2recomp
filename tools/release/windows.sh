@@ -25,9 +25,9 @@ rm -rf "$BUILD/stage" && mkdir -p "$STAGE"
 copy_programs "$BUILD" "$STAGE" .exe
 cp "$SDL/x86_64-w64-mingw32/bin/SDL3.dll" "$STAGE/"
 cp "$(find /usr/x86_64-w64-mingw32 /usr/lib/gcc/x86_64-w64-mingw32 -name zlib1.dll | head -1)" "$STAGE/"
-x86_64-w64-mingw32-strip "$STAGE"/*.exe
+x86_64-w64-mingw32-strip "$STAGE"/*.exe "$STAGE"/games/*.exe
 # (linked statically but for SDL3.dll, zlib1.dll and Windows' own; anything else here is a mistake)
-if x86_64-w64-mingw32-objdump -p "$STAGE"/*.exe | grep -i 'DLL Name' | grep -viE 'SDL3|zlib1|KERNEL32|msvcrt|USER32|SHELL32|ADVAPI32|ole32|api-ms-|GDI32|IMM32|WINMM|VERSION|SETUPAPI|OLEAUT32|COMDLG32|WS2_32|IPHLPAPI'; then
+if x86_64-w64-mingw32-objdump -p "$STAGE"/*.exe "$STAGE"/games/*.exe | grep -i 'DLL Name' | grep -viE 'SDL3|zlib1|KERNEL32|msvcrt|USER32|SHELL32|ADVAPI32|ole32|api-ms-|GDI32|IMM32|WINMM|VERSION|SETUPAPI|OLEAUT32|COMDLG32|WS2_32|IPHLPAPI'; then
     echo "error: a program needs a DLL that is not in the archive" >&2
     exit 1
 fi
