@@ -285,6 +285,8 @@ private:
     // at the page's end when there is not (`always`: at the top either way)
     void update_card(float width, bool top, bool always = false);
 #endif
+    // A newer version is out (or being installed): the Games row's dot, and the Online page's prompt
+    bool update_news() const;
 
     const launcher::Collection* collection_ = nullptr;  // a collection's launcher's (a port's: none)
     SDL_Window* window_;
