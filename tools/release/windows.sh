@@ -23,8 +23,12 @@ build_programs "$BUILD" -DCMAKE_TOOLCHAIN_FILE="$ROOT/tools/release/mingw-w64.cm
 STAGE="$BUILD/stage/$ARCHIVE"
 rm -rf "$BUILD/stage" && mkdir -p "$STAGE"
 copy_programs "$BUILD" "$STAGE" .exe
-cp "$SDL/x86_64-w64-mingw32/bin/SDL3.dll" "$STAGE/"
-cp "$(find /usr/x86_64-w64-mingw32 /usr/lib/gcc/x86_64-w64-mingw32 -name zlib1.dll | head -1)" "$STAGE/"
+# (the launcher is at the top and the games are in games/: Windows finds a program's DLLs beside the program, so
+# each gets them. librashader.dll is opened at run time instead, and the games look for it one folder up.)
+SDL3_DLL="$SDL/x86_64-w64-mingw32/bin/SDL3.dll"
+ZLIB_DLL="$(find /usr/x86_64-w64-mingw32 /usr/lib/gcc/x86_64-w64-mingw32 -name zlib1.dll | head -1)"
+cp "$SDL3_DLL" "$ZLIB_DLL" "$STAGE/"
+cp "$SDL3_DLL" "$ZLIB_DLL" "$STAGE/games/"
 x86_64-w64-mingw32-strip "$STAGE"/*.exe "$STAGE"/games/*.exe
 # (linked statically but for SDL3.dll, zlib1.dll and Windows' own; anything else here is a mistake)
 if x86_64-w64-mingw32-objdump -p "$STAGE"/*.exe "$STAGE"/games/*.exe | grep -i 'DLL Name' | grep -viE 'SDL3|zlib1|KERNEL32|msvcrt|USER32|SHELL32|ADVAPI32|ole32|api-ms-|GDI32|IMM32|WINMM|VERSION|SETUPAPI|OLEAUT32|COMDLG32|WS2_32|IPHLPAPI'; then
