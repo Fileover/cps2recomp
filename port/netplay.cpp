@@ -18,6 +18,7 @@
 
 #include "game_info.h"
 #include "../recomp-common/launcher/src/online.h"
+#include "../recomp-common/launcher/src/run_program.h"
 #include "../runtime/game.h"
 #include "port.h"
 
@@ -179,7 +180,8 @@ namespace {
     }
 
     // The service is asked with the system's curl (as the launcher's updates are fetched: macOS, Windows 10 and
-    // later, and Linux have it), on another thread; the answer's last line is its HTTP status
+    // later, and Linux have it; Android, through the game's activity), on another thread; the answer's last line is
+    // its HTTP status
     std::string CurlProgram() {
 #ifdef _WIN32
         char system[MAX_PATH];
@@ -534,7 +536,12 @@ namespace {
             args.push_back(body);
         }
         args.push_back(url);
-#ifdef _WIN32
+#if defined(__ANDROID__)
+        // (Android has no curl to start: the game's activity makes the request, as the launcher's are made there:
+        // recomp-common's run_program, GameActivity.curl)
+        std::string text;
+        const int exitCode = launcher::run_program(launcher::curl_program(), std::vector<std::string>(args.begin() + 1, args.end()), &text);
+#elif defined(_WIN32)
         // (Windows: curl, a console program, started with no console window; its output through a pipe)
         std::string command;
         for (const std::string &arg : args) {
