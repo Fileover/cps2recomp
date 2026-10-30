@@ -426,13 +426,6 @@ namespace {
     }
 } // namespace
 
-bool Netplay::ModeOn() {
-    // (as the game's sources say: a training session, or a mode whose workings a save state doesn't wholly hold, which
-    // the other player's game is sent; a mode's choices and the training aids set for later are not one running)
-    const Game &game = TheGame();
-    return (game.inTraining && game.inTraining()) || (game.noRunAhead && game.noRunAhead());
-}
-
 void Netplay::StartAt(int frames) {
     delay = std::clamp(frames, 0, kMostAhead); // (the first `delay` frames: nobody's controls)
     localUpTo = remoteUpTo = static_cast<uint64_t>(delay);
@@ -493,7 +486,9 @@ bool Netplay::Begin(Port &port, std::string &error) {
     began = NowMs();
     if (settings.hosting) {
         StartAt(settings.delay);
-        Settle(true, {});
+        if (!settings.solo) {
+            Settle(true, {}); // (solo: when someone comes)
+        }
         waiting = "Waiting for the other player (UDP port " + std::to_string(settings.port) + ")";
     } else {
         Writer hello(kHello);
@@ -876,6 +871,11 @@ int Netplay::Waiting(Port &port, std::string &error) {
                     continue;
                 }
                 if (!found) {
+                    if (settings.solo) {
+                        // (the player's own game until now: the match from the board's reset, with the match's features)
+                        port.MatchComing();
+                        Settle(true, {});
+                    }
                     peer = from;
                     found = true;
                     theirName = name;

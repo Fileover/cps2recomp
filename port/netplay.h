@@ -89,13 +89,13 @@ public:
         // (--net-arcade) hosting: the game played meanwhile, alone, as offline (with the match's features); the match
         // begins from the game as it is when the other player comes, who presses Start to challenge
         bool arcade = false;
+        // (the in-game menu's Host a match) hosting while the game is the player's own, offline, features and all;
+        // when someone comes the match begins from the board's reset with the match's (Port::MatchComing)
+        bool solo = false;
         // (tests: each packet sent late by this many ms, give or take `jitter`, and this many in a hundred lost)
         int fakeLag = 0, fakeJitter = 0, fakeLoss = 0;
     };
     explicit Netplay(const Settings &settings) : settings(settings) {}
-    // A mode of the game's is running (a training session, endless or tag battle, a viewer): hosting from the in-game
-    // menu starts again from the board's reset rather than take it away mid-game
-    static bool ModeOn();
     // The socket, the other side found and agreed with (blocks until then; false and `error` if it did not go)
     bool Connect(Port &port, std::string &error);
     // ... or a step at a time, for a window that shows the wait: Begin, then Waiting each tick until it is not 0 (1:

@@ -564,7 +564,8 @@ int RunWindowed(Port &port) {
         if (touch.TakeMenuPress()) {
             toggleMenu();
         }
-        touch.Chat(port.net != nullptr); // (online, from the start or hosted from the menu)
+        port.PumpHost(); // (a match hosted from the menu, listened for, the menu open or not)
+        touch.Chat(port.net != nullptr); // (online, from the start or a match hosted from the menu)
         if (touch.TakeZoomPress()) {
             if (port.net) {
                 chatOpen(!port.typing);

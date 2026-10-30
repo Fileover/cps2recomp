@@ -220,15 +220,24 @@ struct Port {
     void Say();       // (the typed line: sent, and said with the rest)
     void HearChat();  // (the other side's lines that have come)
     bool StartOnline(std::string &error);
-    // The in-game menu's Online page (issue #196): a match hosted from the game being played, which goes on, alone,
-    // until someone joins (as --net-arcade); listed in the lobby under the launcher's name, if the player has one.
-    // Stopping (Esc while it waits, or leaving the match) goes back to playing alone, the player's own features again.
+    // The in-game menu's Online page (issue #196): a match hosted while the game goes on as the player's own, offline
+    // (its modes, cheats, the menu, save states, pause: all as without it), `waitingHost` listening meanwhile (PumpHost:
+    // every tick, and while the menu is open), listed in the lobby under the launcher's name if the player has one.
+    // When someone comes (MatchComing, from Netplay::Waiting) the game starts from the board's reset with the match's
+    // features, for both players alike. The menu's row again stops hosting (StopHosting). After the match the player's
+    // own game and features are back (BackToSolo): still hosted with the same code when the other player left, not
+    // when this one did.
+    std::unique_ptr<Netplay> waitingHost;
     void HostFromMenu();
+    void PumpHost();
+    void MatchComing();
     void StopHosting();
+    void BackToSolo(bool stillHosting);
     bool hostedFromMenu = false;
-    std::map<std::string, int> ownFeatures; // (as they were before the match's: put back by StopHosting)
-    // Esc's question answered yes: the match left (or the hosting stopped), and the game with it unless it was hosted
-    // from the menu
+    std::map<std::string, int> ownFeatures; // (as they were before the match's: put back by BackToSolo)
+    std::string hostNote;                   // (why the hosting stopped, said for a few seconds: until hostNoteUntil)
+    uint64_t hostNoteUntil = 0;
+    // Esc's question answered yes: the match left, and the game with it unless it was hosted from the menu
     void LeaveOnline();
     void Matched();
     void ArcadeFrame(); // (--net-arcade: the host's own play while it waits for the other player)

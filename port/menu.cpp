@@ -4,6 +4,8 @@
 // The in-game menu (menu.h): the shared menu told what a CPS-2 game's is made of.
 #include "menu.h"
 
+#include <cstring>
+
 #include "../machine/machine.h"
 #include "../runtime/game.h"
 
@@ -71,6 +73,11 @@ void Menu::Open(bool withStates) {
         config.features.push_back({feature.category, feature.title, feature.description, {feature.choices.begin(), feature.choices.end()}});
     }
     for (const cps2recomp::Command &command : game.commands) {
+        if (hosting && !strcmp(command.name, "online_host")) {
+            config.commands.push_back({command.category, "Stop hosting",
+                                       "Others can no longer join: the match's code stops working. Your game goes on as it is."});
+            continue;
+        }
         config.commands.push_back({command.category, command.title, command.description});
     }
     config.value = [](size_t feature) { return cps2recomp::FeatureSetting(cps2recomp::TheGame().features[feature].name); };
