@@ -217,6 +217,7 @@ struct Port {
     std::deque<ChatLine> chat;
     bool typing = false;
     std::string typed;
+    uint64_t chatHintUntil = 0; // (how to chat, said under the chat for a while as a match begins)
     void Say();       // (the typed line: sent, and said with the rest)
     void HearChat();  // (the other side's lines that have come)
     bool StartOnline(std::string &error);

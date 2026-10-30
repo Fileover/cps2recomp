@@ -954,8 +954,17 @@ void Port::Shown(std::vector<uint32_t> &pixels, std::vector<SDL_Rect> *panels) c
             }
             y -= 12;
         };
+        // (and under them, what the keys and buttons are: while a line is typed, and for a while as a match begins)
+#ifdef __ANDROID__
+        const char *open = "Chat: tap CHAT (or a gamepad's right stick click)", *keys = "Enter: send   CHAT or Back: cancel";
+#else
+        const char *open = "Chat: T, or a gamepad's right stick click", *keys = "Enter: send   Esc or right stick click: cancel";
+#endif
         if (typing) {
+            line(keys, {170, 170, 170, 255});
             line("Say: " + typed + ((tick / 20) % 2 ? "_" : " "), {255, 210, 80, 255});
+        } else if (tick < chatHintUntil) {
+            line(open, {170, 170, 170, 255});
         }
         for (auto it = chat.rbegin(); it != chat.rend(); ++it) {
             line(it->text, it->own ? recomp::text::Color{170, 200, 255, 255} : recomp::text::Color{255, 255, 255, 255});
@@ -1700,6 +1709,7 @@ void Port::ArcadeFrame() {
 
 void Port::Matched() {
     connecting = false;
+    chatHintUntil = tick + kChatTicks;
     // (the host's player, playing while it waited, is in already; the joining side is told so in the welcome)
     cameIn = net->Arcade() && cameIn;
     otherIn = !net->Hosting() && net->HostIn();
