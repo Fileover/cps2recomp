@@ -19,7 +19,7 @@
 //   <id>-launcher --page ID                            (a collection's: opens on that game's page)
 // <ID>_HOME=folder (LAUNCHER_HOME_ENV) uses that folder instead of the player's (settings, launcher.ini; a
 // collection's games each in a folder named by its id in it).
-// portable beside the launcher (on macOS beside the app) keeps the player's folders in user/ there (folders.h).
+// portable.txt beside the launcher (on macOS beside the app) keeps the player's folders in user/ there (folders.h).
 
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_main.h>

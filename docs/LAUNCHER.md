@@ -66,15 +66,12 @@ from source is told of a new version but not changed.
 ## Portable mode
 
 To keep everything with the launcher (on a USB stick or an external drive you take from one computer to another),
-put an empty file named `portable` beside it:
+put an empty file named `portable.txt` beside it:
 
-| System | Where `portable` goes | Where your things then are |
+| System | Where `portable.txt` goes | Where your things then are |
 | --- | --- | --- |
 | Windows, Linux, Steam Deck | in the `CPS2Recomp` folder, beside `cps2recomp-launcher` | `CPS2Recomp/user/` |
 | macOS | in the folder `CPS-2 Recomp.app` is in (not inside the app) | `user/` in that folder |
-
-(A folder that still has the `portable.txt` an older version asked for keeps portable mode on: rename it to
-`portable` when you can.)
 
 Settings, save states, each board's settings memory, custom colours, the score attack records, a soundtrack in
 the game's own folder and the logs then go in `user/`, a folder for the launcher and one for each game, laid out
@@ -83,10 +80,10 @@ folder).
 
 - **The first time**, if your user folder already has the games' things, the launcher asks whether to copy them
   to `user/`. Copying never takes anything from your user folder and never writes over a file.
-- **To stop**, take `portable` away: the launcher uses your user folder again, as it was when you started
+- **To stop**, take `portable.txt` away: the launcher uses your user folder again, as it was when you started
   portable mode. Nothing is moved either way; to carry things back, copy the folders in `user/` to your user
   folder yourself (with the launcher closed).
-- **Updates** keep `portable` and `user/`: they change only the release's own files.
+- **Updates** keep `portable.txt` and `user/`: they change only the release's own files.
 - **The folder has to be one you can write to.** If it is not (a read-only drive, or Windows' Program Files), the
   launcher says so and stops rather than keep your things somewhere else.
 - ROM sets are still only read, wherever they are. A ROM folder chosen on a drive letter (Windows) or a mount

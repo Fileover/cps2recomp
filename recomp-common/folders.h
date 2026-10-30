@@ -4,9 +4,9 @@
 // Where a port keeps the player's things (settings, save states, the board's memory, logs). Usually the system's
 // folder for them, a folder for each game (SDL_GetPrefPath: ~/Library/Application Support/<name>/ on macOS,
 // ~/.local/share/<name>/ on Linux and Steam Deck, %APPDATA%\<name>\ on Windows). Portable mode: with a file named
-// portable in the folder the download was unpacked to (beside the launcher; on macOS beside the app, which
+// portable.txt in the folder the download was unpacked to (beside the launcher; on macOS beside the app, which
 // is never written to), they are in user/<name>/ there instead, so the whole thing can go on a drive and be
-// carried to another computer. Taking portable away goes back to the system's folders; nothing is moved
+// carried to another computer. Taking portable.txt away goes back to the system's folders; nothing is moved
 // either way. The launcher and the game ask the same question, and so find the same folders. Nothing here knows
 // of a game or SDL.
 #pragma once
@@ -16,10 +16,7 @@
 
 namespace recomp {
 
-constexpr const char *kPortableMarker = "portable";
-// (the name the marker had before: an install that already has it keeps portable mode on, until its owner renames
-// the file to the one above)
-constexpr const char *kPortableMarkerLegacy = "portable.txt";
+constexpr const char *kPortableMarker = "portable.txt";
 constexpr const char *kPortableFolder = "user";
 
 // The folder the download was unpacked to, from the folder the program is in: that folder; on macOS the folder
@@ -45,13 +42,11 @@ inline std::filesystem::path InstallFolder(const std::filesystem::path &program_
     return folder;
 }
 
-// The folder portable mode keeps the player's folders in (user/ beside portable), or none when it is not on.
+// The folder portable mode keeps the player's folders in (user/ beside portable.txt), or none when it is not on.
 inline std::filesystem::path PortableFolder(const std::filesystem::path &program_folder) {
     const std::filesystem::path install = InstallFolder(program_folder);
     std::error_code error;
-    const bool on = std::filesystem::is_regular_file(install / kPortableMarker, error) ||
-                    std::filesystem::is_regular_file(install / kPortableMarkerLegacy, error);
-    return on ? install / kPortableFolder : std::filesystem::path();
+    return std::filesystem::is_regular_file(install / kPortableMarker, error) ? install / kPortableFolder : std::filesystem::path();
 }
 
 }  // namespace recomp
