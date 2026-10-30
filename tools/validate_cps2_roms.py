@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: GPL-3.0-only
+# Copyright (C) 2026 Tommy McLeroy. Part of cps2recomp.
 """
 Validate the ROM zips in a folder for cps2recomp (https://github.com/tmcleroy/cps2recomp).
 
