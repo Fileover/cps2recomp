@@ -488,7 +488,9 @@ bool Netplay::Begin(Port &port, std::string &error) {
     began = NowMs();
     if (settings.hosting) {
         StartAt(settings.delay);
-        Settle(true, {});
+        if (!settings.solo) {
+            Settle(true, {}); // (solo: when someone comes)
+        }
         waiting = "Waiting for the other player (UDP port " + std::to_string(settings.port) + ")";
     } else {
         Writer hello(kHello);
@@ -876,6 +878,11 @@ int Netplay::Waiting(Port &port, std::string &error) {
                     continue;
                 }
                 if (!found) {
+                    if (settings.solo) {
+                        // (the player's own game until now: the match from the board's reset, with the match's features)
+                        port.MatchComing();
+                        Settle(true, {});
+                    }
                     peer = from;
                     found = true;
                     theirName = name;

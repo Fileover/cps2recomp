@@ -39,9 +39,12 @@ public:
     // since this was last asked
     bool TakeMenuPress();
     bool TakeZoomPress();
-    // Online play (no zoom): the zoom's button is the chat's, which opens the system's keyboard (before the first Layout)
-    void Chat() {
-        m_chat = true;
+    // Online play (no zoom): the zoom's button is the chat's, which opens the system's keyboard
+    void Chat(bool chat) {
+        if (chat != m_chat) {
+            m_chat = chat;
+            m_width = 0; // (laid out again)
+        }
     }
     // Their picture, when it changed since this was last asked (and for nothing shown, an empty one): the
     // presenter's overlay (present.h, SetOverlay), half the window's size

@@ -183,6 +183,12 @@ void RegisterPortFeatures() {
                                   "During an online match, the time a packet takes to the other player and back, at the bottom of "
                                   "the picture (\"PING 42 ms\").",
                                   kFeatureEnhanced});
+    TheGame().commands.push_back({"online_host", "Online", "Host a match",
+                                  "Others can join you online while you play on as you like (modes, the menu, save states): "
+                                  "the match's code is at the bottom of the screen to give them, and with your name from the "
+                                  "launcher's Online page it's in the lobby too. When someone joins, the game starts over "
+                                  "for the match. This row again stops hosting.",
+                                  nullptr});
     // (names: shown unless hidden, whatever the preset, so a switch that hides them)
     TheGame().features.push_back({"online_hide_names", "Online", "Hide names",
                                   "During an online match, each player's name is under their life bar (the name each gave on "
@@ -570,13 +576,17 @@ void Port::MenuAct(Menu::Action action) {
 
 void Port::RunCommand(size_t index) {
     const auto &commands = TheGame().commands;
+    if (index < commands.size() && !strcmp(commands[index].name, "online_host")) {
+        HostFromMenu();
+        return;
+    }
     if (index < commands.size() && commands[index].run) {
         commands[index].run(*machine);
     }
 }
 
 void Port::Key(char key, unsigned n) {
-    if (net && key != 'z' && key != 'm' && key != 'l') {
+    if (net && key != 'z' && key != 'm' && key != 'l' && key != 'y') {
         return; // (online: only the leave question, and the zoom's, which does nothing: Zoom::Forbid)
     }
     switch (key) {
@@ -594,6 +604,11 @@ void Port::Key(char key, unsigned n) {
     case '=': menu.Faster(1); break;
     case 'h': hurry = !hurry; break; // (tests: the frontend sets it while F is held)
     case 'l': leaving = net && !leaving; break; // (tests: online, Esc's "Leave the match?")
+    case 'y': // (tests: ... answered yes)
+        if (leaving) {
+            LeaveOnline();
+        }
+        break;
     case 'z': // (tests: the zoom pressed for player n + 1; 2: for both)
         if (n == Zoom::kBoth) {
             zoom.Both();
@@ -686,10 +701,23 @@ bool Port::Tick() {
                 againAt = tick + 180;
                 return false;
             }
+            if (hostedFromMenu) {
+                SetHud({});
+                BackToSolo(false);
+                hostNote = "Stopped hosting: " + error;
+                hostNoteUntil = tick + 300;
+                return false;
+            }
             net->ended = error;
             net->failed = true;
             quit = true;
             SetHud({});
+            return false;
+        }
+        if (state == 0 && hostedFromMenu && !net->Found()) {
+            // (the one who came went quiet before the match began: the player's own game again, still hosted)
+            SetHud({});
+            BackToSolo(true);
             return false;
         }
         if (state == 0 && net->Arcade()) {
@@ -744,7 +772,9 @@ bool Port::Tick() {
             if (!net->ended.empty()) {
                 // (the other side gone: a window waits for them again; the host's leaving ends the joining side's)
                 const bool again = !opt.headless && (net->Hosting() ? net->left || net->lost : net->lost);
-                if (again) {
+                if (hostedFromMenu) {
+                    BackToSolo(again); // (the other side gone: still hosted, the player's own game again)
+                } else if (again) {
                     Again(net->ended);
                 } else {
                     quit = true;
@@ -840,6 +870,13 @@ void Port::Shown(std::vector<uint32_t> &pixels, std::vector<SDL_Rect> *panels) c
     // (online: the ping and the input delay, as the Display page has them, or that the other side has gone quiet; and
     // above, until this side's player has pressed Start, that it lets them in)
     int said = told ? 1 : 0;
+    // (hosting from the in-game menu, the game the player's own meanwhile: the match's code; or why it stopped)
+    if (waitingHost) {
+        const std::string code = waitingHost->code;
+        status(code.empty() ? "HOSTING" : ("HOSTING  CODE " + code + (waitingHost->Listed() ? "  IN THE LOBBY" : "")).c_str(), said++ * 14);
+    } else if (tick < hostNoteUntil) {
+        status(hostNote.c_str(), said++ * 14);
+    }
     if (net && !connecting) {
         char text[64] = "";
         if (net->Silent() > 1000) {
@@ -929,11 +966,13 @@ void Port::Shown(std::vector<uint32_t> &pixels, std::vector<SDL_Rect> *panels) c
     if (net && leaving) {
         const recomp::text::Canvas canvas{pixels.data(), across, Video::kHeight};
         const bool hosting = connecting;
+        const char *question = hostedFromMenu ? "Leave the match?" : hosting ? "Stop hosting and quit?" : "Leave the match?";
+        const char *confirm = hostedFromMenu ? "Confirm (A, Enter): play alone" : hosting ? "Confirm (A, Enter): quit" : "Confirm (A, Enter): leave";
         const struct {
             const char *text;
             recomp::text::Color colour;
-        } lines[] = {{hosting ? "Stop hosting and quit?" : "Leave the match?", {255, 255, 255, 255}},
-                     {hosting ? "Confirm (A, Enter): quit" : "Confirm (A, Enter): leave", {255, 130, 120, 255}},
+        } lines[] = {{question, {255, 255, 255, 255}},
+                     {confirm, {255, 130, 120, 255}},
                      {"Back (B, Backspace, Esc): stay", {255, 255, 255, 255}}};
         float y = Video::kHeight / 2.0f - 30;
         for (const auto &line : lines) {
@@ -1436,6 +1475,166 @@ void Port::HearChat() {
     }
 }
 
+#ifdef _WIN32
+static const char *const kExeSuffix = ".exe";
+#else
+static const char *const kExeSuffix = "";
+#endif
+
+// The launcher's player name ([online] name in its launcher.ini: the collection's, or the game's own launcher's),
+// for a match hosted from the in-game menu
+namespace {
+    std::string LauncherName() {
+        const char *base = SDL_GetBasePath();
+        if (!base) {
+            return "";
+        }
+        std::error_code missing;
+        const bool collection = !std::filesystem::exists(std::string(base) + GAME_ID "-launcher" + kExeSuffix, missing);
+        const char *name = collection ? "CPS-2 Recomp" : GAME_NAME;
+        std::filesystem::path folder = recomp::PortableFolder(base);
+        if (!folder.empty()) {
+            folder /= std::filesystem::u8path(name);
+        } else if (char *pref = SDL_GetPrefPath("", name)) {
+            folder = pref;
+            SDL_free(pref);
+        }
+        if (folder.empty()) {
+            return "";
+        }
+        recomp::Ini prefs(folder / "launcher.ini");
+        prefs.load();
+        return prefs.get("online", "name");
+    }
+}
+
+void Port::HostFromMenu() {
+    menu.Close();
+    if (waitingHost) {
+        StopHosting(); // (the row again: Stop hosting)
+        return;
+    }
+    if (net || opt.headless) {
+        return;
+    }
+    Netplay::Settings settings = opt.net;
+    settings.hosting = true;
+    settings.solo = true;
+    settings.arcade = false;
+    settings.port = Netplay::kDefaultPort;
+    settings.name = LauncherName();
+    settings.listed = !settings.name.empty();
+    settings.renewCode.clear();
+    settings.renewSecret.clear();
+    waitingHost = std::make_unique<Netplay>(settings);
+    std::string error;
+    if (!waitingHost->Begin(*this, error)) {
+        waitingHost.reset();
+        fprintf(stderr, "online: %s\n", error.c_str());
+        menu.Open(true);
+        menu.Note(error);
+        return;
+    }
+    opt.net = settings;
+    hostedFromMenu = true;
+    menu.hosting = true;
+    fprintf(stderr, "online: hosting from the menu; playing alone until someone joins\n");
+}
+
+void Port::PumpHost() {
+    menu.hosting = waitingHost != nullptr;
+    if (!waitingHost) {
+        return;
+    }
+    Netplay *host = waitingHost.get();
+    std::string error;
+    if (host->Waiting(*this, error) < 0 && waitingHost.get() == host) {
+        fprintf(stderr, "online: stopped hosting: %s\n", error.c_str());
+        hostNote = "Stopped hosting: " + error;
+        hostNoteUntil = tick + 300;
+        StopHosting();
+    }
+}
+
+void Port::MatchComing() {
+    fprintf(stderr, "online: someone joined: the match starts from the board's reset\n");
+    ownFeatures.clear();
+    for (const Feature &feature : TheGame().features) {
+        ownFeatures[feature.name] = FeatureSetting(feature.name);
+    }
+    menu.Close();
+    menu.SetFullSpeed();
+    paused = false;
+    steps = 0;
+    typing = false;
+    EndSessionFeatures();
+    machine->Reset();
+    machine->audio.clear();
+    zoom.Forbid();
+    net = std::move(waitingHost); // (Netplay::Waiting goes on, as the match's)
+    menu.hosting = false;
+    connecting = true;
+    cameIn = false;
+    frame = 0;
+}
+
+void Port::StopHosting() {
+    waitingHost.reset();
+    hostedFromMenu = false;
+    menu.hosting = false;
+    fprintf(stderr, "online: stopped hosting\n");
+}
+
+void Port::BackToSolo(bool stillHosting) {
+    Netplay::Settings settings = opt.net;
+    if (net) {
+        if (!net->code.empty()) {
+            settings.renewCode = net->code.substr(0, 3) + net->code.substr(4);
+            settings.renewSecret = net->Secret();
+        }
+        if (!connecting) {
+            net->Leave();
+            net->Report(true);
+        }
+    }
+    net.reset(); // (the socket closed: the port is free for hosting again)
+    connecting = leaving = typing = false;
+    rejoin.clear();
+    chat.clear();
+    for (const auto &[name, value] : ownFeatures) {
+        SetFeatureForNow(name.c_str(), value);
+    }
+    ownFeatures.clear();
+    zoom.Forbid(false);
+    machine->SetBoardTiming(FeatureOn("arcade_timing"));
+    hostedFromMenu = false;
+    if (!stillHosting) {
+        fprintf(stderr, "online: playing alone again\n");
+        return;
+    }
+    settings.invite.clear();
+    settings.inviteName.clear();
+    waitingHost = std::make_unique<Netplay>(settings);
+    std::string error;
+    if (!waitingHost->Begin(*this, error)) {
+        waitingHost.reset();
+        fprintf(stderr, "online: %s\n", error.c_str());
+        return;
+    }
+    opt.net = settings;
+    hostedFromMenu = true;
+    fprintf(stderr, "online: playing alone again, still hosting\n");
+}
+
+void Port::LeaveOnline() {
+    leaving = false;
+    if (hostedFromMenu) {
+        BackToSolo(false);
+    } else {
+        quit = true;
+    }
+}
+
 bool Port::StartOnline(std::string &error) {
     if (opt.rollbackTest || !opt.moviePlay.empty() || !opt.stateLoad.empty()) {
         error = "online play: not with --rollback-test, --movie or --state-load";
@@ -1755,12 +1954,6 @@ void Port::Finish() {
               std::vector<uint32_t>(machine->soundCpu.newEntries.begin(), machine->soundCpu.newEntries.end()), "%04X\n");
     }
 }
-
-#ifdef _WIN32
-static const char *const kExeSuffix = ".exe";
-#else
-static const char *const kExeSuffix = "";
-#endif
 
 // The list --list-features writes (on Android the launcher asks the game's library for it: port/android.cpp)
 std::string LauncherFeatureList() {

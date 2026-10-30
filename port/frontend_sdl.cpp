@@ -372,7 +372,7 @@ int RunWindowed(Port &port) {
             // (online: no menu, the game goes on for both players; Esc gives up a wait, and in a match asks whether to
             // leave it: Port::leaving)
             if (port.connecting && !port.net->Arcade()) {
-                port.quit = true;
+                port.LeaveOnline();
             } else {
                 port.leaving = !port.leaving;
             }
@@ -424,9 +424,6 @@ int RunWindowed(Port &port) {
     const bool multi = !MultiGame().empty();
     // (a touch screen's controls: touch.h)
     TouchControls touch;
-    if (port.net) {
-        touch.Chat();
-    }
     std::vector<uint32_t> touchPicture;
     // (the menu's Zoom row, as last seen: a change there is the camera's, and a zoom's press is the row's)
     int zoomRow = port.zoom.Choice();
@@ -567,6 +564,8 @@ int RunWindowed(Port &port) {
         if (touch.TakeMenuPress()) {
             toggleMenu();
         }
+        port.PumpHost(); // (a match hosted from the menu, listened for, the menu open or not)
+        touch.Chat(port.net != nullptr); // (online, from the start or a match hosted from the menu)
         if (touch.TakeZoomPress()) {
             if (port.net) {
                 chatOpen(!port.typing);
@@ -698,7 +697,7 @@ int RunWindowed(Port &port) {
             } else if (port.leaving) {
                 // (online, "Leave the match?": Confirm leaves it, Back stays; this side's player stands still meanwhile)
                 if (menuPressed & recomp::kMenuConfirm) {
-                    port.quit = true;
+                    port.LeaveOnline();
                 } else if (menuPressed & recomp::kMenuBack) {
                     port.leaving = false;
                 }

@@ -34,8 +34,8 @@ bool Zoom::Possible() {
     return !forbidden && cps2recomp::TheGame().focus != nullptr;
 }
 
-void Zoom::Forbid() {
-    forbidden = true;
+void Zoom::Forbid(bool forbid) {
+    forbidden = forbid;
     m_size = 0;
     m_player = 0;
     m_panX = m_panY = 0;
