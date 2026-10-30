@@ -38,9 +38,10 @@ CPS2Recomp/
     msh.exe
 ```
 
-A game whose set is in there and that has none chosen is given it: the report says how many were, and **Play** works
-at once, with nothing pointed at. A set chosen another way is left as it is, unless it is no longer usable and
-`roms` has the game's.
+A game whose set is in there and that has none chosen is given it: **Play** works at once, with nothing pointed at.
+A set chosen another way is left as it is, unless it is no longer usable and `roms` has the game's. The Games page's
+**ROM SETS** row says how many games' sets are there, and **Show** opens the report; nothing opens by itself, so the
+check never stands between you and the games.
 
 The check only reads: nothing is moved, rewritten or removed, and a zip's extra files (which the games ignore) are
 only reported. It is the same check as `tools/validate_cps2_roms.py`, which also offers to remove those extras from

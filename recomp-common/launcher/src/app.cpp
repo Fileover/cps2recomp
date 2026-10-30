@@ -2727,6 +2727,38 @@ void App::library_page(float width) {
         }
     });
     find.end();
+    // (the `roms` folder beside the launcher, read when it opens without a window of its own: what it found is said
+    // here, and the report itself is a button away)
+    std::error_code roms_error;
+    if (std::filesystem::is_directory(program_folder_ / "roms", roms_error)) {
+        ui::gap(24);
+        ui::text("ROM SETS", Font::Semibold, ui::size::kDetail, p.secondary);
+        ui::gap(10);
+        Card sets(width);
+        std::string detail;
+        if (rom_check_running_) {
+            detail = "Looking in roms…";
+        } else if (!rom_report_.present) {
+            detail = "Not read yet.";
+        } else if (rom_report_.unreadable) {
+            detail = "The folder could not be read.";
+        } else if (rom_report_.empty) {
+            detail = "No zip in it: each game needs its own set.";
+        } else {
+            detail = std::to_string(rom_report_.ok) + " of " + std::to_string(rom_report_.games.size()) + " games have their set here.";
+        }
+        row(width, "roms/", detail.c_str(), 120.0f, 36.0f, [&] {
+            if (ui::button("Show", Kind::Secondary, 120.0f, !rom_check_running_)) {
+                if (rom_report_.present) {
+                    rom_check_open_ = true;
+                } else {
+                    rom_check_start();
+                    rom_show_when_ready_ = true;
+                }
+            }
+        });
+        sets.end();
+    }
     ui::gap(24);
     ui::text("GAMES", Font::Semibold, ui::size::kDetail, p.secondary);
     ui::gap(10);
@@ -3539,7 +3571,12 @@ void App::rom_check_modal() {
         rom_report_ = rom_check_.get();
         rom_check_running_ = false;
         adopt_rom_sets();
-        rom_check_open_ = true;
+        // (no window of its own: the check is the launcher's business, and a window on every start is in the way.
+        // The Games page says what it found, and opens it — or asked for it before it was done)
+        if (rom_show_when_ready_) {
+            rom_check_open_ = true;
+            rom_show_when_ready_ = false;
+        }
         ui::request_frames(3);
     }
     if (rom_check_open_) {

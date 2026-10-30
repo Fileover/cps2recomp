@@ -382,7 +382,8 @@ void ScanInto(Report& report, const std::filesystem::path& folder, const std::ve
         if (Lower(entry.path().extension().u8string()) != ".zip") {
             continue;
         }
-        listing[Lower(entry.path().stem().u8string())] = entry.path().u8string();
+        // (a path with / for its folders on every system: it is kept as the game's file, and the games read it)
+        listing[Lower(entry.path().stem().u8string())] = entry.path().generic_u8string();
         names.push_back(entry.path().filename().u8string());
     }
     std::sort(names.begin(), names.end());

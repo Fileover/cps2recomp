@@ -207,6 +207,7 @@ private:
     std::future<romcheck::Report> rom_check_;
     bool rom_check_running_ = false;  // (the thread is still reading the folder)
     bool rom_check_open_ = false;     // (what it found is to be shown)
+    bool rom_show_when_ready_ = false;  // (the report was asked for before the folder had been read)
     int rom_adopted_ = 0;             // how many games were given a set the folder had
     romcheck::Report rom_report_;
 
