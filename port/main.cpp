@@ -763,7 +763,11 @@ bool Port::Tick() {
         // sources take it somewhere); no stopping, slowing or speeding up
         const bool ready = net->Ready(frame);
         HearChat();
-        if (!opt.netSay.empty() && frame >= 120) {
+        if (!opt.netTyping.empty()) {
+            typing = true;
+            typed = opt.netTyping;
+        }
+        if (!opt.netSay.empty() && frame >= opt.netSayAt) {
             typed = opt.netSay;
             opt.netSay.clear();
             Say();
@@ -2034,7 +2038,8 @@ void Usage() {
             "  --net-service URL      the online service that gives hosts codes (online/), or off\n"
             "  --net-list             (hosting) the match in the lobby, the Online card's list of open matches\n"
             "  --net-name NAME        ... under this name; and either side's: shown to the other player\n"
-            "  --net-say TEXT         (tests) TEXT said in the chat two seconds into the match\n"
+            "  --net-say [FRAME:]TEXT (tests) TEXT said in the chat at FRAME of the match (120 unless said)\n"
+            "  --net-typing TEXT      (pictures) TEXT shown as a chat line being typed, all through the match\n"
             "  --net-arcade           (hosting) the game played alone until the other player comes, who then challenges\n"
             "  --net-invite TO:FROM   (hosting) the player TO in the launcher's waiting room invited, from FROM (ids;\n"
             "                         --net-name the inviter's name)\n"
@@ -2171,6 +2176,13 @@ bool ParseArgs(int argc, char **argv, port::Options &o) {
             o.net.name = next();
         } else if (a == "--net-say") {
             o.netSay = next();
+            const size_t colon = o.netSay.find(':');
+            if (colon != std::string::npos && colon > 0 && o.netSay.find_first_not_of("0123456789") == colon) {
+                o.netSayAt = strtoull(o.netSay.c_str(), nullptr, 10);
+                o.netSay.erase(0, colon + 1);
+            }
+        } else if (a == "--net-typing") {
+            o.netTyping = next();
         } else if (a == "--net-invite") {
             // (two waiting room ids: 12 hex digits each)
             const std::string v = next();
