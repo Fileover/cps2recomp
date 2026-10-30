@@ -101,13 +101,15 @@ launcher::FileCheck check_rom_set(const GameInfo& game, const std::string& path)
     return check;
 }
 
-// A set in a "roms" (or "rom") folder beside the launcher or above it (a build inside the source tree finds the
-// tree's own, from the build folder or from the app bundle): roms/<id>/, roms/, rom/<id>/, or rom/ itself
+// A set in a "roms" or "rom" folder beside the launcher or above it (a build inside the source tree finds the tree's
+// own, from the build folder or from the app bundle): roms/<id>/ or rom/<id>/, a folder of the set's own files. A
+// folder of zips is not looked in here: it is the `roms` folder the launcher reads when it opens, whose report says
+// which of them is which game's (romcheck.h), and loading every game's set here would hold the window back.
 std::string rom_set_nearby(const GameInfo& game, const std::filesystem::path& program_folder) {
     std::filesystem::path folder = program_folder;
     std::error_code error;
     for (int up = 0; up < 8 && !folder.empty(); up++, folder = folder.parent_path()) {
-        for (const std::filesystem::path& rom : {folder / "roms" / game.id, folder / "roms", folder / "rom" / game.id, folder / "rom"}) {
+        for (const std::filesystem::path& rom : {folder / "roms" / game.id, folder / "rom" / game.id, folder / "rom"}) {
             if (std::filesystem::is_directory(rom, error) && check_rom_set(game, rom.string()).usable()) {
                 return rom.string();
             }
@@ -245,6 +247,9 @@ launcher::Description describe_game(const GameInfo& game) {
     d.file_filter = {"ROM set (zip)", "zip"};
     d.file_key = "rom";
     d.check = [game](const std::string& path) { return check_rom_set(game, path); };
+    // (it reads the whole set, and a collection has one of these for each of its games: on threads, so that the
+    // window is up and drawn while they are read)
+    d.check_on_thread = true;
     d.find_nearby = [game](const std::filesystem::path& folder) { return rom_set_nearby(game, folder); };
     d.candidates = [game](const std::filesystem::path& folder) { return rom_set_candidates(game, folder); };
     const std::vector<FeatureSwitch> switches = feature_switches(game.display);

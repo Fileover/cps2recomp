@@ -40,9 +40,11 @@ struct Game {
 
 // What the folder had to say about one game
 struct Result {
+    std::string id;                         // its short name (a folder under games/): the launcher's game with it
     std::string game;                       // as the player reads it
     bool ok = false;
-    std::string zip;                        // the zip it was read from ("" when none could be)
+    std::string zip;                        // the zip it was read from, by name ("" when none could be)
+    std::string path;                       // ... and where it is (what the launcher keeps as the game's file)
     std::string region;                     // which of its regions was read ("" when none could be)
     std::vector<std::string> problems;      // why it could not be read (the first set tried)
     std::vector<std::string> extras;        // files of the zip that no region of the game uses
@@ -53,6 +55,7 @@ struct Report {
     std::filesystem::path folder;
     bool present = false;                   // the folder is there
     bool empty = true;                      // ... and has no zip in it
+    bool unreadable = false;                // ... and could not be read at all (a zip the launcher cannot look into)
     std::vector<Result> games;              // every game of this build, in its table's order
     std::vector<std::string> unused;        // the folder's zips that are no game's set
     int ok = 0;                             // how many games' sets were found

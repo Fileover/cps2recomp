@@ -3486,8 +3486,51 @@ void App::rom_check_start() {
         return;  // (a launcher with no such folder beside it has nothing to check)
     }
     // (on a thread: the folder holds some hundreds of megabytes of sets, and the window comes up at once)
-    rom_check_ = std::async(std::launch::async, [folder] { return romcheck::scan(folder, romcheck::games()); });
+    rom_check_ = std::async(std::launch::async, [folder] {
+        try {
+            return romcheck::scan(folder, romcheck::games());
+        } catch (...) {
+            romcheck::Report report;  // (a zip the launcher cannot look into: said, not thrown out of the window)
+            report.folder = folder;
+            report.present = true;
+            report.unreadable = true;
+            return report;
+        }
+    });
     rom_check_running_ = true;
+}
+
+// The games the folder has a set for, and that have none of their own chosen, are given it: what the player asked
+// for by putting the sets in `roms` beside the launcher is that they are played, not that each be pointed at.
+void App::adopt_rom_sets() {
+    bool changed = false;
+    rom_adopted_ = 0;
+    for (const romcheck::Result& result : rom_report_.games) {
+        if (!result.ok || result.path.empty()) {
+            continue;
+        }
+        for (size_t which = 0; which < slots_.size(); which++) {
+            Slot& one = *slots_[which];
+            if (one.id != result.id || !one.about->game_page || !one.about->check) {
+                continue;
+            }
+            // (a set the player chose, and that is still good, stays theirs; one being read is left to its thread)
+            const std::string chosen = prefs_.get(one.file_section, one.about->file_key);
+            if (one.checking || (!chosen.empty() && one.file.usable())) {
+                break;
+            }
+            one.file_path = result.path;
+            one.file.result = FileCheck::Result::Good;
+            one.file.message = result.region;
+            prefs_.set(one.file_section, one.about->file_key, result.path);
+            changed = true;
+            rom_adopted_++;
+            break;
+        }
+    }
+    if (changed) {
+        prefs_.save();
+    }
 }
 
 // What the folder had to say, over the window: every game's set, and the zips that are no game's
@@ -3495,6 +3538,7 @@ void App::rom_check_modal() {
     if (rom_check_running_ && rom_check_.valid() && rom_check_.wait_for(std::chrono::milliseconds(0)) == std::future_status::ready) {
         rom_report_ = rom_check_.get();
         rom_check_running_ = false;
+        adopt_rom_sets();
         rom_check_open_ = true;
         ui::request_frames(3);
     }
@@ -3519,14 +3563,22 @@ void App::rom_check_modal() {
         ui::text(where.c_str(), Font::Regular, ui::size::kDetail, p.secondary);
         ui::gap(6);
         std::string summary;
-        if (report.empty) {
+        if (report.unreadable) {
+            summary = "The folder could not be read: a zip in it is not one the launcher can look into.";
+        } else if (report.empty) {
             summary = "No zip in it: each game needs its own set.";
         } else if (report.failed == 0) {
             summary = "Every game's set is here (" + std::to_string(games) + " of " + std::to_string(games) + ").";
         } else {
             summary = std::to_string(report.ok) + " of " + std::to_string(games) + " games have their set here.";
         }
-        ui::text(summary.c_str(), Font::Regular, ui::size::kBody, report.failed ? p.danger : p.success);
+        ui::text(summary.c_str(), Font::Regular, ui::size::kBody, report.failed || report.unreadable ? p.danger : p.success);
+        if (rom_adopted_ > 0) {
+            ui::gap(2);
+            const std::string given = "Chosen for " + std::to_string(rom_adopted_) + (rom_adopted_ == 1 ? " game" : " games") +
+                                      ": they are ready to play.";
+            ui::text(given.c_str(), Font::Regular, ui::size::kDetail, p.secondary);
+        }
         ui::gap(12);
         ImGui::BeginChild("##sets", ImVec2(inner, ImGui::GetContentRegionAvail().y - px(48 + 12)), ImGuiChildFlags_NavFlattened);
         for (const romcheck::Result& result : report.games) {

@@ -201,9 +201,13 @@ private:
     // over the window when it is done. A launcher with no such folder checks nothing.
     void rom_check_start();
     void rom_check_modal();
+    // The games whose set the folder had, and that have none chosen (or one that is not usable any more), are given
+    // theirs: the player points at nothing, the sets are where the launcher looks.
+    void adopt_rom_sets();
     std::future<romcheck::Report> rom_check_;
     bool rom_check_running_ = false;  // (the thread is still reading the folder)
     bool rom_check_open_ = false;     // (what it found is to be shown)
+    int rom_adopted_ = 0;             // how many games were given a set the folder had
     romcheck::Report rom_report_;
 
     void navigation();

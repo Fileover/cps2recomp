@@ -40,6 +40,13 @@ std::string BaseName(const std::string& inside) {
     return slash == std::string::npos ? inside : inside.substr(slash + 1);
 }
 
+// A file's name without its folders and its last extension ("roms/msh.zip" is "msh")
+std::string Stem(const std::string& path) {
+    const std::string base = BaseName(path);
+    const size_t dot = base.find_last_of('.');
+    return dot == std::string::npos || dot == 0 ? base : base.substr(0, dot);
+}
+
 struct Entry {
     std::string name;
     uint32_t crc = 0, size = 0, packed = 0, offset = 0;
@@ -55,7 +62,7 @@ struct Zip {
 
     bool Open(const std::string& file) {
         path = file;
-        name = std::filesystem::u8path(file).filename().u8string();
+        name = BaseName(file);
         FILE* f = std::fopen(file.c_str(), "rb");
         if (!f) {
             error = "cannot be opened";
@@ -89,6 +96,14 @@ struct Zip {
         const uint32_t count = Le16(&tail[at_end + 10]);
         const uint32_t dir_size = Le32(&tail[at_end + 12]);
         const uint32_t dir_at = Le32(&tail[at_end + 16]);
+        // (a zip of more than 4 GB, or with more than 65535 files, keeps its list of files in a record the launcher
+        // does not read: its set cannot be taken from it. Nor can one whose list is not inside the file.)
+        if (count == 0xFFFF || dir_size == 0xFFFFFFFFu || dir_at == 0xFFFFFFFFu ||
+            static_cast<long long>(dir_at) + static_cast<long long>(dir_size) > static_cast<long long>(size)) {
+            std::fclose(f);
+            error = "is too large for the launcher to read (a zip64 file)";
+            return false;
+        }
         std::vector<unsigned char> dir(dir_size);
         std::fseek(f, dir_at, SEEK_SET);
         good = dir.empty() || std::fread(dir.data(), 1, dir.size(), f) == dir.size();
@@ -277,7 +292,7 @@ struct Candidate {
 Candidate CheckCandidate(const std::string& path, const Game& game, const std::map<std::string, std::string>& listing,
                          std::map<std::string, Zip>& cache) {
     Candidate out;
-    const std::string name = std::filesystem::u8path(path).filename().u8string();
+    const std::string name = BaseName(path);
     const Zip* first = Opened(path, cache);
     if (!first) {
         out.problems.push_back(name + " " + ZipError(path, cache));
@@ -303,7 +318,7 @@ Candidate CheckCandidate(const std::string& path, const Game& game, const std::m
         }
     }
     // (the region the zip is named for is read first, then the set's own, then the rest)
-    const std::string chosen = Lower(std::filesystem::u8path(path).stem().u8string());
+    const std::string chosen = Lower(Stem(path));
     std::vector<size_t> order;
     for (size_t n = 1; n < game.regions.size(); n++) {
         if (Lower(game.regions[n].id) == chosen) {
@@ -349,13 +364,14 @@ Candidate CheckCandidate(const std::string& path, const Game& game, const std::m
 
 }  // namespace
 
-Report scan(const std::filesystem::path& folder, const std::vector<Game>& games) {
-    Report report;
-    report.folder = folder;
+namespace {
+
+// scan's work, so that one zip the launcher cannot look into is a report and not the end of the launcher
+void ScanInto(Report& report, const std::filesystem::path& folder, const std::vector<Game>& games) {
     std::error_code error;
     report.present = std::filesystem::is_directory(folder, error);
     if (!report.present) {
-        return report;
+        return;
     }
     std::map<std::string, std::string> listing;  // (the set's name, in lowercase, and the zip's path)
     std::vector<std::string> names;              // (the zips' names, as they are on disk)
@@ -375,6 +391,7 @@ Report scan(const std::filesystem::path& folder, const std::vector<Game>& games)
     std::set<std::string> used;  // (the zips a game's set was read from)
     for (const Game& game : games) {
         Result result;
+        result.id = game.id;
         result.game = game.name;
         // (the zips that can hold it, by the set's name, then any other: a renamed zip is still found by its files)
         std::vector<std::string> tried;
@@ -393,7 +410,7 @@ Report scan(const std::filesystem::path& folder, const std::vector<Game>& games)
             add(region.id);
         }
         for (const std::string& one : names) {
-            add(std::filesystem::u8path(one).stem().u8string());
+            add(Stem(one));
         }
         if (tried.empty()) {
             result.problems.push_back("no " + game.set + ".zip in this folder");
@@ -402,11 +419,12 @@ Report scan(const std::filesystem::path& folder, const std::vector<Game>& games)
             Candidate candidate = CheckCandidate(listing[key], game, listing, cache);
             if (candidate.ok) {
                 result.ok = true;
-                result.zip = std::filesystem::u8path(listing[key]).filename().u8string();
+                result.zip = BaseName(listing[key]);
+                result.path = listing[key];
                 result.region = candidate.region;
                 result.extras = candidate.extras;
                 for (const std::string& one : candidate.used) {
-                    used.insert(Lower(std::filesystem::u8path(one).stem().u8string()));
+                    used.insert(Lower(Stem(one)));
                 }
                 result.problems.clear();
                 break;
@@ -436,10 +454,24 @@ Report scan(const std::filesystem::path& folder, const std::vector<Game>& games)
         }
     }
     for (const std::string& one : names) {
-        const std::string key = Lower(std::filesystem::u8path(one).stem().u8string());
+        const std::string key = Lower(Stem(one));
         if (!used.count(key) && !known_names.count(key)) {
             report.unused.push_back(one);
         }
+    }
+}
+
+}  // namespace
+
+Report scan(const std::filesystem::path& folder, const std::vector<Game>& games) {
+    Report report;
+    report.folder = folder;
+    try {
+        ScanInto(report, folder, games);
+    } catch (...) {
+        // (a zip whose list of files is not what a zip's is, a name the system will not take: said, not thrown out of
+        // the launcher's window)
+        report.unreadable = true;
     }
     return report;
 }
