@@ -1,6 +1,10 @@
 # Changelog
 
-## Unreleased
+## 1.1.0
+
+**Android**: an app of the launcher and every game for 64-bit ARM phones and tablets, with touch controls drawn
+beside the picture. **Another game**: X-Men: Children of the Atom, eighteen in all. **Online** works across a game's
+regions, with a waiting room and invitations. And thirty-two more regions' ROM sets play.
 
 - **The launcher is dark in Steam's Gaming Mode**, as Steam is: dark unless the system says light (recomp-common #39).
   It was always light on the Steam Deck and Steam Machine, which have no desktop there to say.
