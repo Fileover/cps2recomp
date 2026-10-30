@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- **Online from an Android phone**: joining or hosting a match said "Couldn't reach the online service": the game
+  asked for the system's curl, which Android hasn't. It now asks through the app, as the launcher does.
+
 ## 1.1.0
 
 **Android**: an app of the launcher and every game for 64-bit ARM phones and tablets, with touch controls drawn
