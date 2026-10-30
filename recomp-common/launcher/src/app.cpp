@@ -302,9 +302,9 @@ bool prepare_folders(bool ask) {
     std::filesystem::remove(probe, error);
     if (!writable) {
         say(SDL_MESSAGEBOX_ERROR, LAUNCHER_GAME_NAME,
-            "portable.txt is beside the launcher, so your settings and saves go in " + portable.u8string() +
+            "portable is beside the launcher, so your settings and saves go in " + portable.u8string() +
                 ", but that folder cannot be written to.\n\nMove the launcher's folder somewhere you can write to (not a "
-                "read-only drive or Program Files), or take portable.txt away to keep them in your user folder.");
+                "read-only drive or Program Files), or take portable away to keep them in your user folder.");
         return false;
     }
     if (!first || !ask) {
@@ -334,12 +334,12 @@ bool prepare_folders(bool ask) {
     if (copies.empty()) {
         return true;
     }
-    std::string message = "portable.txt is beside the launcher: your settings, save states and the boards' memory are kept in " +
+    std::string message = "portable is beside the launcher: your settings, save states and the boards' memory are kept in " +
                           portable.u8string() + " from now on.\n\nCopy what you have in your user folder there?\n";
     for (const auto& copy : copies) {
         message += "\n" + copy.first.u8string();
     }
-    message += "\n\nNothing is taken away from it. Without portable.txt the launcher uses it again, as it was.";
+    message += "\n\nNothing is taken away from it. Without portable the launcher uses it again, as it was.";
     const SDL_MessageBoxButtonData buttons[] = {
         {SDL_MESSAGEBOX_BUTTON_RETURNKEY_DEFAULT, 1, "Copy them"},
         {SDL_MESSAGEBOX_BUTTON_ESCAPEKEY_DEFAULT, 0, "Start afresh"},
@@ -2859,10 +2859,10 @@ void App::files_card(float width) {
 #else
     const char* beside = "beside the launcher";
 #endif
-    const std::string about = !portable.empty() ? std::string("Settings, save states, each board's memory and the logs. Take portable.txt away from ") +
+    const std::string about = !portable.empty() ? std::string("Settings, save states, each board's memory and the logs. Take portable away from ") +
                                                       beside + " to use your user folder again; nothing is moved."
                                                 : std::string("Settings, save states, each board's memory and the logs. To keep them with the launcher "
-                                                              "instead, on a drive you carry, put a file named portable.txt ") +
+                                                              "instead, on a drive you carry, put a file named portable ") +
                                                       beside + ".";
     ui::text(about.c_str(), Font::Regular, ui::size::kDetail, p.secondary, width);
 #endif
