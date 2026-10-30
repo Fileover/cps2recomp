@@ -69,4 +69,7 @@ target_compile_definitions(launcher PRIVATE
     LAUNCHER_DISPLAY_SWITCHES="${DISPLAY_SWITCHES}" LAUNCHER_PLAYERS="${PLAYERS}" LAUNCHER_BUTTONS="${BUTTONS}"
     LAUNCHER_BOARD="${BOARD}" LAUNCHER_CPS_B="${CPS_B}" LAUNCHER_OTHER_SET="${OTHER_SET}")
 find_package(ZLIB REQUIRED)
+# (a release keeps the launcher alone at the top of its folder and the games in games/ under it, with the DLLs they
+# share beside them: -DLAUNCHER_SDL_STATIC=ON and -DZLIB_USE_STATIC_LIBS=ON leave the launcher with nothing of its own
+# to load, so it needs no DLL beside it. tools/release/windows.sh builds it that way.)
 target_link_libraries(launcher PRIVATE ZLIB::ZLIB)
