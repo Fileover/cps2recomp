@@ -8,6 +8,8 @@
 - **What's worth attention stands out on the Online page**: an invitation, open matches you can join, the waiting room
   while someone is in it, and a new version (also a dot on the Games row, and a card at the top of the Online page).
   The page goes open matches, waiting room, hosting a match, then the settings for a match (recomp-common #42).
+- **Online from an Android phone**: joining or hosting a match said "Couldn't reach the online service": the game
+  asked for the system's curl, which Android hasn't. It now asks through the app, as the launcher does.
 
 ## 1.1.0
 
