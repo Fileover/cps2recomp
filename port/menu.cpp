@@ -30,8 +30,10 @@ namespace {
 void Menu::Open(bool withStates) {
     const cps2recomp::Game &game = cps2recomp::TheGame();
     recomp::MenuConfig config;
-    // The game's pages that belong at the head; then three groups with a line between them: the save
-    // states, what the game offers, and leaving
+    // Online, Display and Game first (issue #196), then the game's pages that belong at the head; then three groups
+    // with a line between them: the save states, what the game offers, and leaving
+    config.groups.push_back({{recomp::MenuRow::Page, 0, "Online"}, {recomp::MenuRow::Page, 0, "Display"},
+                             {recomp::MenuRow::Page, 0, "Game"}});
     std::vector<recomp::MenuRow> top;
     for (const cps2recomp::Page &page : game.pages) {
         // (such pages are ways of running the game: their rows do not count features that are on)
