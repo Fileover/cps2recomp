@@ -572,7 +572,7 @@ void Port::RunCommand(size_t index) {
 
 void Port::Key(char key, unsigned n) {
     if (net && key != 'z' && key != 'm' && key != 'l') {
-        return; // (online: only the zoom, each player's own, and the leave question)
+        return; // (online: only the leave question, and the zoom's, which does nothing: Zoom::Forbid)
     }
     switch (key) {
     case 'p':
@@ -1376,6 +1376,7 @@ bool Port::StartOnline(std::string &error) {
         return false;
     }
     net = std::make_unique<Netplay>(opt.net);
+    zoom.Forbid(); // (both players see the whole picture, as the board shows it)
     if (opt.headless && !net->Arcade()) {
         if (!net->Connect(*this, error)) {
             net.reset();
