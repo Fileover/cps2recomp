@@ -8,8 +8,9 @@
 - **Host from the game**: the in-game menu's Online page has **Host a match**: your game stays your own (modes,
   cheats, the menu, save states) while you wait, with HOSTING and the code at the bottom of the screen and the match
   in the lobby under the launcher's name. When someone joins, the game starts over for the match; afterwards it's your
-  own again, still hosted. The row again (Stop hosting) stops it. The menu starts with its Online, Display and Game
-  pages.
+  own again, still hosted. The row again (Stop hosting) stops it.
+- **A shorter in-game menu**: it starts with its Online, Display and Game pages, and Game has the speed, Mute (Off
+  or On, rather than Sound: On or Muted) and the Board, Cheats and Sound pages (recomp-common #44).
 - **Names and chat online**: each player's name is under their life bar (Hide names, on the Online page, hides
   them), and the players can chat during a match: T, a gamepad's right stick click or the touch screen's Chat button,
   then type on a keyboard or the system's on-screen keyboard (Steam Deck, Android). Chat goes straight between the two
