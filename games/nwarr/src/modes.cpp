@@ -51,6 +51,18 @@ namespace {
         return false;
     }
 
+    // 006502: the stage of a two-player match (A5+DB0, less one: a word to kStage, and back). A mode's stage is put in
+    // its place.
+    bool VersusStageSet(M68K &c) {
+        const int stage = session::WantedStage();
+        if (stage < 1 || stage > kStages) {
+            return false;
+        }
+        SetRam16(kStage, static_cast<uint16_t>(stage - 1));
+        Return(c);
+        return true;
+    }
+
     // 00692E: a player is made for the fight from the character it chose (A6 the record; 006934 copies kChoice to
     // kCharacter). A mode's characters are put in the choice first.
     bool PlayerMade(M68K &c) {
@@ -103,6 +115,7 @@ void RegisterModes() {
     d.modesWords = "Other ways to run the game: training, attract mode, a viewer for the stages, survival, endless battle, ring out.";
     modes::Register(d);
     AddHook(HookAt(kStageSet), "StageSet", StageSet);
+    AddHook(HookAt(0x006502), "VersusStageSet", VersusStageSet);
     AddHook(HookAt(0x00692E), "PlayerMade", PlayerMade);
 }
 
