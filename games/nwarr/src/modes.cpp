@@ -15,23 +15,23 @@ namespace cps2recomp {
 namespace {
     using namespace nwarr;
 
-    // The show's loop (kMode, traced with no coin in, nwarr.h): 2 the QSound notice, 4 the moon, 6 the introduction to
-    // the title (its last pictures), 8-0C between, 0E-14 four short fights, 16 the Best 5 ranking, 18-1A, 0 and round
-    // again (pictures every 200 frames beside the words)
-    enum : uint16_t { kLoopStart = 0x02, kMoon = 0x04, kIntroduction = 0x06, kFirstFight = 0x0E, kLastFight = 0x14 };
+    // The show's loop (kMode, traced with no coin in; family.h). Night Warriors': 2 the QSound notice, 4 the moon, 6 the
+    // introduction to the title (its last pictures), 8-0C between, 0E-14 four short fights, 16 the Best 5 ranking,
+    // 18-1A, 0 and round again (pictures every 200 frames beside the words)
+    constexpr uint16_t kLoopStart = 0x02;
 
     // The parts of the loop left out for what is to be shown
     bool AttractStep(int show) {
         const uint16_t part = Ram16(kMode);
-        if (part <= kLoopStart) {
+        if (part <= family::kShowUnseen) {
             return true; // (the loop's own start)
         }
         if (show == modes::kShowIntro) {
-            if (part != kMoon && part != kIntroduction) {
-                modes::GoTo(kMoon);
+            if (part < family::kIntroFirst || part > family::kIntroLast) {
+                modes::GoTo(family::kIntroFirst);
             }
-        } else if (part < kFirstFight || part > kLastFight) {
-            modes::GoTo(kFirstFight);
+        } else if (part < family::kFightFirst || part > family::kFightLast) {
+            modes::GoTo(family::kFightFirst);
         }
         return false;
     }

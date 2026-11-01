@@ -37,7 +37,7 @@ namespace {
     constexpr uint32_t kCameraObject = At(0xFF8F08), kCameraStep = 0x34, kCameraWay = 0x2C;
     // A player's: half its width, a byte 1 at the picture's left edge and 2 at its right, the other player's record (a
     // word), and bytes the keep-in tests (006BAC)
-    constexpr uint32_t kHalfWidth = 0x1C0, kAtEdge = 0x6F, kOpponent = 0x200, kNotKept = 0x1E6, kHeld = 0x4C;
+    constexpr uint32_t kHalfWidth = 0x1C0, kAtEdge = family::kAtEdge, kOpponent = 0x200, kNotKept = 0x1E6, kHeld = 0x4C;
     constexpr uint32_t kBothPushed = At(0xFF8308); // (A5+308: set, a player held at an edge pushes the other with it)
 
     bool g_play = false;  // fights are played in the wide picture

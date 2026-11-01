@@ -27,7 +27,7 @@ namespace {
 
     constexpr uint32_t kColourSets = At(0x35DD0E), kCharacterColours = 0x500, kSetSize = 0xA0;
     constexpr int kSets = 8, kPalettesInSet = 5;
-    constexpr uint32_t kColourChoice = 0x4A6; // word: the set (above)
+    constexpr uint32_t kColourChoice = family::kColoursWord; // word: the set (above)
 
     uint32_t SetAddress(int number, int set) {
         return kColourSets + static_cast<uint32_t>(number - 1) * kCharacterColours + static_cast<uint32_t>(set) * kSetSize;
