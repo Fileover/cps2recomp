@@ -17,6 +17,7 @@
 #include "../runtime/spare.h"
 #include "port.h"
 #include "../recomp-common/folders.h"
+#include "../recomp-common/proxy.h"
 #include "../recomp-common/settings.h"
 #include "../recomp-common/text.h"
 
@@ -1504,11 +1505,11 @@ namespace {
         }
         std::error_code missing;
         const bool collection = !std::filesystem::exists(std::string(base) + GAME_ID "-launcher" + kExeSuffix, missing);
-        const char *name = collection ? "CPS-2 Recomp" : GAME_NAME;
+        const std::string name = recomp::FolderName(collection ? "CPS-2 Recomp" : GAME_NAME);  // (as the launcher names it)
         std::filesystem::path folder = recomp::PortableFolder(base);
         if (!folder.empty()) {
             folder /= std::filesystem::u8path(name);
-        } else if (char *pref = SDL_GetPrefPath("", name)) {
+        } else if (char *pref = SDL_GetPrefPath("", name.c_str())) {
             folder = pref;
             SDL_free(pref);
         }
@@ -2293,11 +2294,11 @@ bool StartLauncher() {
     bool setUp = false;
     // (the launcher's own folder and file; the collection's keeps each game's file in a section of its own. In
     // portable mode the folder is in user/ beside the launcher, as the launcher has it: recomp-common/folders.h)
-    const char *name = collection ? "CPS-2 Recomp" : GAME_NAME;
+    const std::string name = recomp::FolderName(collection ? "CPS-2 Recomp" : GAME_NAME);  // (as the launcher names it)
     std::filesystem::path folder = recomp::PortableFolder(base);
     if (!folder.empty()) {
         folder /= std::filesystem::u8path(name);
-    } else if (char *pref = SDL_GetPrefPath("", name)) {
+    } else if (char *pref = SDL_GetPrefPath("", name.c_str())) {
         folder = pref;
         SDL_free(pref);
     }
@@ -2335,6 +2336,7 @@ int main(int argc, char **argv) {
         freopen("CONOUT$", "w", stdout);
         freopen("CONOUT$", "w", stderr);
     }
+    recomp::UseSystemProxy();  // (Windows' proxy, for the curl that asks the online service: recomp-common/proxy.h)
 #endif
 #ifdef __ANDROID__
     port::StartOnAndroid();

@@ -242,6 +242,11 @@ private:
     void follow_lobby(const std::string& url);
     // The waiting room (Collection::room): checked in at every online_every() while the Online page is open and no game
     // is running, and left when not; its card, and the invitations' card
+    // The waiting room's URL and protocol: the collection's, or the one game's Online card's (nullptr: none)
+    const char* room_url() const;
+    int room_protocol() const;
+    // A game's id in the waiting room: a collection's game's, or the one game's Online::game
+    std::string room_game(size_t which) const;
     void follow_room(bool here);
     // A card's small capitals, with "Updates every 10 seconds" at the right, and a spinner beside it while `fetching`
     void live_label(const char* text, float width, bool fetching);
