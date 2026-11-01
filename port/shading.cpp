@@ -290,6 +290,12 @@ bool Shading::Open(SDL_Window *window, std::string &error) {
     return true;
 }
 
+void Shading::SetVsync(bool on) {
+    if (m_context && SDL_GL_MakeCurrent(m_window, m_context)) {
+        SDL_GL_SetSwapInterval(on ? 1 : 0);
+    }
+}
+
 void Shading::Close() {
     if (m_context) {
         SDL_GL_MakeCurrent(m_window, m_context);

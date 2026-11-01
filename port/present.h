@@ -78,6 +78,13 @@ public:
     // rectangle `where` of the window, the rest black (zoomed: part of it larger, as `zoomed` says). Shaded, through
     // the preset unless `shade` is false (the menu, drawn larger than the game's picture: only fitted to `where`)
     void Show(const uint32_t *pixels, int width, int height, const SDL_FRect &where, const Zoomed *zoomed = nullptr, bool shade = true);
+    // Vsync (the Display page's VSync, issue #185): each picture shown when the screen next refreshes, so never
+    // torn, and none left out for want of a free one of the window's. Off unless set (frames are paced by the port,
+    // and shown as soon as made). The same after the presenter is opened again.
+    void SetVsync(bool on);
+    bool Vsync() const {
+        return m_vsync;
+    }
     // How the picture's pixels are drawn (FitPicture says where): Sharp unless set
     void SetScaling(Scaling scaling) {
         m_scaling = scaling;
@@ -101,6 +108,8 @@ private:
 
     SDL_Window *m_window = nullptr;
     Scaling m_scaling = Scaling::Sharp;
+    bool m_vsync = false;
+    void ApplyVsync();
     // GPU
     SDL_GPUDevice *m_device = nullptr;
     SDL_GPUGraphicsPipeline *m_pipeline = nullptr;

@@ -40,6 +40,8 @@ public:
     // pictures, one above the other), the preset draws the whole of the one above, and of what it drew the part
     // `view` fills `where`, as a camera would close in on a monitor; the readout's panels over it, as they are
     void Show(const uint32_t *pixels, int width, int height, const SDL_FRect &where, bool shade, const Zoomed *zoomed = nullptr);
+    // Waiting for the screen's refresh to show a picture (present.h, Presenter::SetVsync)
+    void SetVsync(bool on);
     // What is drawn over the whole window after the picture (present.h, Presenter::SetOverlay); nullptr: nothing
     void SetOverlay(const uint32_t *pixels, int width, int height);
     // For the checks (CPS2RECOMP_SHADER_SHOT): each picture shown kept, and the last one, its first row its top
