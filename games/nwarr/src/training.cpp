@@ -29,6 +29,56 @@ namespace {
         return record == Player(0) ? 0 : record == Player(1) ? 1 : -1;
     }
 
+    // The boxes (0C0DC2 on, the hit test once a frame): a record's +5C points to its box tables, a word at the start for
+    // each kind the distance to that kind's table; the frame (+1C) names a box of each kind by a byte: +10, +11, +12 the
+    // three hurt boxes (kinds 0, 2, 4: 0C0FB6 on), +13 a fourth kind (6, 0C0FA4), +14 the attack (kind 8; 0C0E5A). A box
+    // is words: across from the record's X (turned with it, +09), half its width, up from its Y, half its height
+    // (0C154E); a hurt box 8 bytes, an attack 16. What the players throw is in records of the same layout, three a
+    // player (A5+2CEE, 2DAE, 2E6E player 1's, A5+286E, 292E, 29EE player 2's: 0C0DEE on), in use while the first byte is
+    // above 0 and +04 is 2 (0C0EB0).
+    constexpr uint32_t kBoxTables = 0x5C, kFrameBoxes = 0x10, kFrameAttack = 0x14;
+    constexpr uint32_t kThrown[6] = {0xFFACEE, 0xFFADAE, 0xFFAE6E, 0xFFA86E, 0xFFA92E, 0xFFA9EE};
+
+    void AddBox(M68K &c, std::vector<fight::StageBox> &boxes, fight::BoxKind kind, uint32_t record, int which, bool thrown) {
+        const uint32_t frame = Ram32(record + kFrame);
+        const uint8_t box = static_cast<uint8_t>(c.Read(frame + kFrameBoxes + static_cast<uint32_t>(which), 0));
+        if (!box) {
+            return;
+        }
+        const uint32_t tables = Ram32(record + kBoxTables);
+        const uint32_t at = tables + static_cast<uint32_t>(static_cast<int16_t>(c.Read(tables + static_cast<uint32_t>(which) * 2, 1))) +
+                            box * (which == 4 ? 16u : 8u);
+        const int16_t across = static_cast<int16_t>(c.Read(at, 1));
+        const int x = static_cast<int16_t>(Ram16(record + kX)) + (Ram8(record + kFacesLeft) ? -across : across);
+        const int y = static_cast<int16_t>(Ram16(record + kY)) + static_cast<int16_t>(c.Read(at + 4, 1)) - kGround;
+        const int halfWidth = static_cast<int16_t>(c.Read(at + 2, 1)), halfHeight = static_cast<int16_t>(c.Read(at + 6, 1));
+        if (halfWidth > 0 && halfHeight > 0) {
+            boxes.push_back({kind, x, y, halfWidth, halfHeight, thrown});
+        }
+    }
+
+    std::vector<fight::StageBox> Boxes(Machine &machine) {
+        M68K &c = machine.cpu;
+        std::vector<fight::StageBox> boxes;
+        for (int n = 0; n < 2; n++) {
+            const uint32_t player = Player(n);
+            if (Ram8(player + 3) != 2) {
+                continue;
+            }
+            for (int which = 0; which < 3; which++) {
+                AddBox(c, boxes, fight::BoxKind::Hurt, player, which, false);
+            }
+            AddBox(c, boxes, fight::BoxKind::Attack, player, 4, false);
+        }
+        for (const uint32_t thrown : kThrown) {
+            if (static_cast<int8_t>(Ram8(thrown)) > 0 && Ram8(thrown + 4) == 2) {
+                AddBox(c, boxes, fight::BoxKind::Hurt, thrown, 0, true);
+                AddBox(c, boxes, fight::BoxKind::Attack, thrown, 4, true);
+            }
+        }
+        return boxes;
+    }
+
     // The player is free to do anything: standing, walking or crouching, and not attacking
     bool CanAct(uint32_t player) {
         const uint8_t state = Ram8(player + kState);
@@ -52,6 +102,7 @@ namespace {
         view.canAct = CanAct(player);
         view.attacking = Ram8(player + kAttack) != 0;
         view.jumping = state == kStateJump;
+        view.attackOut = c.Read(Ram32(player + kFrame) + kFrameAttack, 0) != 0;
         session::Step(n, view);
         return false;
     }
@@ -102,6 +153,8 @@ void RegisterTraining() {
     d.panelHeld = PanelHeld;
     d.facingLeft = [](int n) { return Ram8(Player(n) + kFacesLeft) != 0; };
     d.moveStart = MoveStart;
+    d.boxes = Boxes;
+    d.pictureFloor = 196; // (the floor's line in the picture with the camera at its lowest: the players' feet)
     d.stageChoices = modes::StageChoices({"The game's choice"});
     d.dummy.downAfter = 34;
     session::Register(d);
