@@ -24,12 +24,17 @@ void RegisterTraining(); // training.cpp
 void RegisterBattle(); // battle.cpp
 void RegisterChoosing(); // choosing.cpp
 void ChoosingBeforeFrame(Machine &machine);
+void RegisterWidescreen(); // widescreen.cpp
+void WidescreenBeforeFrame(Machine &machine);
+void WidescreenState(Archive &ar);
+bool WidePlay();
 
 void RegisterGame() {
     RegisterModes();
     RegisterTraining();
     RegisterBattle();
     RegisterChoosing();
+    RegisterWidescreen();
     RegisterCoins();
     RegisterCheats();
     RegisterTitle();
@@ -38,6 +43,7 @@ void RegisterGame() {
     TheGame().beforeFrame = [](Machine &machine) {
         BoardBeforeFrame(machine);
         ChoosingBeforeFrame(machine);
+        WidescreenBeforeFrame(machine);
         session::BeforeFrame(machine);
         modes::BeforeFrame(machine);
         BattleBeforeFrame(machine);
@@ -58,9 +64,12 @@ void RegisterGame() {
         session::State(ar);
         modes::State(ar);
         BattleState(ar);
+        WidescreenState(ar);
     };
     // With the arcade timing, the game's own code runs in place of the rewrites but where they carry what the port adds
-    TheGame().rewritesNeeded = [] { return session::InSession() || modes::AttractMode() || modes::StageViewer() || BattleMode(); };
+    TheGame().rewritesNeeded = [] { return session::InSession() || modes::AttractMode() || modes::StageViewer() || BattleMode() || WidePlay() ||
+               FeatureOn("widescreen");
+    };
     // Its own: the names and choices are this board's, never set for the other games by the collection's launcher
     OwnFeatures({"board_difficulty", "board_damage", "board_timer", "board_rounds"});
 }

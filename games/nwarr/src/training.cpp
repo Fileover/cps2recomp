@@ -169,6 +169,9 @@ void RegisterTraining() {
     d.facingLeft = [](int n) { return Ram8(Player(n) + kFacesLeft) != 0; };
     d.moveStart = MoveStart;
     d.boxes = Boxes;
+    d.wideStage = WideStage;
+    d.wideSide = WideSide;
+    d.wideMargin = WideMargin;
     d.pictureFloor = 196; // (the floor's line in the picture with the camera at its lowest: the players' feet)
     d.stageChoices = modes::StageChoices({"The game's choice"});
     d.dummy.downAfter = 34;

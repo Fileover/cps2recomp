@@ -121,8 +121,8 @@ void RegisterBattle() {
     d.cameraAt = modes::CameraAt;
     d.endModes = modes::End;
     d.stageViewer = modes::StageViewer;
-    d.wideSide = [] { return 0; }; // (no widescreen yet)
-    d.wideMargin = [] { return 0; };
+    d.wideSide = WideSide;
+    d.wideMargin = WideMargin;
     d.notTheStage = NotTheStage;
     d.thePanel = ThePanel;
     d.notTheFighters = NotTheFighters;
@@ -132,16 +132,6 @@ void RegisterBattle() {
         return Ram8(player + kState) == kStateJump && static_cast<int32_t>(Ram32(player + kSpeedY)) <= 0;
     };
     battle::Register(d);
-    // 006BAC: the player (A6) kept in the picture, between the camera's X and its right edge, half its width (+1C0)
-    // in from each (watched: the only routine that sets X to the picture's ends). In the ring out a player knocked
-    // there is let through, over the end.
-    AddHook(HookAt(0x006BAC), "KeptIn", [](M68K &c) {
-        if (RingOutLetsOut(c.a[6] & 0xFFFFFF)) {
-            Return(c);
-            return true;
-        }
-        return false;
-    });
 }
 
 } // namespace cps2recomp

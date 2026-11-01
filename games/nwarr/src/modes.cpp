@@ -91,6 +91,10 @@ void RegisterModes() {
     d.cameraLeft = kCameraLeft;
     d.cameraRight = kCameraRight;
     d.notTheStage = NotTheStage;
+    d.wideSide = WideSide;
+    d.wideMargin = WideMargin;
+    d.wideForSpare = WideForSpare;
+    d.wideForPort = WideForPort;
     d.attractBegun = [](int frames) { return frames > 500 && Ram16(kMode) >= kLoopStart; };
     d.attractOver = [] { return Ram8(kPlayersIn) != 0 || Ram8(kCredits) != 0; };
     d.attractStep = AttractStep;
