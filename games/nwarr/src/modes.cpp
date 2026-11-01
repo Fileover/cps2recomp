@@ -94,12 +94,9 @@ void RegisterModes() {
     d.playerSize = kPlayerSize;
     d.x = kX;
     d.stageNames.assign(std::begin(kStageNames), std::end(kStageNames));
-    // (each stage's tune: 08 on in the stages' order, Hsien-Ko's and Donovan's 03EC and 03ED: music.cpp)
-    for (int stage = 0; stage < kStages; stage++) {
-        d.stageTunes.push_back(static_cast<uint16_t>(stage < 12 ? 0x08 + stage : 0x3EC + (stage - 12)));
-    }
+    d.stageTunes.assign(std::begin(family::kStageTunes), std::end(family::kStageTunes)); // (family.h)
     d.otherTuneNames = {"Character select", "Versus"};
-    d.otherTunes = {0x003, 0x002};
+    d.otherTunes = {family::kTuneSelect, family::kTuneVersus};
     d.cameraLeft = kCameraLeft;
     d.cameraRight = kCameraRight;
     d.notTheStage = NotTheStage;
