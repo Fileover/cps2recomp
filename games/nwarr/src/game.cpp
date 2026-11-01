@@ -5,6 +5,7 @@
 #include "game.h"
 #include "alternative.h"
 #include "battle.h"
+#include "colours.h"
 #include "nwarr.h"
 #include "session.h"
 
@@ -28,6 +29,12 @@ void RegisterWidescreen(); // widescreen.cpp
 void WidescreenBeforeFrame(Machine &machine);
 void WidescreenState(Archive &ar);
 bool WidePlay();
+void RegisterModel(); // model.cpp
+void ModelBeforeFrame(Machine &machine);
+void ModelFrame(Machine &machine);
+void ModelState(Archive &ar);
+bool ModelViewer();
+void RegisterColours(); // colours.cpp
 
 void RegisterGame() {
     RegisterModes();
@@ -35,6 +42,8 @@ void RegisterGame() {
     RegisterBattle();
     RegisterChoosing();
     RegisterWidescreen();
+    RegisterModel();
+    RegisterColours();
     RegisterCoins();
     RegisterCheats();
     RegisterTitle();
@@ -47,17 +56,20 @@ void RegisterGame() {
         session::BeforeFrame(machine);
         modes::BeforeFrame(machine);
         BattleBeforeFrame(machine);
+        colours::BeforeFrame(machine);
+        ModelBeforeFrame(machine);
     };
     // (the training aids see what the frame did before the cheats put things back)
     TheGame().frame = [](Machine &machine) {
         session::Frame(machine);
         modes::Frame(machine);
         BattleFrame(machine);
+        ModelFrame(machine);
         TitleFrame(machine);
         CoinsFrame(machine);
     };
     // (run-ahead: not in the modes, whose workings a save state does not wholly hold)
-    TheGame().noRunAhead = [] { return modes::AttractMode() || modes::StageViewer() || BattleMode(); };
+    TheGame().noRunAhead = [] { return modes::AttractMode() || modes::StageViewer() || BattleMode() || ModelViewer(); };
     // (what the sources keep between frames, with save states and run-ahead's frames taken back)
     TheGame().state = [](Archive &ar) {
         BoardState(ar);
@@ -65,13 +77,15 @@ void RegisterGame() {
         modes::State(ar);
         BattleState(ar);
         WidescreenState(ar);
+        ModelState(ar);
     };
     // With the arcade timing, the game's own code runs in place of the rewrites but where they carry what the port adds
-    TheGame().rewritesNeeded = [] { return session::InSession() || modes::AttractMode() || modes::StageViewer() || BattleMode() || WidePlay() ||
+    TheGame().rewritesNeeded = [] { return session::InSession() || modes::AttractMode() || modes::StageViewer() || BattleMode() || ModelViewer() || WidePlay() ||
                FeatureOn("widescreen");
     };
     // Its own: the names and choices are this board's, never set for the other games by the collection's launcher
-    OwnFeatures({"board_difficulty", "board_damage", "board_timer", "board_rounds"});
+    OwnFeatures({"board_difficulty", "board_damage", "board_timer", "board_rounds", "survival_best", "ringout_best", "model_animation",
+                 "colours_animation"});
 }
 
 } // namespace cps2recomp
