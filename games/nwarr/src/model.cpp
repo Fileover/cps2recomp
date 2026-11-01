@@ -35,7 +35,7 @@ namespace {
 
     // The characters in the menu's order (the game's own, 1-14), by their numbers in the game
     constexpr int kCharacterNumbers[] = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14};
-    constexpr uint32_t kListTables = 0x006B70; // a long a character, by its number
+    constexpr uint32_t kListTables = At(0x006B70); // a long a character, by its number
     constexpr int kMostLists = 80, kMostAnimations = 32;
     constexpr uint32_t kFrameBytes = 0x20, kFramePicture = 0x04, kFrameWord = 0x02;
     constexpr uint16_t kFollowed = 0x8000, kHolds = 0x4000;
@@ -163,7 +163,7 @@ namespace {
         c.d[2] = (c.d[2] & 0xFFFF0000) | x;
         c.d[3] = (c.d[3] & 0xFFFF0000) | x;
         c.a[1] = c.a[2] = Player(0);
-        c.pc = 0x0FF6F6;
+        c.pc = At(0x0FF6F6);
         return true;
     }
 } // namespace
@@ -275,7 +275,7 @@ void RegisterModel() {
     d.firstLine = [](Machine &) { return static_cast<int>(Ram8(Player(0) + kColourSet) & 0x1F); };
     d.spareFrame = [](Machine &) { SetRam8(kRoundClock, 0x99); };
     model::Register(d);
-    AddHook(HookAt(0x0FF6D6), "CameraPlayers", CameraPlayers);
+    AddHook(HookAt(At(0x0FF6D6)), "CameraPlayers", CameraPlayers);
 }
 
 } // namespace cps2recomp

@@ -38,6 +38,7 @@ file). Only the versions named below work for each game, and this project cannot
 | [**Marvel Super Heroes vs. Street Fighter**](games/mshvsf/README.md) (1997) | `mshvsf` (Europe 970625) | Tag-team co-op, and 2 vs 2 for four players |
 | [**Marvel vs. Capcom**](games/mvsc/README.md) (1998) | `mvsc` (Europe 980123) | Tag-team co-op, and 2 vs 2 for four players |
 | [**Super Puzzle Fighter II Turbo**](games/puzzle_fighter/README.md) (1996) | `spf2t` (Europe 960529) | A puzzle training mode and CPU battle |
+| [**Darkstalkers: The Night Warriors**](games/dstlk/README.md) (1994) | `dstlk` (Europe 940705) | Huitzil and Pyron at a switch |
 | [**Night Warriors: Darkstalkers' Revenge**](games/nwarr/README.md) (1995) | `nwarr` (Europe 950316) | Huitzil and Pyron at a switch |
 | [**Vampire Savior**](games/vampire_savior/README.md) (1997) | `vsavj` (Japan 970519) | Tag team battle |
 | [**Vampire Savior 2**](games/vsav2/README.md) (1997) | `vsav2` (Japan 970913) | Donovan, Phobos and Pyron back |

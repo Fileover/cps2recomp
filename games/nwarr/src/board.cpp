@@ -29,18 +29,11 @@ namespace {
     constexpr uint32_t kVars = 0xFF8000; // (A5)
     constexpr const char *kPage = "Board";
 
-    struct Setting {
-        const char *name;
-        uint32_t variable;
-        int first; // the value of the first choice after "As the board is set"
-    };
-    constexpr Setting kSettings[] = {
-        {"board_difficulty", kVars + 0x1F1, 0}, {"board_damage", kVars + 0x263, 0},   {"board_timer", kVars + 0x233, 0},
-        {"board_turbo", kVars + 0x212, 0},      {"board_rounds", kVars + 0x237, 0},   {"board_mode_select", kVars + 0x203, 0},
-        {"board_join_in", kVars + 0x20A, 0},    {"board_event", kVars + 0x209, 0},    {"board_continue", kVars + 0x1EB, 0},
-        {"board_demo_sound", kVars + 0x1F0, 0},
-    };
-    constexpr uint32_t kJoinIn = kVars + 0x20A, kEvent = kVars + 0x209;
+    // (the settings and their variables are each game's: family.h)
+    constexpr auto &kSettings = nwarr::family::kBoard;
+    uint32_t Variable(const nwarr::family::BoardSetting &setting) {
+        return kVars + static_cast<uint32_t>(setting.variable);
+    }
 
     // The board's own values of what was chosen, to put back for its test menu. (Kept with the game's state,
     // BoardState: they say what the variables in RAM hold, so a state loaded or run-ahead's frame taken back must
@@ -53,17 +46,18 @@ namespace {
     void PutChoices() {
         g_chosen = false;
         for (size_t n = 0; n < std::size(kSettings); n++) {
-            g_board[n] = Ram8(kSettings[n].variable);
+            g_board[n] = Ram8(Variable(kSettings[n]));
         }
-        for (const Setting &setting : kSettings) {
+        for (const auto &setting : kSettings) {
             const int choice = FeatureValue(setting.name);
             if (choice > 0) {
-                SetRam8(setting.variable, static_cast<uint8_t>(setting.first + choice - 1));
+                SetRam8(Variable(setting), static_cast<uint8_t>(choice - 1));
                 g_chosen = true;
             }
         }
-        if (FeatureValue("board_event") > 0 && Ram8(kEvent) && FeatureValue("board_join_in") == 0) {
-            SetRam8(kJoinIn, 0); // (the event has no join in, as the test menu sets it)
+        if (nwarr::family::kEventVariable && FeatureValue("board_event") > 0 && Ram8(kVars + nwarr::family::kEventVariable) &&
+            FeatureValue("board_join_in") == 0) {
+            SetRam8(kVars + nwarr::family::kJoinInVariable, 0); // (the event has no join in, as the test menu sets it)
         }
     }
 
@@ -89,7 +83,7 @@ namespace {
 void BoardBeforeFrame(Machine &machine) {
     if (g_chosen && machine.testSwitch) {
         for (size_t n = 0; n < std::size(kSettings); n++) {
-            SetRam8(kSettings[n].variable, g_board[n]);
+            SetRam8(Variable(kSettings[n]), g_board[n]);
         }
         g_chosen = false;
         g_again = true;
@@ -108,25 +102,17 @@ void RegisterBoard() {
     game.pages.push_back({kPage, "", "The board's own settings, as its test menu has them (Configuration): each as the board is set "
                                      "unless chosen here. Taken when the game starts or is reset."});
     constexpr const char *kAsSet = "As the board is set";
-    game.features.push_back({"board_difficulty", kPage, "Difficulty", "How well the computer fights.", 0,
-                             {kAsSet, "1 Easiest", "2 Very easy", "3 Easy", "4 Medium", "5 Medium hard", "6 Hard", "7 Very hard", "8 Hardest"}});
-    game.features.push_back({"board_damage", kPage, "Damage level", "How much damage a hit does, 1 (least) to 9.", 0,
-                             {kAsSet, "1 Minimum", "2", "3", "4", "5 Medium", "6", "7", "8", "9 Maximum"}});
-    game.features.push_back({"board_timer", kPage, "Time count speed", "How fast the round's clock runs, 1 (slowest) to 8.", 0,
-                             {kAsSet, "1 Slow", "2", "3", "4 Normal", "5", "6", "7", "8 Fast"}});
-    game.features.push_back({"board_turbo", kPage, "Turbo", "The game's speed: normal, turbo, or the players' choice.", 0,
-                             {kAsSet, "Off", "On", "Free select"}});
-    game.features.push_back({"board_rounds", kPage, "Max round", "Rounds a match lasts at most.", 0,
-                             {kAsSet, "1 round", "3 rounds", "5 rounds"}});
-    game.features.push_back({"board_mode_select", kPage, "Mode select",
-                             "Whether players choose between normal and automatic guard.", 0, {kAsSet, "Off", "On"}});
-    game.features.push_back({"board_join_in", kPage, "Join-in", "Whether a second player can join a game against the computer.", 0,
-                             {kAsSet, "Off", "On"}});
-    game.features.push_back({"board_event", kPage, "Event", "Off, or one match only (and no join-in).", 0, {kAsSet, "Off", "On"}});
-    game.features.push_back({"board_continue", kPage, "Continue", "Whether a game over can be continued.", 0, {kAsSet, "Off", "On"}});
-    game.features.push_back({"board_demo_sound", kPage, "Demo sound", "Whether the attract mode plays sound.", 0, {kAsSet, "Off", "On"}});
+    for (const auto &setting : kSettings) {
+        Feature feature{setting.name, kPage, setting.title, setting.words, 0, {kAsSet}};
+        for (const char *choice : setting.choices) {
+            if (choice) {
+                feature.choices.push_back(choice);
+            }
+        }
+        game.features.push_back(feature);
+    }
     AddHook(HookAt(nwarr::kSettingsCopied), "SettingsRead", SettingsRead);
-    AddHook(HookAt(0x0215F4), "GameBegins", GameBegins);
+    AddHook(HookAt(nwarr::At(0x0215F4)), "GameBegins", GameBegins);
 }
 
 } // namespace cps2recomp

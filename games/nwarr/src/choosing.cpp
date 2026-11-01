@@ -13,7 +13,6 @@ namespace cps2recomp {
 namespace {
     using namespace nwarr;
 
-    constexpr uint8_t kDemitri = 1, kVictor = 3, kHuitzil = 11, kPyron = 12;
     bool g_start[2] = {false, false}; // each player's Start held this frame
 
     bool Chosen(M68K &c) {
@@ -23,8 +22,11 @@ namespace {
             return false;
         }
         const uint8_t who = Ram8(player + kChoice);
-        if (who == kVictor || who == kDemitri) {
-            SetRam8(player + kChoice, who == kVictor ? kHuitzil : kPyron);
+        for (const auto &hidden : family::kHidden) {
+            if (who == hidden[0]) {
+                SetRam8(player + kChoice, hidden[1]);
+                break;
+            }
         }
         return false;
     }
@@ -37,11 +39,9 @@ void ChoosingBeforeFrame(Machine &machine) {
 }
 
 void RegisterChoosing() {
-    TheGame().features.push_back({"hidden_characters", "Game", "Hidden characters",
-                                  "Huitzil and Pyron, the bosses, to play: hold Start as you choose Victor for Huitzil, or Demitri for "
-                                  "Pyron (the button still chooses the colours)."});
-    AddHook(HookAt(0x029012), "Chosen", Chosen);
-    AddHook(HookAt(0x029092), "ChosenByStart", Chosen);
+    TheGame().features.push_back({"hidden_characters", "Game", "Hidden characters", nwarr::family::kHiddenWords});
+    AddHook(HookAt(At(0x029012)), "Chosen", Chosen);
+    AddHook(HookAt(At(0x029092)), "ChosenByStart", Chosen);
 }
 
 } // namespace cps2recomp

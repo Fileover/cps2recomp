@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- **Darkstalkers: The Night Warriors** (#215), set `dstlk` (Europe 940705): the first Darkstalkers game, built from
+  Night Warriors' sources (its program is the one Night Warriors was made from), with everything Night Warriors has:
+  training mode, the alternative modes, the colour editor, widescreen, the zoom, Huitzil and Pyron at a switch, the
+  Board page and the music's names.
 - **Night Warriors: Darkstalkers' Revenge** (#215), set `nwarr` (Europe 950316): the second Darkstalkers game, with its
   own sources (its program is not Vampire Savior's). Training mode, attract mode, the stage and model viewers, the
   colour editor, survival, endless battle and ring out, widescreen with invisible walls, the camera zoom, Huitzil and

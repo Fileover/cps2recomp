@@ -25,9 +25,9 @@ bool ModelViewer();
 namespace {
     using namespace nwarr;
 
-    constexpr uint32_t kColourSets = 0x35DD0E, kCharacterColours = 0x500, kSetSize = 0xA0;
-    constexpr int kSets = 8, kPalettesInSet = 5;
-    constexpr uint32_t kColourChoice = 0x4A6; // word: the set (above)
+    constexpr uint32_t kColourSets = At(0x35DD0E), kCharacterColours = family::kCharacterColours, kSetSize = 0xA0;
+    constexpr int kPalettesInSet = 5;
+    constexpr uint32_t kColourChoice = family::kColoursWord; // word: the set (above)
 
     uint32_t SetAddress(int number, int set) {
         return kColourSets + static_cast<uint32_t>(number - 1) * kCharacterColours + static_cast<uint32_t>(set) * kSetSize;
@@ -55,23 +55,21 @@ namespace {
 void RegisterColours() {
     colours::Description d;
     for (int n = 1; n < kCharacters; n++) {
-        // (the names the game has in Japan, for files called by them: Jon Talbain is Gallon there, Lord Raptor Zabel,
-        // Rikuo Aulbath, Hsien-Ko Lei-Lei)
-        const char *japan = n == 2 ? "Gallon" : n == 4 ? "Zabel" : n == 9 ? "Aulbath" : n == 13 ? "Lei-Lei" : nullptr;
-        d.characters.push_back({n, kCharacterNames[n], japan});
+        d.characters.push_back({n, kCharacterNames[n], family::kJapanNames[n]}); // (the names the game has in Japan: family.h)
     }
-    d.setNames = {"HK", "Start", "LP", "MP", "HP", "LK", "MK", "7"};
+    d.setNames.assign(std::begin(family::kColourSetNames), std::end(family::kColourSetNames));
     d.palettesInSet = kPalettesInSet;
     d.setAddress = SetAddress;
     d.ranges = Ranges;
     // The seventh of the set's program files holds every character's colours (and the faces', the stages')
-    d.romFile = "vphe.09b";
-    d.romFileAt = 0x300000;
+    d.romFile = family::kColourRomFile;
+    d.romFileAt = family::kColourRomAt;
     d.romFileSize = 0x80000;
-    d.romFileWhose = "Night Warriors' Europe 950316";
-    d.featureDescription = "Characters in the colours of the files in the \"palettes\" folder in the game's data folder: a "
-                           "vphe.09b changed with PalMod, and text files, one a character (Felicia.txt), which go before it. "
-                           "With no files the game's own colours. They are taken when a player is coloured: at the next round.";
+    d.romFileWhose = family::kColourRomWhose;
+    d.featureDescription = "Characters in the colours of the files in the \"palettes\" folder in the game's data folder: the "
+                           "program file that holds the colours, changed with PalMod, and text files, one a character "
+                           "(Felicia.txt), which go before it. With no files the game's own colours. They are taken when a "
+                           "player is coloured: at the next round.";
     d.originalHelp = "# To change them, copy this file to the palettes folder and change the colours there. Each set is\n"
                      "# chosen by the button that chose the character ([LP] to [HK], [Start]) and has five lines of 16\n"
                      "# colours; the character is drawn in the first line's, the others are its effects. The 16th colour of\n"

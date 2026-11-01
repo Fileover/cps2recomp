@@ -21,10 +21,13 @@ namespace {
     // Bytes of the player's choice: its colours, 1-6 by the button that chose the character (029012; 0 before), and 4
     // once it has chosen normal or automatic guard (028EBC), which the board asks only with its Mode select on (A5+203).
     // Dumps before and after.
-    constexpr uint32_t kModeChosen = 0x4B9, kModeSelect = 0xFF8203;
+    constexpr uint32_t kModeChosen = family::kModeChosen, kModeSelect = At(0xFF8203);
     bool Chosen(int n) {
+        if (family::kChoosingBits) {
+            return !(Ram8(0xFF8000 + family::kChoosingBits) & (1 << n)); // (Darkstalkers: 02F3A4 clears the player's bit)
+        }
         const uint32_t player = Player(n);
-        return Ram8(player + kColoursChosen) != 0 && (Ram8(kModeSelect) == 0 || Ram8(player + kModeChosen) >= 4);
+        return Ram8(player + kColoursChosen) != 0 && (!kModeChosen || Ram8(kModeSelect) == 0 || Ram8(player + kModeChosen) >= 4);
     }
 
     int PlayerOf(uint32_t record) {
@@ -37,11 +40,10 @@ namespace {
     // three hurt boxes (kinds 0, 2, 4: 0C0FB6 on), +13 a fourth kind (6, 0C0FA4), +14 the attack (kind 8; 0C0E5A). A box
     // is words: across from the record's X (turned with it, +09), half its width, up from its Y, half its height
     // (0C154E); a hurt box 8 bytes, an attack 16. What the players throw is in records of the same layout, three a
-    // player (A5+2CEE, 2DAE, 2E6E player 1's, A5+286E, 292E, 29EE player 2's: 0C0DEE on), in use while the first byte is
+    // player (A5+2CEE, 2DAE, 2E6E player 1's, A5+286E, 292E, 29EE player 2's: 0C0DEE on; nwarr.h's pool), in use while the first byte is
     // above 0 and +04 is 2 (0C0EB0).
-    constexpr uint32_t kComputerScript = 0x220, kComputerStarts = 0x068CFC;
+    constexpr uint32_t kComputerScript = 0x220, kComputerStarts = family::kComputerStarts;
     constexpr uint32_t kBoxTables = 0x5C, kFrameBoxes = 0x10, kFrameAttack = 0x14;
-    constexpr uint32_t kThrown[6] = {0xFFACEE, 0xFFADAE, 0xFFAE6E, 0xFFA86E, 0xFFA92E, 0xFFA9EE};
 
     void AddBox(M68K &c, std::vector<fight::StageBox> &boxes, fight::BoxKind kind, uint32_t record, int which, bool thrown) {
         const uint32_t frame = Ram32(record + kFrame);
@@ -66,7 +68,7 @@ namespace {
         std::vector<fight::StageBox> boxes;
         for (int n = 0; n < 2; n++) {
             const uint32_t player = Player(n);
-            if (Ram8(player + 3) != 2) {
+            if (Ram8(player + family::kInFight) != family::kInFightValue) {
                 continue;
             }
             for (int which = 0; which < 3; which++) {
@@ -74,7 +76,8 @@ namespace {
             }
             AddBox(c, boxes, fight::BoxKind::Attack, player, 4, false);
         }
-        for (const uint32_t thrown : kThrown) {
+        for (int n = 0; n < kThrownRecords; n++) {
+            const uint32_t thrown = kThrown + static_cast<uint32_t>(n) * kThrownSize;
             if (static_cast<int8_t>(Ram8(thrown)) > 0 && Ram8(thrown + 4) == 2) {
                 AddBox(c, boxes, fight::BoxKind::Hurt, thrown, 0, true);
                 AddBox(c, boxes, fight::BoxKind::Attack, thrown, 4, true);
@@ -89,6 +92,24 @@ namespace {
         return (state == kStateStand || state == kStateCrouch) && Ram8(player + kAttack) == 0;
     }
 
+    // A player handed to the computer in the middle of a fight (the modes do: battle.h) has no script of the
+    // computer's yet, which the game gives only to one made for the computer (family.h's kComputerStarts: 068CFC sets
+    // the pointers at +220 and +224 from the character's table); with none, the computer's play runs off into data. It
+    // is given one, as the game would have.
+    void GiveScript(M68K &c, uint32_t player) {
+        if (!Ram8(player + kPerson) && !Ram32(player + kComputerScript)) {
+            Call(c, kComputerStarts);
+        }
+    }
+    // (where the computer's play runs apart from the step: family.h)
+    bool ComputerPlays(M68K &c) {
+        const uint32_t player = c.a[6] & 0xFFFFFF;
+        if (PlayerOf(player) >= 0) {
+            GiveScript(c, player);
+        }
+        return false;
+    }
+
     // 02A220: a player's fight step (02A200 runs it for player 1, then player 2, A6 the record), where it goes on by
     // its state; seen as it starts, the record is as the last step left it, which is what the picture showed
     bool PlayerStep(M68K &c) {
@@ -98,16 +119,10 @@ namespace {
         }
         const uint32_t player = c.a[6] & 0xFFFFFF;
         const int n = PlayerOf(player);
-        if (n < 0 || Ram8(player + 3) != 2) {
+        if (n < 0 || Ram8(player + family::kInFight) != family::kInFightValue) {
             return false;
         }
-        // A player handed to the computer in the middle of a fight (the modes do: battle.h) has no script of the
-        // computer's yet, which the game gives only to one made for the computer (068CFC: 068D14 sets the pointers at
-        // +220 and +224 from the character's table at 06C176); with none, the computer's play runs off into data. It
-        // is given one here, as the game would have.
-        if (!Ram8(player + kPerson) && !Ram32(player + kComputerScript)) {
-            Call(c, kComputerStarts);
-        }
+        GiveScript(c, player);
         fight::StepView view;
         const uint8_t state = Ram8(player + kState);
         view.control = state == kStateReel                         ? fight::StepView::Reeling :
@@ -177,6 +192,10 @@ void RegisterTraining() {
     d.dummy.downAfter = 34;
     session::Register(d);
     AddHook(HookAt(kPlayerStep), "PlayerStep", PlayerStep);
+    if (family::kComputerPlays) {
+        AddHook(HookAt(family::kComputerPlays), "ComputerPlays", ComputerPlays);
+        AddHook(HookAt(family::kComputerPlays2), "ComputerPlays", ComputerPlays);
+    }
 }
 
 } // namespace cps2recomp

@@ -32,13 +32,13 @@ namespace {
     using namespace nwarr;
 
     constexpr int kSide = Video::kMaxSide;
-    constexpr uint32_t kCameraLeftEnd = 0xFF8D98, kCameraRightEnd = 0xFF8D9A;
+    constexpr uint32_t kCameraLeftEnd = At(0xFF8D98), kCameraRightEnd = At(0xFF8D9A);
     // The camera object's (FF8F08): its place across (kCameraX), the step it last took, and which way (0 left, 4 right)
-    constexpr uint32_t kCameraObject = 0xFF8F08, kCameraStep = 0x34, kCameraWay = 0x2C;
+    constexpr uint32_t kCameraObject = At(0xFF8F08), kCameraStep = 0x34, kCameraWay = 0x2C;
     // A player's: half its width, a byte 1 at the picture's left edge and 2 at its right, the other player's record (a
     // word), and bytes the keep-in tests (006BAC)
-    constexpr uint32_t kHalfWidth = 0x1C0, kAtEdge = 0x6F, kOpponent = 0x200, kNotKept = 0x1E6, kHeld = 0x4C;
-    constexpr uint32_t kBothPushed = 0xFF8308; // (A5+308: set, a player held at an edge pushes the other with it)
+    constexpr uint32_t kHalfWidth = 0x1C0, kAtEdge = family::kAtEdge, kOpponent = 0x200, kNotKept = 0x1E6, kHeld = 0x4C;
+    constexpr uint32_t kBothPushed = At(0xFF8308); // (A5+308: set, a player held at an edge pushes the other with it)
 
     bool g_play = false;  // fights are played in the wide picture
     bool g_shown = false; // fights are shown in the wide picture (played in it, or played as on the board)
@@ -241,9 +241,9 @@ namespace {
 void RegisterWidescreen() {
     modes::Focus(FocusPlace, 44, 128);
     TheGame().widestPicture = [] { return Video::kWidth + (FeatureOn("widescreen") ? 2 * kSide : 0); };
-    AddHook(HookAt(0x0FF780), "CameraRight", CameraRight);
-    AddHook(HookAt(0x0FF7BA), "CameraLeft", CameraLeft);
-    AddHook(HookAt(0x006BAC), "KeepIn", KeepIn);
+    AddHook(HookAt(At(0x0FF780)), "CameraRight", CameraRight);
+    AddHook(HookAt(At(0x0FF7BA)), "CameraLeft", CameraLeft);
+    AddHook(HookAt(At(0x006BAC)), "KeepIn", KeepIn);
     // (not in the Enhanced preset: it shows more of the stage than the board does, and a player who wants the game as
     // it is played in competition must not get that without asking)
     TheGame().features.push_back({"widescreen", "Display", "Widescreen",
