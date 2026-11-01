@@ -4,6 +4,7 @@
 // Night Warriors: what the game's own sources add to the port (see PROGRESS.md).
 #include "game.h"
 #include "alternative.h"
+#include "battle.h"
 #include "nwarr.h"
 #include "session.h"
 
@@ -20,10 +21,12 @@ void BoardState(Archive &ar);
 void RegisterMusic(); // music.cpp
 void RegisterModes(); // modes.cpp
 void RegisterTraining(); // training.cpp
+void RegisterBattle(); // battle.cpp
 
 void RegisterGame() {
     RegisterModes();
     RegisterTraining();
+    RegisterBattle();
     RegisterCoins();
     RegisterCheats();
     RegisterTitle();
@@ -33,24 +36,27 @@ void RegisterGame() {
         BoardBeforeFrame(machine);
         session::BeforeFrame(machine);
         modes::BeforeFrame(machine);
+        BattleBeforeFrame(machine);
     };
     // (the training aids see what the frame did before the cheats put things back)
     TheGame().frame = [](Machine &machine) {
         session::Frame(machine);
         modes::Frame(machine);
+        BattleFrame(machine);
         TitleFrame(machine);
         CoinsFrame(machine);
     };
     // (run-ahead: not in the modes, whose workings a save state does not wholly hold)
-    TheGame().noRunAhead = [] { return modes::AttractMode() || modes::StageViewer(); };
+    TheGame().noRunAhead = [] { return modes::AttractMode() || modes::StageViewer() || BattleMode(); };
     // (what the sources keep between frames, with save states and run-ahead's frames taken back)
     TheGame().state = [](Archive &ar) {
         BoardState(ar);
         session::State(ar);
         modes::State(ar);
+        BattleState(ar);
     };
     // With the arcade timing, the game's own code runs in place of the rewrites but where they carry what the port adds
-    TheGame().rewritesNeeded = [] { return session::InSession() || modes::AttractMode() || modes::StageViewer(); };
+    TheGame().rewritesNeeded = [] { return session::InSession() || modes::AttractMode() || modes::StageViewer() || BattleMode(); };
     // Its own: the names and choices are this board's, never set for the other games by the collection's launcher
     OwnFeatures({"board_difficulty", "board_damage", "board_timer", "board_rounds"});
 }

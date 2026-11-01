@@ -13,6 +13,8 @@
 
 namespace cps2recomp {
 
+bool RingOutStep(M68K &c); // battle.cpp
+
 namespace {
     using namespace nwarr;
 
@@ -36,6 +38,7 @@ namespace {
     // (0C154E); a hurt box 8 bytes, an attack 16. What the players throw is in records of the same layout, three a
     // player (A5+2CEE, 2DAE, 2E6E player 1's, A5+286E, 292E, 29EE player 2's: 0C0DEE on), in use while the first byte is
     // above 0 and +04 is 2 (0C0EB0).
+    constexpr uint32_t kComputerScript = 0x220, kComputerStarts = 0x068CFC;
     constexpr uint32_t kBoxTables = 0x5C, kFrameBoxes = 0x10, kFrameAttack = 0x14;
     constexpr uint32_t kThrown[6] = {0xFFACEE, 0xFFADAE, 0xFFAE6E, 0xFFA86E, 0xFFA92E, 0xFFA9EE};
 
@@ -88,10 +91,21 @@ namespace {
     // 02A220: a player's fight step (02A200 runs it for player 1, then player 2, A6 the record), where it goes on by
     // its state; seen as it starts, the record is as the last step left it, which is what the picture showed
     bool PlayerStep(M68K &c) {
+        if (RingOutStep(c)) { // (the ring out's own movements: battle.cpp)
+            Return(c);
+            return true;
+        }
         const uint32_t player = c.a[6] & 0xFFFFFF;
         const int n = PlayerOf(player);
         if (n < 0 || Ram8(player + 3) != 2) {
             return false;
+        }
+        // A player handed to the computer in the middle of a fight (the modes do: battle.h) has no script of the
+        // computer's yet, which the game gives only to one made for the computer (068CFC: 068D14 sets the pointers at
+        // +220 and +224 from the character's table at 06C176); with none, the computer's play runs off into data. It
+        // is given one here, as the game would have.
+        if (!Ram8(player + kPerson) && !Ram32(player + kComputerScript)) {
+            Call(c, kComputerStarts);
         }
         fight::StepView view;
         const uint8_t state = Ram8(player + kState);

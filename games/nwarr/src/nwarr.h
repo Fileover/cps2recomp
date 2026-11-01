@@ -63,6 +63,8 @@ constexpr int kCharacters = 15;
 inline constexpr const char *kCharacterNames[kCharacters] = {"?",          "Demitri",  "Jon Talbain", "Victor",   "Lord Raptor",
                                                              "Morrigan",   "Anakaris", "Felicia",     "Bishamon", "Rikuo",
                                                              "Sasquatch",  "Huitzil",  "Pyron",       "Hsien-Ko", "Donovan"};
+constexpr uint32_t kColourSet = 0x0D; // byte: the first of the player's five colour sets (player 1 09, player 2 0E)
+constexpr uint32_t kPerson = 0x49F;   // byte: 1 for a person, 0 for the computer (02A29E reads the panel only with it)
 // The fight's step for each player (02A200 runs it for player 1, then player 2, A6 the player's record)
 constexpr uint32_t kPlayerStep = 0x02A220;
 
@@ -100,6 +102,29 @@ inline constexpr const char *kStageNames[kStages] = {"Demitri's", "Jon Talbain's
 // right, left, down, up) and the punches (4-6), the high byte the kicks (0-2). The word after it is the frame before's.
 // Found holding known buttons for each player.
 constexpr uint32_t kControls[2] = {0xFF808E, 0xFF8092};
+
+// A knockout: FF8E14 set (FF), FF8E13 the kind of finish (0C13B8); the game keeps no byte of who has won
+constexpr uint32_t kKnockOut = 0xFF8E14;
+
+// What the players throw: records of a player's layout, 0xC0 long, nine from FFA86E (the hit test reads player 2's at
+// A5+286E, 292E, 29EE and player 1's at A5+2CEE, 2DAE, 2E6E: 0C0DEE on); in use while the first byte is above 0
+constexpr uint32_t kThrown = 0xFFA86E, kThrownSize = 0xC0;
+constexpr int kThrownRecords = 9;
+
+// Objects by their colour set (attributes' low five bits) and tile, from the object lists of fights on several stages:
+// 00-04 the panel (bars, names, clock), 09-0D player 1's and 0E-12 player 2's (kColourSet), 13 their shadows and
+// sparks, 14-1F the stage's pieces; the faces beside the bars are in the players' sets, tiles 28440-284BF
+inline bool ThePanel(uint32_t tile, uint16_t attributes) {
+    const unsigned set = attributes & 0x1F;
+    return set <= 0x04 || (set < 0x14 && tile >= 0x28440 && tile < 0x284C0);
+}
+inline bool NotTheStage(uint32_t tile, uint16_t attributes) {
+    (void)tile;
+    return (attributes & 0x1F) < 0x14;
+}
+inline bool NotTheFighters(uint32_t tile, uint16_t attributes) {
+    return ThePanel(tile, attributes) || (attributes & 0x1F) >= 0x14;
+}
 
 // --- the board's settings ---
 

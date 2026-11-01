@@ -84,12 +84,13 @@ void RegisterModes() {
     d.stageNames.assign(std::begin(kStageNames), std::end(kStageNames));
     d.cameraLeft = kCameraLeft;
     d.cameraRight = kCameraRight;
+    d.notTheStage = NotTheStage;
     d.attractBegun = [](int frames) { return frames > 500 && Ram16(kMode) >= kLoopStart; };
     d.attractOver = [] { return Ram8(kPlayersIn) != 0 || Ram8(kCredits) != 0; };
     d.attractStep = AttractStep;
     d.attractWords = "The game's own show on a loop, with no coin in: the introduction, the title, fights and the ranking.";
     d.startTraining = session::StartSession;
-    d.modesWords = "Other ways to run the game: training and attract mode, so far.";
+    d.modesWords = "Other ways to run the game: training, attract mode, a viewer for the stages, survival, endless battle, ring out.";
     modes::Register(d);
     AddHook(HookAt(kStageSet), "StageSet", StageSet);
     AddHook(HookAt(0x00692E), "PlayerMade", PlayerMade);
