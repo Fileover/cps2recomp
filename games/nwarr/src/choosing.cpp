@@ -40,8 +40,8 @@ void RegisterChoosing() {
     TheGame().features.push_back({"hidden_characters", "Game", "Hidden characters",
                                   "Huitzil and Pyron, the bosses, to play: hold Start as you choose Victor for Huitzil, or Demitri for "
                                   "Pyron (the button still chooses the colours)."});
-    AddHook(HookAt(0x029012), "Chosen", Chosen);
-    AddHook(HookAt(0x029092), "ChosenByStart", Chosen);
+    AddHook(HookAt(At(0x029012)), "Chosen", Chosen);
+    AddHook(HookAt(At(0x029092)), "ChosenByStart", Chosen);
 }
 
 } // namespace cps2recomp

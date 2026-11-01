@@ -26,6 +26,7 @@
 namespace cps2recomp {
 
 namespace {
+    using nwarr::AtA5;
     constexpr uint32_t kVars = 0xFF8000; // (A5)
     constexpr const char *kPage = "Board";
 
@@ -35,12 +36,12 @@ namespace {
         int first; // the value of the first choice after "As the board is set"
     };
     constexpr Setting kSettings[] = {
-        {"board_difficulty", kVars + 0x1F1, 0}, {"board_damage", kVars + 0x263, 0},   {"board_timer", kVars + 0x233, 0},
-        {"board_turbo", kVars + 0x212, 0},      {"board_rounds", kVars + 0x237, 0},   {"board_mode_select", kVars + 0x203, 0},
-        {"board_join_in", kVars + 0x20A, 0},    {"board_event", kVars + 0x209, 0},    {"board_continue", kVars + 0x1EB, 0},
-        {"board_demo_sound", kVars + 0x1F0, 0},
+        {"board_difficulty", kVars + AtA5(0x1F1), 0}, {"board_damage", kVars + AtA5(0x263), 0},   {"board_timer", kVars + AtA5(0x233), 0},
+        {"board_turbo", kVars + AtA5(0x212), 0},      {"board_rounds", kVars + AtA5(0x237), 0},   {"board_mode_select", kVars + AtA5(0x203), 0},
+        {"board_join_in", kVars + AtA5(0x20A), 0},    {"board_event", kVars + AtA5(0x209), 0},    {"board_continue", kVars + AtA5(0x1EB), 0},
+        {"board_demo_sound", kVars + AtA5(0x1F0), 0},
     };
-    constexpr uint32_t kJoinIn = kVars + 0x20A, kEvent = kVars + 0x209;
+    constexpr uint32_t kJoinIn = kVars + AtA5(0x20A), kEvent = kVars + AtA5(0x209);
 
     // The board's own values of what was chosen, to put back for its test menu. (Kept with the game's state,
     // BoardState: they say what the variables in RAM hold, so a state loaded or run-ahead's frame taken back must
@@ -126,7 +127,7 @@ void RegisterBoard() {
     game.features.push_back({"board_continue", kPage, "Continue", "Whether a game over can be continued.", 0, {kAsSet, "Off", "On"}});
     game.features.push_back({"board_demo_sound", kPage, "Demo sound", "Whether the attract mode plays sound.", 0, {kAsSet, "Off", "On"}});
     AddHook(HookAt(nwarr::kSettingsCopied), "SettingsRead", SettingsRead);
-    AddHook(HookAt(0x0215F4), "GameBegins", GameBegins);
+    AddHook(HookAt(nwarr::At(0x0215F4)), "GameBegins", GameBegins);
 }
 
 } // namespace cps2recomp

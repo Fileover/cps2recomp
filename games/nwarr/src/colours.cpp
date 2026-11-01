@@ -25,7 +25,7 @@ bool ModelViewer();
 namespace {
     using namespace nwarr;
 
-    constexpr uint32_t kColourSets = 0x35DD0E, kCharacterColours = 0x500, kSetSize = 0xA0;
+    constexpr uint32_t kColourSets = At(0x35DD0E), kCharacterColours = 0x500, kSetSize = 0xA0;
     constexpr int kSets = 8, kPalettesInSet = 5;
     constexpr uint32_t kColourChoice = 0x4A6; // word: the set (above)
 

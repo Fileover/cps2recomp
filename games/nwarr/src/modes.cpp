@@ -115,8 +115,8 @@ void RegisterModes() {
     d.modesWords = "Other ways to run the game: training, attract mode, a viewer for the stages, survival, endless battle, ring out.";
     modes::Register(d);
     AddHook(HookAt(kStageSet), "StageSet", StageSet);
-    AddHook(HookAt(0x006502), "VersusStageSet", VersusStageSet);
-    AddHook(HookAt(0x00692E), "PlayerMade", PlayerMade);
+    AddHook(HookAt(At(0x006502)), "VersusStageSet", VersusStageSet);
+    AddHook(HookAt(At(0x00692E)), "PlayerMade", PlayerMade);
 }
 
 } // namespace cps2recomp

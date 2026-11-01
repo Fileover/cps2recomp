@@ -21,7 +21,7 @@ namespace {
     // Bytes of the player's choice: its colours, 1-6 by the button that chose the character (029012; 0 before), and 4
     // once it has chosen normal or automatic guard (028EBC), which the board asks only with its Mode select on (A5+203).
     // Dumps before and after.
-    constexpr uint32_t kModeChosen = 0x4B9, kModeSelect = 0xFF8203;
+    constexpr uint32_t kModeChosen = 0x4B9, kModeSelect = At(0xFF8203);
     bool Chosen(int n) {
         const uint32_t player = Player(n);
         return Ram8(player + kColoursChosen) != 0 && (Ram8(kModeSelect) == 0 || Ram8(player + kModeChosen) >= 4);
@@ -39,9 +39,9 @@ namespace {
     // (0C154E); a hurt box 8 bytes, an attack 16. What the players throw is in records of the same layout, three a
     // player (A5+2CEE, 2DAE, 2E6E player 1's, A5+286E, 292E, 29EE player 2's: 0C0DEE on), in use while the first byte is
     // above 0 and +04 is 2 (0C0EB0).
-    constexpr uint32_t kComputerScript = 0x220, kComputerStarts = 0x068CFC;
+    constexpr uint32_t kComputerScript = 0x220, kComputerStarts = At(0x068CFC);
     constexpr uint32_t kBoxTables = 0x5C, kFrameBoxes = 0x10, kFrameAttack = 0x14;
-    constexpr uint32_t kThrown[6] = {0xFFACEE, 0xFFADAE, 0xFFAE6E, 0xFFA86E, 0xFFA92E, 0xFFA9EE};
+    constexpr uint32_t kThrown[6] = {At(0xFFACEE), At(0xFFADAE), At(0xFFAE6E), At(0xFFA86E), At(0xFFA92E), At(0xFFA9EE)};
 
     void AddBox(M68K &c, std::vector<fight::StageBox> &boxes, fight::BoxKind kind, uint32_t record, int which, bool thrown) {
         const uint32_t frame = Ram32(record + kFrame);

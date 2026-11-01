@@ -30,15 +30,15 @@ namespace {
     };
     constexpr int a4 = 4, a6 = 6;
     constexpr Site kSites[] = {
-        {HookAt(0x02C184), a6, true}, {HookAt(0x02C738), a4, false}, {HookAt(0x02ED20), a6, false}, {HookAt(0x02F3F4), a6, false},
-        {HookAt(0x03029A), a6, false}, {HookAt(0x0302C6), a6, false}, {HookAt(0x0303BC), a6, false}, {HookAt(0x03043A), a6, false},
-        {HookAt(0x030626), a6, false}, {HookAt(0x030636), a6, false}, {HookAt(0x0306F8), a6, false}, {HookAt(0x0307BA), a6, false},
-        {HookAt(0x03096E), a6, false}, {HookAt(0x030C38), a6, false}, {HookAt(0x030E86), a6, false}, {HookAt(0x031074), a6, false},
-        {HookAt(0x03112A), a6, false}, {HookAt(0x03787A), a4, false}, {HookAt(0x03AD7C), a4, false}, {HookAt(0x03BD18), a4, false},
-        {HookAt(0x0421A0), a4, false}, {HookAt(0x043C2C), a4, false}, {HookAt(0x04A2EC), a4, false}, {HookAt(0x04A4D4), a4, false},
-        {HookAt(0x04A5FE), a4, false}, {HookAt(0x04C8E8), a4, false}, {HookAt(0x04D528), a4, false}, {HookAt(0x04D57C), a4, false},
-        {HookAt(0x04F3A0), a4, false}, {HookAt(0x04F47E), a4, false}, {HookAt(0x052142), a4, false}, {HookAt(0x06811A), a6, true},
-        {HookAt(0x0681B4), a6, true}, {HookAt(0x0C1384), a4, false}, {HookAt(0x0DA878), a6, true},
+        {HookAt(At(0x02C184)), a6, true}, {HookAt(At(0x02C738)), a4, false}, {HookAt(At(0x02ED20)), a6, false}, {HookAt(At(0x02F3F4)), a6, false},
+        {HookAt(At(0x03029A)), a6, false}, {HookAt(At(0x0302C6)), a6, false}, {HookAt(At(0x0303BC)), a6, false}, {HookAt(At(0x03043A)), a6, false},
+        {HookAt(At(0x030626)), a6, false}, {HookAt(At(0x030636)), a6, false}, {HookAt(At(0x0306F8)), a6, false}, {HookAt(At(0x0307BA)), a6, false},
+        {HookAt(At(0x03096E)), a6, false}, {HookAt(At(0x030C38)), a6, false}, {HookAt(At(0x030E86)), a6, false}, {HookAt(At(0x031074)), a6, false},
+        {HookAt(At(0x03112A)), a6, false}, {HookAt(At(0x03787A)), a4, false}, {HookAt(At(0x03AD7C)), a4, false}, {HookAt(At(0x03BD18)), a4, false},
+        {HookAt(At(0x0421A0)), a4, false}, {HookAt(At(0x043C2C)), a4, false}, {HookAt(At(0x04A2EC)), a4, false}, {HookAt(At(0x04A4D4)), a4, false},
+        {HookAt(At(0x04A5FE)), a4, false}, {HookAt(At(0x04C8E8)), a4, false}, {HookAt(At(0x04D528)), a4, false}, {HookAt(At(0x04D57C)), a4, false},
+        {HookAt(At(0x04F3A0)), a4, false}, {HookAt(At(0x04F47E)), a4, false}, {HookAt(At(0x052142)), a4, false}, {HookAt(At(0x06811A)), a6, true},
+        {HookAt(At(0x0681B4)), a6, true}, {HookAt(At(0x0C1384)), a4, false}, {HookAt(At(0x0DA878)), a6, true},
     };
 
     bool Damage(M68K &c) {
@@ -86,7 +86,7 @@ void RegisterCheats() {
     }
     // 008798: subq.b #1 off the frames left of the round's second; at nothing a second comes off the clock (0087AC)
     // and the frames start again. With the cheat the frame is given back first, so the clock stands still.
-    AddHook(0x008798, "ClockFrame", [](M68K &) {
+    AddHook(HookAt(At(0x008798)), "ClockFrame", [](M68K &) {
         if (FeatureOn("infinite_time") || session::NoClock()) {
             SetRam8(kClockFrames, static_cast<uint8_t>(Ram8(kClockFrames) + 1));
         }
