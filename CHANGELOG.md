@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- **Night Warriors: Darkstalkers' Revenge** (#215), set `nwarr` (Europe 950316): the second Darkstalkers game, with its
+  own sources (its program is not Vampire Savior's). Training mode, attract mode, the stage and model viewers, the
+  colour editor, survival, endless battle and ring out, widescreen with invisible walls, the camera zoom, Huitzil and
+  Pyron at a switch, the Board page and the music's names.
 - **VSync** (#185): a Display option (off unless chosen) that shows each picture at the screen's refresh, so it never
   tears. The game keeps the board's pace, so now and then a frame stays up one refresh longer.
 - **Screenshots** (#31): F12 saves the picture as shown (readouts included, without the zoom) to `screenshots/` in the

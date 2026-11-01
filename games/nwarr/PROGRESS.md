@@ -92,15 +92,40 @@ The fight step: 02A200 runs 02A220 for each player (A6 = FF8388, then FF8888).
 Checked: free play and straight to the title (title at frame ~500 with free play, ~2800 without); each cheat over a
 fight (player 1 or 2 stays at 0x90; one hit knocks out; the clock never ticks).
 
-## Section 9 so far
+## Everything the other fighting games have
 
-- Training mode (first cut): straight to a fight with player 1 choosing both sides (speed, character, guard mode), the
-  clock held, input display, combo readout, frame data from the step (no attack-out yet: needs the hit boxes).
-- Attract mode: everything, the introduction only, the fights only (checked with pictures).
+| Piece | Where | Facts it needed |
+| --- | --- | --- |
+| Training mode | `training.cpp` (fight/session.h) | the player step 02A220; controls; the choice (+4A7 the colour chosen, +4B9 4 once the guard mode is, asked with A5+203); hit boxes: +5C the box tables, the frame's bytes +10-+12 hurt, +14 attack (0C0DC2 on); the floor at line 196 |
+| Attract mode | `modes.cpp` | the show's parts (2 QSound, 4 moon, 6 introduction and title, 0E-14 fights, 16 ranking) |
+| Stage viewer | `modes.cpp` | objects by colour set (`nwarr.h`), each stage's tune |
+| Model viewer | `model.cpp` | the lists' table at 006B70, read pc-relative, so through the deciphered program (`Machine::Fetch16`; the lists themselves are data); frames of 0x20 (005344 steps them); the camera made to follow player 1 alone (0FF6D6) |
+| Colour editor, custom colours | `colours.cpp` | 35DD0E: 0x500 a character, eight sets of five palettes (00461C, 00484A) |
+| Survival, endless battle, ring out | `battle.cpp` | the result from health and FF8E14; the thrown things (nine records of 0xC0 from FFA86E); +49F the computer; half width +1C0; the keep-in 006BAC lets a ring-out player through. A player handed to the computer mid-fight gets the computer's script first (068CFC), or the computer's play runs off into data and the board resets |
+| Widescreen, invisible walls | `widescreen.cpp`, `check_widescreen.sh` | the camera's ends A5+D98/D9A; its step's two last blocks (0FF780, 0FF7BA) and the keep-in done with the margin when played wide; the stage art is drawn beyond the board's picture (`CPS2RECOMP_WIDE=64`) |
+| Camera zoom | `widescreen.cpp` | the feet: X less the camera's X, line 196 less the height; lift 44, tall 128 (pictures at 2x and of both) |
+| Hidden characters | `choosing.cpp` | Huitzil and Pyron are playable by a person (each tried as player 1); a choice is made at 029012 (a button) or 029092 (Start) |
+| Music's names | `music.cpp` | stage tunes 08 + the stage (Hsien-Ko's 03EC, Donovan's 03ED), the others by playing |
+| Stage for the modes | `modes.cpp` | one player: 0064D6; two players: 006502 (A5+DB0) |
 
-## Next
+Not done (optional in the add-a-game list): the tag team battle and the CPU coach for the tag style and the ring out
+(the game's computer plays the ring out as a fight), a gauge refill, push boxes in the hit boxes.
 
-Hit boxes and attack-out for the frame meter; survival, endless battle and ring out (battle.h: result from health and
-FF8E14, the thrown things' pool, half width, the reel and fly routines); the stage and model viewers; widescreen and
-the camera zoom; custom colours; Huitzil and Pyron at a switch; the music's names. Then the checks again, README,
-pictures, the PR and the app.
+## Checks (all pass)
+
+- `check` ladder (30,000 frames, free_play, no_damage, one_hit) and versus (12,000): translated = interpreted, two
+  runs alike.
+- `check-blocks` over the ladder: 256,678,407 blocks checked against the interpreter.
+- `check-release`: two interpreted runs alike; pictures the translated build's but for 2 frames.
+- `check-rollback`: the same over 3,000 frames with 400 rollbacks, three ways (state 328,893 bytes).
+- `check-online`: two copies the same over 2,998 frames, names and chat, the match = its replay.
+- `check-widescreen`: all 14 stages painted to both ends; invisible walls leave the game's memory the board's at
+  every 4,000 frames of the ladder; no instruction left to the interpreter.
+- Features off = no sources: `--cpu interp --features -free_play` over the versus movie gives the same hash log with
+  the sources and with `src/` emptied (6,000 frames).
+- By hand: every Board choice lands in its variable, the settings memory is the same with choices; run-ahead 0, 1 and
+  2 give the same hash log (8,000 frames); a save state loaded at 3,000 goes on alike; ladder, made-up ladders,
+  versus, attract, the test menu and the sound test run with nothing in the interpreter (one instruction in the
+  plain ladder, as other games have).
+
+Nobody has played it by hand yet.
