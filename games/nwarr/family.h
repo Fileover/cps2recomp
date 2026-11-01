@@ -22,7 +22,18 @@ inline constexpr std::array<Place, 0> kPlaces = {};
 inline constexpr uint32_t kPlayerSize = 0x500;
 inline constexpr uint32_t kChoice = 0x4A1, kColoursWord = 0x4A6, kColoursChosen = 0x4A7, kPerson = 0x49F, kModeChosen = 0x4B9,
                           kAtEdge = 0x6F;
-// The step word FF8004 while the players choose
+// A byte (from A5) of a bit for each player still choosing its character, which the choice clears (0: the sources
+// tell it from the colours chosen and the guard mode); the step word FF8004 while the players choose
+inline constexpr int32_t kChoosingBits = 0;
+// A player's byte and its value while the player is in a fight (Night Warriors' +03 is 2; Darkstalkers' +03 stays 0,
+// its +00 is 1)
+inline constexpr uint32_t kInFight = 3;
+inline constexpr uint8_t kInFightValue = 2;
+// What a player handed to the computer mid-fight is given first (training.cpp): its scripts (enough here)
+inline constexpr uint32_t kComputerStarts = 0x068CFC;
+// Where the computer's play runs for a player (A6) apart from the player's step, which that check goes before too (0:
+// none; Darkstalkers' 033A80 and 033A9A run it for each player)
+inline constexpr uint32_t kComputerPlays = 0, kComputerPlays2 = 0;
 inline constexpr uint16_t kGameChoosing = 0x0C;
 
 // The show's loop (FF8000): its parts up to kShowUnseen are run unseen in attract mode, the introduction is
