@@ -15,7 +15,7 @@ namespace {
     using namespace nwarr;
 
     constexpr uint32_t kSpeedX = 0x30, kSpeedY = 0x34; // longs, 16 bits of fraction (dumps through a jump and a walk)
-    constexpr uint32_t kOpponent = 0x200;              // word: the other player's record (0C138A reads it)
+    constexpr uint32_t kHalfWidth = 0x1C0; // word: half the player's width (006BBC: the picture keeps X this far in)
     constexpr int32_t kPull = -0x8000;                 // what is taken off the speed up each step
     constexpr int32_t kFlungAcross = 0x30000;          // knocked out: away over the end, three pixels a step
     constexpr int32_t kFlungUp = 0x60000;              //   and up, six pixels a step at first
@@ -100,7 +100,7 @@ void RegisterBattle() {
     d.computer = kPerson;
     d.computerIsZero = true;
     d.ownMaster = [](uint32_t player) { return Ram8(player + kState) <= kStateGuard; };
-    d.fixedHalfWidth = 0x18; // (the players stop 0x18 short of the camera's ends: nwarr.h)
+    d.halfWidth = kHalfWidth;
     d.health = kHealth;
     d.healthFull = kHealthFull;
     d.healthBack = 0x18; // (a sixth of it all)
@@ -131,6 +131,16 @@ void RegisterBattle() {
         return Ram8(player + kState) == kStateJump && static_cast<int32_t>(Ram32(player + kSpeedY)) <= 0;
     };
     battle::Register(d);
+    // 006BAC: the player (A6) kept in the picture, between the camera's X and its right edge, half its width (+1C0)
+    // in from each (watched: the only routine that sets X to the picture's ends). In the ring out a player knocked
+    // there is let through, over the end.
+    AddHook(HookAt(0x006BAC), "KeptIn", [](M68K &c) {
+        if (RingOutLetsOut(c.a[6] & 0xFFFFFF)) {
+            Return(c);
+            return true;
+        }
+        return false;
+    });
 }
 
 } // namespace cps2recomp
