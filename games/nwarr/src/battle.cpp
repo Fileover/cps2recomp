@@ -101,6 +101,7 @@ void RegisterBattle() {
     d.computerIsZero = true;
     d.ownMaster = [](uint32_t player) { return Ram8(player + kState) <= kStateGuard; };
     d.halfWidth = kHalfWidth;
+    d.colours = kColoursChosen;
     d.health = kHealth;
     d.healthFull = kHealthFull;
     d.healthBack = 0x18; // (a sixth of it all)

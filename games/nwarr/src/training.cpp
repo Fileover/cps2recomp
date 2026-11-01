@@ -18,12 +18,13 @@ bool RingOutStep(M68K &c); // battle.cpp
 namespace {
     using namespace nwarr;
 
-    // Bytes of the player's choice: 2 once it has chosen its character (029012), and 4 once it has chosen normal or
-    // automatic guard (028EBC), which the board asks only with its Mode select on (A5+203). Dumps before and after.
-    constexpr uint32_t kChosen = 0x4A7, kModeChosen = 0x4B9, kModeSelect = 0xFF8203;
+    // Bytes of the player's choice: its colours, 1-6 by the button that chose the character (029012; 0 before), and 4
+    // once it has chosen normal or automatic guard (028EBC), which the board asks only with its Mode select on (A5+203).
+    // Dumps before and after.
+    constexpr uint32_t kModeChosen = 0x4B9, kModeSelect = 0xFF8203;
     bool Chosen(int n) {
         const uint32_t player = Player(n);
-        return Ram8(player + kChosen) >= 2 && (Ram8(kModeSelect) == 0 || Ram8(player + kModeChosen) >= 4);
+        return Ram8(player + kColoursChosen) != 0 && (Ram8(kModeSelect) == 0 || Ram8(player + kModeChosen) >= 4);
     }
 
     int PlayerOf(uint32_t record) {

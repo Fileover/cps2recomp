@@ -57,7 +57,8 @@ constexpr uint32_t kX = 0x10, kY = 0x14;
 constexpr uint16_t kGround = 0x28;
 constexpr uint32_t kFrame = 0x1C;     // long: the animation frame shown, in the ROM
 constexpr uint32_t kHitStop = 0x4B;
-constexpr uint32_t kChoice = 0x4A1;   // the character chosen
+constexpr uint32_t kChoice = 0x4A1;   // the character chosen (the cursor's, 028AA8)
+constexpr uint32_t kColoursChosen = 0x4A7; // 1-6, the button that chose (029012); 0 before
 enum : uint8_t { kStateStand = 0x00, kStateCrouch = 0x02, kStateJump = 0x08, kStateGuard = 0x0A, kStateReel = 0x0C };
 constexpr int kCharacters = 15;
 inline constexpr const char *kCharacterNames[kCharacters] = {"?",          "Demitri",  "Jon Talbain", "Victor",   "Lord Raptor",
