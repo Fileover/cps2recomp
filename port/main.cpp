@@ -30,6 +30,7 @@
 #include <cmath>
 #include <cstdlib>
 #include <cstring>
+#include <ctime>
 #include <filesystem>
 #include <set>
 #include <thread>
@@ -923,7 +924,10 @@ void Port::Shown(std::vector<uint32_t> &pixels, std::vector<SDL_Rect> *panels) c
     }
     // (what the camera's zoom was set to, for a few seconds: above that if both are said)
     if (*zoom.Label()) {
-        status(zoom.Label(), said * 14);
+        status(zoom.Label(), said++ * 14);
+    }
+    if (shotTicks > 0) {
+        status(shotSaid.c_str(), said * 14);
     }
     // (online: each player's name under their side's life bar, and under it a win streak of two or more)
     if (net && !connecting) {
@@ -1012,6 +1016,9 @@ bool Port::Windowed(std::vector<uint32_t> &pixels, Zoomed &zoomed) {
     } else if (speedTicks > 0) {
         speedTicks--;
     }
+    if (shotTicks > 0) {
+        shotTicks--;
+    }
     zoomed.keep.clear();
     if (!zoom.View(across, Video::kHeight, zoomed.view)) {
         Shown(pixels);
@@ -1039,10 +1046,44 @@ void Port::MenuPicture(std::vector<uint32_t> &pixels, uint32_t &width, uint32_t 
     }
 }
 
-std::string Port::StatePath(int slot) const {
+std::string Port::PlayerFolder() const {
     const size_t slash = opt.eepromPath.find_last_of('/');
-    const std::string folder = slash == std::string::npos ? "" : opt.eepromPath.substr(0, slash + 1);
-    return folder + "state" + std::to_string(slot) + ".bin";
+    return slash == std::string::npos ? "" : opt.eepromPath.substr(0, slash + 1);
+}
+
+std::string Port::StatePath(int slot) const {
+    return PlayerFolder() + "state" + std::to_string(slot) + ".bin";
+}
+
+bool Port::Screenshot() {
+    const std::string folder = PlayerFolder() + "screenshots/";
+    SDL_CreateDirectory(folder.c_str());
+    char stamp[32] = "";
+    const std::time_t now = std::time(nullptr);
+    if (const std::tm *local = std::localtime(&now)) {
+        std::strftime(stamp, sizeof(stamp), "%Y-%m-%d %H.%M.%S", local);
+    }
+    // (another in the same second: a number after it)
+    std::string name = std::string(GAME_ID " ") + stamp;
+    for (int n = 2; std::filesystem::exists(std::filesystem::u8path(folder + name + ".png")); n++) {
+        name = std::string(GAME_ID " ") + stamp + " " + std::to_string(n);
+    }
+    const int ticks = shotTicks;
+    shotTicks = 0; // (not the last one's line in this one)
+    std::vector<uint32_t> shown;
+    Shown(shown);
+    shotTicks = ticks;
+    const std::string path = folder + name + ".png";
+    if (!WritePng(path.c_str(), shown.data(), static_cast<uint32_t>(ShownWidth()), Video::kHeight)) {
+        fprintf(stderr, "screenshot: could not write %s\n", path.c_str());
+        shotSaid = "SCREENSHOT NOT SAVED";
+        shotTicks = kSpeedTicks;
+        return false;
+    }
+    fprintf(stderr, "screenshot: %s\n", path.c_str());
+    shotSaid = "SCREENSHOT SAVED  screenshots/" + name + ".png";
+    shotTicks = kSpeedTicks;
+    return true;
 }
 
 bool Port::SaveState(const std::string &path, std::string &error) {
@@ -1497,22 +1538,27 @@ static const char *const kExeSuffix = "";
 
 // The launcher's player name ([online] name in its launcher.ini: the collection's, or the game's own launcher's),
 // for a match hosted from the in-game menu
+std::filesystem::path LauncherFolder() {
+    const char *base = SDL_GetBasePath();
+    if (!base) {
+        return {};
+    }
+    std::error_code missing;
+    const bool collection = !std::filesystem::exists(std::string(base) + GAME_ID "-launcher" + kExeSuffix, missing);
+    const std::string name = recomp::FolderName(collection ? "CPS-2 Recomp" : GAME_NAME);  // (as the launcher names it)
+    std::filesystem::path folder = recomp::PortableFolder(base);
+    if (!folder.empty()) {
+        folder /= std::filesystem::u8path(name);
+    } else if (char *pref = SDL_GetPrefPath("", name.c_str())) {
+        folder = pref;
+        SDL_free(pref);
+    }
+    return folder;
+}
+
 namespace {
     std::string LauncherName() {
-        const char *base = SDL_GetBasePath();
-        if (!base) {
-            return "";
-        }
-        std::error_code missing;
-        const bool collection = !std::filesystem::exists(std::string(base) + GAME_ID "-launcher" + kExeSuffix, missing);
-        const std::string name = recomp::FolderName(collection ? "CPS-2 Recomp" : GAME_NAME);  // (as the launcher names it)
-        std::filesystem::path folder = recomp::PortableFolder(base);
-        if (!folder.empty()) {
-            folder /= std::filesystem::u8path(name);
-        } else if (char *pref = SDL_GetPrefPath("", name.c_str())) {
-            folder = pref;
-            SDL_free(pref);
-        }
+        const std::filesystem::path folder = LauncherFolder();
         if (folder.empty()) {
             return "";
         }

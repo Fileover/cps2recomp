@@ -48,6 +48,17 @@ out with its own launcher's table; the shared buttons its table has not got are 
 game, which reads the shared table, has only its own. A fighting game's table (and the shared one) has two more:
 `ppp` and `kkk`, all three punches and all three kicks at once, with no key or button until they are given one.
 
+A controller SDL doesn't know as a gamepad (an arcade panel that isn't an XInput one, issue #213) is given its
+mapping by a `gamecontrollerdb.txt` in [SDL_GameControllerDB](https://github.com/mdqinc/SDL_GameControllerDB)'s form:
+beside the programs, in the launcher's folder, or (the game only) in the game's own. The launcher and the game read it
+when they start (`recomp-common/gamepads.h`); a line there for the same controller wins over SDL's own.
+
+## Screenshots
+
+F12 saves the picture as the window shows it, at the board's size (384 by 224, wider in widescreen), with the
+readouts on it but not the camera's zoom, to `screenshots/` in the game's folder, as `<game> <date> <time>.png`
+(`Port::Screenshot`, issue #31). Where it went is said at the bottom for a few seconds.
+
 **Rapid fire** is the port's own (`rapid_fire`, Game page, every game): a held button is the game's pressed for two
 frames and let go for two, for the first button or for all of them, from the frame it goes down. Movies keep what the
 player held.

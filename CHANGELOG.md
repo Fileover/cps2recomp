@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- **Screenshots** (#31): F12 saves the picture as shown (readouts included, without the zoom) to `screenshots/` in the
+  game's folder, and says so at the bottom of the screen.
+- **More controllers** (#213): a controller SDL doesn't know as a gamepad, such as an arcade panel that isn't an
+  XInput one, can be given its mapping in a `gamecontrollerdb.txt` (SDL_GameControllerDB's file) beside the programs
+  or in the launcher's folder; the launcher and the games read it when they start (recomp-common #50).
 - **X-Men: Children of the Atom starts on Windows** (#212): its folder for settings and saves was named after the game,
   and Windows takes no colon in a folder's name, so the game never started (error 267). On Windows the folder is now
   *X-Men - Children of the Atom*; elsewhere nothing changes (recomp-common #49).
