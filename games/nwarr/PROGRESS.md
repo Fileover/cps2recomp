@@ -74,6 +74,12 @@ The fight step: 02A200 runs 02A220 for each player (A6 = FF8388, then FF8888).
 | Camera | object at FF8F08: X (the picture's left edge in the stage) FF8F18, 0x100-0x280; Y FF8F1C; scroll 2 = X - 0xC0 (0FF6A8) | walking both players to each end |
 | Stage | ends 0x118 and 0x3E8 for the players; they start at 0x228 and 0x2D8 | same |
 | Stage number? | FF8D89 follows the opponent in most fights (not confirmed) | dumps up the ladder |
+| Stage | the word FF8D88 (0-13: Demitri's, Jon Talbain's, Victor's, Lord Raptor's, Morrigan's, Anakaris's, Felicia's, Bishamon's, Rikuo's, Sasquatch's, Huitzil's, Pyron's, Hsien-Ko's, Donovan's), set at 0064D6 from the ladder's order; it is also the computer's next opponent | each number held with --poke and pictured |
+| Characters | +02, 1-14 in the stages' order (Hsien-Ko 0D, Victor 03, Lord Raptor 04); the choice at +4A1, copied to +02 at 006934 (00692E on) | dumps up the ladder |
+| Chosen | +4A7 2 once the character is chosen (029012); +4B9 4 once normal or automatic guard is (028EBC), asked with Mode select on (A5+203) | dumps, watch |
+| Computer | +49F 1 for a person, 0 for the computer (02A29E reads the panel only with it set) | 1P and 2P records compared |
+| A knockout | FF8E14 FF, FF8E13 the kind of finish (0C13B8); no byte of who won | the code after 0C1384 |
+| Attract | 2 QSound notice, 4 the moon, 6 the introduction (with fight clips) to the title, 0E-14 four fights, 16 the Best 5 ranking | pictures every 200 frames |
 | Controls | FF808E player 1, FF8092 player 2 (A5+90/94: last frame's): low byte stick (bits 0-3) and punches (4-6), high byte kicks (0-2); read at 004942 | dumps with known buttons held |
 
 ## Done
@@ -86,7 +92,15 @@ The fight step: 02A200 runs 02A220 for each player (A6 = FF8388, then FF8888).
 Checked: free play and straight to the title (title at frame ~500 with free play, ~2800 without); each cheat over a
 fight (player 1 or 2 stays at 0x90; one hit knocks out; the clock never ticks).
 
+## Section 9 so far
+
+- Training mode (first cut): straight to a fight with player 1 choosing both sides (speed, character, guard mode), the
+  clock held, input display, combo readout, frame data from the step (no attack-out yet: needs the hit boxes).
+- Attract mode: everything, the introduction only, the fights only (checked with pictures).
+
 ## Next
 
-The checks (section 6 of the add-a-game steps), then everything the other fighting games have: training mode,
-alternative modes, widescreen, camera zoom, colours, music names.
+Hit boxes and attack-out for the frame meter; survival, endless battle and ring out (battle.h: result from health and
+FF8E14, the thrown things' pool, half width, the reel and fly routines); the stage and model viewers; widescreen and
+the camera zoom; custom colours; Huitzil and Pyron at a switch; the music's names. Then the checks again, README,
+pictures, the PR and the app.
