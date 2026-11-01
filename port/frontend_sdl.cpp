@@ -11,6 +11,7 @@
 #include "touch.h"
 
 #include "../runtime/game.h"
+#include "../recomp-common/gamepads.h"
 
 #include <SDL3/SDL.h>
 
@@ -177,6 +178,14 @@ int RunWindowed(Port &port) {
     if (!SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_GAMEPAD)) {
         fprintf(stderr, "SDL_Init: %s\n", SDL_GetError());
         return 1;
+    }
+    // (controllers SDL doesn't know, issue #213: gamecontrollerdb.txt beside the program, in the launcher's folder or in
+    // the game's own; recomp-common/gamepads.h)
+    {
+        const char *base = SDL_GetBasePath();
+        const std::string mine = port.PlayerFolder();
+        recomp::AddGamepadMappings({base ? std::filesystem::u8path(base) : std::filesystem::path(), LauncherFolder(),
+                                    mine.empty() ? std::filesystem::path() : std::filesystem::u8path(mine)});
     }
     // (the window: so many times the board's 224 lines, --scale's or the Display page's)
     const int scale = port.opt.scale > 0 ? port.opt.scale : WindowSize();
@@ -502,6 +511,8 @@ int RunWindowed(Port &port) {
                     port.Key('k', kKeyRestart);
                 } else if (!port.menu.IsOpen() && ev.key.scancode == SDL_SCANCODE_BACKSLASH && !ev.key.repeat) {
                     port.Key('k', kKeyExtra);
+                } else if (ev.key.scancode == SDL_SCANCODE_F12 && !ev.key.repeat) {
+                    port.Screenshot();
                 } else if (ev.key.scancode == SDL_SCANCODE_F2) {
                     port.test = !port.test; // the operator's test switch
                 } else if (ev.key.scancode == SDL_SCANCODE_F11 ||
