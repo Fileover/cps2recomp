@@ -47,6 +47,59 @@ inline uint32_t Player(int n) {
 }
 constexpr uint32_t kHealth = 0x42;
 constexpr uint16_t kHealthFull = 0x90;
+// The rest of the record, from dumps of player 1 standing, crouching, walking, jumping and attacking and of player 2
+// hit and guarding (PROGRESS.md)
+constexpr uint32_t kCharacter = 0x02; // who the player is (1-14: the stages' order, one on); set from kChoice at 006934
+constexpr uint32_t kState = 0x04;     // 00 standing or walking, 02 crouching, 08 jumping, 0A guarding, 0C reeling
+constexpr uint32_t kAttack = 0x05;    // 02 while attacking
+constexpr uint32_t kFacesLeft = 0x09; // 00 facing right, 01 left
+constexpr uint32_t kX = 0x10, kY = 0x14;
+constexpr uint16_t kGround = 0x28;
+constexpr uint32_t kFrame = 0x1C;     // long: the animation frame shown, in the ROM
+constexpr uint32_t kHitStop = 0x4B;
+constexpr uint32_t kChoice = 0x4A1;   // the character chosen
+enum : uint8_t { kStateStand = 0x00, kStateCrouch = 0x02, kStateJump = 0x08, kStateGuard = 0x0A, kStateReel = 0x0C };
+constexpr int kCharacters = 15;
+inline constexpr const char *kCharacterNames[kCharacters] = {"?",          "Demitri",  "Jon Talbain", "Victor",   "Lord Raptor",
+                                                             "Morrigan",   "Anakaris", "Felicia",     "Bishamon", "Rikuo",
+                                                             "Sasquatch",  "Huitzil",  "Pyron",       "Hsien-Ko", "Donovan"};
+// The fight's step for each player (02A200 runs it for player 1, then player 2, A6 the player's record)
+constexpr uint32_t kPlayerStep = 0x02A220;
+
+// Who is in: a byte, bit 0 player 1, bit 1 player 2 (RAM dumps before and after each Start: 0, 1, 3)
+constexpr uint32_t kPlayersIn = 0xFF81F9;
+
+// A game's steps under kMode (2 in a game, run by its own routine 02527C): kStep 0C while the players choose, 04 the
+// match; kStep2 06-08 a round's introduction, 0A while it is fought, 0C over, 0E-10 on to the next round, 12 the match
+// won, 00-04 the next opponent's (watched through a ladder with one-hit knockouts)
+enum : uint16_t { kGameRunning = 2, kGameChoosing = 0x0C, kGameMatch = 0x04, kRoundFought = 0x0A };
+
+// The sound queue: a ring of sixteen-byte requests at FF0AA0, the word at FF8026 the place of the next (008058 sends the
+// one at FF8028 to the sound CPU, and steps it by 0x10 in 0x3F0)
+constexpr uint32_t kSoundQueue = 0xFF0AA0, kSoundQueueEnd = 0xFF8026;
+constexpr uint16_t kSoundQueueMask = 0x3F0;
+
+// The camera: an object at FF8F08, its X (the picture's left edge in the stage) at FF8F18 and Y at FF8F1C; scroll 2 is
+// X less 0xC0 (0FF6A8). X runs 0x100-0x280, and the players from 0x118 to 0x3E8 (both walked to each end); they start
+// a round at 0x228 and 0x2D8.
+constexpr uint32_t kCameraX = 0xFF8F18, kCameraY = 0xFF8F1C;
+constexpr int kCameraLeft = 0x100, kCameraRight = 0x280;
+constexpr int kStageLeft = 0x118, kStageRight = 0x3E8;
+constexpr uint16_t kStartX[2] = {0x228, 0x2D8};
+
+// The stage: a word, its number, which is also the computer's next opponent (whose stage it is); 0064D6 sets it from
+// the ladder's order (the word at FF8D8A its place). Each seen with the word held at it (14 on are no stage).
+constexpr uint32_t kStage = 0xFF8D88;
+constexpr uint32_t kStageSet = 0x0064D6;
+constexpr int kStages = 14;
+inline constexpr const char *kStageNames[kStages] = {"Demitri's", "Jon Talbain's", "Victor's", "Lord Raptor's", "Morrigan's",
+                                                     "Anakaris's", "Felicia's", "Bishamon's", "Rikuo's", "Sasquatch's",
+                                                     "Huitzil's", "Pyron's", "Hsien-Ko's", "Donovan's"};
+
+// The control panel as the game read it this frame (004942), a word a player: the low byte the stick (bits 0-3:
+// right, left, down, up) and the punches (4-6), the high byte the kicks (0-2). The word after it is the frame before's.
+// Found holding known buttons for each player.
+constexpr uint32_t kControls[2] = {0xFF808E, 0xFF8092};
 
 // --- the board's settings ---
 

@@ -64,6 +64,18 @@ of player 2 hit and guarding)
 
 The fight step: 02A200 runs 02A220 for each player (A6 = FF8388, then FF8888).
 
+### For the modes
+
+| What | Where | How found |
+| --- | --- | --- |
+| A game's steps | FF8000 2 (the game's routine 02527C); FF8004 0C choosing, 04 the match; FF8008 06-08 a round's introduction, 0A fought, 0C over, 0E-10 the next round, 12 the match won, 00-04 the next opponent | watch through a one-hit ladder |
+| Players in | FF81F9: bit 0 player 1, bit 1 player 2 | dumps before and after each Start |
+| Sound queue | ring of 16-byte requests at FF0AA0 (mask 0x3F0), written up to the word at FF8026, sent from FF8028 by 008058 | listing (writes to 618000) |
+| Camera | object at FF8F08: X (the picture's left edge in the stage) FF8F18, 0x100-0x280; Y FF8F1C; scroll 2 = X - 0xC0 (0FF6A8) | walking both players to each end |
+| Stage | ends 0x118 and 0x3E8 for the players; they start at 0x228 and 0x2D8 | same |
+| Stage number? | FF8D89 follows the opponent in most fights (not confirmed) | dumps up the ladder |
+| Controls | FF808E player 1, FF8092 player 2 (A5+90/94: last frame's): low byte stick (bits 0-3) and punches (4-6), high byte kicks (0-2); read at 004942 | dumps with known buttons held |
+
 ## Done
 
 - `free_play` (credits kept at 2), `skip_intro`, cheats (`no_damage`, `no_damage_2`, `one_hit`, `infinite_time`), the
