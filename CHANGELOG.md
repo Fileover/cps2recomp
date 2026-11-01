@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- **X-Men: Children of the Atom starts on Windows** (#212): its folder for settings and saves was named after the game,
+  and Windows takes no colon in a folder's name, so the game never started (error 267). On Windows the folder is now
+  *X-Men - Children of the Atom*; elsewhere nothing changes (recomp-common #49).
+- **Online play behind a proxy on Windows** (#194): the launcher and the games now use the proxy set in Windows' proxy
+  settings (where Clash, v2rayN and the like put theirs) to reach the online service and the updates, unless
+  HTTPS_PROXY or HTTP_PROXY is set already (recomp-common #49). The matches themselves still go straight between the
+  two games.
 - **Android says when a new version is out** (#209): the launcher checks the releases as on the other systems, and a
   newer one gets the update card (and the Games row's dot) with **Download**, which opens the release's APK: open
   the download and Android installs it over the app, your settings, saves and ROM sets kept (recomp-common #45).

@@ -88,6 +88,15 @@ struct Online {
     // isn't listed. nullptr: no Invite.
     const char *invite_argument = nullptr;      // "--net-invite"
     const char *invite_name_argument = nullptr; // "--net-invite-name"
+    // The waiting room for a launcher of one game (a collection's is Collection::room, on its Online page): the URL a
+    // launcher checks in at every few seconds while the Game page, with this card, is open, and the protocol said with
+    // it. The card then has the invitations waiting for this player and the room's players to invite (with
+    // `invite_argument`). nullptr: none.
+    const char *room = nullptr;
+    int room_protocol = 0;
+    // The game's id as the online service knows it (the invitations a game hosts say it), for a launcher of one game:
+    // its game in the waiting room. A collection's games have theirs (CollectionGame::id).
+    const char *game = nullptr;
 };
 
 struct InfoRow {
@@ -125,6 +134,10 @@ struct Description {
 
     // The port's own pages (none: the launcher's three)
     std::vector<CustomPage> pages;
+    // true: the launcher opens on the Game page (not on the first of the port's own, which stay above it in the
+    // sidebar), and a dropped file goes to a page of the port's own only while that page is shown (else it is the
+    // game file): for pages that are extras, not the way in
+    bool open_on_game_page = false;
     // false: no Game page (and no game file, check or Display card): the port's pages have Play
     bool game_page = true;
 
