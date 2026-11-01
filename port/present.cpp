@@ -170,14 +170,7 @@ bool Presenter::OpenGpu(SDL_Window *window, std::string &error) {
             m_device = nullptr;
             return false;
         }
-        // Frames are paced by the port, to the board's rate: the picture is shown as soon as it is made, where
-        // the window lets it be (no waiting for the screen, which would hold the game's controls back too)
-        for (const SDL_GPUPresentMode mode : {SDL_GPU_PRESENTMODE_IMMEDIATE, SDL_GPU_PRESENTMODE_MAILBOX}) {
-            if (SDL_WindowSupportsGPUPresentMode(m_device, window, mode)) {
-                SDL_SetGPUSwapchainParameters(m_device, window, SDL_GPU_SWAPCHAINCOMPOSITION_SDR, mode);
-                break;
-            }
-        }
+        ApplyVsync();
         target = SDL_GetGPUSwapchainTextureFormat(m_device, window);
     }
     if (!MakePipeline(target, error)) {
@@ -185,6 +178,35 @@ bool Presenter::OpenGpu(SDL_Window *window, std::string &error) {
         return false;
     }
     return true;
+}
+
+void Presenter::SetVsync(bool on) {
+    if (on != m_vsync) {
+        m_vsync = on;
+        ApplyVsync();
+    }
+}
+
+void Presenter::ApplyVsync() {
+    if (m_shading) {
+        m_shading->SetVsync(m_vsync);
+    } else if (m_device && m_window) {
+        // Off: frames are paced by the port, to the board's rate, and the picture is shown as soon as it is made,
+        // where the window lets it be (no waiting for the screen, which would hold the game's controls back too).
+        // On: at the screen's refresh (VSYNC, which every window has)
+        if (m_vsync) {
+            SDL_SetGPUSwapchainParameters(m_device, m_window, SDL_GPU_SWAPCHAINCOMPOSITION_SDR, SDL_GPU_PRESENTMODE_VSYNC);
+        } else {
+            for (const SDL_GPUPresentMode mode : {SDL_GPU_PRESENTMODE_IMMEDIATE, SDL_GPU_PRESENTMODE_MAILBOX}) {
+                if (SDL_WindowSupportsGPUPresentMode(m_device, m_window, mode)) {
+                    SDL_SetGPUSwapchainParameters(m_device, m_window, SDL_GPU_SWAPCHAINCOMPOSITION_SDR, mode);
+                    break;
+                }
+            }
+        }
+    } else if (m_renderer) {
+        SDL_SetRenderVSync(m_renderer, m_vsync ? 1 : 0);
+    }
 }
 
 bool Presenter::OpenShaded(SDL_Window *window, const std::string &preset, std::string &error) {
@@ -195,6 +217,7 @@ bool Presenter::OpenShaded(SDL_Window *window, const std::string &preset, std::s
         return false;
     }
     m_overlayChanged = !m_overlay.empty(); // (the overlay, to the new window's OpenGL)
+    ApplyVsync();
     return true;
 }
 
@@ -208,7 +231,7 @@ bool Presenter::Open(SDL_Window *window, bool gpu, std::string &error) {
         error = SDL_GetError();
         return false;
     }
-    SDL_SetRenderVSync(m_renderer, 0); // (frames are paced by the port, to the board's rate)
+    ApplyVsync(); // (frames are paced by the port, to the board's rate, unless vsync is on)
     return true;
 }
 
@@ -466,8 +489,11 @@ void Presenter::Show(const uint32_t *pixels, int width, int height, const SDL_FR
         }
         SDL_GPUTexture *screen = nullptr;
         Uint32 screenWidth = 0, screenHeight = 0;
-        // (not the call that waits for a free picture of the window's: a frame that cannot be shown is left out)
-        if (SDL_AcquireGPUSwapchainTexture(commands, m_window, &screen, &screenWidth, &screenHeight) && screen &&
+        // (without vsync, not the call that waits for a free picture of the window's: a frame that cannot be shown
+        // is left out; with it, the wait is the screen's refresh, and every frame is shown)
+        if ((m_vsync ? SDL_WaitAndAcquireGPUSwapchainTexture(commands, m_window, &screen, &screenWidth, &screenHeight)
+                     : SDL_AcquireGPUSwapchainTexture(commands, m_window, &screen, &screenWidth, &screenHeight)) &&
+            screen &&
             Upload(commands, pixels, width, zoomed ? 2 * height : height)) {
             Draw(commands, screen, where, zoomed, screenWidth, screenHeight);
         }

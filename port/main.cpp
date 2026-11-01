@@ -200,6 +200,14 @@ void RegisterPortFeatures() {
                                   "During an online match, how many frames each player's own controls are held back, at the bottom "
                                   "of the picture (\"DELAY 2\"): the host chooses it.",
                                   0});
+    // (display_vsync: Presenter::SetVsync, issue #185)
+    TheGame().features.push_back({"display_vsync", "Display", "VSync",
+                                  "Each picture shown when the screen refreshes, so the picture never tears. The game keeps the "
+                                  "board's pace (59.64 frames a second), so now and then a frame stays up for one more of the "
+                                  "screen's refreshes (on a 60 Hz screen, about every three seconds), and the controls can be a "
+                                  "frame later; on a screen slower than 60 Hz the game slows to it. Off: each picture shown as soon "
+                                  "as it's made.",
+                                  0});
     TheGame().features.push_back({"window_size", "Display", "Window size",
                                   "How large the window opens, in times the board's 224 lines (it can be made any size by "
                                   "dragging its edges; full screen is on the launcher's first page and F11).",

@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- **VSync** (#185): a Display option (off unless chosen) that shows each picture at the screen's refresh, so it never
+  tears. The game keeps the board's pace, so now and then a frame stays up one refresh longer.
 - **Screenshots** (#31): F12 saves the picture as shown (readouts included, without the zoom) to `screenshots/` in the
   game's folder, and says so at the bottom of the screen.
 - **More controllers** (#213): a controller SDL doesn't know as a gamepad, such as an arcade panel that isn't an

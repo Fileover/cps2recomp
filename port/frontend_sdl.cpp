@@ -269,6 +269,7 @@ int RunWindowed(Port &port) {
         }
         return presenter.Open(window, wantGpu, presentError);
     };
+    presenter.SetVsync(FeatureOn("display_vsync")); // (kept when it is opened again)
     if (!window || !openPresenter()) {
         fprintf(stderr, "SDL window: %s\n", window ? presentError.c_str() : SDL_GetError());
         return 1;
@@ -742,6 +743,7 @@ int RunWindowed(Port &port) {
             }
         }
         followShader();
+        presenter.SetVsync(FeatureOn("display_vsync")); // (the Display page's VSync, as changed in the menu)
         if (port.quit) {
             break;
         }
