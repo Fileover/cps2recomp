@@ -36,6 +36,34 @@ at FF256B (coin FF2586, difficulty FF258C).
 
 The choice screens: speed (Normal, Turbo), the character, then mode (Normal, Automatic guard).
 
+Health is taken off in 35 places, not one (`lst.py -r 'sub.w d4,0x42(aN)|subq.w #1,0x42(aN)'`): 0C1384 (most hits,
+in the hit routine 0C1302/06/0A: A6 the attacker, A4 the one hit, A0 the attack), throws' and characters' own moves'
+(A4), the thrown player's (A6), and a slow drain of damage still to come (02C184, the word at +188 a point at a
+time; 06811A, 0681B4 and 0DA878 are subq's too). `cheats.cpp` hooks them all.
+
+`code_end` is 120000: the game has code up to 0x11FFFF (it calls 108D74), and with 100000 more than a million
+instructions a ladder ran in the interpreter.
+
+### The player record (for training mode; RAM dumps of player 1 standing, crouching, walking, jumping, attacking, and
+of player 2 hit and guarding)
+
+| Offset | What |
+| --- | --- |
+| +02 | character (Hsien-Ko 0D, Victor 03) |
+| +03 | 02 in a fight |
+| +04 | state: 00 standing or walking, 02 crouching, 08 jumping, 0A guarding (02BAB2), 0C reeling; the step 02A220 dispatches on it (table at 02A252: 00-18) |
+| +05 | 02 while attacking |
+| +06 | 02, 04 while reeling |
+| +08 | walking: 00 forward, 01 back, 02 not |
+| +09 | facing: 00 right, 01 left |
+| +10, +14 | X and Y words (Y 0x28 on the floor, upwards) |
+| +1C | the animation frame (long, in the ROM) |
+| +30, +34 | speeds across and up (longs) |
+| +4B | hit stop (both players, 0B as a hit lands) |
+| +10A | FF while attacking |
+
+The fight step: 02A200 runs 02A220 for each player (A6 = FF8388, then FF8888).
+
 ## Done
 
 - `free_play` (credits kept at 2), `skip_intro`, cheats (`no_damage`, `no_damage_2`, `one_hit`, `infinite_time`), the
