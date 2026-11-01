@@ -14,6 +14,7 @@ the build tells you which one is missing or different.
 | [Street Fighter Alpha 2](../games/sfa2/README.md) | `sfa2` | `sfa2u` (USA 960430) |
 | [Street Fighter Zero 2 Alpha](../games/sfz2al/README.md) | `sfz2al` | `sfz2al` (Asia 960826) |
 | [Street Fighter Alpha 3](../games/sfa3/README.md) | `sfa3` | `sfa3u` (USA 980904) |
+| [Night Warriors](../games/nwarr/README.md) | `nwarr` | `nwarr` (Europe 950316) |
 | [Vampire Savior](../games/vampire_savior/README.md) | `vampire_savior` | `vsavj` (Japan 970519) |
 | [Super Gem Fighter Mini Mix](../games/pocket_fighter/README.md) | `pocket_fighter` | `sgemf` (USA 970904) |
 | [X-Men: Children of the Atom](../games/xmcota/README.md) | `xmcota` | `xmcota` (Euro 950331) |

@@ -38,6 +38,7 @@ file). Only the versions named below work for each game, and this project cannot
 | [**Marvel Super Heroes vs. Street Fighter**](games/mshvsf/README.md) (1997) | `mshvsf` (Europe 970625) | Tag-team co-op, and 2 vs 2 for four players |
 | [**Marvel vs. Capcom**](games/mvsc/README.md) (1998) | `mvsc` (Europe 980123) | Tag-team co-op, and 2 vs 2 for four players |
 | [**Super Puzzle Fighter II Turbo**](games/puzzle_fighter/README.md) (1996) | `spf2t` (Europe 960529) | A puzzle training mode and CPU battle |
+| [**Night Warriors: Darkstalkers' Revenge**](games/nwarr/README.md) (1995) | `nwarr` (Europe 950316) | Huitzil and Pyron at a switch |
 | [**Vampire Savior**](games/vampire_savior/README.md) (1997) | `vsavj` (Japan 970519) | Tag team battle |
 | [**Vampire Savior 2**](games/vsav2/README.md) (1997) | `vsav2` (Japan 970913) | Donovan, Phobos and Pyron back |
 | [**Vampire Hunter 2**](games/vhunt2/README.md) (1997) | `vhunt2` (Japan 970929) | Night Warriors' cast on Vampire Savior's engine |
@@ -203,7 +204,7 @@ from any game, ever, and never a key). Security reports go by [SECURITY.md](SECU
 The repository holds no game data and nothing derived from it.
 
 This project is not affiliated with, endorsed by, or sponsored by Capcom or Marvel. *Street Fighter*, *Super Puzzle
-Fighter*, *Super Gem Fighter*, *Pocket Fighter*, *Vampire Savior*, *Vampire Hunter*, *Darkstalkers*, *Mega Man*,
+Fighter*, *Super Gem Fighter*, *Pocket Fighter*, *Vampire Savior*, *Vampire Hunter*, *Night Warriors*, *Darkstalkers*, *Mega Man*,
 *Strider* and *Captain Commando* are trademarks of Capcom Co., Ltd.; *X-Men*, *Marvel Super Heroes* and their
 characters are trademarks of Marvel Characters, Inc.; *Alien vs. Predator* and *Cadillacs and Dinosaurs* are
 trademarks of their owners; "CPS-1", "CPS-2" and "QSound" are names and trademarks of their owners, used here only to
