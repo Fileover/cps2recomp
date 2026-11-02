@@ -1,6 +1,12 @@
 # Changelog
 
-## Unreleased
+## 1.3.0
+
+**Two more Darkstalkers games and The Punisher**: Darkstalkers: The Night Warriors and Night Warriors: Darkstalkers'
+Revenge, with training mode, widescreen and the alternative modes, and The Punisher, the second CPS-1 beat-'em-up.
+Vampire Savior Definitive's Donovan, Phobos and Pyron work again (they were broken in every download since 1.0.0), and
+with the first Darkstalkers' or Street Fighter Alpha 2's set, Definitive fights on their stages too. Also VSync,
+screenshots (F12), updating on Android from inside the app, and ROM sets in folders with accents on Windows.
 
 - **Every game's songs, listed** (#234): [docs/SONGS.md](docs/SONGS.md) names each song a custom soundtrack's files
   can replace, game by game, without starting the game first (`--list-songs` prints one game's; `tools/songs.py`
