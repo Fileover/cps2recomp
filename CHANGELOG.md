@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- **Vampire Savior Definitive's Donovan, Phobos and Pyron work again** (#230): since 1.0.0 the downloads gave them
+  another character's moves (Victor's, for Donovan) and the game started over a few moves into the fight. The build
+  made its map of Vampire Savior 2's code once, on a fresh tree's first pass, before the game's code had been found, and
+  never again; it is now made again whenever the game's entries grow, and the release build stops if it is old.
 - **ROM sets in a folder named with an accent on Windows** (#223): a set in a folder such as `Jogos\Ação` is found and
   starts. So are the launcher beside it, and your saves, save states, screenshots and settings when your Windows user
   name has one (João, say). The ROM reader opens files by their wide names on Windows, and the launcher keeps every
