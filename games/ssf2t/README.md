@@ -79,9 +79,9 @@ the same program ([how it was made](PROGRESS.md)).
   exactly as without it.
 - **A custom soundtrack**: your own music in place of the board's, with the board's sound effects and voices: a
   folder of music plays as a playlist (in order or shuffled), or files named for the game's songs replace those
-  songs. The `songs.txt` the game writes in the soundtrack folder names the music: each stage's tune and its later
-  version in a round, the final fight, the introduction and title, player select, versus, the winner's, the ranking,
-  Ryu's ending and the staff roll.
+  songs. [The list of its songs](../../docs/SONGS.md#super-street-fighter-ii-turbo) names the music: each stage's
+  tune and its faster version once a fighter's health is low (`ryu_later`), the final fight, the introduction and
+  title, player select, versus, the winner's, the ranking, Ryu's ending and the staff roll.
   [How →](../../docs/SOUNDTRACK.md)
 - Your ROM set is only ever read. Settings, save states and the board's settings memory go in your own user folder.
 

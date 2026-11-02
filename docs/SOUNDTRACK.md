@@ -15,10 +15,13 @@ another in their names' order (`2 ...` before `10 ...`), and from the first agai
 shuffled** for a random order.
 
 **To replace particular songs** instead, name each file after the piece of music it replaces: `ryu.flac`,
-`player_select.ogg`, `ken_ending.mp3`. The game writes `songs.txt` into the folder, with every piece of its music
-by name and number and what it is (Street Fighter Alpha 2 has 59: each character's theme, each ending, the staff
-rolls, the title and the screens between fights). Once one file is named for a song, the folder works this way: a
-song you have no file for plays as the board has it, and other files are left alone.
+`player_select.ogg`, `ken_ending.mp3`. **[Every game's songs](SONGS.md)** lists the names, game by game (Street
+Fighter Alpha 2 has 59: each character's theme, each ending, the staff rolls, the title and the screens between
+fights). The game also writes that list as `songs.txt` into the folder whenever it starts with the soundtrack on.
+Where a song changes during a fight, the second version has a name of its own: Super Street Fighter II Turbo's
+faster tune, once a fighter's health is low, is `ryu_later` beside `ryu`. Once one file is
+named for a song, the folder works this way: a song you have no file for plays as the board has it, and other
+files are left alone.
 
 For files with other names, loops and loudness, put `soundtrack.ini` in the folder:
 

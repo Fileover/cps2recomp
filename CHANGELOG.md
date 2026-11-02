@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- **Every game's songs, listed** (#234): [docs/SONGS.md](docs/SONGS.md) names each song a custom soundtrack's files
+  can replace, game by game, without starting the game first (`--list-songs` prints one game's; `tools/songs.py`
+  writes the page). Super Street Fighter II Turbo's second version of each stage's tune is now described as what it
+  is: the faster one, once a fighter's health is down to a third (`ryu_later`).
 - **Vampire Savior Definitive's Donovan, Phobos and Pyron work again** (#230): since 1.0.0 the downloads gave them
   another character's moves (Victor's, for Donovan) and the game started over a few moves into the fight. The build
   made its map of Vampire Savior 2's code once, on a fresh tree's first pass, before the game's code had been found, and

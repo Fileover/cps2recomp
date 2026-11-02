@@ -2140,6 +2140,7 @@ void Usage() {
             "                         endless:shuffle:60); exit code 3 when it is the next game's turn\n"
             "  --shader FILE          draw through that RetroArch shader preset (.slangp), whatever the Display page says\n"
             "  --soundtrack DIR       the custom soundtrack's folder (its songs.txt names the files)\n"
+            "  --list-songs           the songs the soundtrack's files are named for: name, number, what it is\n"
             "  --soundtrack-dump FILE (with --headless) write what the custom soundtrack plays to a WAV file\n"
             "  --poke A=B,...         write byte B at RAM address A after every frame (hex)\n"
             "  --dump-ram F:FILE      write work RAM after frame F (and FILE.video, .objects, .regs); more than once\n"
@@ -2309,6 +2310,11 @@ bool ParseArgs(int argc, char **argv, port::Options &o) {
             // For the launcher: one optional feature per line (recomp-common/settings.h; the ones that last a
             // session, switched in the game's menu only, are not in it)
             fputs(port::LauncherFeatureList().c_str(), stdout);
+            exit(0);
+        } else if (a == "--list-songs") {
+            // The songs a custom soundtrack's files are named for (the game's own names; no ROM wanted)
+            RegisterGame();
+            fputs(port::NamedSongs().c_str(), stdout);
             exit(0);
         } else if (a == "--settings") {
             o.settingsPath = next();
