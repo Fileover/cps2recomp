@@ -1,74 +1,102 @@
 // SPDX-License-Identifier: GPL-3.0-only
 // Copyright (C) 2026 Tommy McLeroy. Part of cps2recomp.
 //
-// The guest board (guest.h).
+// The guests' boards (guest.h).
 #include "guest.h"
 
 #include <map>
+#include <memory>
 #include <vector>
 
 namespace cps2recomp {
 
 namespace {
-    // (never freed: a spare may run on a thread of the game's sources' own until the program is gone)
-    RomSet &g_roms = *new RomSet;
-    std::unique_ptr<Machine> g_machine;
-    Machine *g_spare = nullptr;
-    std::vector<uint8_t> &g_hooked = *new std::vector<uint8_t>; // a byte a word of the guest's ROM: a hook there
-    std::map<uint32_t, bool (*)(M68K &c)> &g_hooks = *new std::map<uint32_t, bool (*)(M68K &c)>;
+    // A guest: its set, its machine and spare, its hooks. (Never freed: a spare may run on a thread of the game's
+    // sources' own until the program is gone.)
+    struct One {
+        RomSet roms;
+        bool loaded = false;
+        std::unique_ptr<Machine> machine;
+        Machine *spare = nullptr;
+        std::vector<uint8_t> hooked; // a byte a word of its ROM: a hook there
+        std::map<uint32_t, bool (*)(M68K &c)> hooks;
+    };
+    std::map<std::string, One *> &Guests() {
+        static auto &guests = *new std::map<std::string, One *>;
+        return guests;
+    }
+    One &Named(const std::string &id) {
+        One *&one = Guests()[id];
+        if (!one) {
+            one = new One;
+        }
+        return *one;
+    }
 
     bool RunGuestHook(M68K &c, uint32_t address) {
-        const auto found = g_hooks.find(address);
-        if (found == g_hooks.end()) {
+        const One &one = *static_cast<const One *>(c.ownContext);
+        const auto found = one.hooks.find(address);
+        if (found == one.hooks.end()) {
             return false;
         }
         c.pc = address;
         return found->second(c);
     }
 
-    std::unique_ptr<Machine> MakeMachine() {
-        auto made = std::make_unique<Machine>(g_roms);
+    std::unique_ptr<Machine> MakeMachine(One &one) {
+        auto made = std::make_unique<Machine>(one.roms);
         Machine &m = *made;
         m.cpuMode = M68K::Mode::Interpreter;
         // (the sound program as ordinary code where there is one for it, as the port's own runs; else the Z80's own code)
         m.soundSide = m.soundDriver ? Machine::SoundSide::Driver : Machine::SoundSide::Z80;
-        m.cpu.ownHooked = g_hooked.data();
-        m.cpu.ownHookedSize = static_cast<uint32_t>(g_roms.program.size());
+        m.cpu.ownHooked = one.hooked.data();
+        m.cpu.ownHookedSize = static_cast<uint32_t>(one.roms.program.size());
         m.cpu.ownHook = RunGuestHook;
+        m.cpu.ownContext = &one;
         m.Reset();
         return made;
     }
 } // namespace
 
-bool LoadGuest(const std::string &path, const RomList &list, std::string &error) {
-    if (!LoadRomSet(path, list, g_roms, error) && !LoadRomSet(path + ".zip", list, g_roms, error)) {
+bool LoadGuest(const GuestGame &game, const std::string &path, std::string &error) {
+    One &one = Named(game.id);
+    const RomList list = ParseRomList(game.program, game.graphics, game.soundProgram, game.samples, game.key, game.set, game.set);
+    if (!LoadRomSet(path, list, one.roms, error) && !LoadRomSet(path + ".zip", list, one.roms, error)) {
         return false;
     }
-    g_hooked.assign(g_roms.program.size() / 2 + 1, 0);
-    for (const auto &[address, fn] : g_hooks) {
-        if (address / 2 < g_hooked.size()) {
-            g_hooked[address / 2] = 1;
+    one.hooked.assign(one.roms.program.size() / 2 + 1, 0);
+    for (const auto &[address, fn] : one.hooks) {
+        if (address / 2 < one.hooked.size()) {
+            one.hooked[address / 2] = 1;
         }
     }
-    g_machine = MakeMachine();
+    one.loaded = true;
+    one.machine = MakeMachine(one);
     return true;
 }
 
-Machine *Guest() {
-    return g_machine.get();
+Machine *Guest(const std::string &id) {
+    const auto found = Guests().find(id);
+    return found != Guests().end() && found->second->loaded ? found->second->machine.get() : nullptr;
 }
 
-Machine *GuestSpare() {
-    if (g_machine && !g_spare) {
-        g_spare = MakeMachine().release(); // (never freed: as above)
+Machine *GuestSpare(const std::string &id) {
+    const auto found = Guests().find(id);
+    if (found == Guests().end() || !found->second->loaded) {
+        return nullptr;
     }
-    return g_spare;
+    One &one = *found->second;
+    if (!one.spare) {
+        one.spare = MakeMachine(one).release(); // (never freed: as above)
+    }
+    return one.spare;
 }
 
-void AddGuestHook(uint32_t address, bool (*fn)(M68K &c)) {
-    g_hooks[address] = fn;
-    if (address / 2 < g_hooked.size()) {
-        g_hooked[address / 2] = 1;
+void AddGuestHook(const std::string &id, uint32_t address, bool (*fn)(M68K &c)) {
+    One &one = Named(id);
+    one.hooks[address] = fn;
+    if (address / 2 < one.hooked.size()) {
+        one.hooked[address / 2] = 1;
     }
 }
 
