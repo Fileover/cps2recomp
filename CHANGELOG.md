@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- **Updating on Android from inside the app** (#211): the update card's **Update** downloads the new version's APK,
+  checks it against the release's `SHA256SUMS.txt`, and opens Android's installer, which asks you to confirm and
+  installs it over the app: settings, saves and ROM sets stay. The first time, Android's Settings open for you to allow
+  CPS-2 Recomp to install apps (`REQUEST_INSTALL_PACKAGES`); come back and the installer opens. **Install** opens the
+  installer again if you said not now (recomp-common #52).
 - **Darkstalkers: The Night Warriors** (#215), set `dstlk` (Europe 940705): the first Darkstalkers game, built from
   Night Warriors' sources (its program is the one Night Warriors was made from), with everything Night Warriors has:
   training mode, the alternative modes, the colour editor, widescreen, the zoom, Huitzil and Pyron at a switch, the
