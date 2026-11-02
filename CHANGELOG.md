@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- **Every game's songs, listed** (#234): [docs/SONGS.md](docs/SONGS.md) names each song a custom soundtrack's files
+  can replace, game by game, without starting the game first (`--list-songs` prints one game's; `tools/songs.py`
+  writes the page). Super Street Fighter II Turbo's second version of each stage's tune is now described as what it
+  is: the faster one, once a fighter's health is down to a third (`ryu_later`).
 - **Updating on Android from inside the app** (#211): the update card's **Update** downloads the new version's APK,
   checks it against the release's `SHA256SUMS.txt`, and opens Android's installer, which asks you to confirm and
   installs it over the app: settings, saves and ROM sets stay. The first time, Android's Settings open for you to allow

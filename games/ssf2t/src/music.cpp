@@ -13,7 +13,8 @@ void RegisterMusic() {
     TheGame().songCount = 0x1FF;
     // Found by playing (CPS2RECOMP_SOUNDTRACK_LOG, with pictures where each starts): a fight on each stage, the one-player
     // ladder to its end with Ryu, a two-player game, and attract mode with its sound on. Each stage's tune has a second
-    // version, sixteen on, that the game goes to later in a round. The other characters' endings are not placed yet.
+    // version, sixteen on, faster, that the game goes to once a fighter's health is down to a third (0x30 of 0x90:
+    // both fighters' health traced over the versus movie as the music changed). The other characters' endings are not placed yet.
     TheGame().songs = {
         // Each stage's (ssf2t.h, kStageTunes)
         {0x02, "ryu", "Ryu's stage"},
@@ -32,26 +33,26 @@ void RegisterMusic() {
         {0x0F, "thawk", "T. Hawk's stage"},
         {0x0D, "feilong", "Fei Long's stage"},
         {0x10, "deejay", "Dee Jay's stage"},
-        // ... and their later versions in a round
-        {0x12, "ryu_later", "Ryu's stage, later in a round"},
-        {0x13, "honda_later", "E. Honda's stage, later in a round"},
-        {0x15, "blanka_later", "Blanka's stage, later in a round"},
-        {0x17, "guile_later", "Guile's stage, later in a round"},
-        {0x11, "ken_later", "Ken's stage, later in a round"},
-        {0x14, "chunli_later", "Chun-Li's stage, later in a round"},
-        {0x16, "zangief_later", "Zangief's stage, later in a round"},
-        {0x18, "dhalsim_later", "Dhalsim's stage, later in a round"},
-        {0x1C, "bison_later", "M. Bison's stage, later in a round"},
-        {0x1B, "sagat_later", "Sagat's stage, later in a round"},
-        {0x19, "balrog_later", "Balrog's stage, later in a round"},
-        {0x1A, "vega_later", "Vega's stage, later in a round"},
-        {0x1E, "cammy_later", "Cammy's stage, later in a round"},
-        {0x1F, "thawk_later", "T. Hawk's stage, later in a round"},
-        {0x1D, "feilong_later", "Fei Long's stage, later in a round"},
-        {0x20, "deejay_later", "Dee Jay's stage, later in a round"},
+        // ... and their faster versions, once a fighter's health is down to a third
+        {0x12, "ryu_later", "Ryu's stage, faster (a fighter\'s health low)"},
+        {0x13, "honda_later", "E. Honda's stage, faster (a fighter\'s health low)"},
+        {0x15, "blanka_later", "Blanka's stage, faster (a fighter\'s health low)"},
+        {0x17, "guile_later", "Guile's stage, faster (a fighter\'s health low)"},
+        {0x11, "ken_later", "Ken's stage, faster (a fighter\'s health low)"},
+        {0x14, "chunli_later", "Chun-Li's stage, faster (a fighter\'s health low)"},
+        {0x16, "zangief_later", "Zangief's stage, faster (a fighter\'s health low)"},
+        {0x18, "dhalsim_later", "Dhalsim's stage, faster (a fighter\'s health low)"},
+        {0x1C, "bison_later", "M. Bison's stage, faster (a fighter\'s health low)"},
+        {0x1B, "sagat_later", "Sagat's stage, faster (a fighter\'s health low)"},
+        {0x19, "balrog_later", "Balrog's stage, faster (a fighter\'s health low)"},
+        {0x1A, "vega_later", "Vega's stage, faster (a fighter\'s health low)"},
+        {0x1E, "cammy_later", "Cammy's stage, faster (a fighter\'s health low)"},
+        {0x1F, "thawk_later", "T. Hawk's stage, faster (a fighter\'s health low)"},
+        {0x1D, "feilong_later", "Fei Long's stage, faster (a fighter\'s health low)"},
+        {0x20, "deejay_later", "Dee Jay's stage, faster (a fighter\'s health low)"},
         // The last fight of the ladder, against M. Bison
         {0xD5, "final_fight", "The final fight"},
-        {0xD6, "final_fight_later", "The final fight, later in a round"},
+        {0xD6, "final_fight_later", "The final fight, faster (a fighter\'s health low)"},
         // Between the fights
         {0xD4, "title", "The introduction and the title", true},
         {0x3D, "qsound", "The QSound notice", true},

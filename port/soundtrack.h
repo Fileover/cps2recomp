@@ -105,5 +105,8 @@ private:
 
 // The game's songs as the player's folder knows them: each piece of music's name and number, and what it is
 std::string SongList(const cps2recomp::Soundtrack &tap);
+// The songs the game names, in its own order, one a line: name, number (hexadecimal), what it is and "once" for one
+// played once, tab-separated (--list-songs; tools/songs.py makes docs/SONGS.md of every game's)
+std::string NamedSongs();
 
 } // namespace port

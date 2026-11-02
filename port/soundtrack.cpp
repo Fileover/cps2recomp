@@ -423,6 +423,14 @@ void SoundtrackPlayer::Playlist(const Soundtrack::State &state, bool heard, std:
     }
 }
 
+std::string NamedSongs() {
+    std::string text;
+    for (const cps2recomp::Song &song : TheGame().songs) {
+        text += std::string(song.name) + "\t" + Hex(song.number) + "\t" + song.title + (song.once ? "\tonce" : "") + "\n";
+    }
+    return text;
+}
+
 std::string SongList(const Soundtrack &tap) {
     std::string text;
     for (uint16_t number : tap.MusicSongs()) {
