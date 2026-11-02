@@ -7,9 +7,10 @@
 # it runs a ROM set in the port's interpreters), and the toolkit's stand-in game (tools/ci_smoke.sh). The
 # checks that need a ROM set (make GAME=<id> check, check-blocks, check-rewrites, check-release) and the
 # release archives are made on a contributor's own machine. To be quick: SDL 3, librashader and the shaders are built
-# once and kept (actions/cache, by the scripts that make them), the compiler's objects too (ccache); a pull request's
-# Mac build is Apple silicon alone; a change of words only (the README, docs/) builds nothing; and a pull request's
-# older run stops when a newer commit comes.
+# once and kept (actions/cache, by the scripts that make them), the compiler's objects too (ccache); a pull request
+# has no Mac build (GitHub's Mac machines are often too few to start one: the Mac build is made on main once a pull
+# request is in, and on a contributor's Mac); a change of words only (the README, docs/) builds nothing; and a pull
+# request's older run stops when a newer commit comes.
 name: CI
 
 on:
@@ -61,13 +62,13 @@ jobs:
             echo code=false >> "$GITHUB_OUTPUT"
           fi
 
+  # (not for a pull request: GitHub's Mac machines are often too few to start one; main's and a release's only)
   macos:
     runs-on: macos-15
     needs: changes
-    if: needs.changes.outputs.code == 'true'
+    if: needs.changes.outputs.code == 'true' && github.event_name != 'pull_request'
     env:
-      # (a pull request: Apple silicon alone; main and a release: both halves)
-      MAC_ARCHS: ${{ github.event_name == 'pull_request' && 'arm64' || 'arm64;x86_64' }}
+      MAC_ARCHS: arm64;x86_64
     steps:
       - uses: actions/checkout@v4
       - run: brew install ninja ccache
