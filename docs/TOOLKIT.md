@@ -202,14 +202,17 @@ cps_b = 0A 0C 0E 00 02 04 16 16 16
 ```
 
 `cps_b` is where the game's CPS-B chip has its registers (byte offsets, as MAME's table of the chips gives them for the
-game): layer control, the four priority masks, palette control, and the layer control's bits that switch scroll
-screens 1-3 on. With it, the machine (`machine/machine.*`) has the CPS-1's memory map and inputs (players 1 and 2 at
-800000, the switches at 800018, players 3 and 4 at F1C000), a 12 MHz 68000, no raster interrupts, the settings memory
-as 128 bytes, and the sound CPU's two memories where the 68000 sees them (F18000, F1E000); the video
-(`video/video.*`) takes the object list from video RAM and draws the objects as one of the four layers, where the
-layer control puts them, with the scroll screen just below them keeping its high pens (each tile's group picks one
-of the four priority masks) in front of them; the ROM set has no program cipher, no graphics shuffle and its samples
-as bytes. The board timing (`arcade_timing`) is the CPS-2's and stays off.
+game): layer control, the four priority masks, palette control, and the layer control's bits that switch scroll screens
+1-3 on; then, for a chip that has one, the register its ID is read at and the ID (The Punisher checks it as it starts:
+`cps_b = 12 14 16 08 0A 0C 04 02 20 0E 0C00`). A board whose first program files are pairs, each 8 bits of the 16 (even
+bytes, then odd: MAME's `ROM_LOAD16_BYTE`), says how many pairs: `board = cps1 pairs=4`. With it, the machine
+(`machine/machine.*`) has the CPS-1's memory map and inputs (players 1 and 2 at 800000, the switches at 800018, players
+3 and 4 at F1C000), a 12 MHz 68000, no raster interrupts, the settings memory as 128 bytes, and the sound CPU's two
+memories where the 68000 sees them (F18000, F1E000); the video (`video/video.*`) takes the object list from video RAM
+and draws the objects as one of the four layers, where the layer control puts them, with the scroll screen just below
+them keeping its high pens (each tile's group picks one of the four priority masks) in front of them; the ROM set has
+no program cipher, no graphics shuffle and its samples as bytes. The board timing (`arcade_timing`) is the CPS-2's and
+stays off.
 
 The sound CPU of these boards deciphers its program as it reads it (Kabuki: opcodes one way, other reads another,
 both by address), and no ROM set carries the key. `machine/kabuki.*` works it out from the program itself when the

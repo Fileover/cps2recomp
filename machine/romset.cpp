@@ -231,12 +231,24 @@ namespace {
 RomList ParseRomList(const char *program, const char *graphics, const char *soundProgram, const char *samples,
                      const char *key, const char *set, const char *parent, const char *board, const char *cpsB, const char *others) {
     RomList list;
-    list.board.cps1 = std::string(board) == "cps1";
+    {
+        // ("cps1", and "pairs=N" after it: Board::programPairs)
+        std::istringstream words(board);
+        std::string word;
+        words >> word;
+        list.board.cps1 = word == "cps1";
+        while (words >> word) {
+            if (word.rfind("pairs=", 0) == 0) {
+                list.board.programPairs = atoi(word.c_str() + 6);
+            }
+        }
+    }
     if (list.board.cps1) {
-        // (cps_b: layer control, four priority masks, palette control, three enable bits; hex bytes)
-        unsigned values[9];
+        // (cps_b: layer control, four priority masks, palette control, three enable bits; hex bytes; and, for a chip
+        // with an ID register, its offset and value)
+        unsigned values[11];
         int count = 0;
-        for (const char *at = cpsB; *at && count < 9;) {
+        for (const char *at = cpsB; *at && count < 11;) {
             char *end;
             const unsigned long value = strtoul(at, &end, 16);
             if (end == at) {
@@ -245,7 +257,11 @@ RomList ParseRomList(const char *program, const char *graphics, const char *soun
             values[count++] = static_cast<unsigned>(value);
             at = end;
         }
-        if (count == 9) {
+        if (count == 11) {
+            list.board.idRegister = static_cast<uint8_t>(values[9]);
+            list.board.idValue = static_cast<uint16_t>(values[10]);
+        }
+        if (count >= 9) {
             list.board.layerControl = static_cast<uint8_t>(values[0]);
             for (int n = 0; n < 4; n++) {
                 list.board.priority[n] = static_cast<uint8_t>(values[1 + n]);
@@ -332,9 +348,22 @@ bool LoadRomSet(const std::string &path, const RomList &list, RomSet &set, std::
     // whose files are all there), with its key
     auto readProgram = [&](const std::vector<RomFile> &program, const std::vector<RomFile> &key, std::string &why) {
         set.program.clear();
-        for (const RomFile &file : program) {
-            if (!ReadFile(folder, file, data, why)) {
+        for (size_t n = 0; n < program.size(); n++) {
+            if (!ReadFile(folder, program[n], data, why)) {
                 return false;
+            }
+            if (static_cast<int>(n) < 2 * list.board.programPairs) {
+                // (a pair: this file's bytes are the words' even ones, the next file's the odd ones)
+                std::vector<uint8_t> odd;
+                if (n + 1 >= program.size() || !ReadFile(folder, program[n + 1], odd, why)) {
+                    return false;
+                }
+                for (size_t i = 0; i < data.size() && i < odd.size(); i++) {
+                    set.program.push_back(data[i]);
+                    set.program.push_back(odd[i]);
+                }
+                n++;
+                continue;
             }
             for (size_t i = 0; i + 1 < data.size(); i += 2) {
                 set.program.push_back(data[i + 1]);

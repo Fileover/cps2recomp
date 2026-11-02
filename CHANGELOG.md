@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- **The Punisher**, set `punisheru` (USA 930422): the second CPS-1 game, a beat-'em-up for two players (the Punisher
+  and Nick Fury), with what Cadillacs and Dinosaurs has: free play (the board's own), a stage to start at, attract
+  mode, score attack, the stage and model viewers, the cheats, the Board page and the music's names. The toolkit's
+  CPS-1 board now reads program files that come in pairs of bytes, and gives the ID the CPS-B chip has, which this
+  game checks as it starts.
 - **Darkstalkers: The Night Warriors** (#215), set `dstlk` (Europe 940705): the first Darkstalkers game, built from
   Night Warriors' sources (its program is the one Night Warriors was made from), with everything Night Warriors has:
   training mode, the alternative modes, the colour editor, widescreen, the zoom, Huitzil and Pyron at a switch, the
