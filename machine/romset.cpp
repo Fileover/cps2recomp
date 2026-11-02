@@ -7,10 +7,10 @@
 
 #include "cps2crypt.h"
 
-#include <sys/stat.h>
 #include <zlib.h>
 
 #include <algorithm>
+#include <filesystem>
 
 #include <cstdio>
 #include <cstdlib>
@@ -20,6 +20,24 @@
 namespace cps2recomp {
 
 namespace {
+    // A path given as UTF-8 text, as every path here is (the launcher's, and the game's from its command line). Windows
+    // reads a narrow path in the system's code page instead, so a folder named with an accent (é, ã, ç) is opened by
+    // its wide name there (#223).
+    std::filesystem::path PathOf(const std::string &text) {
+#ifdef __cpp_char8_t
+        return std::filesystem::path(std::u8string(text.begin(), text.end()));
+#else
+        return std::filesystem::u8path(text);
+#endif
+    }
+    FILE *OpenRead(const std::string &path) {
+#ifdef _WIN32
+        return _wfopen(PathOf(path).wstring().c_str(), L"rb");
+#else
+        return fopen(path.c_str(), "rb");
+#endif
+    }
+
     std::vector<RomFile> ParseFiles(const char *text) {
         std::vector<RomFile> files;
         std::istringstream in(text);
@@ -37,7 +55,7 @@ namespace {
     }
 
     bool ReadWhole(const std::string &path, std::vector<uint8_t> &data) {
-        FILE *f = fopen(path.c_str(), "rb");
+        FILE *f = OpenRead(path);
         if (!f) {
             return false;
         }
@@ -68,7 +86,7 @@ namespace {
         }
         bool Open(const std::string &file) {
             path = file;
-            FILE *f = fopen(file.c_str(), "rb");
+            FILE *f = OpenRead(file);
             if (!f) {
                 return false;
             }
@@ -114,7 +132,7 @@ namespace {
             return ok;
         }
         bool Read(const Entry &e, std::vector<uint8_t> &data) const {
-            FILE *f = fopen(path.c_str(), "rb");
+            FILE *f = OpenRead(path);
             if (!f) {
                 return false;
             }
@@ -309,14 +327,15 @@ bool LoadRomSet(const std::string &path, const RomList &list, RomSet &set, std::
     std::vector<uint8_t> data;
     Places folder;
     {
-        struct stat info;
-        if (stat(path.c_str(), &info) != 0) {
+        std::error_code missing;
+        const std::filesystem::file_status info = std::filesystem::status(PathOf(path), missing);
+        if (missing || !std::filesystem::exists(info)) {
             error = "there is no " + path;
             return false;
         }
         std::vector<std::string> zips;
         std::string beside;
-        if (S_ISDIR(info.st_mode)) {
+        if (std::filesystem::is_directory(info)) {
             folder.folder = path;
             beside = path;
         } else {

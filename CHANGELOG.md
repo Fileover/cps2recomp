@@ -10,6 +10,10 @@
   another character's moves (Victor's, for Donovan) and the game started over a few moves into the fight. The build
   made its map of Vampire Savior 2's code once, on a fresh tree's first pass, before the game's code had been found, and
   never again; it is now made again whenever the game's entries grow, and the release build stops if it is old.
+- **ROM sets in a folder named with an accent on Windows** (#223): a set in a folder such as `Jogos\Ação` is found and
+  starts. So are the launcher beside it, and your saves, save states, screenshots and settings when your Windows user
+  name has one (João, say). The ROM reader opens files by their wide names on Windows, and the launcher keeps every
+  path as UTF-8 (recomp-common #53).
 - **Updating on Android from inside the app** (#211): the update card's **Update** downloads the new version's APK,
   checks it against the release's `SHA256SUMS.txt`, and opens Android's installer, which asks you to confirm and
   installs it over the app: settings, saves and ROM sets stay. The first time, Android's Settings open for you to allow
