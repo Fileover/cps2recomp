@@ -32,7 +32,7 @@ def load(game=None):
 
 # What the collection's launcher is told of each game (launcher/src/description.cpp, GameInfo), in its order
 COLLECTION_KEYS = ["id", "name", "rom_set", "rom_parent", "rom_name", "program", "graphics", "sound_program", "samples", "key", "display",
-                   "players", "buttons", "board", "cps_b", "extra_set", "multi", "other_set", "series", "guest_set"]
+                   "players", "buttons", "board", "cps_b", "extra_set", "multi", "other_set", "series", "guests"]
 
 
 def quoted(value):
@@ -67,6 +67,15 @@ def main():
         lines = ["// Generated from game.cfg by cps2recomp/tools/gamecfg.py", "#pragma once", ""]
         for key, value in cfg.items():
             lines.append('#define GAME_%s "%s"' % (key.upper(), value.replace("\\", "\\\\").replace('"', '\\"')))
+        # (the games whose boards it runs beside its own, runtime/guest.h: each one's set as its own game.cfg has it)
+        if cfg.get("guests"):
+            entries = []
+            for guest in cfg["guests"].split():
+                g = load(guest)
+                entries.append("{" + ", ".join(quoted(v) for v in (guest, g.get("rom_name", g.get("name", guest)), g.get("rom_set", ""),
+                                                                    g.get("program", ""), g.get("graphics", ""), g.get("sound_program", ""),
+                                                                    g.get("samples", ""), g.get("key", ""))) + "}")
+            lines.append("#define GAME_GUEST_TABLE {" + ", ".join(entries) + "}")
         content = "\n".join(lines) + "\n"
         if not os.path.exists(args[1]) or open(args[1]).read() != content:
             os.makedirs(os.path.dirname(args[1]) or ".", exist_ok=True)

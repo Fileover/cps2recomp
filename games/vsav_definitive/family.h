@@ -7,6 +7,10 @@
 #pragma once
 
 #include <array>
+#include <cstddef>
+
+#include "../dstlk/guest.h"
+#include "../sfa2/guest.h"
 #include <cstdint>
 
 #include "game.h"
@@ -48,12 +52,21 @@ inline constexpr const char *kStageNames[] = {
     "Vanity Paradise", "War Agony", "Forever Torment", "Green Scream", "Iron Horse, Iron Terror", "Fetus of God",
 };
 
-// The first Darkstalkers' stages, shown after these (src/stages.cpp: its board runs beside this one), in the lists a
-// stage is chosen from by name (training's, the stage viewer's): each character's in that game, in its order
-inline constexpr std::array<const char *, 12> kMoreStageNames{
-    "Darkstalkers: Demitri's",  "Darkstalkers: Jon Talbain's", "Darkstalkers: Victor's",   "Darkstalkers: Lord Raptor's",
-    "Darkstalkers: Morrigan's", "Darkstalkers: Anakaris's",    "Darkstalkers: Felicia's",  "Darkstalkers: Bishamon's",
-    "Darkstalkers: Rikuo's",    "Darkstalkers: Sasquatch's",   "Darkstalkers: Huitzil's", "Darkstalkers: Pyron's"};
+// Other games' stages, shown after these (fight/guest_stages.h; src/stages.cpp: their boards run beside this one), in
+// the lists a stage is chosen from by name (training's, the stage viewer's): the first Darkstalkers' (each character's,
+// in that game's order), then Street Fighter Alpha 2's (game.cfg's guests, in the same order)
+template <size_t A, size_t B>
+constexpr std::array<const char *, A + B> Joined(const std::array<const char *, A> &a, const std::array<const char *, B> &b) {
+    std::array<const char *, A + B> out{};
+    for (size_t i = 0; i < A; i++) {
+        out[i] = a[i];
+    }
+    for (size_t i = 0; i < B; i++) {
+        out[A + i] = b[i];
+    }
+    return out;
+}
+inline constexpr auto kMoreStageNames = Joined(dstlk_guest::kStageNames, sfa2_guest::kStageNames);
 
 // The frame's lists of objects to draw that the objects of kind 12 have, one for each depth (src/picture.cpp)
 inline constexpr int kTwelveLists = 7;

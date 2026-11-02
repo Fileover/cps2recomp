@@ -302,27 +302,28 @@ bool Port::Init(std::string &error) {
         }
     }
 #endif
-#ifdef GAME_GUEST_SET
-    // A board of another game run beside this one (runtime/guest.h): from --rom3, or beside --rom. Not needed: without
-    // it the game's sources leave out what they would show of it.
+#ifdef GAME_GUEST_TABLE
+    // Boards of other games run beside this one (runtime/guest.h): each from --guest ID=PATH, or beside --rom (by the
+    // game's id, or its set's name). None is needed: without one, the game's sources leave out what they would show of it.
     {
-        const RomList guest = ParseRomList(GAME_GUEST_PROGRAM, GAME_GUEST_GRAPHICS, GAME_GUEST_SOUND_PROGRAM, GAME_GUEST_SAMPLES,
-                                           GAME_GUEST_KEY, GAME_GUEST_SET, GAME_GUEST_SET);
-        std::string path = opt.guestRomPath;
-        if (path.empty()) {
-            std::string folder = opt.romPath;
-            while (!folder.empty() && folder.back() == '/') {
-                folder.pop_back();
-            }
-            const size_t slash = folder.find_last_of('/');
-            folder = slash == std::string::npos ? "." : folder.substr(0, slash);
-            path = folder + "/" + GAME_GUEST_SET;
+        std::string folder = opt.romPath;
+        while (!folder.empty() && folder.back() == '/') {
+            folder.pop_back();
         }
-        std::string guestError;
-        if (LoadGuest(path, guest, guestError)) {
-            fprintf(stderr, "%s: the set %s too (%s)\n", GAME_NAME, GAME_GUEST_SET, GAME_GUEST_NAME);
-        } else {
-            fprintf(stderr, "%s: without %s (%s): %s\n", GAME_NAME, GAME_GUEST_SET, GAME_GUEST_NAME, guestError.c_str());
+        const size_t slash = folder.find_last_of('/');
+        folder = slash == std::string::npos ? "." : folder.substr(0, slash);
+        static const GuestGame kGuests[] = GAME_GUEST_TABLE;
+        for (const GuestGame &guest : kGuests) {
+            const auto given = opt.guestRomPaths.find(guest.id);
+            std::string guestError;
+            const bool loaded = given != opt.guestRomPaths.end()
+                                    ? LoadGuest(guest, given->second, guestError)
+                                    : LoadGuest(guest, folder + "/" + guest.id, guestError) || LoadGuest(guest, folder + "/" + guest.set, guestError);
+            if (loaded) {
+                fprintf(stderr, "%s: the set %s too (%s)\n", GAME_NAME, guest.set, guest.name);
+            } else {
+                fprintf(stderr, "%s: without %s (%s): %s\n", GAME_NAME, guest.set, guest.name, guestError.c_str());
+            }
         }
     }
 #endif
@@ -2082,7 +2083,7 @@ void Usage() {
             "  --rom PATH             the ROM set (%s): a folder with its files, or its zip\n"
             "  --rom2 PATH            (a game that reads another set too) that set: a folder or zip (else\n"
             "                         beside --rom, by the set's name)\n"
-            "  --rom3 PATH            (a game that runs another game's board beside it) that set: the same\n"
+            "  --guest ID=PATH        (a game that runs other games' boards beside it) the set of game ID: the same\n"
             "  --eeprom FILE          where the board's settings memory is kept\n"
             "  --cpu MODE             native (translated code), blocks (the interpreter run the same way),\n"
             "                         interp (the interpreter, an instruction at a time), check\n"
@@ -2164,8 +2165,12 @@ bool ParseArgs(int argc, char **argv, port::Options &o) {
             o.romPath = next();
         } else if (a == "--rom2") {
             o.extraRomPath = next();
-        } else if (a == "--rom3") {
-            o.guestRomPath = next();
+        } else if (a == "--guest") {
+            const std::string given = next();
+            const size_t equals = given.find('=');
+            if (equals != std::string::npos) {
+                o.guestRomPaths[given.substr(0, equals)] = given.substr(equals + 1);
+            }
         } else if (a == "--eeprom") {
             o.eepromPath = next();
         } else if (a == "--cpu") {

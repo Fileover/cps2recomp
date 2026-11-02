@@ -158,17 +158,20 @@ the include path) says what is its own.
 - The shared rewrites are checked against the other game's own code like any rewrite
   (`games/vampire_savior/check_family.sh`).
 
-## Another game's board beside a game's
+## Other games' boards beside a game's
 
-A game can show something of a game made from another program (Vampire Savior Definitive shows the first
-Darkstalkers' stages): `game.cfg`'s `guest_set`, with `guest_name`, `guest_program`, `guest_graphics`,
-`guest_sound_program`, `guest_samples` and `guest_key` as a set's own lines, names a set whose whole board
-`runtime/guest.h` runs beside the game's. The set is optional (`--rom3`, or beside `--rom`; the collection's launcher
-passes the one chosen on that game's page). Its 68000 runs on the interpreter with hooks of its own at that game's
-addresses (`AddGuestHook`), and the game's sources run its frames, keep it with their state, and take its picture
-and sound (`Video::markObjects` to lay the game's objects over it, `Soundtrack::Take` for its music in place of the
-game's). `GuestSpare` gives a second board for work done ahead, outside the game's state.
-[games/vsav_definitive/src/stages.cpp](../games/vsav_definitive/src/stages.cpp) is the one so far.
+A game can show something of games made from other programs (Vampire Savior Definitive shows the first Darkstalkers'
+and Street Fighter Alpha 2's stages): `game.cfg`'s `guests` names those games by id, and `runtime/guest.h` runs each
+one's whole board beside the game's, its set as that game's `game.cfg` has it. Each set is optional (`--guest
+ID=PATH`, or beside `--rom`; the collection's launcher passes the one chosen on that game's page). A guest's 68000
+runs on the interpreter with hooks of its own at its game's addresses (`AddGuestHook`); `GuestSpare` gives a second
+board for work done ahead, outside the game's state.
+
+`fight/guest_stages.h` uses them for other games' stages behind a fighting game's fighters: the game describes itself
+(its camera, when a stage is shown, its objects that are not its stage's, its stage tunes, which stage is wanted) and
+each guest is described once, in `games/<id>/guest.h`, by facts its own port found (its steps, credits, where it sets
+a match's stage, its clock, its stage's objects, its camera). [games/dstlk/guest.h](../games/dstlk/guest.h) and
+[games/sfa2/guest.h](../games/sfa2/guest.h) are the two so far.
 
 ## Other regions' sets of a game
 

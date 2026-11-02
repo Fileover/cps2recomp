@@ -130,32 +130,41 @@ so the player picks each set once.
 - Arcade runs to the ending as each of the three; training fights between all eighteen; each of the three in the
   endless battle against every other character, 12,000 frames each.
 
-## The first Darkstalkers' stages
+## Other games' stages
 
-Darkstalkers (`dstlk`) is not made from Vampire Savior's program: its engine is the one Night Warriors was built on
-([games/nwarr](../nwarr/README.md)). Its stages can't be taken in as the characters are, table by table, so they are
-shown as that game shows them: [src/stages.cpp](src/stages.cpp).
+The first Darkstalkers (`dstlk`) and Street Fighter Alpha 2 (`sfa2u`) are not made from Vampire Savior's program
+(Darkstalkers' engine is the one Night Warriors was built on, [games/nwarr](../nwarr/README.md)). Their stages can't be
+taken in as the characters are, table by table, so they are shown as those games show them, by the toolkit's
+[fight/guest_stages.h](../../fight/guest_stages.h); [src/stages.cpp](src/stages.cpp) has only what is this game's.
 
-- **Its board beside this one.** `game.cfg`'s `guest_set` names a set whose whole board the toolkit runs beside the
-  game's ([runtime/guest.h](../../runtime/guest.h)): its own 68000 (on the interpreter, with hooks of its own at that
-  game's addresses), video and sound. The set is optional: without it, only Vampire Savior's stages.
-- **On its way to the stage.** Each stage's round is made once, on a second board of Darkstalkers and a thread of its
-  own, from the program's start: the board played with made-up controls (credits, both Starts, a punch at each screen
-  that waits for one) into a two-player match, its stage set where it sets a match's (0059C6), to the round (about
-  1,000 of its frames for the first, 500 from its character choice for each after). That is the same board every time,
-  so a match on the stage always starts from it: the same in a run played straight, its frames run again by online
-  play's rollback, or a save state loaded. The thread starts with the game (with the option on) and has all twelve
-  within several seconds (about half a second a stage on a recent Mac); a match that wants one not made yet waits for it.
-- **Its camera.** Both games' stages are the same size (the camera from 256 to 640, the floor 0x28 up), so its
-  camera's steps across and up (0EDAF4, 0EDC1A) put it where Vampire Savior's is, no more than 8 pixels a frame: the
-  game paints the stage's new columns as the camera comes to them.
+- **Their boards beside this one.** `game.cfg`'s `guests` names games whose whole boards the toolkit runs beside the
+  game's ([runtime/guest.h](../../runtime/guest.h)): each its own 68000 (on the interpreter, with hooks of its own at
+  that game's addresses), video and sound. Each set is optional: without them, only Vampire Savior's stages.
+- **Each guest described once**, by the facts its own port found, in its own folder: [Darkstalkers'](../dstlk/guest.h)
+  and [Alpha 2's](../sfa2/guest.h). Its steps (its character choice, its match, a round fought), credits and players
+  in; where it sets a match's stage (Darkstalkers 0059C6, Alpha 2 00797C); its clock; its objects that are not the
+  stage's; its camera's ends, and how its camera is moved.
+- **On the way to a stage.** Each stage's round is made once, on a second board of the guest and a thread of its own,
+  from the program's start: the board played with made-up controls (credits, both Starts, a punch at each screen that
+  waits for one) into a two-player match on the stage, to the round (about 1,000 of its frames for the first, 500 from
+  its character choice for each after). That is the same board every time, so a match on the stage always starts from
+  it: the same in a run played straight, its frames run again by online play's rollback, or a save state loaded. With
+  the option on, the threads start with the game (about half a second a stage on a recent Mac); a match that wants one
+  not made yet waits for it.
+- **The camera.** The guest's camera goes where Vampire Savior's is (as far between its ends as this game's is between
+  its own: here all three games' are 256 and 640, the floor 0x28 up), as fast as the guest's camera goes, so the game
+  paints the stage's new columns as the camera comes to them. Darkstalkers' camera steps (0EDAF4, 0EDC1A) are done
+  here, no more than 8 pixels a frame; Alpha 2's camera asks where the players are (01BFE0, 01C1D0), and is answered so
+  that it goes where it is wanted by its own rules.
 - **The picture.** Vampire Savior's board draws its fighters and panel alone, marked (`Video::markObjects`), and they
-  are laid over the guest's picture, which hides its own fighters and panel (its colour sets below 14) and is as wide
-  as the game's.
-- **The music.** While a Darkstalkers stage is chosen, Vampire Savior's stage tunes are taken (`Soundtrack::Take`):
-  its board's music stops in their place, and the guest's music is heard with the same fades.
+  are laid over the guest's picture, which leaves out its own fighters and panel and is as wide as the game's.
+- **The music.** While a guest's stage is chosen, Vampire Savior's stage tunes are taken (`Soundtrack::Take`): its
+  board's music stops in their place, and the guest's music is heard with the same fades.
 - **Online and save states.** The guest's board is kept with the game's state, so rollback and run-ahead redraw it the
   same. It changes nothing of Vampire Savior's play, so it is a Display option: each player sees their own.
+
+Another game's stages come the same way: its `guest.h` (the facts above, from its port), its id in `guests`, and its
+names in `family.h`'s `kMoreStageNames`.
 
 ## Not yet
 

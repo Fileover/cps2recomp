@@ -44,13 +44,33 @@ struct GameInfo {
     const char* other_set;
     // The series the launcher puts it under, with the other games of it (game.cfg's series; "": none)
     const char* series;
-    // Another game whose board it can run beside its own (game.cfg's guest_set: runtime/guest.h; empty: none). In a
-    // collection, the set chosen for that game is given to it (--rom3); else the game looks for it beside its own. Not
-    // needed to play.
-    const char* guest_set;
+    // Other games whose boards it can run beside its own (game.cfg's guests: their ids; runtime/guest.h; empty: none). In
+    // a collection, the set chosen for each is given to it (--guest ID=PATH); else the game looks for it beside its own.
+    // None is needed to play.
+    const char* guests;
 };
 #ifdef LAUNCHER_COLLECTION
 const GameInfo* game_of_set(const char* set);
+const GameInfo* game_of_id(const std::string& id);
+// The ids in a list of them (game.cfg's guests)
+std::vector<std::string> ids_in(const char* list) {
+    std::vector<std::string> ids;
+    std::string id;
+    for (const char* p = list ? list : ""; ; p++) {
+        if (*p == ' ' || *p == '\0') {
+            if (!id.empty()) {
+                ids.push_back(id);
+            }
+            id.clear();
+            if (!*p) {
+                break;
+            }
+        } else {
+            id += *p;
+        }
+    }
+    return ids;
+}
 #endif
 
 #ifdef LAUNCHER_COLLECTION
@@ -192,9 +212,18 @@ launcher::Description describe_game(const GameInfo& game) {
         d.file_intro = keep(std::string(d.file_intro) + "\n\nIt takes things from " + other->name + " too: choose that game's ROM set (" +
                             other->rom_set + ") on its own page as well.");
     }
-    if (const GameInfo* other = game.guest_set && *game.guest_set ? game_of_set(game.guest_set) : nullptr) {
-        d.file_intro = keep(std::string(d.file_intro) + "\n\nWith " + other->name + "'s ROM set (" + other->rom_set +
-                            ") chosen on its own page too, it can show that game's stages.");
+    {
+        std::string others;
+        const std::vector<std::string> ids = ids_in(game.guests);
+        for (size_t n = 0; n < ids.size(); n++) {
+            if (const GameInfo* other = game_of_id(ids[n])) {
+                others += std::string(others.empty() ? "" : n + 1 == ids.size() ? " or " : ", ") + other->name + "'s (" + other->rom_set + ")";
+            }
+        }
+        if (!others.empty()) {
+            d.file_intro = keep(std::string(d.file_intro) + "\n\nWith " + others +
+                                " ROM set chosen on its own page too, it can show that game's stages.");
+        }
     }
 #endif
 #ifdef __ANDROID__
@@ -211,8 +240,8 @@ launcher::Description describe_game(const GameInfo& game) {
     const std::vector<FeatureSwitch> switches = feature_switches(game.display);
     // What the game is started with: the player's ROM set (read only) and their saves folder
     const std::string extra = game.extra_set ? game.extra_set : "";
-    const std::string guest = game.guest_set ? game.guest_set : "";
-    d.arguments = [switches, extra, guest](const launcher::Launch& launch) {
+    const std::string guests = game.guests ? game.guests : "";
+    d.arguments = [switches, extra, guests](const launcher::Launch& launch) {
         std::vector<std::string> args = {"--rom", launch.file, "--eeprom", (launch.folder / "saves" / "eeprom.bin").string(),
                                          "--settings", (launch.folder / "settings.ini").string()};
 #ifdef LAUNCHER_COLLECTION
@@ -223,11 +252,11 @@ launcher::Description describe_game(const GameInfo& game) {
                 args.push_back(file);
             }
         }
-        if (const GameInfo* other = guest.empty() || !launch.file_of ? nullptr : game_of_set(guest.c_str())) {
-            const std::string file = launch.file_of(other->id);
+        for (const std::string& id : ids_in(guests.c_str())) {
+            const std::string file = launch.file_of && game_of_id(id) ? launch.file_of(id) : "";
             if (!file.empty()) {
-                args.push_back("--rom3");
-                args.push_back(file);
+                args.push_back("--guest");
+                args.push_back(id + "=" + file);
             }
         }
 #endif
@@ -310,6 +339,15 @@ const port::BoundTable& shared_table() {
         return port::MakeBoundTable(players, buttons, true);
     }();
     return table;
+}
+// The collection's game of this id
+const GameInfo* game_of_id(const std::string& id) {
+    for (const GameInfo& game : kGames) {
+        if (id == game.id) {
+            return &game;
+        }
+    }
+    return nullptr;
 }
 // The collection's game whose ROM set this is
 const GameInfo* game_of_set(const char* set) {

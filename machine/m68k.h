@@ -129,6 +129,7 @@ public:
     const uint8_t *ownHooked = nullptr;
     uint32_t ownHookedSize = 0; // (bytes of ROM it covers)
     bool (*ownHook)(M68K &c, uint32_t address) = nullptr;
+    const void *ownContext = nullptr; // (whose hooks they are, for ownHook)
     bool OwnHook(uint32_t address) {
         return address < ownHookedSize && ownHooked[address / 2] && ownHook(*this, address);
     }

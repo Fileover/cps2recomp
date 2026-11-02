@@ -10,8 +10,10 @@
 - **The first Darkstalkers' stages in Vampire Savior Definitive**: with Darkstalkers' set (`dstlk`) too, its twelve
   stages and their music, shown as that game shows them (its board runs unseen beside Definitive's, its camera where
   Definitive's is, the fighters drawn over it). An option puts each match on the opponent's Darkstalkers stage, where
-  it has one; training and the stage viewer have them by name. The toolkit can now run another game's board beside a
-  game's (`guest_set`, `runtime/guest.h`; `--rom3`).
+  it has one; training and the stage viewer have them by name. **Street Fighter Alpha 2's eighteen** too, with its set
+  (`sfa2u`), by name. The toolkit runs other games' boards beside a game's (`game.cfg`'s `guests`, `runtime/guest.h`,
+  `--guest ID=PATH`), and shows their stages behind its fighters (`fight/guest_stages.h`): each other game is described
+  once, by its port's facts (`games/<id>/guest.h`).
 - **The Punisher**, set `punisheru` (USA 930422): the second CPS-1 game, a beat-'em-up for two players (the Punisher
   and Nick Fury), with what Cadillacs and Dinosaurs has: free play (the board's own), a stage to start at, attract
   mode, score attack, the stage and model viewers, the cheats, the Board page and the music's names. The toolkit's
