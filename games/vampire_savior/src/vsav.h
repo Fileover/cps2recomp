@@ -217,10 +217,16 @@ inline std::vector<const char *> RosterChoices(std::initializer_list<const char 
 }
 // The stages (family.h)
 constexpr int kStages = static_cast<int>(std::size(family::kStageNames));
-// Their names as a feature's choices, between the ones given
-inline std::vector<const char *> StageChoices(std::initializer_list<const char *> before, std::initializer_list<const char *> after = {}) {
+// Their names as a feature's choices, between the ones given; `more`: another game's stages this one can show after
+// them too (family.h: kMoreStageNames, kMoreStages of them), where a stage is chosen by name (training, the stage viewer)
+constexpr int kMoreStages = static_cast<int>(family::kMoreStageNames.size());
+inline std::vector<const char *> StageChoices(std::initializer_list<const char *> before, std::initializer_list<const char *> after = {},
+                                              bool more = false) {
     std::vector<const char *> out(before);
     out.insert(out.end(), std::begin(family::kStageNames), std::end(family::kStageNames));
+    if (more) {
+        out.insert(out.end(), family::kMoreStageNames.begin(), family::kMoreStageNames.end());
+    }
     out.insert(out.end(), after);
     return out;
 }

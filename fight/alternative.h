@@ -68,6 +68,9 @@ struct Description {
     // --- the stages ---
     // The stages by name (1 the first), each one's tune (0: none), and the other tunes offered after the stages'
     std::vector<const char *> stageNames;
+    // ... how many of them, the first, the viewer's Infinite goes through (0: all; the rest a game's sources show another
+    // way, which a stage scrolling into the next does not have)
+    int infiniteStages = 0;
     std::vector<uint16_t> stageTunes;
     std::vector<const char *> otherTuneNames;
     std::vector<uint16_t> otherTunes;

@@ -23,9 +23,13 @@
 #include <cstdlib>
 #include <iterator>
 
+// (the build's first pass, before the extra set has been read, writes a stand-in that says so: included all the same,
+// so that the build after it, with the real one, compiles this again)
 #if __has_include("graft_data.h")
 #include "graft_data.h"
+#ifndef GRAFT_NOT_YET
 #define VSAV_GRAFT 1
+#endif
 #endif
 
 namespace cps2recomp {
@@ -317,6 +321,7 @@ void RegisterOwnSources() {
             g_before(machine);
         }
     };
+    definitive::RegisterStages();
 }
 
 } // namespace vsav::family

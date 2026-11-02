@@ -158,6 +158,18 @@ the include path) says what is its own.
 - The shared rewrites are checked against the other game's own code like any rewrite
   (`games/vampire_savior/check_family.sh`).
 
+## Another game's board beside a game's
+
+A game can show something of a game made from another program (Vampire Savior Definitive shows the first
+Darkstalkers' stages): `game.cfg`'s `guest_set`, with `guest_name`, `guest_program`, `guest_graphics`,
+`guest_sound_program`, `guest_samples` and `guest_key` as a set's own lines, names a set whose whole board
+`runtime/guest.h` runs beside the game's. The set is optional (`--rom3`, or beside `--rom`; the collection's launcher
+passes the one chosen on that game's page). Its 68000 runs on the interpreter with hooks of its own at that game's
+addresses (`AddGuestHook`), and the game's sources run its frames, keep it with their state, and take its picture
+and sound (`Video::markObjects` to lay the game's objects over it, `Soundtrack::Take` for its music in place of the
+game's). `GuestSpare` gives a second board for work done ahead, outside the game's state.
+[games/vsav_definitive/src/stages.cpp](../games/vsav_definitive/src/stages.cpp) is the one so far.
+
 ## Other regions' sets of a game
 
 Capcom sold each release of a game in several regions, and for most the program is the same code: the region is a
@@ -234,7 +246,7 @@ name and choices in each: the collection's launcher then shows it once, for all 
 | Path | What |
 | --- | --- |
 | `tools/` | The translators (`recomp.py`, `m68k.py`; `recompz80.py`, `z80.py`), `gamecfg.py`, the checks (`check.sh`, `check_sound.sh`, `check_release.sh`, `at-once.sh`), finding a game's code by made-up play (`explore.sh`), reading the listing (`lst.py`, `tracechanges.py`, `ramfind.py`), the computer player's scripts of the Vampire Savior games and Super Gem Fighter as text (`aiscripts.py`), `gen_shaders.py`, `sync-common.sh`, `audit.sh`, `collection.sh`, and the release builds (`release/`) |
-| `runtime/` | What translated code is written in terms of; hooks and readable rewrites (`lift.h`); features and settings (`game.h`); save states (`state.h`); spare machines a game's modes run beside the port's (`spare.h`) |
+| `runtime/` | What translated code is written in terms of; hooks and readable rewrites (`lift.h`); features and settings (`game.h`); save states (`state.h`); spare machines a game's modes run beside the port's (`spare.h`); another game's board beside the game's (`guest.h`) |
 | `machine/` | The 68000, bus, interrupts, timing, settings EEPROM, ROM set and cipher; the custom soundtrack's catching of the game's music (`soundtrack.h`) |
 | `video/`, `sound/` | The picture; the Z80 and QSound; Capcom's sound driver (version 2.01b) as ordinary code (`driver.cpp`) |
 | `third_party/` | The sound file decoders the custom soundtrack reads with (stb_vorbis, dr_flac, dr_mp3, dr_wav), as their projects publish them |

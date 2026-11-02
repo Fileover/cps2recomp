@@ -15,6 +15,7 @@
 #include "png_write.h"
 #include "present.h"
 #include "../runtime/spare.h"
+#include "../runtime/guest.h"
 #include "port.h"
 #include "../recomp-common/folders.h"
 #include "../recomp-common/proxy.h"
@@ -84,8 +85,8 @@ bool Movie::Save(const std::string &path) const {
 }
 
 namespace {
-    constexpr uint32_t kStateVersion = 8; // (5: the 68000's wait kept; 6: the custom soundtrack's place; 7: the board timing's palette copy;
-                                          // 8: widescreen's camera a frame ago)
+    constexpr uint32_t kStateVersion = 9; // (5: the 68000's wait kept; 6: the custom soundtrack's place; 7: the board timing's palette copy;
+                                          // 8: widescreen's camera a frame ago; 9: a guest board's, runtime/guest.h)
 
     bool ReadFile(const std::string &path, std::vector<uint8_t> &data) {
         FILE *f = fopen(path.c_str(), "rb");
@@ -298,6 +299,30 @@ bool Port::Init(std::string &error) {
         if (!LoadRomSet(path, extra, extraRoms, extraError) && !LoadRomSet(path + ".zip", extra, extraRoms, extraError)) {
             error = std::string("the ROM set ") + GAME_EXTRA_SET + " is needed too: " + extraError;
             return false;
+        }
+    }
+#endif
+#ifdef GAME_GUEST_SET
+    // A board of another game run beside this one (runtime/guest.h): from --rom3, or beside --rom. Not needed: without
+    // it the game's sources leave out what they would show of it.
+    {
+        const RomList guest = ParseRomList(GAME_GUEST_PROGRAM, GAME_GUEST_GRAPHICS, GAME_GUEST_SOUND_PROGRAM, GAME_GUEST_SAMPLES,
+                                           GAME_GUEST_KEY, GAME_GUEST_SET, GAME_GUEST_SET);
+        std::string path = opt.guestRomPath;
+        if (path.empty()) {
+            std::string folder = opt.romPath;
+            while (!folder.empty() && folder.back() == '/') {
+                folder.pop_back();
+            }
+            const size_t slash = folder.find_last_of('/');
+            folder = slash == std::string::npos ? "." : folder.substr(0, slash);
+            path = folder + "/" + GAME_GUEST_SET;
+        }
+        std::string guestError;
+        if (LoadGuest(path, guest, guestError)) {
+            fprintf(stderr, "%s: the set %s too (%s)\n", GAME_NAME, GAME_GUEST_SET, GAME_GUEST_NAME);
+        } else {
+            fprintf(stderr, "%s: without %s (%s): %s\n", GAME_NAME, GAME_GUEST_SET, GAME_GUEST_NAME, guestError.c_str());
         }
     }
 #endif
@@ -2057,6 +2082,7 @@ void Usage() {
             "  --rom PATH             the ROM set (%s): a folder with its files, or its zip\n"
             "  --rom2 PATH            (a game that reads another set too) that set: a folder or zip (else\n"
             "                         beside --rom, by the set's name)\n"
+            "  --rom3 PATH            (a game that runs another game's board beside it) that set: the same\n"
             "  --eeprom FILE          where the board's settings memory is kept\n"
             "  --cpu MODE             native (translated code), blocks (the interpreter run the same way),\n"
             "                         interp (the interpreter, an instruction at a time), check\n"
@@ -2138,6 +2164,8 @@ bool ParseArgs(int argc, char **argv, port::Options &o) {
             o.romPath = next();
         } else if (a == "--rom2") {
             o.extraRomPath = next();
+        } else if (a == "--rom3") {
+            o.guestRomPath = next();
         } else if (a == "--eeprom") {
             o.eepromPath = next();
         } else if (a == "--cpu") {

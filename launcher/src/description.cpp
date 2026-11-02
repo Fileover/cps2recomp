@@ -44,6 +44,10 @@ struct GameInfo {
     const char* other_set;
     // The series the launcher puts it under, with the other games of it (game.cfg's series; "": none)
     const char* series;
+    // Another game whose board it can run beside its own (game.cfg's guest_set: runtime/guest.h; empty: none). In a
+    // collection, the set chosen for that game is given to it (--rom3); else the game looks for it beside its own. Not
+    // needed to play.
+    const char* guest_set;
 };
 #ifdef LAUNCHER_COLLECTION
 const GameInfo* game_of_set(const char* set);
@@ -188,6 +192,10 @@ launcher::Description describe_game(const GameInfo& game) {
         d.file_intro = keep(std::string(d.file_intro) + "\n\nIt takes things from " + other->name + " too: choose that game's ROM set (" +
                             other->rom_set + ") on its own page as well.");
     }
+    if (const GameInfo* other = game.guest_set && *game.guest_set ? game_of_set(game.guest_set) : nullptr) {
+        d.file_intro = keep(std::string(d.file_intro) + "\n\nWith " + other->name + "'s ROM set (" + other->rom_set +
+                            ") chosen on its own page too, it can show that game's stages.");
+    }
 #endif
 #ifdef __ANDROID__
     d.file_empty = keep("None chosen. Choose " + std::string(game.rom_set) + ".zip.");
@@ -203,7 +211,8 @@ launcher::Description describe_game(const GameInfo& game) {
     const std::vector<FeatureSwitch> switches = feature_switches(game.display);
     // What the game is started with: the player's ROM set (read only) and their saves folder
     const std::string extra = game.extra_set ? game.extra_set : "";
-    d.arguments = [switches, extra](const launcher::Launch& launch) {
+    const std::string guest = game.guest_set ? game.guest_set : "";
+    d.arguments = [switches, extra, guest](const launcher::Launch& launch) {
         std::vector<std::string> args = {"--rom", launch.file, "--eeprom", (launch.folder / "saves" / "eeprom.bin").string(),
                                          "--settings", (launch.folder / "settings.ini").string()};
 #ifdef LAUNCHER_COLLECTION
@@ -211,6 +220,13 @@ launcher::Description describe_game(const GameInfo& game) {
             const std::string file = launch.file_of(other->id);
             if (!file.empty()) {
                 args.push_back("--rom2");
+                args.push_back(file);
+            }
+        }
+        if (const GameInfo* other = guest.empty() || !launch.file_of ? nullptr : game_of_set(guest.c_str())) {
+            const std::string file = launch.file_of(other->id);
+            if (!file.empty()) {
+                args.push_back("--rom3");
                 args.push_back(file);
             }
         }

@@ -69,6 +69,8 @@ gen:
 			--out $(WORK)/extra/portmap.txt --entries $(WORK)/extra/entries.txt 2>/dev/null; \
 		python3 $(CR)/tools/graft.py --spec games/$(GAME)/graft.cfg --work $(WORK) \
 			--base $(shell $(CFG) extra_base $(GAME)) --out $(GEN)/graft_data.h; \
+	elif [ -f games/$(GAME)/graft.cfg ] && [ ! -f $(GEN)/graft_data.h ]; then \
+		echo '#define GRAFT_NOT_YET 1 // (the first build: the extra set not read yet; tools/graft.py writes this file)' > $(GEN)/graft_data.h; \
 	fi
 	@region=$$($(CFG) region_at $(GAME)); if [ -n "$$region" ]; then printf '%X\n' $$((0x$$region + 6)); fi > $(GEN)/region_hooks.txt
 	@if [ -f $(PROGRAM) ]; then \
