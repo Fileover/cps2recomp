@@ -48,6 +48,16 @@ public:
     bool Replaced(uint16_t song) const {
         return song < m_replaced.size() && m_replaced[song];
     }
+    // The songs the game's sources play from somewhere else for now (another board's music: runtime/guest.h), as the
+    // player's files are played: the board's music stops instead, and `state` follows the song and the game's fades for
+    // them to play it by. A song the player has a file for is the file's. (Not kept with save states: the game's sources
+    // set it before every frame, from their own state.)
+    void Take(std::vector<bool> songs) {
+        m_taken = std::move(songs);
+    }
+    bool Taken(uint16_t song) const {
+        return song < m_taken.size() && m_taken[song] && !Replaced(song);
+    }
 
     static constexpr uint32_t kFull = 0x10000;
     struct State {
@@ -74,7 +84,7 @@ public:
     void Serialize(Archive &ar);
 
 private:
-    std::vector<bool> m_music, m_replaced;
+    std::vector<bool> m_music, m_replaced, m_taken;
     std::vector<uint16_t> m_songs;
 };
 

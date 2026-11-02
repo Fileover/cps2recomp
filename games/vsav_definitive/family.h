@@ -48,6 +48,13 @@ inline constexpr const char *kStageNames[] = {
     "Vanity Paradise", "War Agony", "Forever Torment", "Green Scream", "Iron Horse, Iron Terror", "Fetus of God",
 };
 
+// The first Darkstalkers' stages, shown after these (src/stages.cpp: its board runs beside this one), in the lists a
+// stage is chosen from by name (training's, the stage viewer's): each character's in that game, in its order
+inline constexpr std::array<const char *, 12> kMoreStageNames{
+    "Darkstalkers: Demitri's",  "Darkstalkers: Jon Talbain's", "Darkstalkers: Victor's",   "Darkstalkers: Lord Raptor's",
+    "Darkstalkers: Morrigan's", "Darkstalkers: Anakaris's",    "Darkstalkers: Felicia's",  "Darkstalkers: Bishamon's",
+    "Darkstalkers: Rikuo's",    "Darkstalkers: Sasquatch's",   "Darkstalkers: Huitzil's", "Darkstalkers: Pyron's"};
+
 // The frame's lists of objects to draw that the objects of kind 12 have, one for each depth (src/picture.cpp)
 inline constexpr int kTwelveLists = 7;
 

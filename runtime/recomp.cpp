@@ -495,7 +495,7 @@ void M68K::Run(uint64_t until, Mode mode) {
                 continue;
             }
         }
-        if (!g_hooked.empty() && RunHook(*this, pc)) {
+        if (ownHooked ? OwnHook(pc) : !g_hooked.empty() && RunHook(*this, pc)) {
             continue;
         }
         // The interpreter: one instruction; on through the rest of a block when inside one

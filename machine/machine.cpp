@@ -671,7 +671,12 @@ uint16_t Machine::ReadCps1(uint32_t address) {
         return static_cast<uint16_t>(0xFF00 | (at < m_roms.soundProgram.size() ? m_roms.soundProgram[at] : 0xFF));
     }
     if (address >= 0x800140 && address < 0x800180) {
-        return 0xFFFF; // (this CPS-B has no multiplier or ID to read)
+        // (a chip with an ID gives it at its register, which some games check as they start: romset.h's Board; no
+        // multiplier, and nothing else, to read)
+        if (m_roms.board.idRegister && (address & 0x3E) == m_roms.board.idRegister) {
+            return m_roms.board.idValue;
+        }
+        return 0xFFFF;
     }
     Unmapped("read", address, cpu.pc);
     return 0xFFFF;

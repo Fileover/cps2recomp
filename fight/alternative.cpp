@@ -54,6 +54,9 @@ namespace {
     int Stages() {
         return static_cast<int>(d.stageNames.size());
     }
+    int InfiniteStages() {
+        return d.infiniteStages > 0 && d.infiniteStages < Stages() ? d.infiniteStages : Stages();
+    }
     int WideSide() {
         return d.wideSide ? d.wideSide() : 0;
     }
@@ -146,7 +149,7 @@ namespace {
         g_chosenStage = FeatureValue("viewer_stage");
         g.infinite = g_chosenStage == Stages();
         g.stage = g.infinite ? 1 : std::clamp(g_chosenStage, 0, Stages() - 1) + 1;
-        g.next = g.stage % Stages() + 1;
+        g.next = g.stage % InfiniteStages() + 1;
         g.camera = g.infinite ? LeftEnd() : (LeftEnd() + RightEnd()) / 2;
         g_wanted.stage = g.stage;
         machine.Reset();
@@ -273,7 +276,7 @@ namespace {
             // The next stage has come all the way in: its machine is the one the port runs from here, and the stage
             // after it is switched on
             g.stage = g.next;
-            g.next = g.stage % Stages() + 1;
+            g.next = g.stage % InfiniteStages() + 1;
             g.camera = LeftEnd();
             g.slide = 0;
             g.nextReady = false;
