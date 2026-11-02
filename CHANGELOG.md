@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- **Vampire Savior Definitive's Donovan, Phobos and Pyron work again** (#230): since 1.0.0 the downloads gave them
+  another character's moves (Victor's, for Donovan) and the game started over a few moves into the fight. The build
+  made its map of Vampire Savior 2's code once, on a fresh tree's first pass, before the game's code had been found, and
+  never again; it is now made again whenever the game's entries grow, and the release build stops if it is old.
 - **Updating on Android from inside the app** (#211): the update card's **Update** downloads the new version's APK,
   checks it against the release's `SHA256SUMS.txt`, and opens Android's installer, which asks you to confirm and
   installs it over the app: settings, saves and ROM sets stay. The first time, Android's Settings open for you to allow

@@ -57,6 +57,13 @@ build_programs() {
             echo "error: no translated code for $game in $generated/gen: run 'make GAME=$game' and 'make GAME=$game explore' with its ROM set first" >&2
             exit 1
         fi
+        # (a graft made from a map older than the game's entries is missing most of the taken characters' code, #230)
+        if [ "${NO_GAME_CODE:-}" != 1 ] && [ -f "$ROOT/games/$game/graft.cfg" ] && \
+            { grep -q GRAFT_NOT_YET "$generated/gen/graft_data.h" 2>/dev/null || [ ! -f "$generated/gen/graft_data.h" ] || \
+              [ "$generated/entries.txt" -nt "$generated/extra/portmap.txt" ]; }; then
+            echo "error: $game's graft is missing or made from an old map: run 'make GAME=$game' again first" >&2
+            exit 1
+        fi
         cmake -S "$ROOT" -B "$build/game-$game" -G Ninja -DCMAKE_BUILD_TYPE=Release -DGAME="$game" \
             -DGAME_DIR="$ROOT/games/$game" -DWORK_DIR="$generated" "$@" | grep "cps2recomp:"
         cmake --build "$build/game-$game" --target "$game"
