@@ -3,8 +3,8 @@
 ## Unreleased
 
 - **ROM sets in a folder named with an accent on Windows** (#223): a set in a folder such as `Jogos\Ação` is found and
-  starts. So are the launcher beside it, and your saves, save states, screenshots and settings when your user folder has
-  one (`C:\Users\João`). The ROM reader opens files by their wide names on Windows, and the launcher keeps every
+  starts. So are the launcher beside it, and your saves, save states, screenshots and settings when your Windows user
+  name has one (João, say). The ROM reader opens files by their wide names on Windows, and the launcher keeps every
   path as UTF-8 (recomp-common #53).
 - **Updating on Android from inside the app** (#211): the update card's **Update** downloads the new version's APK,
   checks it against the release's `SHA256SUMS.txt`, and opens Android's installer, which asks you to confirm and
