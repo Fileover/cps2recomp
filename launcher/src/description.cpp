@@ -253,7 +253,7 @@ launcher::Description describe_game(const GameInfo& game) {
             }
         }
         for (const std::string& id : ids_in(guests.c_str())) {
-            const std::string file = launch.file_of && game_of_id(id) ? launch.file_of(id) : "";
+            const std::string file = launch.file_of && game_of_id(id) ? launch.file_of(id.c_str()) : "";
             if (!file.empty()) {
                 args.push_back("--guest");
                 args.push_back(id + "=" + file);
