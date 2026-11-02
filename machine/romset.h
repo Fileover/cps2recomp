@@ -11,17 +11,26 @@
 
 namespace cps2recomp {
 
-// Which board the game is on. A CPS-2 unless the game's game.cfg says `board = cps1` (a CPS-1 with QSound, the
+// Which board the game is on. A CPS-2 unless the game's game.cfg says `board = cps1` (with `pairs=N` after it when
+// the program starts with N pairs of byte-wide files) (a CPS-1 with QSound, the
 // "CPS-1.5": a 12 MHz 68000 with an unenciphered program, the objects in the video memory, the Z80's program
 // enciphered with Kabuki). A CPS-1's CPS-B chip has its registers where the game's chip has them (game.cfg's
 // `cps_b`, the byte offsets as MAME's table of the chips has them: layer control, the four priority masks, palette
-// control, then the bits of the layer control that switch scroll screens 1-3 on). The CPS-2's are the defaults.
+// control, then the bits of the layer control that switch scroll screens 1-3 on; then, for a chip with one, its ID
+// register's offset and value). The CPS-2's are the defaults.
 struct Board {
     bool cps1 = false;
     uint8_t layerControl = 0x26;
     uint8_t priority[4] = {0x28, 0x2A, 0x2C, 0x2E};
     uint8_t paletteControl = 0x30;
     uint8_t enable[3] = {0x02, 0x04, 0x08};
+    // Pairs of files the program list starts with, each the even bytes then the odd ones of the same words (MAME's
+    // ROM_LOAD16_BYTE: game.cfg's `board = cps1 pairs=N`); the rest of the list whole words as usual
+    int programPairs = 0;
+    // The chip's ID register, which some games check as they start (MAME's first two values for the chip: the
+    // register's offset and what it reads; 0: none): two more values after cps_b's nine
+    uint8_t idRegister = 0;
+    uint16_t idValue = 0;
 };
 
 struct RomSet {
