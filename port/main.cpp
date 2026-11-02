@@ -88,8 +88,18 @@ namespace {
     constexpr uint32_t kStateVersion = 9; // (5: the 68000's wait kept; 6: the custom soundtrack's place; 7: the board timing's palette copy;
                                           // 8: widescreen's camera a frame ago; 9: a guest board's, runtime/guest.h)
 
+    // (a path is UTF-8 text: by its wide name on Windows, where a folder with an accent is not in the system's code page)
+    FILE *OpenFile(const std::string &path, const wchar_t *wideMode, const char *mode) {
+#ifdef _WIN32
+        (void)mode;
+        return _wfopen(TextPath(path).wstring().c_str(), wideMode);
+#else
+        (void)wideMode;
+        return fopen(path.c_str(), mode);
+#endif
+    }
     bool ReadFile(const std::string &path, std::vector<uint8_t> &data) {
-        FILE *f = fopen(path.c_str(), "rb");
+        FILE *f = OpenFile(path, L"rb", "rb");
         if (!f) {
             return false;
         }
@@ -101,7 +111,7 @@ namespace {
         return ok;
     }
     bool WriteFile(const std::string &path, const void *data, size_t size) {
-        FILE *f = fopen(path.c_str(), "wb");
+        FILE *f = OpenFile(path, L"wb", "wb");
         if (!f) {
             return false;
         }

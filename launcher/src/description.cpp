@@ -103,7 +103,9 @@ std::string sets_named(const GameInfo& game) {
 launcher::FileCheck check_rom_set(const GameInfo& game, const std::string& path) {
     launcher::FileCheck check;
     std::error_code error;
-    if (path.empty() || !std::filesystem::exists(path, error)) {
+    // (the path is UTF-8, as every one the launcher keeps: by its wide name on Windows, where a folder with an accent
+    // in it is not in the system's code page, #223)
+    if (path.empty() || !std::filesystem::exists(std::filesystem::u8path(path), error)) {
         check.message = "It isn't there any more.";
         return check;
     }
@@ -130,8 +132,8 @@ std::string rom_set_nearby(const GameInfo& game, const std::filesystem::path& pr
     std::error_code error;
     for (int up = 0; up < 8 && !folder.empty(); up++, folder = folder.parent_path()) {
         for (const std::filesystem::path& rom : {folder / "rom" / game.id, folder / "rom"}) {
-            if (std::filesystem::is_directory(rom, error) && check_rom_set(game, rom.string()).usable()) {
-                return rom.string();
+            if (std::filesystem::is_directory(rom, error) && check_rom_set(game, rom.u8string()).usable()) {
+                return rom.u8string();
             }
         }
         if (folder == folder.parent_path()) {
@@ -242,8 +244,8 @@ launcher::Description describe_game(const GameInfo& game) {
     const std::string extra = game.extra_set ? game.extra_set : "";
     const std::string guests = game.guests ? game.guests : "";
     d.arguments = [switches, extra, guests](const launcher::Launch& launch) {
-        std::vector<std::string> args = {"--rom", launch.file, "--eeprom", (launch.folder / "saves" / "eeprom.bin").string(),
-                                         "--settings", (launch.folder / "settings.ini").string()};
+        std::vector<std::string> args = {"--rom", launch.file, "--eeprom", (launch.folder / "saves" / "eeprom.bin").u8string(),
+                                         "--settings", (launch.folder / "settings.ini").u8string()};
 #ifdef LAUNCHER_COLLECTION
         if (const GameInfo* other = extra.empty() || !launch.file_of ? nullptr : game_of_set(extra.c_str())) {
             const std::string file = launch.file_of(other->id);

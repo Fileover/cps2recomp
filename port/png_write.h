@@ -6,6 +6,8 @@
 
 #include <cstdint>
 #include <cstdio>
+#include <filesystem>
+#include <string>
 #include <vector>
 #include <zlib.h>
 
@@ -26,7 +28,13 @@ inline bool WritePng(const char *path, const uint32_t *pixels, uint32_t w, uint3
     std::vector<uint8_t> z(zSize);
     compress2(z.data(), &zSize, raw.data(), raw.size(), 6);
 
+#ifdef _WIN32
+    // (the path is UTF-8: by its wide name, as a folder with an accent is not in the system's code page)
+    const std::string text(path);
+    FILE *f = _wfopen(std::filesystem::path(std::u8string(text.begin(), text.end())).wstring().c_str(), L"wb");
+#else
     FILE *f = fopen(path, "wb");
+#endif
     if (!f) {
         return false;
     }
