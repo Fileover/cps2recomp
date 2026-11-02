@@ -130,6 +130,33 @@ so the player picks each set once.
 - Arcade runs to the ending as each of the three; training fights between all eighteen; each of the three in the
   endless battle against every other character, 12,000 frames each.
 
+## The first Darkstalkers' stages
+
+Darkstalkers (`dstlk`) is not made from Vampire Savior's program: its engine is the one Night Warriors was built on
+([games/nwarr](../nwarr/README.md)). Its stages can't be taken in as the characters are, table by table, so they are
+shown as that game shows them: [src/stages.cpp](src/stages.cpp).
+
+- **Its board beside this one.** `game.cfg`'s `guest_set` names a set whose whole board the toolkit runs beside the
+  game's ([runtime/guest.h](../../runtime/guest.h)): its own 68000 (on the interpreter, with hooks of its own at that
+  game's addresses), video and sound. The set is optional: without it, only Vampire Savior's stages.
+- **On its way to the stage.** Each stage's round is made once, on a second board of Darkstalkers and a thread of its
+  own, from the program's start: the board played with made-up controls (credits, both Starts, a punch at each screen
+  that waits for one) into a two-player match, its stage set where it sets a match's (0059C6), to the round (about
+  1,000 of its frames for the first, 500 from its character choice for each after). That is the same board every time,
+  so a match on the stage always starts from it: the same in a run played straight, its frames run again by online
+  play's rollback, or a save state loaded. The thread starts with the game (with the option on) and has all twelve
+  within several seconds (about half a second a stage on a recent Mac); a match that wants one not made yet waits for it.
+- **Its camera.** Both games' stages are the same size (the camera from 256 to 640, the floor 0x28 up), so its
+  camera's steps across and up (0EDAF4, 0EDC1A) put it where Vampire Savior's is, no more than 8 pixels a frame: the
+  game paints the stage's new columns as the camera comes to them.
+- **The picture.** Vampire Savior's board draws its fighters and panel alone, marked (`Video::markObjects`), and they
+  are laid over the guest's picture, which hides its own fighters and panel (its colour sets below 14) and is as wide
+  as the game's.
+- **The music.** While a Darkstalkers stage is chosen, Vampire Savior's stage tunes are taken (`Soundtrack::Take`):
+  its board's music stops in their place, and the guest's music is heard with the same fades.
+- **Online and save states.** The guest's board is kept with the game's state, so rollback and run-ahead redraw it the
+  same. It changes nothing of Vampire Savior's play, so it is a Display option: each player sees their own.
+
 ## Not yet
 
 - Donovan's stage (Vampire Savior 2's thirteenth). Vampire Savior's twelve stages are all here.

@@ -32,7 +32,7 @@ def load(game=None):
 
 # What the collection's launcher is told of each game (launcher/src/description.cpp, GameInfo), in its order
 COLLECTION_KEYS = ["id", "name", "rom_set", "rom_parent", "rom_name", "program", "graphics", "sound_program", "samples", "key", "display",
-                   "players", "buttons", "board", "cps_b", "extra_set", "multi", "other_set", "series"]
+                   "players", "buttons", "board", "cps_b", "extra_set", "multi", "other_set", "series", "guest_set"]
 
 
 def quoted(value):

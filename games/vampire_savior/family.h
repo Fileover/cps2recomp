@@ -43,6 +43,10 @@ inline constexpr const char *kStageNames[] = {
     "Vanity Paradise", "War Agony", "Forever Torment", "Green Scream", "Iron Horse, Iron Terror", "Fetus of God",
 };
 
+// Stages of another game shown after these (Vampire Savior Definitive's, Darkstalkers': its src/stages.cpp), in the lists
+// a stage is chosen from by name (training's, the stage viewer's): none here
+inline constexpr std::array<const char *, 0> kMoreStageNames{};
+
 // The frame's lists of objects to draw that the objects of kind 12 have, one for each depth (src/picture.cpp)
 inline constexpr int kTwelveLists = 7;
 

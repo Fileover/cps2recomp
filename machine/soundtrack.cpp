@@ -83,7 +83,7 @@ void Soundtrack::Request(uint8_t *shared, uint64_t frame) {
     if (!IsMusic(song)) {
         return;
     }
-    if (!Replaced(song)) {
+    if (!Replaced(song) && !Taken(song)) {
         state.song = -1; // (the board's own)
         return;
     }

@@ -26,6 +26,7 @@ namespace port {
 struct Options {
     std::string romPath = "rom";
     std::string extraRomPath;  // --rom2: the extra set (game.cfg's extra_set), if the game has one (default: beside --rom)
+    std::string guestRomPath;  // --rom3: the guest set (game.cfg's guest_set), if the game has one (default: beside --rom)
     std::string eepromPath;    // the board's settings memory (created when missing)
     std::string moviePlay;     // input movie to replay
     std::string movieRecord;   // input movie to write

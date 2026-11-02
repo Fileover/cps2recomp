@@ -25,5 +25,8 @@ bool OffsetTable(M68K &c);
 void RegisterRules();
 // (choosing.cpp) the character choice: the three's places, under the grid
 void RegisterChoosing();
+// (stages.cpp) the first Darkstalkers' stages, its board run beside this one's: after the other registering (it goes
+// around the frame's)
+void RegisterStages();
 
 } // namespace cps2recomp::definitive

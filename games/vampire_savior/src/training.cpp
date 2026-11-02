@@ -154,7 +154,7 @@ void RegisterTraining() {
     d.wideStage = WideStage;
     d.wideSide = WideSide;
     d.wideMargin = WideMargin;
-    d.stageChoices = StageChoices({"The game's choice"});
+    d.stageChoices = StageChoices({"The game's choice"}, {}, true);
     d.stageWords = "Where a training session's fight is: the game's own choice (at random, from those that go with player 2's "
                    "character) or a stage named here. Takes effect when the characters are next chosen.";
     d.framesPrintVariable = "VSAV_FRAMES";

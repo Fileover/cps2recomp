@@ -97,9 +97,11 @@ void RegisterModes() {
     d.x = kX;
     d.xLong = true;
     d.startsTogether = true;
-    d.stageNames = StageChoices({});
-    for (int stage = 1; stage <= kStages; stage++) {
-        d.stageTunes.push_back(StageTune(stage));
+    d.stageNames = StageChoices({}, {}, true);
+    d.infiniteStages = kStages; // (another game's stages after these are not in the Infinite: family.h)
+    // (another game's stage shown after these plays the first's tune, which its sources play in its own place: family.h)
+    for (int stage = 1; stage <= kStages + kMoreStages; stage++) {
+        d.stageTunes.push_back(StageTune(stage <= kStages ? stage : 1));
     }
     d.otherTuneNames = {"Character select"};
     d.otherTunes = {0x02};

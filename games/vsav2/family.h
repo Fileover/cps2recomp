@@ -683,6 +683,10 @@ inline constexpr const char *kStageNames[] = {
     "Feast of the Damned, empty",
 };
 
+// Stages of another game shown after these (Vampire Savior Definitive's, Darkstalkers': its src/stages.cpp), in the lists
+// a stage is chosen from by name (training's, the stage viewer's): none here
+inline constexpr std::array<const char *, 0> kMoreStageNames{};
+
 // The frame's lists of objects to draw that the objects of kind 12 have, one for each depth (src/picture.cpp): one more
 // than Vampire Savior's (the table at 013D0C), so that the stage's pieces' lists come one later
 inline constexpr int kTwelveLists = 8;

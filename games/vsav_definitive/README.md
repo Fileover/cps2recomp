@@ -56,11 +56,23 @@ everyone.
 
 Not yet: Donovan's stage and Vampire Savior 2's music (Vampire Savior's twelve stages are all here).
 
+## The first Darkstalkers' stages
+
+With *Darkstalkers: The Night Warriors*' ROM set (`dstlk`) as well, the twelve stages of the first game are here too,
+each with its own music, as that game shows them. The **Darkstalkers' stages** option (Display) puts each match on the
+opponent's stage in Darkstalkers, where it has one: twelve of the eighteen characters have (not Lilith, Q-Bee, B.B.
+Hood, Jedah, Lei-Lei or Donovan, who keep Vampire Savior's). Training's stage and the stage viewer have all twelve by
+name. They are shown as Darkstalkers shows them: its board runs unseen beside this one, on that stage, with its
+camera where this game's is, and the fighters and the panel are drawn over its picture. Nothing of the game's play
+changes, so online each player sees the stages they chose.
+
 ## What you need
 
 - Both ROM sets: `vsavj` (*Vampire Savior: The Lord of Vampire*, Japan 970519) and `vsav2` (*Vampire Savior 2: The
   Lord of Vampire*, Japan 970913), each as a zip or a folder of its files, with its key file. In the launcher,
   choose `vsavj` on this game's page and `vsav2` on Vampire Savior 2's: this game takes it from there.
+- For the first Darkstalkers' stages (not needed to play): `dstlk` (*Darkstalkers: The Night Warriors*, Europe
+  940705), chosen on Darkstalkers' page.
 - One of: macOS 13 or later (Apple silicon or Intel); Linux x86_64 or SteamOS; Windows 10 or 11, 64-bit.
 
 ## Playing
