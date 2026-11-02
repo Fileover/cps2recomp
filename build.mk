@@ -62,10 +62,14 @@ endif
 gen:
 	@mkdir -p $(GEN)
 	@$(CFG) --header $(GEN)/game_info.h $(GAME)
+	@# (the map of this program in the other set's is made again whenever the game's entries have grown since: one
+	@# made from a fresh tree's first few entries knows little of the other set's code, and a graft from it gives
+	@# the taken characters the wrong code, #230)
 	@if [ -f $(PROGRAM).extra ] && [ -f games/$(GAME)/graft.cfg ]; then \
 		mkdir -p $(WORK)/extra; \
 		ln -sf ../program.bin.extra $(WORK)/extra/program.bin; ln -sf ../program.bin.extra.data $(WORK)/extra/program.bin.data; \
-		[ -f $(WORK)/extra/portmap.txt ] || python3 $(CR)/tools/portmap.py --from $(WORK) --to $(WORK)/extra \
+		[ -f $(WORK)/extra/portmap.txt ] && [ ! $(WORK)/entries.txt -nt $(WORK)/extra/portmap.txt ] || \
+			python3 $(CR)/tools/portmap.py --from $(WORK) --to $(WORK)/extra \
 			--out $(WORK)/extra/portmap.txt --entries $(WORK)/extra/entries.txt 2>/dev/null; \
 		python3 $(CR)/tools/graft.py --spec games/$(GAME)/graft.cfg --work $(WORK) \
 			--base $(shell $(CFG) extra_base $(GAME)) --out $(GEN)/graft_data.h; \

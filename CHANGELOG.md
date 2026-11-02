@@ -6,6 +6,10 @@
   can replace, game by game, without starting the game first (`--list-songs` prints one game's; `tools/songs.py`
   writes the page). Super Street Fighter II Turbo's second version of each stage's tune is now described as what it
   is: the faster one, once a fighter's health is down to a third (`ryu_later`).
+- **Vampire Savior Definitive's Donovan, Phobos and Pyron work again** (#230): since 1.0.0 the downloads gave them
+  another character's moves (Victor's, for Donovan) and the game started over a few moves into the fight. The build
+  made its map of Vampire Savior 2's code once, on a fresh tree's first pass, before the game's code had been found, and
+  never again; it is now made again whenever the game's entries grow, and the release build stops if it is old.
 - **Updating on Android from inside the app** (#211): the update card's **Update** downloads the new version's APK,
   checks it against the release's `SHA256SUMS.txt`, and opens Android's installer, which asks you to confirm and
   installs it over the app: settings, saves and ROM sets stay. The first time, Android's Settings open for you to allow
