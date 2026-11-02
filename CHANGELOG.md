@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- **Updating on Android from inside the app** (#211): the update card's **Update** downloads the new version's APK,
+  checks it against the release's `SHA256SUMS.txt`, and opens Android's installer, which asks you to confirm and
+  installs it over the app: settings, saves and ROM sets stay. The first time, Android's Settings open for you to allow
+  CPS-2 Recomp to install apps (`REQUEST_INSTALL_PACKAGES`); come back and the installer opens. **Install** opens the
+  installer again if you said not now (recomp-common #52).
 - **The first Darkstalkers' stages in Vampire Savior Definitive**: with Darkstalkers' set (`dstlk`) too, its twelve
   stages and their music, shown as that game shows them (its board runs unseen beside Definitive's, its camera where
   Definitive's is, the fighters drawn over it). An option puts each match on the opponent's Darkstalkers stage, where
