@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- **Hyper Street Fighter II: The Anniversary Edition** (`hsf2`, USA 040202; the Asia and Japan sets of the same date
+  play too): every character as they were in World Warrior, Champion Edition, Hyper Fighting, Super and Super Turbo,
+  against each other, with everything the other fighting games have: training mode, the alternative modes (attract
+  mode, the stage and model viewers, survival, endless battle, ring out, the tag team battle), widescreen, custom
+  colours and the colour editor, Akuma without a code, the board's settings, cheats and online play. The program grew
+  out of Super Turbo's, and the port carries what was found there over by lining the two programs up instruction by
+  instruction.
 - **`check-release` passes for every game** (#190): Street Fighter Alpha, Alpha 2 and Super Street Fighter II Turbo
   failed it, by design: the build with no translated code takes interrupts between instructions and translated code
   between blocks, and in those games that moves the random number and the ladder parts. It now compares that build,
