@@ -31,6 +31,7 @@ struct Board {
     // register's offset and what it reads; 0: none): two more values after cps_b's nine
     uint8_t idRegister = 0;
     uint16_t idValue = 0;
+    uint8_t dip[3] = {0xFF, 0xFF, 0xFF}; // default switch banks, overridden by game.cfg
 };
 
 struct RomSet {

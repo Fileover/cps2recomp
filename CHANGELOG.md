@@ -137,6 +137,11 @@
 - **Giga Wing's practice**: begun at the last stage's boss it now starts the Medallion's fight (it ran on to the end
   credits); the summary after a boss is no longer replaced by an empty one, and a stage's summary counts the whole
   stage; the cheats work in practice. Practice has a page of its own: [docs/PRACTICE.md](docs/PRACTICE.md).
+- **Board and Cheats choices from a game's `game.cfg`** (#163): a game can name its board's DIP switches
+  (`board_option_N`) and cheats that write to the work RAM (`cheat_N`, if wanted only while a value holds) in its
+  `game.cfg`. They go on the same Board and Cheats pages, into the same settings and the launcher's list as the
+  features a game's sources register; a name both give stops the game with a message. `tools/check_config_features.py`
+  checks the reading of them without a game. A game that declares none runs as before.
 - **Giga Wing** (`gigawing`, USA 990222; the Asia, Hispanic and Brazil sets of the same date play too), the
   collection's first shoot-'em-up, with a shooter's modes in a new part of the toolkit (`shmup/`): **practice** at any
   stage or straight at its boss, with the fighter, ships, bombs and power chosen, put back as it began with one button

@@ -63,6 +63,13 @@ public:
     static constexpr double kFramesPerSecond = 8000000.0 / 512 / 262;
 
     explicit Machine(const RomSet &roms);
+    // The DIP switches, banks A, B and C (a bit 1: the switch off), as the 68000 reads them: the board's (game.cfg's
+    // dip, DipAsSet) unless the port sets them (the Board page's choices, before every frame; not in save states)
+    uint8_t dip[3] = {0xFF, 0xFF, 0xFF};
+    const uint8_t *DipAsSet() const {
+        return m_roms.board.dip;
+    }
+
 
     // A second program, of another set (a game's game.cfg names it: extra_set), seen by the 68000 at `base` on: for
     // a game that runs code and reads tables of another made from the same program (the CPS-2 board leaves

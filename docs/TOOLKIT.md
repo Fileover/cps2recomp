@@ -244,6 +244,28 @@ that can be followed from its start without a fault. The Z80 reads opcodes throu
 `tools/recompz80.py` takes the opcode image (`--opcodes`). A CPS-1 board's graphics PAL maps tile numbers to ROMs; the
 games here have them in order, and a game whose PAL does not will need its map in `cps_b`'s company.
 
+## Board options and cheats from game.cfg
+
+`board_option_N` and `cheat_N` (consecutive from 1) use the existing feature registry and its Board/Cheats pages.
+Games with their own registered features keep them; declaration names must be unique across both sources.
+Settings and launcher's feature discovery use the same registry. No separate menu or launcher page is required.
+
+A board declaration has `name | title | A:0-2 | description | Easy=7 | Hard=0`: the bank is A, B or C, the
+bit range is inclusive and values are hexadecimal, shifted into that range. A single bit or one choice is allowed.
+Choice zero, "As the board is set", preserves the `dip` defaults. The board decides when it reads its switches;
+some games need Reset. Keep the board's factory values and switch meanings in its game.cfg.
+
+A cheat is `name | title | description | On: FF0000.b=01`; this address is an example, not a game's cheat.
+Writes use `.b`, `.w` or `.l`, hexadecimal addresses/values, in aligned work RAM FF0000-FFFFFF only.
+Multiple labelled choices are allowed. An optional `when FF0002.w=000D` (or `!=`) gates the writes to an
+appropriate game state. Choice zero is Off and performs no writes. Apply them in the common simulated-frame
+path, including rollback replay. Invalid declarations stop discovery/startup with a diagnostic instead of being
+silently ignored. Check the parsers without game files:
+
+```sh
+python3 tools/check_config_features.py --output work/config-feature-check
+```
+
 ## Working on the toolkit
 
 A toolkit change is checked with every game: build each (`make GAME=<id>`) and run its checks
