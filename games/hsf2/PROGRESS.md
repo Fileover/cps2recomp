@@ -42,7 +42,10 @@ All in `src/hsf2.h` with the routine or the experiment each came from. A5 is FF8
   so the slot says what is going on. Read from RAM dumps of each.
 - **Steps** (the game's task): FF8000 2 while the players choose (the speed, the version, the character), 4 during a
   match, 8 once the one player has lost (continue). In a match FF8004 is the match's step: 2-4 the versus screen, 6 a
-  round's introduction, 8 fought, 0A its end, 0C the next round's start. Super Turbo has them one word lower. Traced
+  round's introduction, 8 the round, 0A its end, 0C the next round's start; in 8, FF8008 is 0 while the round is called
+  ("FIGHT", about 120 frames, the players' routines not run) and 2 while it is fought. Taking 8 alone for "fought" broke
+  the ring out: the next stage's match was taken as ready during its call, and its players, not running, never took the
+  winner in, so the winner stood on the old stage until the picture cut away. Super Turbo has them one word lower. Traced
   with `--watch FF8000-FF800F` through a one-player game and a two-player one.
 - **The show** (its task): FF8000 2 and 4 the anniversary's mark and Capcom's, 6 the introduction (the old games'
   titles, then this one's: its own step is 0x20 as the title comes in, frame 2501), 8 the health warning, 0A the
