@@ -242,7 +242,7 @@ set is loaded: Capcom's QSound programs all start the same way, and every Kabuki
 so a search that splits the cipher's two halves leaves a few thousand candidates, of which one deciphers into code
 that can be followed from its start without a fault. The Z80 reads opcodes through `Z80Bus::ReadOpcode`, and
 `tools/recompz80.py` takes the opcode image (`--opcodes`). A CPS-1 board's graphics PAL maps tile numbers to ROMs; the
-games here have them in order, and a game whose PAL does not will need its map in `cps_b`'s company.
+QSound games here have them in order; a game whose PAL does not gives its map as `gfx_map` (below).
 
 ## Board options and cheats from game.cfg
 
@@ -264,6 +264,19 @@ silently ignored. Check the parsers without game files:
 
 ```sh
 python3 tools/check_config_features.py --output work/config-feature-check
+```
+
+Classic CPS-1 configuration additionally supports `cpu_clock = 10` or `12`, three hexadecimal `dip` bytes,
+`gfx_map`, `pairs=N` after the board as for `cps1`, `/be` for a program file of words high byte first, and graphics
+files joined with `+` (a group of byte-wide files side by side; a program's pairs are `pairs=N`, never `+`).
+The shared loader retains alternate-set selection. CPS-1 QSound boards retain their pre-existing DIP defaults.
+YM2151 and OKI state is saved for rollback; state version 10 follows version 9's guest board.
+
+The board-selection/default-DIP regression also runs without game files (from the repository root):
+
+```sh
+c++ -std=c++20 -I. -Irecomp-common tools/check_board_defaults.cpp machine/romset.cpp machine/cps2crypt.cpp machine/kabuki.cpp -lz -o work/check-board-defaults
+./work/check-board-defaults
 ```
 
 ## Working on the toolkit

@@ -46,8 +46,8 @@ endif ()
 
 set(MACHINE_SOURCES
     video/video.cpp video/native.cpp video/native_render.cpp
-    sound/z80.cpp sound/qsound.cpp sound/driver.cpp
-    machine/m68k.cpp machine/machine.cpp machine/sound_board.cpp machine/soundtrack.cpp machine/eeprom.cpp machine/romset.cpp machine/cps2crypt.cpp machine/kabuki.cpp
+    sound/z80.cpp sound/qsound.cpp sound/driver.cpp sound/okim6295.cpp third_party/ymfm_opm.cpp
+    machine/m68k.cpp machine/machine.cpp machine/cps1_sound.cpp machine/sound_board.cpp machine/soundtrack.cpp machine/eeprom.cpp machine/romset.cpp machine/cps2crypt.cpp machine/kabuki.cpp
     runtime/recomp.cpp runtime/recomp_z80.cpp
 )
 # The game's own sources (features, routines replaced by hand-written C++); without any, nothing is added
@@ -73,6 +73,8 @@ set(PORT_SOURCES port/main.cpp port/gpu_picture.cpp port/frontend_sdl.cpp port/p
 
 # (the sound files' decoders, third_party/, are other projects' code, compiled as they are)
 set_source_files_properties(port/decoders.cpp PROPERTIES COMPILE_OPTIONS "-w")
+# (ymfm's published YM2151 implementation for the classic CPS-1 sound board)
+set_source_files_properties(third_party/ymfm_opm.cpp PROPERTIES COMPILE_OPTIONS "-w")
 
 # (macOS: handing the front to the launcher, port/front_macos.mm)
 if (APPLE)
@@ -80,7 +82,7 @@ if (APPLE)
     list(APPEND PORT_SOURCES port/front_macos.mm)
 endif ()
 
-# The game, on cps2recomp's own machine (machine/). No emulator is compiled or linked into it.
+# The game on cps2recomp's machine (machine/); classic CPS-1 uses the credited ymfm YM2151 library.
 # (Android: a library, which the game's activity loads and calls the main of: android/, tools/release/android.sh)
 if (ANDROID)
     list(APPEND PORT_SOURCES port/android.cpp)

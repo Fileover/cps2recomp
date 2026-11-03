@@ -142,6 +142,11 @@
   `game.cfg`. They go on the same Board and Cheats pages, into the same settings and the launcher's list as the
   features a game's sources register; a name both give stops the game with a message. `tools/check_config_features.py`
   checks the reading of them without a game. A game that declares none runs as before.
+- **The classic CPS-1 board** (#163): `board = cps1-classic` is the CPS-1 before QSound: the 68000 at 10 or 12 MHz
+  (`cpu_clock`), its DIP switches (`dip`), the graphics mapper (`gfx_map`), program files of words high byte first
+  (`/be`), graphics files joined in groups (`+`), and its sound, the Z80 with a YM2151 ([ymfm](third_party/), the
+  second named exception of rule 4) and an OKI MSM6295, all of it in the save state (version 10). The CPS-1 games
+  with QSound and the CPS-2 games play as before.
 - **Giga Wing** (`gigawing`, USA 990222; the Asia, Hispanic and Brazil sets of the same date play too), the
   collection's first shoot-'em-up, with a shooter's modes in a new part of the toolkit (`shmup/`): **practice** at any
   stage or straight at its boss, with the fighter, ships, bombs and power chosen, put back as it began with one button

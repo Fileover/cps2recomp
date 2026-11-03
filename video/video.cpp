@@ -22,6 +22,21 @@ namespace {
         return static_cast<uint16_t>((p[0] << 8) | p[1]);
     }
 
+    // Where a CPS-1's PAL puts a kind's tile, in 64-byte units (machine/romset.h, GfxRange); -1: in no range, not
+    // drawn
+    int64_t MapTile(const Board &board, uint8_t kind, uint32_t unit) {
+        for (const GfxRange &range : board.gfxMap) {
+            if ((range.kinds & kind) && unit >= range.start && unit <= range.end) {
+                uint32_t base = 0;
+                for (unsigned b = 0; b < range.bank; b++) {
+                    base += board.gfxBanks[b];
+                }
+                return base + (unit & (board.gfxBanks[range.bank] - 1));
+            }
+        }
+        return -1;
+    }
+
     // Eight pixels of a tile row from its four bytes: one bit plane per byte, leftmost pixel in bit 7
     inline void Unpack(const uint8_t *row, uint8_t *pixels) {
         const uint8_t b0 = row[0], b1 = row[1], b2 = row[2], b3 = row[3];
@@ -152,6 +167,15 @@ void Video::DrawScroll(int which, int rasterLine, uint16_t *pens, uint8_t *prior
             at = tiles + code * 512;
             rowBytes = 16;
             break;
+        }
+        if (!m_src.board.gfxMap.empty()) {
+            // (a CPS-1 whose PAL does not keep the tiles in order: Street Fighter II's)
+            static const uint8_t kKinds[3] = {GfxRange::kScroll1, GfxRange::kScroll2, GfxRange::kScroll3};
+            const int64_t mapped = MapTile(m_src.board, kKinds[which], code << (which == 0 ? 0 : which == 1 ? 1 : 3));
+            if (mapped < 0) {
+                continue;
+            }
+            at = static_cast<uint32_t>(mapped) * 64 + (which == 0 && (column & 1) ? 4 : 0);
         }
         const int line = static_cast<int>(y & (size - 1));
         const bool flipX = attr & 0x20, flipY = attr & 0x40;
@@ -320,7 +344,16 @@ void Video::DrawObjectsCps1(int rasterLine, uint16_t *pens, const uint8_t *high,
                 }
                 const int cx = flipX ? across - 1 - tx : tx, cy = flipY ? down - 1 - ty : ty;
                 const uint32_t tile = (code & ~0xFu) + ((code + cx) & 0xF) + 0x10 * cy;
-                const uint32_t at = tile * 128 + static_cast<uint32_t>(flipY ? 15 - line : line) * 8;
+                uint32_t at = tile * 128 + static_cast<uint32_t>(flipY ? 15 - line : line) * 8;
+                if (!m_src.board.gfxMap.empty()) {
+                    // (through the graphics mapper, in units of 8x8 tiles as the scroll screens; a tile it has no
+                    // range for is not drawn)
+                    const int64_t mapped = MapTile(m_src.board, GfxRange::kObjects, tile << 1);
+                    if (mapped < 0) {
+                        continue;
+                    }
+                    at = static_cast<uint32_t>(mapped) * 64 + static_cast<uint32_t>(flipY ? 15 - line : line) * 8;
+                }
                 if (at + 8 > m_src.graphicsSize) {
                     continue;
                 }

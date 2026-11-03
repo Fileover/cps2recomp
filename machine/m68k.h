@@ -28,6 +28,11 @@ struct M68KBus {
     virtual uint16_t Fetch16(uint32_t address) = 0;
     // The CPU takes the interrupt of this level
     virtual void InterruptAck(unsigned level) {}
+    // Trial execution in the block checker: MMIO writes may change another address's read (a hardware multiplier).
+    // Reflect only those dependencies, then restore them before the reference interpreter runs.
+    virtual void BeginCheck() {}
+    virtual void CheckWrite(uint32_t address, unsigned size, uint32_t value) {}
+    virtual void EndCheck() {}
 };
 
 class M68K;

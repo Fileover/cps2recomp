@@ -93,8 +93,9 @@ namespace {
 } // namespace
 
 namespace {
-    constexpr uint32_t kStateVersion = 9; // (5: the 68000's wait kept; 6: the custom soundtrack's place; 7: the board timing's palette copy;
-                                          // 8: widescreen's camera a frame ago; 9: a guest board's, runtime/guest.h)
+    constexpr uint32_t kStateVersion = 10; // (5: the 68000's wait kept; 6: the custom soundtrack's place; 7: the board timing's palette copy;
+                                          // 8: widescreen's camera a frame ago; 9: a guest board's, runtime/guest.h;
+                                          // 10: classic CPS-1 sound, machine/cps1_sound.h)
 
     // (a path is UTF-8 text: by its wide name on Windows, where a folder with an accent is not in the system's code page)
     FILE *OpenFile(const std::string &path, const wchar_t *wideMode, const char *mode) {
@@ -664,8 +665,23 @@ bool Port::Init(std::string &error) {
 #ifndef GAME_OTHER_SET
 #define GAME_OTHER_SET ""
 #endif
+#ifndef GAME_GFX_MAP
+#define GAME_GFX_MAP ""
+#endif
     RomList list = ParseRomList(GAME_PROGRAM, GAME_GRAPHICS, GAME_SOUND_PROGRAM, GAME_SAMPLES, GAME_KEY, GAME_ROM_SET, GAME_ROM_PARENT,
-                                      GAME_BOARD, GAME_CPS_B, GAME_OTHER_SET);
+                                GAME_BOARD, GAME_CPS_B, GAME_OTHER_SET);
+    if (!ParseGfxMap(GAME_GFX_MAP, list.board)) {
+        error = "game.cfg's gfx_map cannot be read";
+        return false;
+    }
+#ifdef GAME_CPU_CLOCK
+    char* clockEnd = nullptr;
+    list.board.cpuClock = static_cast<int>(strtol(GAME_CPU_CLOCK, &clockEnd, 10));
+    if (!*GAME_CPU_CLOCK || *clockEnd || (list.board.cpuClock != 10 && list.board.cpuClock != 12)) {
+        error = "game.cfg's cpu_clock is 10 or 12 (MHz)";
+        return false;
+    }
+#endif
 #ifdef GAME_DIP
     {
         unsigned a, b, c;

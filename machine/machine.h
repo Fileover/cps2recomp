@@ -16,6 +16,7 @@
 #include "../sound/qsound.h"
 #include "../sound/z80.h"
 #include "../video/video.h"
+#include "cps1_sound.h"
 #include "eeprom.h"
 #include "m68k.h"
 #include "romset.h"
@@ -52,7 +53,7 @@ class Machine final : public M68KBus, public Z80Bus {
 public:
     static constexpr int kLines = 262, kBlankingLine = 240;
     static constexpr int kCpuCyclesPerLine = 1024; // 16 MHz, 512 pixel clocks of 8 MHz a line
-    static constexpr int kCps1CpuCyclesPerLine = 768; // (a CPS-1 with QSound: 12 MHz)
+    static constexpr int kCps1CpuCyclesPerLine = 768; // (a CPS-1 at 12 MHz; at 10 MHz, 640: Board::cpuClock)
     static constexpr int kSoundCyclesPerLine = 512; // 8 MHz
     // For tests: the 68000 this many times as fast as the board's, so that the game is never short of time in
     // a frame (runs whose code takes different amounts of time can then be compared picture by picture)
@@ -63,13 +64,6 @@ public:
     static constexpr double kFramesPerSecond = 8000000.0 / 512 / 262;
 
     explicit Machine(const RomSet &roms);
-    // The DIP switches, banks A, B and C (a bit 1: the switch off), as the 68000 reads them: the board's (game.cfg's
-    // dip, DipAsSet) unless the port sets them (the Board page's choices, before every frame; not in save states)
-    uint8_t dip[3] = {0xFF, 0xFF, 0xFF};
-    const uint8_t *DipAsSet() const {
-        return m_roms.board.dip;
-    }
-
 
     // A second program, of another set (a game's game.cfg names it: extra_set), seen by the 68000 at `base` on: for
     // a game that runs code and reads tables of another made from the same program (the CPS-2 board leaves
@@ -152,12 +146,22 @@ public:
     uint64_t dmaCounted = 0; // (CPS2RECOMP_BUS_LOG: the DMA's clocks since the last frame)
     // The game's music from the player's files (machine/soundtrack.h): sees the game's sound requests
     Soundtrack soundtrack;
+    // A request left for the sound side as the game leaves one (sixteen bytes, the last written last), not seen by
+    // the soundtrack: for the music switched over by the player. Only when the last request has been taken (the
+    // sixteenth byte back to FF); false when not yet, to be tried again
+    bool LeaveSoundRequest(const uint8_t request[16]);
 
     // Each player's Button bits (a game has two, three or four: the board's three- and four-player wiring is
     // there for every game, and a two-player game never reads it)
     static constexpr int kMaxPlayers = 4;
     uint16_t players[kMaxPlayers] = {};
     bool serviceButton = false, testSwitch = false;
+    // The DIP switches, banks A, B and C (a bit 1: the switch off), as the 68000 reads them: the board's (game.cfg's
+    // dip, DipAsSet) unless the port sets them (the Board page's choices, before every frame; not in save states)
+    uint8_t dip[3] = {0xFF, 0xFF, 0xFF};
+    const uint8_t *DipAsSet() const {
+        return m_roms.board.dip;
+    }
 
     M68K cpu;
     Z80 soundCpu;
@@ -192,6 +196,9 @@ public:
     void Write16(uint32_t address, uint16_t value) override;
     uint16_t Fetch16(uint32_t address) override;
     void InterruptAck(unsigned level) override;
+    void BeginCheck() override;
+    void CheckWrite(uint32_t address, unsigned size, uint32_t value) override;
+    void EndCheck() override;
     // Z80Bus
     uint8_t Read(uint16_t address) override;
     uint8_t ReadOpcode(uint16_t address) override {
@@ -199,7 +206,7 @@ public:
     }
     void Write(uint16_t address, uint8_t value) override;
     bool ChangesMapping(uint16_t address) override {
-        return address == 0xD003;
+        return address == (m_classic ? 0xF004 : 0xD003);
     }
     uint32_t Mapping() override {
         return m_soundBank;
@@ -250,6 +257,17 @@ private:
     uint64_t m_soundInterruptAt = 0; // ... of its next interrupt
     uint64_t m_sampleCount = 0;      // sound samples made
     uint64_t m_sampleAt = 0;         // the Z80's cycle count at which the next is due
+    uint16_t m_checkFactors[2] = {}; // temporary block-check trial state, never game/save state
+    // The classic CPS-1's sound side (none on other boards): its chips, the Z80's own memory, the two latches the
+    // 68000 writes requests to, and what is left over in turning the 8 MHz of a line into the Z80's 3.579545 MHz
+    std::unique_ptr<Cps1Sound> m_classic;
+    uint8_t m_classicRam[0x800] = {};
+    uint8_t m_latch[2] = {};
+    uint64_t m_classicFraction = 0;
+    bool m_logClassic = false; // (CPS2RECOMP_SOUND_COMMANDS: the latches and the OKI's commands)
+    void RunClassicSound(int cycles);
+    uint8_t ReadClassic(uint16_t address);
+    void WriteClassic(uint16_t address, uint8_t value);
 
     void RunLine();
     int LineCycles() const;
