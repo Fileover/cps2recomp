@@ -35,6 +35,9 @@ constexpr uint8_t kCoinModeFreePlay = 0x12;
 // The game reads them where it uses them: the ships at a game's start (0085F4), the bombs at each ship's start
 // (009236).
 constexpr uint32_t kSettings = kVars - 0x5F4C;
+// The test menu is on (byte, A5-5F6D: 0B895A sets it as the menu opens, and the coins are not counted meanwhile,
+// 0017DC; found from dumps before and in the menu). The menu shows and edits the variables below themselves.
+constexpr uint32_t kTestMode = kVars - 0x5F6D;
 constexpr uint32_t kSetContinue = kVars - 0x5DBB, kSetDemoSound = kVars - 0x5DBD, kSetDifficulty = kVars - 0x5DBE,
                    kSetShips = kVars - 0x5DB8, kSetBombs = kVars - 0x5DB7;
 

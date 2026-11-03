@@ -11,6 +11,7 @@ namespace cps2recomp {
 
 void RegisterBoard(); // board.cpp
 void BoardFrame(Machine &machine);
+void BoardState(Archive &ar);
 void RegisterMusic(); // music.cpp
 void RegisterModes(); // modes.cpp
 bool ChoicesLeftOut();
@@ -162,6 +163,7 @@ namespace {
         ModesState(ar);
         ar.Mark(0x47494741); // GIGA
         ar.Pod(g_title);
+        BoardState(ar);
     }
 } // namespace
 

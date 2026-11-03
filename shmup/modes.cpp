@@ -434,7 +434,7 @@ namespace {
                 if (FeatureValue("practice_readout") && d.readout) {
                     std::vector<std::string> readout;
                     d.readout(0, readout);
-                    float y = 0.17f;
+                    float y = 0.22f;
                     for (const std::string &line : readout) {
                         lines.push_back({0.01f, y, -1, line});
                         y += 0.05f;

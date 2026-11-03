@@ -4,9 +4,10 @@
 // Giga Wing: the board's settings (the Board page), as in the other games: each "As the board is set" unless chosen,
 // and a choice is what the test menu would have set. The game plays by the variables the settings record is copied
 // into (gigawing.h), reading each where it uses it (the ships at a game's start, the bombs at each ship's): a choice
-// is put in them before every frame, and the board's own while the test switch is held, so that the test menu shows
-// and saves the board's own.
+// is put in them before every frame, and the board's own as the test menu opens, so that the test menu shows and saves
+// the board's own.
 #include "gigawing.h"
+#include "state.h"
 
 namespace cps2recomp {
 
@@ -52,15 +53,32 @@ namespace {
     }
 } // namespace
 
+// The test menu shows and edits the variables themselves (and SAVE & EXIT copies them into the record): as it opens, the
+// board's own go back in them once, and the menu is left alone until it is left. (Kept with the state.)
+namespace {
+    bool g_inTest = false;
+}
+
 void BoardFrame(Machine &machine) {
+    const bool test = machine.testSwitch || Ram8(kTestMode) != 0;
     for (const Field &field : kFields) {
         const int value = Wanted(field);
         if (value < 0) {
             continue;
         }
-        // (the board's own while the test switch is held, for the test menu to show and keep)
-        SetRam8(field.variable, machine.testSwitch ? Ram8(kSettings + field.record) : static_cast<uint8_t>(value));
+        if (test) {
+            if (!g_inTest) {
+                SetRam8(field.variable, Ram8(kSettings + field.record));
+            }
+            continue;
+        }
+        SetRam8(field.variable, static_cast<uint8_t>(value));
     }
+    g_inTest = test;
+}
+
+void BoardState(Archive &ar) {
+    ar.Pod(g_inTest);
 }
 
 void RegisterBoard() {
