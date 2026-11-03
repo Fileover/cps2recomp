@@ -68,9 +68,28 @@ Board page (choices put in the variables before every frame, the board's own whi
 music's names, and the shoot-'em-up modes of the toolkit's `shmup/` (practice and its aids, score attack, caravan,
 boss rush, stage viewer, attract mode).
 
-## Checks
+## Checks (2026-11-03)
 
-(filled in below as they are run)
+- `make GAME=gigawing check FRAMES=40000 MOVIE=games/gigawing/movies/ladder.txt ARGS="--features free_play,invincible"`:
+  translated code as the interpreter, two runs alike (the ladder movie reaches stage 4's boss by frame 43,000).
+- `check FRAMES=12000` with the versus movie (two players): the same.
+- `check-blocks` with the ladder movie, 40,000 frames: 368 million translated blocks checked against the interpreter.
+  It first failed at two places reached only by computed jumps (a jump table of `bra`s at 05CE66, a callback at
+  047700): fixed by `--record-entries` runs (the ladder with and without features, versus, made-up play, stages 4-7,
+  the test menu, the sound test, every mode), 5,581 entries now.
+- `check-rollback` (three ways, 400 rollbacks each) and `check-online` (2,998 frames, names and chat, the match as an
+  offline replay): pass, with every feature of the game's on.
+- `check-release FRAMES=40000`: passes (533 frames differ between the interpreted and the translated build by design:
+  interrupts between instructions, not blocks).
+- `make check` and `tools/audit.sh`: pass.
+- By hand: `--stats` over the ladder, versus, made-up play, 20,000 frames of attract and the test menu: what runs in the
+  interpreter is only the instructions the translator leaves to it (divisions, `tas`, the status register: 135 of
+  them), never code it has not found. Features off = no sources: 8,000 frames of the versus movie with `--cpu interp`
+  give byte-identical hash logs with and without `src/`. A save state at 3,000 loaded into a fresh run: frames 3,001 to
+  6,000 alike. Run-ahead 1 and 2: the same hash log as off. Every Board choice read back from its variable; with
+  choices made the test menu shows and saves the board's own (the settings memory byte-identical without them: it
+  first showed the choices, as the menu edits the variables themselves, fixed by putting the board's own back once as
+  it opens, A5-5F6D). The launcher's three pages drawn with no window.
 
 ## Not checked by a person
 

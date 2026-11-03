@@ -10,6 +10,7 @@
 #include "shmup.h"
 #include "state.h"
 
+#include <algorithm>
 #include <cstdio>
 
 namespace cps2recomp {
@@ -101,6 +102,10 @@ namespace {
         lines.push_back("Multiplier x" + Bcd(Ram32(kMultiplier + 4 * p)));
         lines.push_back("Medal chain +" + Bcd(Ram32(kChain + 4 * p)));
         lines.push_back("Power " + std::to_string(Ram16(kPower + 2 * p) + 1) + "/" + std::to_string(kMostPower + 1));
+        const int reflect = Ram16(Ship(player) + kShipReflect);
+        if (reflect > 0) {
+            lines.push_back("Reflect " + std::to_string(std::min(reflect, kReflectFull) * 100 / kReflectFull) + "%");
+        }
         if (Ram8(kBossFlags) & kBossClock) {
             lines.push_back("Boss " + std::to_string(Ram16(kBossSeconds)) + " s");
         }

@@ -122,6 +122,10 @@ inline uint32_t Ship(int n) {
 constexpr uint32_t kShipFlags = 0x00, kShipX = 0x0A, kShipY = 0x0E, kShipBoxLeft = 0x16, kShipBoxRight = 0x18,
                    kShipBoxUp = 0x1A, kShipBoxDown = 0x1C;
 constexpr uint16_t kShipHit = 0x1000;
+// +8A word: the Reflect Barrier, charged up to 0x1000 while the shot button is held and run down while the barrier is
+// up (found from dumps holding the button)
+constexpr uint32_t kShipReflect = 0x8A;
+constexpr int kReflectFull = 0x1000;
 
 // The boss's clock: the TIME at the right while a boss is fought (word, A5+57FC: seconds left, counted down every 63
 // frames by 0593F6 while bit 3 of the byte at A5-0D84 is set; at 0 the boss leaves). Found from the panel's number.
