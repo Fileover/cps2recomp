@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+- **`check-release` passes for every game** (#190): Street Fighter Alpha, Alpha 2 and Super Street Fighter II Turbo
+  failed it, by design: the build with no translated code takes interrupts between instructions and translated code
+  between blocks, and in those games that moves the random number and the ladder parts. It now compares that build,
+  frame for frame, with the translated build run with `--cpu interp`, and the translated build with `--cpu blocks`;
+  the games' `release_allowed` is gone.
+
 ## 1.3.0
 
 **Two more Darkstalkers games and The Punisher**: Darkstalkers: The Night Warriors and Night Warriors: Darkstalkers'

@@ -86,7 +86,8 @@ make GAME=sfa2 check FRAMES=40000 MOVIE=games/sfa2/movies/ladder.txt
 make GAME=sfa2 check-blocks     # every translated block beside the interpreter: registers, flags, cycles, writes
 make GAME=sfa2 check-rewrites   # every readable rewrite beside the routine it replaces
 make GAME=sfa2 check-release FRAMES=40000
-                            # the build with no translated code (the interpreters; what CI builds) against the translated one
+                            # the build with no translated code (the interpreters; what CI builds) against the translated
+                            # one run with --cpu interp, and the translated one against --cpu blocks
 make GAME=sfa2 check-widescreen # the game's own check of its widescreen (Street Fighter Alpha 2, Vampire Savior)
 ```
 
