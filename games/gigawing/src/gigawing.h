@@ -87,6 +87,12 @@ constexpr uint32_t kMultiplier = kVars - 0xD1C, kChain = kVars - 0xD10;
 // 3 Stuck and the Widerstand; Down steps it 0, 3, 2, 1 on the choice of fighter) and the shot's power (word a player,
 // A5-0CF4 on: 0 at a ship's start, one more with each P picked up)
 constexpr uint32_t kFighter = kVars - 0xCF8, kPower = kVars - 0xCF4;
+// The choice of fighter (040B6A, each player's cursor an object: +02 its fighter, +03 the other player's): 040B8E adds
+// the step (D2: 1 down, -1 up) and keeps it below 4, passing over the other player's fighter unless bit 5 of A5-0D7F is
+// set; 040BBA puts it in the player's fighter word. There is a fifth, 4, the choice never reaches.
+constexpr uint32_t kChooseStep = 0x040B8E, kChooseStepped = 0x040BBA, kPlayerFlags = kVars - 0xD7F;
+constexpr uint8_t kPlayer2Choosing = 0x20;
+constexpr int kFighters = 5;
 // Scores: six BCD bytes a player (twelve digits, from A5-0F32 player 1's and A5-0F2A player 2's; the panel shows them
 // without the leading zeros: found by searching dumps for its numbers, which pass ten digits late in a game)
 constexpr uint32_t kScore1 = kVars - 0xF32, kScore2 = kVars - 0xF2A;

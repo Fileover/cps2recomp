@@ -25,6 +25,7 @@ the build tells you which one is missing or different.
 | [Marvel Super Heroes vs. Street Fighter](../games/mshvsf/README.md) | `mshvsf` | `mshvsf` (Europe 970625) |
 | [Marvel vs. Capcom](../games/mvsc/README.md) | `mvsc` | `mvsc` (Europe 980123) |
 | [Super Puzzle Fighter II Turbo](../games/puzzle_fighter/README.md) | `puzzle_fighter` | `spf2t` (Europe 960529) |
+| [Giga Wing](../games/gigawing/README.md) | `gigawing` | `gigawing` (USA 990222) |
 
 ## macOS
 

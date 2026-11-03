@@ -132,7 +132,7 @@ void ModesState(Archive &ar) {
 void RegisterModes() {
     shmup::Description d;
     d.stages = {"Stage 1", "Stage 2", "Stage 3", "Stage 4", "Stage 5", "Stage 6", "Stage 7"};
-    d.fighters = {"Sinnosuke (Raijin)", "Ruby (Carmine)", "Isha (Porchka)", "Stuck (Widerstand)"};
+    d.fighters = {"Sinnosuke (Raijin)", "Ruby (Carmine)", "Isha (Porchka)", "Stuck (Widerstand)", "The hidden, unfinished fifth"};
     d.canStart = [](const Machine &) { return Ram16(kMode) != 0; };
     d.credit = [] { SetRam8(kCredits, 1); };
     d.credits = [] { return static_cast<int>(Ram8(kCredits)); };

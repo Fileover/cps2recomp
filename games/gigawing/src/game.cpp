@@ -118,6 +118,25 @@ namespace {
         return false;
     }
 
+    // 040B8E: a player steps the choice of fighter (A6 the player's cursor, its fighter at +02 and the other player's at
+    // +03; D2 the step, 1 or -1): with the hidden fighter, through five, not four (the game's own keeps it below 4 at
+    // 040B92 and 040BB4), the other player's fighter passed over as the game does
+    bool ChooseStep(M68K &c) {
+        if (!FeatureOn("hidden_fighter") || ChoicesLeftOut()) {
+            return false;
+        }
+        const uint32_t cursor = c.a[6];
+        const int step = static_cast<int8_t>(c.d[2] & 0xFF);
+        // (the cursors are kept in the video memory the game uses as work space: read through the bus)
+        int fighter = (c.bus.Read8(cursor + 2) + step + kFighters) % kFighters;
+        if (!(Ram8(kPlayerFlags) & kPlayer2Choosing) && fighter == c.bus.Read8(cursor + 3)) {
+            fighter = (fighter + step + kFighters) % kFighters;
+        }
+        c.bus.Write8(cursor + 2, static_cast<uint8_t>(fighter));
+        c.pc = kChooseStepped;
+        return true;
+    }
+
     void Cheats() {
         if (Ram16(kMode) != kModePlay) {
             return;
@@ -162,7 +181,12 @@ void RegisterGame() {
     game.features.push_back({"invincible_2", "Cheats", "Invincibility, player 2", "Player 2's ship is never hit."});
     game.features.push_back({"start_stage", "Game", "Start at stage", "A new game starts at the beginning of the stage chosen.", 0,
                              {"Stage 1", "Stage 2", "Stage 3", "Stage 4", "Stage 5", "Stage 6", "Stage 7"}});
+    game.features.push_back({"hidden_fighter", "Game", "Hidden fighter",
+                             "The choice of fighter has a fifth, between Sinnosuke and Stuck, that the game never offers: a grey ship with a broad "
+                             "laser, left unfinished (no pilot, odd icons on the panel; the Dreamcast port finished it as Stranger).",
+                             0});
     AddHook(HookAt(kGameBegins), "GameBegins", GameBegins);
+    AddHook(HookAt(kChooseStep), "ChooseStep", ChooseStep);
     AddHook(HookAt(kShipHitAnswer), "ShipHit", ShipHit);
     AddHook(HookAt(kShipTouched), "ShipTouched", ShipTouched);
     AddHook(HookAt(kBombTaken), "BombTaken", BombTaken);
