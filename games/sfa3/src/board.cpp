@@ -12,7 +12,7 @@
 // copies them):
 //   +01 continue      98  0 off, 1 on (on)     +10 difficulty  A0  0 easy, 1 normal, 2-6 hard 1-5, 7 expert (hard 3)
 //   +03 demo sound    99  0 off, 1 on (on)     +11 damage      A1  0 low, 1 normal, 2 high, 3 maximum (normal)
-//                                              +12 timer speed A2  0 slow, 1 normal, 2 fast, 3 fastest (normal)
+//   +06 regulation    BB  0 off, 1 on (on)     +12 timer speed A2  0 slow, 1 normal, 2 fast, 3 fastest (normal)
 //                                              +13 game speed  A3  0 normal, 1-2 turbo 1-2, 3-4 free select 1-2
 //                                                                  (turbo 2)
 //                                              +14 1P max round DE  0, 1, 2: one, three, five rounds (three)
@@ -20,9 +20,11 @@
 //                                              +16 event       A5  0 off, 1 one match (which clears continue: 0019B6)
 //                                              +17 join-in     A4  0 off, 1 on: a second player may join in (on)
 // (the values and their names from the test menu's pages, each stepped through with the variable read after each
-// step; in brackets the value the test menu shows as the board's own on a new board). Not offered: +06 regulation, BB
-// (System configuration's; 0 red blood, 1 white: kRegulation, from HSFA's index). The factory settings are a record of
-// this layout for each region (00235A, by kRegion).
+// step; in brackets the value the test menu shows as the board's own on a new board). Regulation (+06, BB:
+// kRegulation; System, the seventh row) is the blood: on, the hit sparks' blood is white and a few of Zangief's and
+// Sodom's animations and the endings' objects are the censored ones; off, red as in Japan, whose boards have it off.
+// The factory settings are a record of this layout for each region (00235A, by kRegion; from HSFA's index, issue
+// #244, checked here).
 #include "sfa3.h"
 
 #include "machine.h"
@@ -45,7 +47,7 @@ namespace {
         {"board_difficulty", kVars + 0xA0, 0}, {"board_damage", kVars + 0xA1, 0},    {"board_timer", kVars + 0xA2, 0},
         {"board_speed", kVars + 0xA3, 0},      {"board_rounds", kVars + 0xDE, 0},    {"board_rounds_2p", kVars + 0xDF, 0},
         {"board_event", kVars + 0xA5, 0},      {"board_join_in", kVars + 0xA4, 0},   {"board_continue", kVars + 0x98, 0},
-        {"board_demo_sound", kVars + 0x99, 0},
+        {"board_demo_sound", kVars + 0x99, 0}, {"board_regulation", sfa3::kRegulation, 0},
     };
     constexpr uint32_t kContinue = kVars + 0x98, kEvent = kVars + 0xA5;
 
@@ -139,6 +141,10 @@ void RegisterBoard() {
                              {kAsSet, "Off", "On"}});
     game.features.push_back({"board_continue", kPage, "Continue", "Whether a game over can be continued.", 0, {kAsSet, "Off", "On"}});
     game.features.push_back({"board_demo_sound", kPage, "Demo sound", "Whether the attract mode plays sound.", 0, {kAsSet, "Off", "On"}});
+    game.features.push_back({"board_regulation", kPage, "Regulation",
+                             "The blood: off, red as on a Japanese board; on, white, with a few animations and ending pictures "
+                             "the censored ones (a board for elsewhere has it on).",
+                             0, {kAsSet, "Off (red blood)", "On (white blood)"}});
     AddHook(HookAt(0x0010DA), "SettingsRead", SettingsRead);
     AddHook(HookAt(0x008CCE), "GameBegins", GameBegins);
 }
