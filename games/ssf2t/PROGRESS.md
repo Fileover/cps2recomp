@@ -133,19 +133,19 @@ Run on 2026-10-25, macOS (Apple silicon), each alone:
 - **Board**: every choice of the four read back from its variable at frame 299; with choices made the test menu shows
   the board's own values, and the settings memory is the same as with none.
 - **Launcher**: its three pages drawn with no window.
-- **`make GAME=ssf2t check-release` fails** its second part: the build with no translated code (the interpreter, as CI
-  builds it) makes the same pictures twice, and plays the whole ladder to the ending and the show, but its pictures part
+- **`make GAME=ssf2t check-release`** passes since #190, which no longer compares the two builds' pictures: the build
+  with no translated code (the interpreter, as CI builds it) makes the same pictures twice and the same as the
+  translated build's with `--cpu interp`, and plays the whole ladder to the ending and the show, but its pictures part
   from the translated build's in the first fight and do not meet again (36,444 of 40,000). The game is timed to the
   instruction by its interrupts: its tasks wait on counters the vblank interrupt steps, and its frames fill the
   processor (above all at the turbo speeds), so where the interrupt is taken (the interpreter between instructions,
   translated code between blocks) changes when a task gives way, small words of RAM first (frame 874, then 1,480, the
   objects' budget) and the random number from frame 2,691 on, and from there the computer's choices. Neither Turbo 1,
   free select, arcade timing nor a processor twice as fast changes that. It is not a fault of the translation (`check`
-  and `check-blocks`, which take interrupts as translated code does, agree exactly); the other games' frames are not
-  full enough for it to show.
+  and `check-blocks`, which take interrupts as translated code does, agree exactly); in most other games the frames are
+  not full enough for it to show (Alpha and Alpha 2's ladders part too).
 
 ## Not yet
 
 - The other characters' endings in the music's names, and continue and game over.
-- `check-release`'s comparison (above): the interpreter would have to take interrupts between translated blocks too.
 - Nobody has played it by hand, heard its sound, or seen it in a window.
