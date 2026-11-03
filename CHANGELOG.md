@@ -6,6 +6,26 @@
   **Online > Set format**. The host's choice applies to both players. Confirmed two-player results award game wins,
   and both players return to the launcher after agreeing on the final score and showing the winner briefly. Casual is the
   default, including in Pure. Both players need this updated online protocol.
+- **Hyper Street Fighter II: The Anniversary Edition** (`hsf2`, USA 040202; the Asia and Japan sets of the same date
+  play too): every character as they were in World Warrior, Champion Edition, Hyper Fighting, Super and Super Turbo,
+  against each other, with everything the other fighting games have: training mode, the alternative modes (attract
+  mode, the stage and model viewers, survival, endless battle, ring out, the tag team battle), widescreen, custom
+  colours and the colour editor, Akuma without a code, the board's settings, cheats and online play. The program grew
+  out of Super Turbo's, and the port carries what was found there over by lining the two programs up instruction by
+  instruction.
+- **`check-release` passes for every game** (#190): Street Fighter Alpha, Alpha 2 and Super Street Fighter II Turbo
+  failed it, by design: the build with no translated code takes interrupts between instructions and translated code
+  between blocks, and in those games that moves the random number and the ladder parts. It now compares that build,
+  frame for frame, with the translated build run with `--cpu interp`, and the translated build with `--cpu blocks`;
+  the games' `release_allowed` is gone.
+
+## 1.3.0
+
+**Two more Darkstalkers games and The Punisher**: Darkstalkers: The Night Warriors and Night Warriors: Darkstalkers'
+Revenge, with training mode, widescreen and the alternative modes, and The Punisher, the second CPS-1 beat-'em-up.
+Vampire Savior Definitive's Donovan, Phobos and Pyron work again (they were broken in every download since 1.0.0), and
+with the first Darkstalkers' or Street Fighter Alpha 2's set, Definitive fights on their stages too. Also VSync,
+screenshots (F12), updating on Android from inside the app, and ROM sets in folders with accents on Windows.
 
 - **Every game's songs, listed** (#234): [docs/SONGS.md](docs/SONGS.md) names each song a custom soundtrack's files
   can replace, game by game, without starting the game first (`--list-songs` prints one game's; `tools/songs.py`

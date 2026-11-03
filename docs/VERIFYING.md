@@ -51,6 +51,18 @@ the per-frame state hashes (`--hash-log`: CPU, RAM, video and object memory, reg
 `blocks` against `native`, and `native` against itself. This covers what the block check cannot:
 routines calling one another on the host's stack, and time running out inside them.
 
+## `make check-release` (FRAMES=n): the build with no translated code
+
+Builds the game with no translated code (what CI builds, and a checkout before `make explore`) and runs the ladder
+movie, five runs at once, comparing the picture hashes frame for frame: two runs of that build alike; that build
+against the translated build run with `--cpu interp` (the same program but for the translated code); and the
+translated build against itself with `--cpu blocks` (its translated code is the interpreter's over the whole ladder).
+The build with no translated code is not compared with the translated build: the interpreter takes interrupts
+between instructions, translated code between blocks, and where a game's frames fill the processor that moves when a
+task gives way and so the random number (Alpha, Alpha 2 and Super Turbo part for good within the ladder, #190). How
+many frames differ is shown, not checked. It prints a checksum of the picture hashes, which a build for any other
+system must give too.
+
 ## `make check-rollback` (FRAMES=n): what online play needs
 
 Online play (#70) runs a frame with the other player's controls guessed, and when they come and the guess was

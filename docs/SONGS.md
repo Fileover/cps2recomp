@@ -11,6 +11,7 @@ no name for yet by number.
 - [Alien vs. Predator](#alien-vs-predator) (23)
 - [Cadillacs and Dinosaurs](#cadillacs-and-dinosaurs) (28)
 - [Darkstalkers](#darkstalkers) (22)
+- [Hyper Street Fighter II](#hyper-street-fighter-ii) (43)
 - [Marvel Super Heroes](#marvel-super-heroes) (22)
 - [Marvel Super Heroes vs. Street Fighter](#marvel-super-heroes-vs-street-fighter) (29)
 - [Marvel vs. Capcom](#marvel-vs-capcom) (28)
@@ -117,6 +118,54 @@ no name for yet by number.
 | `ending_start` | `21` | After the last fight, before the ending |
 | `ending` | `2A` | Ending (Jon Talbain's) |
 | `after_ending` | `07` | After the ending |
+
+## Hyper Street Fighter II
+
+| File name | Number | What it is |
+|---|---|---|
+| `ryu` | `02` | Ryu's stage |
+| `honda` | `03` | E. Honda's stage |
+| `blanka` | `05` | Blanka's stage |
+| `guile` | `07` | Guile's stage |
+| `ken` | `01` | Ken's stage |
+| `chunli` | `04` | Chun-Li's stage |
+| `zangief` | `06` | Zangief's stage |
+| `dhalsim` | `08` | Dhalsim's stage |
+| `bison` | `0C` | M. Bison's stage |
+| `sagat` | `0B` | Sagat's stage |
+| `balrog` | `09` | Balrog's stage |
+| `vega` | `0A` | Vega's stage |
+| `cammy` | `0E` | Cammy's stage |
+| `thawk` | `0F` | T. Hawk's stage |
+| `feilong` | `0D` | Fei Long's stage |
+| `deejay` | `10` | Dee Jay's stage |
+| `ryu_later` | `12` | Ryu's stage, faster (a fighter's health low) |
+| `honda_later` | `13` | E. Honda's stage, faster (a fighter's health low) |
+| `blanka_later` | `15` | Blanka's stage, faster (a fighter's health low) |
+| `guile_later` | `17` | Guile's stage, faster (a fighter's health low) |
+| `ken_later` | `11` | Ken's stage, faster (a fighter's health low) |
+| `chunli_later` | `14` | Chun-Li's stage, faster (a fighter's health low) |
+| `zangief_later` | `16` | Zangief's stage, faster (a fighter's health low) |
+| `dhalsim_later` | `18` | Dhalsim's stage, faster (a fighter's health low) |
+| `bison_later` | `1C` | M. Bison's stage, faster (a fighter's health low) |
+| `sagat_later` | `1B` | Sagat's stage, faster (a fighter's health low) |
+| `balrog_later` | `19` | Balrog's stage, faster (a fighter's health low) |
+| `vega_later` | `1A` | Vega's stage, faster (a fighter's health low) |
+| `cammy_later` | `1E` | Cammy's stage, faster (a fighter's health low) |
+| `thawk_later` | `1F` | T. Hawk's stage, faster (a fighter's health low) |
+| `feilong_later` | `1D` | Fei Long's stage, faster (a fighter's health low) |
+| `deejay_later` | `20` | Dee Jay's stage, faster (a fighter's health low) |
+| `final_fight` | `D5` | The final fight |
+| `final_fight_later` | `D6` | The final fight, faster (a fighter's health low) |
+| `title` | `33` | The introduction and the title (played once) |
+| `qsound` | `3D` | The QSound notice (played once) |
+| `player_select` | `34` | Player select |
+| `versus` | `35` | Versus screen (played once) |
+| `winner` | `36` | Winner (the winner's quote) (played once) |
+| `continue` | `37` | Continue? (played once) |
+| `ranking` | `3A` | Score ranking (played once) |
+| `ryu_ending` | `23` | Ryu's ending |
+| `staff_roll` | `3C` | Staff roll |
 
 ## Marvel Super Heroes
 

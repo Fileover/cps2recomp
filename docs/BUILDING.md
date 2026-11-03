@@ -10,6 +10,7 @@ the build tells you which one is missing or different.
 | Game | `GAME=` | ROM set |
 | --- | --- | --- |
 | [Super Street Fighter II Turbo](../games/ssf2t/README.md) | `ssf2t` | `ssf2xjr1` (Japan 940223) |
+| [Hyper Street Fighter II](../games/hsf2/README.md) | `hsf2` | `hsf2` (USA 040202) |
 | [Street Fighter Alpha](../games/sfa/README.md) | `sfa` | `sfa` (Europe 950727) |
 | [Street Fighter Alpha 2](../games/sfa2/README.md) | `sfa2` | `sfa2u` (USA 960430) |
 | [Street Fighter Zero 2 Alpha](../games/sfz2al/README.md) | `sfz2al` | `sfz2al` (Asia 960826) |
@@ -86,7 +87,8 @@ make GAME=sfa2 check FRAMES=40000 MOVIE=games/sfa2/movies/ladder.txt
 make GAME=sfa2 check-blocks     # every translated block beside the interpreter: registers, flags, cycles, writes
 make GAME=sfa2 check-rewrites   # every readable rewrite beside the routine it replaces
 make GAME=sfa2 check-release FRAMES=40000
-                            # the build with no translated code (the interpreters; what CI builds) against the translated one
+                            # the build with no translated code (the interpreters; what CI builds) against the translated
+                            # one run with --cpu interp, and the translated one against --cpu blocks
 make GAME=sfa2 check-widescreen # the game's own check of its widescreen (Street Fighter Alpha 2, Vampire Savior)
 ```
 
