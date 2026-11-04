@@ -178,8 +178,9 @@ against it. Row scroll is a per-line offset buffer for the scroll 2 pass, and ba
 The **CPU rasteriser** draws the same `Frame`, line by line, for check (b). It is the reference against
 `video.cpp`. It does not draw what the player sees.
 
-Done so far: `PaletteUpload` (one upload: the pages taken, the buffer, the colours) and `ObjectList` (the list the
-board takes for a frame: its 1,024 entries, the priority control and the offsets).
+Done so far: `PaletteUpload` (one upload: the pages taken, the buffer, the colours), `ObjectList` (the list the board
+takes for a frame: its 1,024 entries, the priority control and the offsets) and `Layers` (the registers a line is drawn
+with: the maps, the scrolls, the row scroll, the layer control, the objects' offsets).
 
 ## The checks
 
@@ -296,6 +297,29 @@ Results, the same runs as the palette's:
 
 None differed. The palette's uploads, now from the watches, are as in the table above, all the same.
 
+## The third slice: the layers' registers
+
+`video.cpp` reads the layers' registers on every line it draws: where each scroll screen's map is and where it is
+scrolled to, the row scroll's table and place and whether it is on, the layer control (the order and which are on),
+and the objects' offsets. A game can change them part way down the picture (Marvel Super Heroes does, from its raster
+interrupt), so they are compared line by line: at each line the board draws, the registers it draws with
+(`DecodeLayers`) must be what the game's side has the game last saying to each.
+
+The game's side hears it from the same `video_writes` watches, now with every instruction that writes CPS-A or CPS-B
+(the census's, of any form the watch reads, and the listing's `move`s and `clr`s to a fixed register; a watch reads
+`move` of a long and `clr` too, which write two registers at once). Some games write registers from their own rewrites
+(Alpha 2's `FrameRegisters`, the palette's commit): whatever a rewrite writes to a video register is the game's word by
+being a rewrite's, and is told to the game's side as it is written (`M68K::nativeWrites`); the game's own code a
+rewrite calls is not, its instructions are watched. The registers start as the board's do (the places of the maps it
+starts with), until the game says otherwise.
+
+Results, the same runs:
+
+Every line drawn, 896,000 in each attract mode run (4,000 frames) and 1,344,000 in each ladder (6,000), was drawn with
+the registers the game's side has, in all eight games (Marvel Super Heroes' lines below its raster interrupt's changes
+among them); the palette's uploads and the object lists as before, all the same; the frame hashes the same as without
+the lifts.
+
 ## Order of work
 
 Sizes: S a session, M a few, L a week or more.
@@ -305,8 +329,8 @@ Sizes: S a session, M a few, L a week or more.
 2. **The object list:** the list handed over at the bank swap, checked against the board's each frame: done for the
    eight games. Then the drawers' entries as `Object`s from the piece writers themselves (the Alpha library's list
    builder): M for Alpha, M for Marvel; SF2's copy in the interrupt, S.
-3. **Registers from shadows:** scrolls, layer control, priority masks, object offsets (sfa2's 0013CE is already a
-   rewrite, `FrameRegisters`, in the game's sources; it moves to the toolkit). M.
+3. **The layers' registers**, line by line: done for the eight games. Next: the same records made from the game's own
+   shadows (the commit routines rewritten, sfa2's `FrameRegisters` among them, which moves to the toolkit). M.
 4. **Raster bands:** Marvel (seen); the Vampire games and Giga Wing set the counters but changed nothing in these
    runs. S-M.
 5. **The CPU rasteriser of `Frame` and check (b)** against `video.cpp` on every game's movies. M.

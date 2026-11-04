@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- **The picture at the game's level: the layers' registers** ([docs/NATIVE_VIDEO.md](docs/NATIVE_VIDEO.md)): where the
+  game's scroll layers are, where each is scrolled to, the row scroll and the layers' order, as the game sets them,
+  are checked against the board's on every line drawn, in the same eight games. Nothing changes in play.
 - **The picture at the game's level: the object list** ([docs/NATIVE_VIDEO.md](docs/NATIVE_VIDEO.md)): the list of
   sprites the game hands the board each frame is now known at the game's level and checked against the board's, every
   frame, in the same eight games. The toolkit's hooks gained a kind that only looks (a watch), which leaves the

@@ -75,10 +75,9 @@ namespace {
     void CommitPalette(M68K &c) {
         const uint16_t pages = Ram16(Variable(c, g_commit.pages));
         const uint16_t base = Ram16(Variable(c, g_commit.base));
-        // (the native interface is told each write first: the upload is made from the game's buffer and pages)
-        c.nativeVideo->GameWrites(c, g_commit.pagesRegister, pages, false);
+        // (a rewrite's writes to the video's registers are told to the native interface as they are made: the upload's
+        // record is made from the game's buffer and the pages it asks for)
         c.Write(g_commit.pagesRegister, 1, pages);
-        c.nativeVideo->GameWrites(c, g_commit.baseRegister, base, false);
         c.Write(g_commit.baseRegister, 1, base);
         const uint16_t next = Ram16(Variable(c, g_commit.next));
         SetRam16(Variable(c, g_commit.base), next);
@@ -106,20 +105,22 @@ namespace {
         AddRewrite(at, "CommitPalette", CommitPalette, 0, 68);
     }
     // --- The video's registers written elsewhere: every other family's commit, every game's start-up, the object
-    // bank's swaps. Each is a `move.b` or `move.w` (from a data register, an address register's place, a variable or a
-    // number; to a fixed address or an address register's place). The hook works out, from the CPU as the instruction
-    // finds it, the value and the place, and tells the native interface when the place is a video register.
+    // bank's swaps, the scrolls and the layers. Each is a `move` of a byte, a word or a long (from a data register, an
+    // address register's place, a variable or a number), or a `clr`; to a fixed address or an address register's
+    // place. A watch there works out, from the CPU as the instruction finds it, the value and the place, and tells the
+    // native interface when the place is a video register.
     struct Operand {
         unsigned mode = 0, reg = 0;
         uint32_t extension = 0; // (where its extension words start)
     };
     struct Move {
-        bool byte = false;
+        unsigned size = 2; // (bytes: 1, 2 or 4)
+        bool clear = false; // (clr: no source, 0 written)
         Operand from, to;
     };
     std::map<uint32_t, Move> g_moves;
 
-    unsigned ExtensionWords(const Operand &o, bool byte) {
+    unsigned ExtensionWords(const Operand &o, unsigned size) {
         switch (o.mode) {
         case 5: return 1; // d16(An)
         case 7:
@@ -127,7 +128,7 @@ namespace {
             case 0: return 1; // xxx.w
             case 1: return 2; // xxx.l
             case 2: return 1; // d16(PC)
-            case 4: return 1; // #n (a byte's in the low half of a word)
+            case 4: return size == 4 ? 2 : 1; // #n (a byte's in the low half of a word)
             default: return 0;
             }
         default: return 0;
@@ -152,35 +153,45 @@ namespace {
         }
     }
     // Where an operand is in memory, as the CPU is before the instruction
-    uint32_t Place(const M68K &c, const Operand &o, bool byte) {
+    uint32_t Place(const M68K &c, const Operand &o, unsigned size) {
         switch (o.mode) {
         case 2: case 3: return c.a[o.reg];
-        case 4: return c.a[o.reg] - ((byte && o.reg != 7) ? 1 : 2);
+        case 4: return c.a[o.reg] - ((size == 1 && o.reg == 7) ? 2 : size);
         case 5: return c.a[o.reg] + static_cast<uint32_t>(static_cast<int16_t>(OpcodeWord(o.extension)));
         case 7: return FixedPlace(o);
         default: return 0;
         }
     }
-    uint16_t Value(M68K &c, const Operand &o, bool byte) {
+    uint32_t Value(M68K &c, const Operand &o, unsigned size) {
+        const uint32_t mask = size == 1 ? 0xFF : size == 2 ? 0xFFFF : 0xFFFFFFFF;
         if (o.mode == 0) {
-            return static_cast<uint16_t>(byte ? c.d[o.reg] & 0xFF : c.d[o.reg] & 0xFFFF);
+            return c.d[o.reg] & mask;
         }
         if (o.mode == 1) {
-            return static_cast<uint16_t>(c.a[o.reg]);
+            return c.a[o.reg] & mask;
         }
         if (o.mode == 7 && o.reg == 4) {
-            const uint16_t n = OpcodeWord(o.extension);
-            return byte ? n & 0xFF : n;
+            return (size == 4 ? OpcodeLong(o.extension) : OpcodeWord(o.extension)) & mask;
         }
-        const uint32_t at = Place(c, o, byte) & 0xFFFFFF;
-        return byte ? c.bus.Read8(at) : c.bus.Read16(at & ~1u);
+        const uint32_t at = Place(c, o, size) & 0xFFFFFF;
+        switch (size) {
+        case 1: return c.bus.Read8(at);
+        case 2: return c.bus.Read16(at & ~1u);
+        default: return (static_cast<uint32_t>(c.bus.Read16(at & ~1u)) << 16) | c.bus.Read16((at + 2) & 0xFFFFFE);
+        }
     }
-
     bool VideoWrite(M68K &c) {
         const Move &move = g_moves[c.pc];
-        const uint32_t to = Place(c, move.to, move.byte) & 0xFFFFFF;
-        if (native_video::IsVideoRegister(to)) {
-            c.nativeVideo->GameWrites(c, to, Value(c, move.from, move.byte), move.byte);
+        const uint32_t to = Place(c, move.to, move.size) & 0xFFFFFF;
+        if (!native_video::IsVideoRegister(to)) {
+            return false;
+        }
+        const uint32_t value = move.clear ? 0 : Value(c, move.from, move.size);
+        if (move.size == 4) {
+            c.nativeVideo->GameWrites(c, to, static_cast<uint16_t>(value >> 16), false);
+            c.nativeVideo->GameWrites(c, (to + 2) & 0xFFFFFF, static_cast<uint16_t>(value), false);
+        } else {
+            c.nativeVideo->GameWrites(c, to, static_cast<uint16_t>(value), move.size == 1);
         }
         return false;
     }
@@ -196,15 +207,24 @@ namespace {
             p = end;
             const uint16_t op = OpcodeWord(at);
             Move move;
-            move.byte = (op >> 12) == 1;
-            move.from = {static_cast<unsigned>((op >> 3) & 7), static_cast<unsigned>(op & 7), at + 2};
-            move.to = {static_cast<unsigned>((op >> 6) & 7), static_cast<unsigned>((op >> 9) & 7), 0};
-            move.to.extension = move.from.extension + 2 * ExtensionWords(move.from, move.byte);
-            const bool fixed = move.to.mode == 7;
-            if (((op >> 12) != 1 && (op >> 12) != 3) || !Supported(move.from, true) || !Supported(move.to, false) ||
-                (fixed && !native_video::IsVideoRegister(FixedPlace(move.to)))) {
-                fprintf(stderr, "video: game.cfg's video_writes: the instruction at %06X is not a move to the video's registers the "
-                                "toolkit reads; not native\n", at);
+            bool known = false;
+            if ((op & 0xFF00) == 0x4200 && ((op >> 6) & 3) != 3) { // clr
+                known = true;
+                move.clear = true;
+                move.size = 1u << ((op >> 6) & 3);
+                move.to = {static_cast<unsigned>((op >> 3) & 7), static_cast<unsigned>(op & 7), at + 2};
+            } else if ((op >> 12) == 1 || (op >> 12) == 2 || (op >> 12) == 3) { // move.b, move.l, move.w
+                known = true;
+                move.size = (op >> 12) == 1 ? 1 : (op >> 12) == 3 ? 2 : 4;
+                move.from = {static_cast<unsigned>((op >> 3) & 7), static_cast<unsigned>(op & 7), at + 2};
+                move.to = {static_cast<unsigned>((op >> 6) & 7), static_cast<unsigned>((op >> 9) & 7), 0};
+                move.to.extension = move.from.extension + 2 * ExtensionWords(move.from, move.size);
+                known = Supported(move.from, true);
+            }
+            if (!known || !Supported(move.to, false) ||
+                (move.to.mode == 7 && !native_video::IsVideoRegister(FixedPlace(move.to)))) {
+                fprintf(stderr, "video: game.cfg's video_writes: the instruction at %06X is not a move or clr to the video's registers "
+                                "the toolkit reads; not native\n", at);
                 continue;
             }
             g_moves[at] = move;

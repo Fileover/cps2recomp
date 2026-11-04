@@ -10,7 +10,8 @@
 // every record from the board is compared with the one the game's side gave for it; a difference, or a record only
 // one side made, is reported.
 //
-// Native so far: the palette's uploads, and the object list the board takes at each frame.
+// Native so far: the palette's uploads, the object list the board takes at each frame, and the layers' registers each
+// line is drawn with.
 #pragma once
 
 #include "../machine/romset.h"
@@ -49,11 +50,25 @@ namespace native_video {
         void Describe(const ObjectList &other, FILE *out) const;
     };
 
+    // What the CPS-2's picture is drawn from on a line, but for the palette (taken at its upload) and the object list
+    // (taken as the frame starts): where the three scroll screens' maps are and where each is scrolled to; the row
+    // scroll's table, the place in it and whether it is on (the video control); the layers' order and which are on
+    // (the layer control); and the objects' offsets. Its words are the registers'.
+    struct Layers {
+        uint16_t maps[3] = {}, rows = 0, scroll[3][2] = {}, rowOffset = 0, videoControl = 0, layerControl = 0;
+        uint16_t xOffset = 0, yOffset = 0;
+        bool operator==(const Layers &) const = default;
+        void Describe(const Layers &other, FILE *out) const;
+    };
+
     // The board's side: the upload the palette chip makes now, from its registers and video RAM
     // (as Video::CopyPalette reads them)
     PaletteUpload DecodePalette(const uint8_t *videoRam, const uint16_t *cpsA, const uint16_t *cpsB, const Board &board);
     // ... the object list it takes, from the bank of object memory it latches and the object registers
     ObjectList DecodeObjects(const uint8_t *bank, const uint16_t *objectRegs);
+    // ... the layers a line is drawn with, from CPS-A's and CPS-B's registers and the object registers (the game's side
+    // makes them the same way, from what the game said to each)
+    Layers DecodeLayers(const uint16_t *cpsA, const uint16_t *cpsB, const uint16_t *objectRegs, uint8_t layerControl);
 
     // The game's side: a buffer of colours in video RAM as the game left it
     // (`pages` and the buffer's place as the game's code works them out)
@@ -72,6 +87,10 @@ public:
     uint64_t frame = 0;                // (for the reports: the machine's frame)
     const uint8_t *videoRam = nullptr; // (the game's side reads the buffers the game fills there)
     uint8_t paletteControl = 0x30;     // (where the CPS-B's palette control is in its registers: Board::paletteControl)
+    uint8_t layerControl = 0x26;       // (... its layer control: Board::layerControl)
+
+    // The board starts, and the game's side with it: the registers are the board's until the game says otherwise
+    void Reset(const uint16_t *cpsA, const uint16_t *cpsB, const uint16_t *objectRegs);
 
     // The game's side: an instruction of the game's (a hook's), or a rewrite of the library, is about to write
     // `value` to the video register at `address` (a byte, or a word). The game's side keeps what the game said, and
@@ -81,6 +100,7 @@ public:
     // The board's side: what the board did
     void BoardPalette(const native_video::PaletteUpload &upload);
     void BoardObjects(const native_video::ObjectList &list);
+    void BoardLayers(const native_video::Layers &layers, int line);
 
     // At the end of a run: the counts, and false if anything differed or was made by code not native yet
     bool Report(FILE *out) const;
@@ -98,6 +118,7 @@ private:
     uint64_t m_same = 0, m_differ = 0, m_boardOnly = 0, m_gameOnly = 0;
     uint64_t m_firstBoardOnly = 0;
     uint64_t m_listsSame = 0, m_listsDiffer = 0, m_listsBefore = 0;
+    uint64_t m_linesSame = 0, m_linesDiffer = 0;
 };
 
 // The rewrites and hooks of Capcom's video library that the game's game.cfg asks for (video/lifts.cpp)
