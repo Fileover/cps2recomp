@@ -62,6 +62,8 @@ struct Description {
     bool (*playing)() = nullptr;
     int (*stage)() = nullptr;  // the stage being played, from 0
     bool (*bossOn)() = nullptr; // a boss is being fought (its clock running)
+    // A stage that is a boss from its start, with no clock (Giga Wing's last): its boss is met as the stage begins
+    bool (*bossStage)(int stage) = nullptr;
     uint64_t (*score)(int player) = nullptr;
     // --- what practice can set, as the ship's start is reached: each -1 leaves it as the game had it ---
     void (*setShips)(int player, int ships) = nullptr;

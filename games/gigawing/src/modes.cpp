@@ -106,7 +106,7 @@ namespace {
         if (reflect > 0) {
             lines.push_back("Reflect " + std::to_string(std::min(reflect, kReflectFull) * 100 / kReflectFull) + "%");
         }
-        if (Ram8(kBossFlags) & kBossClock) {
+        if ((Ram8(kBossFlags) & (kBossClock | kBossOver)) == kBossClock) {
             lines.push_back("Boss " + std::to_string(Ram16(kBossSeconds)) + " s");
         }
     }
@@ -145,7 +145,8 @@ void RegisterModes() {
     d.inGame = [] { return (Ram8(kPlayersIn) & 3) != 0; };
     d.playing = [] { return Ram16(kMode) == kModePlay; };
     d.stage = [] { return static_cast<int>(Ram16(kStage)); };
-    d.bossOn = [] { return (Ram8(kBossFlags) & kBossClock) != 0 && Ram16(kMode) == kModePlay; };
+    d.bossOn = [] { return (Ram8(kBossFlags) & (kBossClock | kBossOver)) == kBossClock && Ram16(kMode) == kModePlay; };
+    d.bossStage = [](int stage) { return stage == kLastStage; };
     d.score = [](int player) { return Score(player); };
     d.setShips = [](int player, int ships) { SetRam16(kShips + 2 * static_cast<uint32_t>(player), static_cast<uint16_t>(ships)); };
     d.setBombs = [](int player, int bombs) { SetRam16(kBombs + 2 * static_cast<uint32_t>(player), static_cast<uint16_t>(bombs)); };

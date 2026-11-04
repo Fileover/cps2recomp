@@ -46,10 +46,14 @@ namespace {
         int32_t caravanFrames = 0, caravanLength = 0, bosses = 0, rushFrames = 0;
         bool bossWas = false;
         // the summary: what was had at the boss's or the stage's start, and what is shown (frames left)
-        int32_t stageWas = -1, summaryFrames = 0, summaryShown = 0, shipsAt = 0, bombsAt = 0, shipsLost = 0, bombsUsed = 0;
+        // (two counts: [0] since the last boss came or went, [1] since the stage began; each shown in its own place)
+        struct Counts {
+            int32_t frames = 0, shipsLost = 0, bombsUsed = 0;
+            uint64_t multiplierAt = 0;
+        } counts[2];
+        int32_t stageWas = -1, summaryShown[2] = {0, 0};
         int32_t lastShips = 0, lastBombs = 0;
-        uint64_t multiplierAt = 0;
-        char summary[2][96] = {};
+        char summary[2][2][96] = {};
         // replay: where the last attempt's controls are shown from
         int32_t replayAt = 0;
     } g;
@@ -205,11 +209,12 @@ namespace {
 
     void ResetSummary() {
         g.stageWas = d.stage ? d.stage() : -1;
-        g.summaryFrames = 0;
-        g.multiplierAt = d.multiplier ? d.multiplier(0) : 0;
+        for (State::Counts &counts : g.counts) {
+            counts = State::Counts();
+            counts.multiplierAt = d.multiplier ? d.multiplier(0) : 0;
+        }
         g.lastShips = d.ships ? d.ships(0) : 0;
         g.lastBombs = d.bombs ? d.bombs(0) : 0;
-        g.shipsLost = g.bombsUsed = 0;
         g.bossWas = d.bossOn && d.bossOn();
     }
 
@@ -334,6 +339,11 @@ namespace {
             Reached(machine);
             return;
         }
+        if (d.bossStage && d.playing() && d.bossStage(d.stage())) {
+            // (a stage that is its boss from the start, with no clock: met as it begins)
+            Reached(machine);
+            return;
+        }
         if (++g.frames > kStartMost) {
             End();
             return;
@@ -347,18 +357,20 @@ namespace {
         }
     }
 
-    void Summary(const char *what) {
-        if (!d.multiplier) {
-            return;
+    // A summary of counts `which` (0 a boss's part, 1 the stage), shown in its place; the counts start again
+    void Summary(const char *what, int which) {
+        State::Counts &counts = g.counts[which];
+        const uint64_t multiplier = d.multiplier ? d.multiplier(0) : 0;
+        if (d.multiplier && what && counts.frames >= kFps) {
+            std::snprintf(g.summary[which][0], sizeof g.summary[which][0], "%s in %s", what, Clock(counts.frames).c_str());
+            std::snprintf(g.summary[which][1], sizeof g.summary[which][1], "multiplier +%s, %d ship%s lost, %d bomb%s",
+                          Grouped(multiplier - std::min(multiplier, counts.multiplierAt)).c_str(), counts.shipsLost,
+                          counts.shipsLost == 1 ? "" : "s", counts.bombsUsed, counts.bombsUsed == 1 ? "" : "s");
+            g.summaryShown[which] = kShownFor;
         }
-        const uint64_t multiplier = d.multiplier(0);
-        std::snprintf(g.summary[0], sizeof g.summary[0], "%s in %s", what, Clock(g.summaryFrames).c_str());
-        std::snprintf(g.summary[1], sizeof g.summary[1], "multiplier +%s, %d ship%s lost, %d bomb%s", Grouped(multiplier - std::min(multiplier, g.multiplierAt)).c_str(),
-                      g.shipsLost, g.shipsLost == 1 ? "" : "s", g.bombsUsed, g.bombsUsed == 1 ? "" : "s");
-        g.summaryShown = kShownFor;
-        g.summaryFrames = 0;
-        g.multiplierAt = multiplier;
-        g.shipsLost = g.bombsUsed = 0;
+        // (fewer than a second played since the last: a boss's flag set again at a stage's end, say; nothing to say)
+        counts = State::Counts();
+        counts.multiplierAt = multiplier;
     }
 
     // The summary's counts, a stage's and a boss's
@@ -366,30 +378,33 @@ namespace {
         if (!d.playing || !d.playing()) {
             return;
         }
-        g.summaryFrames++;
+        int lost = 0, used = 0;
         if (d.ships) {
             const int ships = d.ships(0);
-            g.shipsLost += ships < g.lastShips ? g.lastShips - ships : 0;
+            lost = ships < g.lastShips ? g.lastShips - ships : 0;
             g.lastShips = ships;
         }
         if (d.bombs) {
             const int bombs = d.bombs(0);
-            g.bombsUsed += bombs < g.lastBombs ? g.lastBombs - bombs : 0;
+            used = bombs < g.lastBombs ? g.lastBombs - bombs : 0;
             g.lastBombs = bombs;
+        }
+        for (State::Counts &counts : g.counts) {
+            counts.frames++;
+            counts.shipsLost += lost;
+            counts.bombsUsed += used;
         }
         const bool boss = d.bossOn();
         const int stage = d.stage();
         if (boss && !g.bossWas) {
-            if (g.summaryFrames > 10 * kFps) {
-                Summary("To the boss");
-            } else {
-                Summary("");
-                g.summaryShown = 0; // (practice begun just before the boss: nothing to say yet)
-            }
+            // (practice begun just before the boss: nothing to say yet)
+            Summary(g.counts[0].frames > 10 * kFps ? "To the boss" : nullptr, 0);
         } else if (!boss && g.bossWas) {
-            Summary("The boss");
-        } else if (stage != g.stageWas && g.stageWas >= 0) {
-            Summary("The stage");
+            Summary("The boss", 0);
+        }
+        if (stage != g.stageWas && g.stageWas >= 0) {
+            Summary("The stage", 1);
+            Summary(nullptr, 0);
         }
         g.bossWas = boss;
         g.stageWas = stage;
@@ -440,9 +455,12 @@ namespace {
                         y += 0.05f;
                     }
                 }
-                if (FeatureValue("practice_summary") && g.summaryShown > 0) {
-                    lines.push_back({0.5f, 0.40f, 0, g.summary[0], 255, 230, 120});
-                    lines.push_back({0.5f, 0.46f, 0, g.summary[1], 255, 230, 120});
+                for (int which = 0; which < 2; which++) {
+                    if (FeatureValue("practice_summary") && g.summaryShown[which] > 0) {
+                        const float y = which == 0 ? 0.36f : 0.50f;
+                        lines.push_back({0.5f, y, 0, g.summary[which][0], 255, 230, 120});
+                        lines.push_back({0.5f, y + 0.06f, 0, g.summary[which][1], 255, 230, 120});
+                    }
                 }
             }
         }
@@ -588,8 +606,8 @@ void Frame(Machine &machine) {
             if (g.shown > 0) {
                 g.shown--;
             }
-            if (g.summaryShown > 0) {
-                g.summaryShown--;
+            for (int32_t &shown : g.summaryShown) {
+                shown -= shown > 0 ? 1 : 0;
             }
             CountFrame();
             if (g.mode == Mode::Caravan) {

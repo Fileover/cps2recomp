@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- **Kinds of games in the launcher**: the sidebar groups the beat-'em-ups (Alien vs. Predator, Cadillacs and Dinosaurs,
+  The Punisher) and the shoot-'em-ups (Giga Wing) as it groups a series.
+- **Giga Wing's practice**: begun at the last stage's boss it now starts the Medallion's fight (it ran on to the end
+  credits); the summary after a boss is no longer replaced by an empty one, and a stage's summary counts the whole
+  stage; the cheats work in practice. Practice has a page of its own: [docs/PRACTICE.md](docs/PRACTICE.md).
 - **Giga Wing** (`gigawing`, USA 990222; the Asia, Hispanic and Brazil sets of the same date play too), the
   collection's first shoot-'em-up, with a shooter's modes in a new part of the toolkit (`shmup/`): **practice** at any
   stage or straight at its boss, with the fighter, ships, bombs and power chosen, put back as it began with one button
