@@ -31,6 +31,10 @@ struct M68KBus {
 };
 
 class M68K;
+// Watches (runtime/lift.h, AddWatch): a byte for each word of the program, set where one is; and the call
+extern const uint8_t *g_watchMap;
+extern uint32_t g_watchMapSize;
+void RunWatch(M68K &c, uint32_t address);
 // A translated routine (runtime/native.h): runs from the block at cpu.pc until it leaves the routine
 using NativeFn = void (*)(M68K &);
 
@@ -101,6 +105,10 @@ public:
     // One instruction by the interpreter, the refetch above counted (every run loop's and check's way of doing one)
     void ExecuteOne() {
         const uint32_t start = pc;
+        // (a watch is told before its instruction; not on another game's board, which runs another program)
+        if (g_watchMap && !ownHooked && start / 2 < g_watchMapSize && g_watchMap[start / 2]) {
+            RunWatch(*this, start);
+        }
         fetchedWords = 0;
         Execute(Fetch());
         RefillWait(start);

@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- **The picture at the game's level: the object list** ([docs/NATIVE_VIDEO.md](docs/NATIVE_VIDEO.md)): the list of
+  sprites the game hands the board each frame is now known at the game's level and checked against the board's, every
+  frame, in the same eight games. The toolkit's hooks gained a kind that only looks (a watch), which leaves the
+  translated code's blocks, and so the game's timing, exactly as they were. Nothing changes in play.
 - **The picture at the game's level, begun** ([docs/NATIVE_VIDEO.md](docs/NATIVE_VIDEO.md)): the inventory of how the
   games hand the board their pictures, the native interface they are to hand them to instead, and its check
   (`--video check`); the palette's upload is native in eight games, one or two of each family of Capcom's video code

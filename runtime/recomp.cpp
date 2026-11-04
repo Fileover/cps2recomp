@@ -127,6 +127,46 @@ void AddHook(uint32_t address, const char *name, HookFn fn) {
     g_hooked[address / 2] = static_cast<uint16_t>(Hooks().size());
 }
 
+namespace {
+    std::vector<uint8_t> g_watched;    // by address / 2: the watch's number + 1 (0: none)
+    std::vector<HookFn> g_watchFns;
+} // namespace
+const uint8_t *g_watchMap = nullptr;
+uint32_t g_watchMapSize = 0;
+
+void AddWatch(uint32_t address, const char *name, HookFn fn) {
+    (void)name;
+    if (address == kNoPlace || (address & 1)) {
+        return;
+    }
+    g_watchFns.push_back(fn);
+    if (g_watchFns.size() > 0xFF) {
+        fprintf(stderr, "more than %d watches\n", 0xFF);
+        abort();
+    }
+    if (g_watched.size() <= address / 2) {
+        g_watched.resize(address / 2 + 1, 0);
+    }
+    g_watched[address / 2] = static_cast<uint8_t>(g_watchFns.size());
+    g_watchMap = g_watched.data();
+    g_watchMapSize = static_cast<uint32_t>(g_watched.size());
+}
+
+void RunWatch(M68K &c, uint32_t address) {
+#ifdef CPS2RECOMP_CHECK
+    if (check::side) {
+        return; // (the interpreter tells it, running the block for real)
+    }
+#endif
+    if (address / 2 >= g_watched.size() || !g_watched[address / 2]) {
+        return;
+    }
+    const uint32_t pc = c.pc;
+    c.pc = address; // (translated code does not keep it as it goes)
+    g_watchFns[g_watched[address / 2] - 1](c);
+    c.pc = pc;
+}
+
 bool HasHook(uint32_t address) {
     return address / 2 < g_hooked.size() && !(address & 1) && g_hooked[address / 2];
 }

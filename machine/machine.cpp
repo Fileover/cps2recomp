@@ -63,6 +63,7 @@ Machine::Machine(const RomSet &roms)
     cpu.video = videoRam.data();
     cpu.videoSize = static_cast<uint32_t>(videoRam.size());
     nativeVideo.videoRam = videoRam.data();
+    nativeVideo.paletteControl = roms.board.paletteControl;
     cpu.nativeVideo = &nativeVideo;
     cpu.rom = roms.program.data();
     cpu.opcodes = roms.opcodes.data();
@@ -195,6 +196,10 @@ void Machine::RunLine() {
             video.LatchObjectsCps1();
         } else {
             video.LatchObjects(&objectRam[m_objectBank ? 0x2000 : 0], m_extra ? objectsFromExtra[m_objectBank ? 1 : 0] : nullptr);
+            if (nativeVideo.checking) {
+                nativeVideo.frame = frame;
+                nativeVideo.BoardObjects(native_video::DecodeObjects(&objectRam[m_objectBank ? 0x2000 : 0], objectRegs));
+            }
         }
     }
 

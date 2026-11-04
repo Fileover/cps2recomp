@@ -3,6 +3,10 @@
 
 #include "native.h"
 
+#include "../machine/m68k.h"
+
+#include <cstring>
+
 namespace cps2recomp {
 
 namespace native_video {
@@ -51,7 +55,109 @@ namespace native_video {
         }
     }
 
+    ObjectList DecodeObjects(const uint8_t *bank, const uint16_t *objectRegs) {
+        ObjectList list;
+        for (int n = 0; n < kObjectWords; n++) {
+            list.words[n] = Word(&bank[n * 2]);
+        }
+        // (the registers Video reads: 400004 the priority control, 400008 and 40000A the offsets)
+        list.priority = objectRegs[2];
+        list.xOffset = objectRegs[4];
+        list.yOffset = objectRegs[5];
+        return list;
+    }
+
+    void ObjectList::Describe(const ObjectList &other, FILE *out) const {
+        fprintf(out, "  priority %04X (the other: %04X), offsets %04X %04X (the other: %04X %04X)\n", priority, other.priority, xOffset,
+                yOffset, other.xOffset, other.yOffset);
+        int shown = 0;
+        for (int n = 0; n < kObjectWords; n += 4) {
+            if (memcmp(&words[n], &other.words[n], 8) != 0 && shown++ < 8) {
+                fprintf(out, "  entry %d: %04X %04X %04X %04X (the other: %04X %04X %04X %04X)\n", n / 4, words[n], words[n + 1], words[n + 2],
+                        words[n + 3], other.words[n], other.words[n + 1], other.words[n + 2], other.words[n + 3]);
+            }
+        }
+    }
+
+    bool IsVideoRegister(uint32_t address) {
+        address &= 0xFFFFFF;
+        const uint32_t chip = address & ~0x4000u;
+        return (address >= 0x400000 && address < 0x40000C) || address == 0x8040E0 || address == 0x8040E1 ||
+               (chip >= 0x800100 && chip < 0x800180);
+    }
+
 } // namespace native_video
+
+void NativeVideo::GameWrites(M68K &c, uint32_t address, uint16_t value, bool byte) {
+    address &= 0xFFFFFF;
+    // (a byte is half of its word: the board's, Machine::Write8)
+    auto put = [&](uint16_t &word) {
+        if (!byte) {
+            word = value;
+        } else if (address & 1) {
+            word = static_cast<uint16_t>((word & 0xFF00) | (value & 0xFF));
+        } else {
+            word = static_cast<uint16_t>((word & 0x00FF) | (value << 8));
+        }
+        return word;
+    };
+    if (address >= 0x400000 && address < 0x40000C) {
+        put(m_objectRegs[(address - 0x400000) / 2]);
+        return;
+    }
+    if (address == 0x8040E0 || address == 0x8040E1) {
+        if (byte && address == 0x8040E0) {
+            return; // (the bank is the low byte's)
+        }
+        // The game hands over the list it has filled (in the bank it reaches at 708000) when it names the other bank;
+        // naming the bank shown, it keeps the list it handed over last
+        const int bank = value & 1;
+        if (checking && bank != m_bank) {
+            for (int n = 0; n < native_video::kObjectWords; n++) {
+                m_list[n] = c.bus.Read16(0x708000 + static_cast<uint32_t>(n) * 2);
+            }
+        }
+        m_bank = bank;
+        return;
+    }
+    const uint32_t chip = address & ~0x4000u;
+    if (chip >= 0x800100 && chip < 0x800140) {
+        const unsigned index = (chip & 0x3E) / 2;
+        const uint16_t now = put(m_cpsA[index]);
+        if (index == 0x0A / 2 && checking) {
+            // The palette's base: the chip takes the palette from there, the pages the game last asked for
+            Palette(native_video::GamePalette(videoRam, 0x900000 + ((static_cast<uint32_t>(now) << 8) & 0x3FC00),
+                                              static_cast<uint8_t>(m_cpsB[paletteControl / 2])));
+        }
+        return;
+    }
+    if (chip >= 0x800140 && chip < 0x800180) {
+        put(m_cpsB[(chip & 0x3E) / 2]);
+    }
+}
+
+void NativeVideo::BoardObjects(const native_video::ObjectList &list) {
+    if (!checking) {
+        return;
+    }
+    if (m_bank < 0) {
+        m_listsBefore++; // (the board takes a list each frame from the start; the game's first comes later)
+        return;
+    }
+    native_video::ObjectList mine;
+    memcpy(mine.words, m_list, sizeof(mine.words));
+    mine.priority = m_objectRegs[2];
+    mine.xOffset = m_objectRegs[4];
+    mine.yOffset = m_objectRegs[5];
+    if (mine == list) {
+        m_listsSame++;
+        return;
+    }
+    if (m_listsDiffer++ < 10) {
+        fprintf(stderr, "video check: frame %llu: the object list differs; the game's side:\n", static_cast<unsigned long long>(frame));
+        mine.Describe(list, stderr);
+    }
+}
 
 void NativeVideo::Palette(const native_video::PaletteUpload &upload) {
     if (!checking) {
@@ -95,7 +201,11 @@ bool NativeVideo::Report(FILE *out) const {
         fprintf(out, "video check: %llu palette uploads made by the game's code that is not native yet (the first in frame %llu)\n",
                 static_cast<unsigned long long>(m_boardOnly), static_cast<unsigned long long>(m_firstBoardOnly));
     }
-    return m_differ == 0 && m_gameOnly == 0 && m_boardOnly == 0;
+    fprintf(out, "video check: object lists: %llu the same from the game's side and the board's, %llu differ (and %llu taken before the "
+                 "game gave its first)\n",
+            static_cast<unsigned long long>(m_listsSame), static_cast<unsigned long long>(m_listsDiffer),
+            static_cast<unsigned long long>(m_listsBefore));
+    return m_differ == 0 && m_gameOnly == 0 && m_boardOnly == 0 && m_listsDiffer == 0;
 }
 
 } // namespace cps2recomp
