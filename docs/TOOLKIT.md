@@ -42,6 +42,13 @@ This page is for people making or working on ports. To play, see the [main page]
   character alone at any size, with its animations put into its record frame by frame) are `beat/beat.h`. A game
   says how it gets to a stage, where its camera, its characters' animations and their objects are, and leaves out
   the parts of its show not wanted.
+- **The shoot-'em-up modes.** Practice (a stage or its boss, with the ships, bombs and power chosen, put back as it
+  began with one button: the start is kept as a save state in memory; the last attempt replayed from it), its aids (the
+  ships' hit boxes, the enemies' shots and bodies, a readout, a summary at each boss and stage end), a score attack, a
+  caravan (a few minutes, a ship for every one lost), a boss rush (the way between the bosses run unseen, the ships out
+  of harm, each boss met from a snapshot taken a few seconds before it) and a stage viewer are `shmup/shmup.h`. A game
+  says how it gets from Start to its first stage, where it keeps its stage, its boss's clock, its scores and its ships,
+  and draws its own boxes.
 - **The model viewer.** One character alone, on a stage or on plain white or black, at a quarter of its size to 25
   times, moved with player 1's controls or going through any of its animations (one, or all in turn, repeated, in slow
   motion) is `model/model.h`, for every game's "Model viewer" (the fighting games' and the beat-'em-ups'): the
@@ -257,6 +264,7 @@ name and choices in each: the collection's launcher then shows it once, for all 
 | `fight/` | What a fighting game's training mode has in common, its fighting modes, and the players' own colours ([docs/FIGHT.md](FIGHT.md)) |
 | `model/` | The model viewer every game can have, the fighting games' and the beat-'em-ups' alike |
 | `beat/` | A beat-'em-up's alternative modes: attract mode, score attack, the stage viewer (`modes.cpp`) and the model viewer (`model.cpp`, on `model/`) |
+| `shmup/` | A shoot-'em-up's practice mode and alternative modes: practice and its aids, attract mode, score attack, caravan, boss rush, the stage viewer (`modes.cpp`) |
 | `recomp-common/` | A copy of [recomp-common](https://github.com/tmcleroy/recomp-common) (the in-game menu, the settings rules, the launcher), made by `tools/sync-common.sh`; never changed here |
 | `launcher/` | What this toolkit tells the shared launcher (`recomp-common/launcher`; SDL 3 + Dear ImGui): `src/description.cpp` has the words for a ROM set, the check of the player's, the game's arguments and the buttons that can be chosen, for one game's launcher or the collection's |
 | `games/` | The games ([the main page](../README.md) has the list) |

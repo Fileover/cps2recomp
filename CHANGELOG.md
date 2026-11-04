@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+- **Giga Wing** (`gigawing`, USA 990222; the Asia, Hispanic and Brazil sets of the same date play too), the
+  collection's first shoot-'em-up, with a shooter's modes in a new part of the toolkit (`shmup/`): **practice** at any
+  stage or straight at its boss, with the fighter, ships, bombs and power chosen, put back as it began with one button
+  and the last attempt replayed; its aids (the ships' true hit boxes, the points of the enemies' shots and their
+  bodies, a scoring readout, a summary at each boss and stage end); a **score attack**, a **caravan** of two, three or
+  five minutes and a **boss rush**, each keeping its best score; a stage viewer and attract mode. Also free play, start
+  at stage, the board's settings, cheats (infinite ships, infinite bombs, invincibility), the music's names and online
+  play.
 - **Hyper Street Fighter II: The Anniversary Edition** (`hsf2`, USA 040202; the Asia and Japan sets of the same date
   play too): every character as they were in World Warrior, Champion Edition, Hyper Fighting, Super and Super Turbo,
   against each other, with everything the other fighting games have: training mode, the alternative modes (attract

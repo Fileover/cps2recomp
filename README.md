@@ -48,6 +48,7 @@ file). Only the versions named below work for each game, and this project cannot
 | [**Alien vs. Predator**](games/avsp/README.md) (1994) | `avspu` (USA 940520) | Beat-'em-up: three players, a stage to start at, score attack |
 | [**Cadillacs and Dinosaurs**](games/dino/README.md) (1993, CPS-1) | `dino` (World 930201) | Beat-'em-up: three players, a stage to start at, score attack |
 | [**The Punisher**](games/punisher/README.md) (1993, CPS-1) | `punisheru` (USA 930422) | Beat-'em-up: two players, a stage to start at, score attack |
+| [**Giga Wing**](games/gigawing/README.md) (1999) | `gigawing` (USA 990222) | Shoot-'em-up: practice with true hit boxes, score attack, caravan, boss rush |
 
 Each game's page has all it does, with pictures.
 
@@ -96,6 +97,9 @@ each other.
 - **Widescreen** in the fighting games: 16:9, with more of the stage on each side ([more](docs/PICTURE.md#widescreen)).
 - **Alternative modes** in the fighting games: survival, ring out, an endless battle the game plays itself, and in
   most a tag team battle; plus a stage viewer and a model viewer ([more](docs/MODES.md)).
+- **Shoot-'em-up practice** in Giga Wing: any stage or straight at its boss, back to the start with one button, the
+  ships' true hit boxes and the enemies' shots shown; and a score attack, a caravan and a boss rush
+  ([more](docs/MODES.md#the-shoot-em-ups)).
 - **The picture your way**: sharp or smooth scaling, 4:3 or square pixels, and RetroArch shaders (CRT, scanlines,
   xBRZ and more, or your own preset). A camera zoom follows either fighter or keeps both in view
   ([more](docs/PICTURE.md)).
@@ -153,7 +157,7 @@ place. Back, or the screen's **Menu**, opens the in-game menu.
   collection keeps the shared files there) or a folder of its files. The launcher checks every file and says which
   is missing or different. **Other regions** of the same release work too, played as the board plays in that region:
   the Marvel games', Super Gem Fighter's (*Pocket Fighter* in Japan), Puzzle Fighter's, Alpha's, Alpha 3's, Super
-  Turbo's and Alien vs. Predator's; each game's page names them. Other revisions don't work: each port is made from
+  Turbo's, Alien vs. Predator's and Giga Wing's; each game's page names them. Other revisions don't work: each port is made from
   one version's program. Vampire Savior Definitive needs both `vsavj` and `vsav2`, and shows the first
   Darkstalkers' and Alpha 2's stages with `dstlk` and `sfa2u` too.
 - macOS 13 or later (Apple silicon or Intel), Linux x86_64 or ARM64 (SteamOS included), Windows 10 or 11, 64-bit, or
@@ -209,7 +213,7 @@ The repository holds no game data and nothing derived from it.
 
 This project is not affiliated with, endorsed by, or sponsored by Capcom or Marvel. *Street Fighter*, *Super Puzzle
 Fighter*, *Super Gem Fighter*, *Pocket Fighter*, *Vampire Savior*, *Vampire Hunter*, *Night Warriors*, *Darkstalkers*, *Mega Man*,
-*Strider* and *Captain Commando* are trademarks of Capcom Co., Ltd.; *X-Men*, *Marvel Super Heroes*, *The Punisher*
+*Strider*, *Captain Commando* and *Giga Wing* are trademarks of Capcom Co., Ltd.; *X-Men*, *Marvel Super Heroes*, *The Punisher*
 and their characters are trademarks of Marvel Characters, Inc.; *Alien vs. Predator* and *Cadillacs and Dinosaurs* are
 trademarks of their owners; "CPS-1", "CPS-2" and "QSound" are names and trademarks of their owners, used here only to
 say what the programs work with.

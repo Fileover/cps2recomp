@@ -71,6 +71,22 @@ score attack, and the stage and model viewers.
 
 ![Cadillacs and Dinosaurs: three players](screenshots/dino/three-players.png)
 
+### The shoot-'em-ups
+
+Giga Wing has a shooter's modes instead:
+
+- **Practice**: any stage, from its start or straight at its boss, with the fighter, ships, bombs and power you
+  choose. Backspace (a gamepad's left shoulder) puts it back as it began at once; Backslash (the left trigger with the
+  left shoulder) replays your last attempt, until you touch the controls. Its aids show each ship's true hit box, the
+  point of every enemy shot and the enemies' bodies, the scoring as it happens, and a summary at each boss and stage
+  end. Slow motion and frame advance are the menu's speed and pause.
+- **Score attack**: one credit, no continue, no cheats; the best score is kept.
+- **Caravan**: two, three or five minutes, a ship for every one lost; the best score is kept for each length.
+- **Boss rush**: every boss in turn, the way between them run unseen; the best score and its time are kept.
+- **Stage viewer**: a stage scrolling by with nobody on it.
+
+![Giga Wing: practice, with the ship's hit box and the points of the enemies' shots](screenshots/gigawing/practice.png)
+
 ## Multi game
 
 **Multi game** (the page after Controllers) plays several games one after another, for as long as you like. Its
