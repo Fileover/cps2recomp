@@ -71,6 +71,9 @@ constexpr uint32_t kPlayersIn = kVars - 0xFA4;
 // 1-4 with the ships kept up)
 constexpr uint32_t kStage = kVars - 0xCC0;
 constexpr int kStages = 7;
+// The last stage (6) is the Medallion's fight from its start, a boss with no clock (bit 3 of A5-0D84 never set there:
+// found by tracing a game begun at it); its end is the ending
+constexpr int kLastStage = 6;
 // 008488: a game's start has put the stage at 0 (008484), before the lesson; the stage is loaded from it as it begins.
 // (The show's demonstrations set it at 008C78.) The next stage is counted at 0915DA.
 constexpr uint32_t kGameBegins = 0x008488;
@@ -131,6 +134,8 @@ constexpr int kReflectFull = 0x1000;
 // frames by 0593F6 while bit 3 of the byte at A5-0D84 is set; at 0 the boss leaves). Found from the panel's number.
 constexpr uint32_t kBossSeconds = kVars + 0x57FC, kBossFlags = kVars - 0xD84;
 constexpr uint8_t kBossClock = 0x08;
+// ... and bit 1 is set once the boss is over (beaten or gone: the clock's bit stays set through the stage's end)
+constexpr uint8_t kBossOver = 0x02;
 
 // The enemies' shots: a list (A5-10E0 holds the first; each starts with the next's address), each with its place at
 // +06 across and +0A up, a point tested against the ships' boxes (029DE8)

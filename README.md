@@ -98,8 +98,8 @@ each other.
 - **Alternative modes** in the fighting games: survival, ring out, an endless battle the game plays itself, and in
   most a tag team battle; plus a stage viewer and a model viewer ([more](docs/MODES.md)).
 - **Shoot-'em-up practice** in Giga Wing: any stage or straight at its boss, back to the start with one button, the
-  ships' true hit boxes and the enemies' shots shown; and a score attack, a caravan and a boss rush
-  ([more](docs/MODES.md#the-shoot-em-ups)).
+  ships' true hit boxes and the enemies' shots shown ([more](docs/PRACTICE.md)); and a score attack, a caravan and a
+  boss rush ([more](docs/MODES.md#the-shoot-em-ups)).
 - **The picture your way**: sharp or smooth scaling, 4:3 or square pixels, and RetroArch shaders (CRT, scanlines,
   xBRZ and more, or your own preset). A camera zoom follows either fighter or keeps both in view
   ([more](docs/PICTURE.md)).

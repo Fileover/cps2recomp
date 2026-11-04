@@ -62,6 +62,11 @@ namespace {
         }
     }
 
+    // The cheats work in the board's own game and in practice; the other modes leave them out (their scores are kept)
+    bool CheatsWork() {
+        return !ChoicesLeftOut() || shmup::Practice();
+    }
+
     bool PlayerIn(int n) {
         return (Ram8(kPlayersIn) >> n) & 1;
     }
@@ -70,7 +75,7 @@ namespace {
 
     // A ship is out of harm: the cheat, or a mode running the game unseen
     bool Invincible(int n) {
-        return (FeatureOn(kInvincible[n]) && !ChoicesLeftOut()) || shmup::Protected();
+        return (FeatureOn(kInvincible[n]) && CheatsWork()) || shmup::Protected();
     }
 
     // 02398C: a ship is hit (A2 the ship): not with invincibility, whose ship goes on as if missed
@@ -103,7 +108,7 @@ namespace {
 
     // 04AE98: a force bomb is taken: not with infinite bombs (A1 points at the count; the bomb goes off all the same)
     bool BombTaken(M68K &c) {
-        if (FeatureOn("infinite_bombs") && !ChoicesLeftOut()) {
+        if (FeatureOn("infinite_bombs") && CheatsWork()) {
             c.pc = kBombTaken + 2;
             return true;
         }
@@ -153,7 +158,7 @@ namespace {
         BoardFrame(machine);
         ModesFrame(machine);
         FreePlay();
-        if (!ChoicesLeftOut()) {
+        if (CheatsWork()) {
             Cheats(); // (free play and the cheats are not the board's own game)
         }
         TitleFrame(machine);

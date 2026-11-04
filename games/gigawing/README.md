@@ -41,6 +41,7 @@ its inputs, its settings memory and QSound.
   replays your last attempt. Its aids: each ship's true hit box (a 6-pixel square, far smaller than the ship) and the
   point of every enemy shot, the enemies' bodies, a readout of the multiplier, the medal chain, the power and the
   boss's clock, and a summary at each boss and stage end (the time, what the multiplier gained, ships lost, bombs used).
+  The cheats work in practice too. [All about practice →](../../docs/PRACTICE.md)
 - **Alternative modes**, at the head of the in-game menu:
   - **Score attack**: one player and one credit from the first stage, no continue and no cheats; the best score is
     kept.
