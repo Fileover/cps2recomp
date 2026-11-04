@@ -62,6 +62,8 @@ Machine::Machine(const RomSet &roms)
     cpu.ram = ram.data();
     cpu.video = videoRam.data();
     cpu.videoSize = static_cast<uint32_t>(videoRam.size());
+    nativeVideo.videoRam = videoRam.data();
+    cpu.nativeVideo = &nativeVideo;
     cpu.rom = roms.program.data();
     cpu.opcodes = roms.opcodes.data();
     cpu.romSize = static_cast<uint32_t>(roms.program.size());
@@ -581,6 +583,10 @@ void Machine::WriteRegister(uint32_t address, uint16_t value, uint16_t mask) {
         combine(cpsA[index]);
         if (index == 0x0A / 2) {
             video.CopyPalette(); // (writing the palette's address makes the chip take the palette)
+            if (nativeVideo.checking) {
+                nativeVideo.frame = frame;
+                nativeVideo.BoardPalette(video.DecodePalette());
+            }
             m_palettePending = boardTiming; // (... by DMA, at the next line: LineDma)
         }
         return;
@@ -691,6 +697,10 @@ void Machine::WriteCps1(uint32_t address, uint16_t value, uint16_t mask) {
         combine(cpsA[index]);
         if (index == 0x0A / 2) {
             video.CopyPalette(); // (writing the palette's address makes the chip take the palette)
+            if (nativeVideo.checking) {
+                nativeVideo.frame = frame;
+                nativeVideo.BoardPalette(video.DecodePalette());
+            }
         }
         return;
     }

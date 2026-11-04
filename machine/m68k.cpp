@@ -9,6 +9,9 @@
 #include <bit>
 #include <cstdio>
 #include <cstdlib>
+#include <map>
+#include <tuple>
+#include <algorithm>
 #include <utility>
 
 namespace cps2recomp {
@@ -21,6 +24,59 @@ namespace {
     constexpr uint8_t kOperandCycles[2][12] = {{0, 0, 4, 4, 6, 8, 10, 8, 12, 8, 10, 4}, {0, 0, 8, 8, 10, 12, 14, 12, 16, 12, 14, 8}};
     unsigned ModeIndex(unsigned mode, unsigned reg) {
         return mode < 7 ? mode : 7 + reg;
+    }
+
+    // CPS2RECOMP_VIDEO_CENSUS=FILE (docs/NATIVE_VIDEO.md): every instruction the interpreter runs that reads or
+    // writes the video hardware (object memory, video RAM, the CPS-A and CPS-B registers, the object registers, the
+    // object bank), with how often, the addresses it reached and the interrupt mask it ran under; written at exit
+    struct VideoCensus {
+        struct Entry {
+            uint64_t count = 0;
+            uint32_t low = 0xFFFFFFFF, high = 0;
+            unsigned masks = 0;
+        };
+        FILE *out = nullptr;
+        std::map<std::tuple<uint32_t, char, bool>, Entry> entries; // (instruction, region, written)
+        VideoCensus() {
+            if (const char *path = getenv("CPS2RECOMP_VIDEO_CENSUS")) {
+                out = fopen(path, "w");
+            }
+        }
+        ~VideoCensus() {
+            if (!out) {
+                return;
+            }
+            for (const auto &[key, e] : entries) {
+                fprintf(out, "%06X %c %c %llu %06X-%06X mask%X\n", std::get<0>(key), std::get<1>(key), std::get<2>(key) ? 'W' : 'R',
+                        static_cast<unsigned long long>(e.count), e.low, e.high, e.masks);
+            }
+            fclose(out);
+        }
+        static char Region(uint32_t address) {
+            const uint32_t chip = address & ~0x4000u;
+            if (address >= 0x700000 && address < 0x710000) return 'O'; // object memory
+            if (address >= 0x900000 && address < 0x930000) return 'V'; // video RAM
+            if (chip >= 0x800100 && chip < 0x800140) return 'A';       // CPS-A
+            if (chip >= 0x800140 && chip < 0x800180) return 'B';       // CPS-B
+            if (address >= 0x400000 && address < 0x40000C) return 'R'; // object registers
+            if (address == 0x8040E0 || address == 0x8040E1) return 'K'; // object bank
+            return 0;
+        }
+        void Note(uint32_t instruction, uint32_t address, bool written, unsigned mask) {
+            const char region = Region(address & 0xFFFFFF);
+            if (!region) {
+                return;
+            }
+            Entry &e = entries[{instruction, region, written}];
+            e.count++;
+            e.low = std::min(e.low, address & 0xFFFFFF);
+            e.high = std::max(e.high, address & 0xFFFFFF);
+            e.masks |= 1u << mask;
+        }
+    };
+    VideoCensus *Census() {
+        static VideoCensus census;
+        return census.out ? &census : nullptr;
     }
 } // namespace
 
@@ -54,6 +110,9 @@ uint32_t M68K::Read(uint32_t address, unsigned size) {
         return native::CheckRead(*this, address, size);
     }
 #endif
+    if (static VideoCensus *census = Census(); census) {
+        census->Note(instruction, address, false, interruptMask);
+    }
     switch (size) {
     case 0: return bus.Read8(address & 0xFFFFFF);
     case 1: return bus.Read16(address & 0xFFFFFE);
@@ -77,6 +136,9 @@ void M68K::Write(uint32_t address, unsigned size, uint32_t value) {
         check::Note(address, size, value);
     }
 #endif
+    if (static VideoCensus *census = Census(); census) {
+        census->Note(instruction, address, true, interruptMask);
+    }
     if ((address & 0xFFFFFF) + kBytes[size] > watchLow && (address & 0xFFFFFF) <= watchHigh) {
         // (CPS2RECOMP_WATCH_REPORTS=N for more: the board's memory test alone can take the first 2,000)
         static int reports = getenv("CPS2RECOMP_WATCH_REPORTS") ? atoi(getenv("CPS2RECOMP_WATCH_REPORTS")) : 2000;

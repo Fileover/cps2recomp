@@ -251,6 +251,17 @@ A toolkit change is checked with every game: build each (`make GAME=<id>`) and r
 that game's `game.cfg` or `src/`, not in the toolkit. A feature more than one game has should have the same
 name and choices in each: the collection's launcher then shows it once, for all of them.
 
+## Wanted
+
+- **The picture native at the game's level**, not a model of the board's video chips: the games' drawing code hands
+  a native interface its frames, and the board model is kept only as the reference the checks compare with
+  ([NATIVE_VIDEO.md](NATIVE_VIDEO.md); the palette's upload is native in eight games so far).
+- **Drawn on the GPU**: SDL_GPU draws the interface's objects, scroll layers (with row scroll) and palettes itself, not
+  a picture made on the CPU and handed over.
+- **Every CPS-2 fighting game's stages in every other**, solidly: a stage made by its own game's code hands its
+  layers, scrolls and palettes into the game's frame as layers of their own, with no second picture laid in and no
+  video chip model for the guest.
+
 ## Repository layout
 
 | Path | What |
@@ -258,7 +269,7 @@ name and choices in each: the collection's launcher then shows it once, for all 
 | `tools/` | The translators (`recomp.py`, `m68k.py`; `recompz80.py`, `z80.py`), `gamecfg.py`, the checks (`check.sh`, `check_sound.sh`, `check_release.sh`, `at-once.sh`), finding a game's code by made-up play (`explore.sh`), reading the listing (`lst.py`, `tracechanges.py`, `ramfind.py`), the computer player's scripts of the Vampire Savior games and Super Gem Fighter as text (`aiscripts.py`), `gen_shaders.py`, `sync-common.sh`, `audit.sh`, `collection.sh`, and the release builds (`release/`) |
 | `runtime/` | What translated code is written in terms of; hooks and readable rewrites (`lift.h`); features and settings (`game.h`); save states (`state.h`); spare machines a game's modes run beside the port's (`spare.h`); another game's board beside the game's (`guest.h`) |
 | `machine/` | The 68000, bus, interrupts, timing, settings EEPROM, ROM set and cipher; the custom soundtrack's catching of the game's music (`soundtrack.h`) |
-| `video/`, `sound/` | The picture; the Z80 and QSound; Capcom's sound driver (version 2.01b) as ordinary code (`driver.cpp`) |
+| `video/`, `sound/` | The picture (the board's model, `video.cpp`; the native interface and its check, `native.h`; Capcom's video library rewritten once, `lifts.cpp`: [NATIVE_VIDEO.md](NATIVE_VIDEO.md)); the Z80 and QSound; Capcom's sound driver (version 2.01b) as ordinary code (`driver.cpp`) |
 | `third_party/` | The sound file decoders the custom soundtrack reads with (stb_vorbis, dr_flac, dr_mp3, dr_wav), as their projects publish them |
 | `port/` | The frontend (SDL 3), the custom soundtrack's player (`soundtrack.*`, `decoders.*`), putting the picture on the screen (`present.*`; shaders in `shaders/`, compiled into `shaders.inc` by `tools/gen_shaders.py`), the in-game menu adapter, the HUD, control bindings |
 | `fight/` | What a fighting game's training mode has in common, its fighting modes, and the players' own colours ([docs/FIGHT.md](FIGHT.md)) |

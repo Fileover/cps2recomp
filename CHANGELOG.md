@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- **The picture at the game's level, begun** ([docs/NATIVE_VIDEO.md](docs/NATIVE_VIDEO.md)): the inventory of how the
+  games hand the board their pictures, the native interface they are to hand them to instead, and its check
+  (`--video check`); the palette's upload is native in eight games, one or two of each family of Capcom's video code
+  (Alpha 2, Vampire Savior, Darkstalkers, Marvel Super Heroes, Marvel Super Heroes vs. Street Fighter, Super Street
+  Fighter II Turbo, Alien vs. Predator, Giga Wing), written once in the toolkit. Nothing changes in play.
 - **Kinds of games in the launcher**: the sidebar groups the beat-'em-ups (Alien vs. Predator, Cadillacs and Dinosaurs,
   The Punisher) and the shoot-'em-ups (Giga Wing) as it groups a series.
 - **Giga Wing's practice**: begun at the last stage's boss it now starts the Medallion's fight (it ran on to the end

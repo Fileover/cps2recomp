@@ -138,6 +138,9 @@ public:
     M68KBus &bus;
     uint8_t *ram = nullptr;          // FF0000-FFFFFF
     uint8_t *video = nullptr;        // 900000 and up: video RAM (for the check of rewrites that write it)
+    // The native interface of the picture this CPU's machine draws (video/native.h): the video library's lifts hand it
+    // their records (each machine its own: the spare and guest boards run the same code)
+    class NativeVideo *nativeVideo = nullptr;
     uint32_t videoSize = 0;
     const uint8_t *rom = nullptr;    // the program as data
     const uint8_t *opcodes = nullptr; // the program as program
