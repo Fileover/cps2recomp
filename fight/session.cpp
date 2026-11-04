@@ -132,7 +132,10 @@ namespace {
         }
         Archive ar(g_roundStart, false);
         machine.Serialize(ar);
-        const int margin = d.wideMargin ? d.wideMargin() : 0; // (the camera's end in the picture played in)
+        int leftEnd = d.wideMargin ? d.wideMargin() : 0, rightEnd = leftEnd; // (the camera's ends in the picture played in)
+        if (d.wideEnds) {
+            d.wideEnds(leftEnd, rightEnd);
+        }
         int x[2] = {d.startX[0], d.startX[1]};
         if (x[0] == 0 && x[1] == 0) {
             x[0] = X(0); // (none given: where the round began)
@@ -146,11 +149,11 @@ namespace {
         if (place % 3 == 1) {
             x[0] = stageLeft;
             x[1] = stageLeft + d.cornerApart;
-            camera = cameraLeft + margin;
+            camera = cameraLeft + leftEnd;
         } else if (place % 3 == 2) {
             x[0] = stageRight - d.cornerApart;
             x[1] = stageRight;
-            camera = cameraRight - margin;
+            camera = cameraRight - rightEnd;
         }
         if (place >= 3) {
             std::swap(x[0], x[1]);

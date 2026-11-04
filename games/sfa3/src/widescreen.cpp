@@ -4,8 +4,9 @@
 // Street Fighter Alpha 3: widescreen, as the other Alpha games have it. A fight is shown 512 columns wide where the
 // board shows 384 (16:9 for 4:3, the height and the size of everything as they were): more of the stage on each side.
 // The fight is played in that picture too: the players can go to its edges, and the camera stops where its edges come
-// to the stage's ends (64 nearer the middle at each end). With the feature off none of that is there and the game is
-// the board's. It is off in every preset: it changes how the game plays.
+// to the stage's art's ends (64 nearer the middle at each end, and on most stages a little further in:
+// fight/wide_ends.h). With the feature off none of that is there and the game is the board's. It is off in every
+// preset: it changes how the game plays.
 //
 // With "Invisible walls" (widescreen_walls) as well, the fight is shown in the wide picture but played as on the board:
 // nothing here touches the rules (the margin is 0), so the players are stopped where the board's picture ends and the
@@ -20,6 +21,7 @@
 #include "battle.h"
 #include "sfa3.h"
 #include "state.h"
+#include "wide_ends.h"
 
 #include <algorithm>
 #include <cstdlib>
@@ -53,6 +55,24 @@ namespace {
 
     int Margin() {
         return g_play ? kWideSide : 0;
+    }
+    // How much further in than 64 the camera stops at each end of each stage (kStageNames' order), for the stage's own
+    // plane (the 16-pixel scroll screen) and its floor: where the wide picture would show them past what the board
+    // shows (their lines going slower than the camera). At most 36: the few lines of a perspective floor that would
+    // need more, near its horizon, are left as they were. Measured by tools/stage_ends.sh (REACH=36:2).
+    constexpr wide::Ends kEnds[kStages] = {
+        {14, 14}, {14, 14}, {17, 17}, {32, 32}, {28, 35}, {0, 0}, {0, 0},   {0, 0},   {8, 8},   {7, 7},   {4, 4},   {18, 35}, {7, 7},
+        {5, 5},   {0, 0},   {22, 22}, {15, 15}, {6, 6},   {4, 4}, {0, 0},   {6, 6},   {4, 3},   {17, 17}, {3, 3},   {33, 32}, {5, 5}};
+    wide::Ends StageEnds() {
+        const int stage = StageOfNumber(Ram16(kStage) / 2) - 1;
+        return stage >= 0 && stage < kStages ? kEnds[stage] : wide::Ends{};
+    }
+    // How far short of the board's ends the camera stops, at each end, in the picture played in
+    int LeftMargin() {
+        return g_play ? kWideSide + StageEnds().left : 0;
+    }
+    int RightMargin() {
+        return g_play ? kWideSide + StageEnds().right : 0;
     }
 
     // --- the camera ---
@@ -108,10 +128,9 @@ namespace {
             return;
         }
         OuterEdges(c);
-        const int margin = Margin();
         if (modes::CameraAt().x >= 0) {
             // (a mode wants the camera at a place of its own: it goes there, as far as its ends let it)
-            const int end0 = Ram16(camera + kCameraEndLeft) + margin, end1 = Ram16(camera + kCameraEndRight) - margin;
+            const int end0 = Ram16(camera + kCameraEndLeft) + LeftMargin(), end1 = Ram16(camera + kCameraEndRight) - RightMargin();
             SetLow16(c.d[0], static_cast<uint16_t>(std::clamp(modes::CameraAt().x, end0, end1)));
             SetLow16(c.d[2], 0);
             AcrossDone(c, camera);
@@ -136,13 +155,13 @@ namespace {
         } else if (way > 0) {
             const uint16_t moved = static_cast<uint16_t>(place + Step(c, static_cast<uint16_t>(by), 5));
             SetRam16(camera + kCameraPlaceX, moved);
-            // (the right end: in the wide picture 64 nearer the middle)
-            const uint16_t end = static_cast<uint16_t>(Ram16(camera + kCameraEndRight) - margin);
+            // (the right end: in the wide picture 64 nearer the middle, or more: kEnds)
+            const uint16_t end = static_cast<uint16_t>(Ram16(camera + kCameraEndRight) - RightMargin());
             SetLow16(c.d[0], static_cast<int16_t>(end) <= static_cast<int16_t>(moved) ? end : moved);
         } else {
             const uint16_t moved = static_cast<uint16_t>(place - Step(c, static_cast<uint16_t>(-by), 5));
             SetRam16(camera + kCameraPlaceX, moved);
-            const uint16_t end = static_cast<uint16_t>(Ram16(camera + kCameraEndLeft) + margin);
+            const uint16_t end = static_cast<uint16_t>(Ram16(camera + kCameraEndLeft) + LeftMargin());
             SetLow16(c.d[0], static_cast<int16_t>(end) >= static_cast<int16_t>(moved) ? end : moved);
         }
         AcrossDone(c, camera);
@@ -316,51 +335,29 @@ namespace {
         return CameraRightEnd() >= CameraLeftEnd() + 2 * kWideSide && camera >= CameraLeftEnd() && camera <= CameraRightEnd();
     }
 
-    // The two other scroll screens' places across (their records' +10) with the camera at each of its ends, by stage
-    // (kStageNames' order; measured with a training session walked to both ends of each stage with invisible walls: the
-    // right end reached, the left worked out from the place at 376, as the planes move in proportion to the camera). A
-    // plane is painted for what the board shows of it at those places and the 384 columns from them; in the wide
-    // picture, near a stage's end, more of it would show than that. So each is drawn moved by as much as its wide view
-    // would reach past its painting (a picture-only change: nothing the game works out is touched), as Alpha 2's are.
-    // Sagat's planes (the Buddha's too) and Dhalsim's back plane are left as they are ({0, 0}): the back ones are fixed
-    // maps of 512 pixels that barely move (38 to 90, 54 to 90), and the columns of these three beyond the board's view
-    // were never drawn, so a moved view shows holes in the middle of them; the holes at their ends are filled instead
+    // The two other scroll screens' places across with the camera at each of the board's ends, by stage (kStageNames'
+    // order; measured by tools/stage_ends.sh: the board's picture with the players in each corner). A plane is painted
+    // for what the board shows of it at those places and the 384 columns from them; in the wide picture, near a stage's
+    // end, more of it would show than that. So each is drawn moved (fight/wide_ends.h, FarScroll): over the camera's
+    // range it goes a little slower than on the board, and comes to its painting's ends as the camera comes to its own
+    // (a picture-only change: nothing the game works out is touched), as Alpha 2's are. Planes that move by themselves
+    // are left as they are ({0, 0}), and so are Sagat's and Dhalsim's back planes: fixed maps of 512 pixels that barely
+    // move (37 to 90, 53 to 90), painted narrower than the wide picture, whose holes at their ends are filled instead
     // (Video::wide.fillHoles).
     struct PlaneEnds {
         int16_t back[2], far[2]; // the 8-pixel and the 32-pixel scroll screens
     };
     constexpr PlaneEnds kPlaneEnds[kStages] = {
-        {{24, 103}, {330, 566}},  {{309, 587}, {289, 606}}, {{25, 102}, {371, 524}},  {{336, 561}, {318, 577}},
-        {{364, 531}, {299, 596}}, {{256, 640}, {280, 616}}, {{256, 640}, {256, 640}}, {{280, 616}, {304, 592}},
-        {{298, 599}, {383, 512}}, {{273, 622}, {200, 375}}, {{265, 630}, {265, 630}}, {{0, 0}, {0, 0}},
-        {{296, 601}, {382, 513}}, {{267, 628}, {312, 583}}, {{486, 652}, {280, 616}}, {{0, 0}, {339, 556}},
-        {{289, 605}, {289, 605}}, {{270, 625}, {315, 581}}, {{265, 630}, {265, 630}}, {{16, 112}, {352, 544}},
-        {{263, 632}, {288, 611}}, {{401, 494}, {355, 540}}, {{314, 582}, {333, 563}}, {{263, 632}, {286, 609}},
-        {{283, 612}, {256, 384}}, {{267, 628}, {312, 583}}};
+        {{24, 103}, {330, 566}},  {{309, 587}, {289, 606}}, {{25, 102}, {371, 524}},  {{335, 561}, {318, 577}},
+        {{363, 531}, {299, 596}}, {{256, 640}, {280, 616}}, {{256, 640}, {256, 640}}, {{280, 616}, {304, 592}},
+        {{297, 599}, {383, 512}}, {{273, 622}, {200, 375}}, {{265, 630}, {265, 630}}, {{0, 0}, {341, 554}},
+        {{295, 601}, {382, 513}}, {{267, 628}, {313, 583}}, {{0, 0}, {280, 616}},     {{0, 0}, {340, 556}},
+        {{290, 605}, {290, 605}}, {{270, 625}, {315, 581}}, {{265, 630}, {265, 630}}, {{16, 112}, {352, 544}},
+        {{263, 632}, {289, 611}}, {{402, 494}, {356, 540}}, {{314, 582}, {333, 563}}, {{263, 632}, {287, 609}},
+        {{284, 612}, {256, 384}}, {{267, 628}, {313, 583}}};
+    // (the planes' places a frame ago, kept in a save state as they were before: FarScroll goes by the camera)
     constexpr uint32_t kPlanes[2] = {0xFF8200, 0xFF8300};
     int g_planeBefore[2] = {0, 0};
-
-    // How far to draw a plane moved so that its wide view stays inside its painting
-    int PlaneShift(const int16_t ends[2], int place) {
-        const int lo = ends[0], hi = ends[1];
-        if (hi <= lo) {
-            return 0; // (going the other way, or round: as it is)
-        }
-        const int from = place - kWideSide, to = place + Video::kWidth + kWideSide; // (the wide view of it)
-        const int painted = hi - lo + Video::kWidth, wide = Video::kWidth + 2 * kWideSide;
-        if (painted < wide) {
-            // (painted narrower than the wide picture: the shortfall split between its two sides, wherever the camera
-            // is; such a plane is far off and moves little)
-            return from - (lo - (wide - painted) / 2);
-        }
-        if (from < lo) {
-            return from - lo;
-        }
-        if (to > hi + Video::kWidth) {
-            return to - (hi + Video::kWidth);
-        }
-        return 0;
-    }
 
     // An object's place: the panel's stay in the middle, the stage's and the fighters' go with the view
     int MoveObject(uint32_t tile, uint16_t attributes, int) {
@@ -369,27 +366,32 @@ namespace {
 
     // The wide picture's switches for the frame about to run (the port's, or a spare's): the camera's place now and
     // where it was for the picture being made (a frame behind)
-    void SetWide(Machine &machine, int camera, int shown, const int planesShown[2]) {
+    void SetWide(Machine &machine, int camera, int shown, const int[2]) {
         g_side = g_shift = 0;
         if (g_shown && OnStage(camera) && OnStage(shown)) {
             g_side = kWideSide;
             // (the view's left edge is 64 left of the camera, and no further left than the camera's own end: nearer the
             // end than that, the stage is drawn to the side by what is missing. Played in the wide picture the camera
             // never goes there; with invisible walls it does, and the board's picture is then to one side)
-            g_shift = shown - std::clamp<int>(shown, CameraLeftEnd() + kWideSide, CameraRightEnd() - kWideSide);
+            g_shift = wide::ViewShift(shown, CameraLeftEnd(), CameraRightEnd(), kWideSide, StageEnds());
         }
         Video::Wide &wide = machine.video.wide;
         wide.side = g_side;
         // (the panel is objects: every scroll screen is the stage's and goes with the view)
         wide.scroll[0] = wide.scroll[1] = wide.scroll[2] = g_shift;
-        // (the planes behind, kept inside their painting; each a frame behind, as the picture is)
+        // (the planes behind, kept inside their painting over the camera's range: its ends in the picture played in, or
+        // with invisible walls the board's)
         const int stage = StageOfNumber(Ram16(kStage) / 2) - 1;
-        for (int n = 0; n < 2; n++) {
-            if (g_side && stage >= 0) {
-                const PlaneEnds &ends = kPlaneEnds[stage];
-                // (from where the view of it already is: near a stage's end, with invisible walls, the whole view is
-                // drawn moved by g_shift)
-                wide.scroll[n == 0 ? 0 : 2] += PlaneShift(n == 0 ? ends.back : ends.far, planesShown[n] - g_shift);
+        if (g_side && stage >= 0 && stage < kStages) {
+            const int end0 = CameraLeftEnd(), end1 = CameraRightEnd();
+            const wide::Ends ends = StageEnds();
+            const int from = g_play ? end0 + kWideSide + ends.left : end0, to = g_play ? end1 - kWideSide - ends.right : end1;
+            for (int n = 0; n < 2; n++) {
+                const int16_t *places = n == 0 ? kPlaneEnds[stage].back : kPlaneEnds[stage].far;
+                if (places[1] > places[0]) {
+                    wide.scroll[n == 0 ? 0 : 2] =
+                        wide::FarScroll(places[1] - places[0], end1 - end0, shown, end0, end1, from, to, kWideSide, ends);
+                }
             }
         }
         wide.object = g_side ? MoveObject : nullptr;
@@ -408,6 +410,10 @@ bool WidePlay() {
 }
 int WideMargin() {
     return Margin();
+}
+void WideEnds(int &left, int &right) {
+    left = LeftMargin();
+    right = RightMargin();
 }
 int WideSide() {
     return g_side;

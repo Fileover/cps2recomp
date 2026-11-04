@@ -45,6 +45,7 @@ struct Options {
     std::string poke;                 // --poke ADDR=BYTE,...
     uint32_t watchLow = 1, watchHigh = 0; // --watch LOW[-HIGH]
     std::string trace;         // --trace LOW-HIGH:file
+    std::string layerLog;      // --layer-log FROM:ADDR:file
     bool checkRewrites = false, noRewrites = false;
     std::string cpu;           // native | blocks | interp | check (default: native when there is translated code)
     std::string sound;         // driver | z80 | check (default: driver when the game's sound program is a known one)

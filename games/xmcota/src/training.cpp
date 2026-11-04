@@ -57,6 +57,7 @@ void RegisterTraining() {
     d.wideStage = marvel::WideStage;
     d.wideSide = marvel::WideSide;
     d.wideMargin = marvel::WideMargin;
+    d.wideEnds = marvel::WideEnds;
     d.stageChoices = modes::StageChoices({"The game's choice"});
     d.hud = Hud;
     d.ownAids = {"gauge_refill"};

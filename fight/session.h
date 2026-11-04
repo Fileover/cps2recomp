@@ -101,6 +101,9 @@ struct Description {
     int (*wideStage)() = nullptr;
     int (*wideSide)() = nullptr;
     int (*wideMargin)() = nullptr;
+    // ... and how far short of each of the board's ends the camera stops, where that is further in than wideMargin
+    // (fight/wide_ends.h; none: wideMargin at both)
+    void (*wideEnds)(int &left, int &right) = nullptr;
     // What the dummy can do of the game's own
     fight::DummyOptions dummy;
     // The aids of the game's own, as training aids (they work only in a session): their names

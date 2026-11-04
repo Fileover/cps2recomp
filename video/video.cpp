@@ -107,6 +107,11 @@ void Video::DrawScroll(int which, int rasterLine, uint16_t *pens, uint8_t *prior
     const int ownLeft = kWide ? wide.side + wide.scroll[which] + (rowScroll && wide.rows ? wide.rows[(rasterLine + a[kRowScrollOffset]) & 0x3FF] : 0) : 0;
     const int ownRight = ownLeft + kWidth; // the board's own columns
     const uint32_t firstX = static_cast<uint32_t>(kFirstColumn - ownLeft + static_cast<int>(scrollX)) & mapMask;
+    if (layerProbe) {
+        LayerLine &probe = layerProbe[which][rasterLine - kFirstLine];
+        probe.row = static_cast<int32_t>(rasterLine + scrollY);
+        probe.left = kFirstColumn - ownLeft + static_cast<int>(scrollX);
+    }
     const uint16_t colourBase = static_cast<uint16_t>(0x20 * (which + 1));
 
     int out = -static_cast<int>(firstX & (size - 1)); // where the first (partly hidden) tile starts
@@ -510,9 +515,28 @@ void Video::RenderLineAs(int line, uint32_t *out) {
         }
     };
     const unsigned order[3] = {l0, l1, l2};
+    if (layerProbe) {
+        for (int which = 0; which < 3; which++) {
+            layerProbe[which][line] = LayerLine{};
+        }
+    }
     for (int n = 0; n < 3; n++) {
         if (order[n] && enabled(order[n])) {
             DrawScroll<kWide>(static_cast<int>(order[n]) - 1, rasterLine, pens, priority, static_cast<uint8_t>(1u << n));
+        }
+    }
+    if (layerProbe) {
+        // (the columns where each is seen: it is the front one painted there, or none is and it is drawn on the line)
+        for (int x = 0; x < width; x++) {
+            const unsigned marks = priority[x] & 7;
+            for (int n = 0; n < 3; n++) {
+                if (!order[n] || layerProbe[order[n] - 1][line].row < 0 || (marks ? (marks >> n) != 1 : false)) {
+                    continue;
+                }
+                LayerLine &probe = layerProbe[order[n] - 1][line];
+                probe.first = probe.first < 0 ? static_cast<int16_t>(x) : probe.first;
+                probe.last = static_cast<int16_t>(x);
+            }
         }
     }
     // (the holes filled from the scroll screens alone, before the objects: a fighter or the panel beside a hole is not

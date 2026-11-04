@@ -27,6 +27,14 @@
   between blocks, and in those games that moves the random number and the ladder parts. It now compares that build,
   frame for frame, with the translated build run with `--cpu interp`, and the translated build with `--cpu blocks`;
   the games' `release_allowed` is gone.
+- **Widescreen stays inside each stage's art** (#239, part of #116): in every fighting game the wide picture no
+  longer shows past what the board shows of a stage, at either end. The camera stops a little sooner where a stage's
+  own plane or floor would run out (by up to 36 pixels, measured stage by stage), and backgrounds that scroll slower
+  than the camera are drawn a little slower still, so they reach their own ends just as the camera does; with
+  invisible walls the view stays on the art. In the Marvel games (Marvel Super Heroes, X-Men vs. Street Fighter,
+  Marvel Super Heroes vs. Street Fighter, Marvel vs. Capcom) the camera now stops short of the ends on every stage, so
+  the fighters no longer walk out of the picture. `tools/stage_ends.sh` measures it, and each game's
+  `check-widescreen` fails on any column shown past the art.
 
 ## 1.3.0
 

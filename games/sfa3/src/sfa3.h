@@ -245,6 +245,7 @@ namespace cps2recomp {
 int WideSide();
 int WideStage();
 int WideMargin();
+void WideEnds(int &left, int &right);
 void WideForSpare(Machine &machine);
 void WideForPort(Machine &machine);
 // Objects by what they are (modes.cpp; for Video::hideObject): the panel, the stage's own pieces, all but those

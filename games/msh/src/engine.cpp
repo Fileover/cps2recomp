@@ -9,6 +9,26 @@
 
 #include <iterator>
 
+// Widescreen at each stage's ends (by the stage byte; fight/wide_ends.h, wide::Stage): how much further in than 64
+// the camera stops for the plane the players stand in (the scroll screen going fastest with the camera) and its floor,
+// at most 36; and the other scroll screens' places across with the camera at the board's ends, each a far plane drawn
+// moved ({0, 0}: it goes with the view, as one going as fast as the players' plane does). Measured by
+// tools/stage_ends.sh with every camera kept (kCameraKept).
+static constexpr cps2recomp::wide::Stage kWideStages[] = {
+    {{20, 20}, {{0, 0}, {0, 0}, {144, 240}}}, // 1
+    {{0, 0}, {{0, 0}, {0, 128}, {120, 264}}}, // 2
+    {{32, 32}, {{96, 288}, {0, 0}, {0, 0}}}, // 3
+    {{36, 36}, {{0, 0}, {0, 0}, {0, 0}}}, // 4
+    {{0, 0}, {{0, 0}, {272, 368}, {0, 0}}}, // 5
+    {{0, 0}, {{0, 0}, {0, 0}, {0, 0}}}, // 6
+    {{22, 22}, {{40, 88}, {0, 0}, {0, 0}}}, // 7
+    {{0, 0}, {{56, 296}, {0, 0}, {2000, 2480}}}, // 8
+    {{0, 0}, {{176, 464}, {0, 128}, {0, 0}}}, // 9
+    {{36, 36}, {{144, 240}, {0, 0}, {0, 0}}}, // 10
+    {{36, 36}, {{0, 0}, {0, 0}, {52, 76}}}, // 11 (the Infinity Gem chamber: its floor is on the 16-pixel scroll screen)
+    {{24, 8}, {{40, 88}, {16, 112}, {0, 0}}}, // 12
+};
+
 namespace cps2recomp {
 
 namespace {
@@ -60,6 +80,11 @@ void DescribeEngine() {
     e.characterNames.assign(std::begin(kCharacterNames), std::end(kCharacterNames));
     e.stageNames.assign(std::begin(kStageNames), std::end(kStageNames));
     e.cameraRecord = CameraRecord;
+    e.wideStages = kWideStages;
+    e.wideStageCount = static_cast<int>(std::size(kWideStages));
+    for (const KeptAt &kept : kCameraKept) {
+        e.keepCameraPlaces.push_back({kept.at, kept.after});
+    }
     e.pictureLeft = kPictureLeft;
     e.wall = kWall;
     e.planes = kPlanes;

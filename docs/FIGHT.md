@@ -60,6 +60,16 @@ and name these functions. X-Men vs. Street Fighter and Marvel Super Heroes use i
 none of its hash logs (the ladder, training, widescreen, the walls, the model viewer, the fighting modes, attract
 mode, the stage viewer) or its feature list.
 
+**Widescreen at a stage's ends** (`fight/wide_ends.h`, issues #239 and #116): the wide picture never shows a scroll
+screen past what the board shows of it. The camera stops a stage's own amount further in than the margin (at most 36,
+for the plane the players stand in and its floor), and a far plane going slower than the camera is drawn moved
+(`wide::FarScroll`) so that it reaches its art's ends as the camera reaches its own; with invisible walls the view is
+kept on the art (`wide::ViewShift`). A game gives the amounts by stage (`Ends`, and its planes' places with the camera
+at the board's ends: `marvel::Engine::wideStages` for the Marvel engine) and tells the modes and the session where its
+camera stops (`wideEnds`). `tools/stage_ends.sh GAME STAGES CAMERA` measures them, from the port's `--layer-log` with
+the players put in each corner, and each game's `check-widescreen STAGE_ENDS=1` runs it played wide and with the walls
+(a long run: left out without it).
+
 ## Tag team for four people
 
 `fight/tag.h` (`tag::`): in a tag-team game, each character of a team played by a person of its own ("Co-op vs.

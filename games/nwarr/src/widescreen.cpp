@@ -23,8 +23,10 @@
 #include "alternative.h"
 #include "nwarr.h"
 #include "state.h"
+#include "wide_ends.h"
 
 #include <algorithm>
+#include <iterator>
 
 namespace cps2recomp {
 
@@ -48,16 +50,52 @@ namespace {
         return g_play ? kSide : 0;
     }
 
+    // Each stage's facts for the wide picture (by the stage word; Darkstalkers' twelve are the first twelve):
+    // how much further in than 64 the camera stops for the plane the players stand in and its floor (at most 36), and
+    // the other scroll screens' places across with the camera at the board's ends, each a far plane drawn moved ({0, 0}:
+    // it goes with the view, as one going as fast as that plane does). Measured by tools/stage_ends.sh (fight/wide_ends.h).
+    constexpr wide::Stage kWideStages[] = {
+        {{29, 29}, {{0, 0}, {0, 0}, {0, 0}}}, // 1
+        {{0, 0}, {{0, 0}, {292, 604}, {360, 552}}}, // 2
+        {{25, 25}, {{0, 0}, {319, 576}, {362, 533}}}, // 3
+        {{24, 24}, {{29, 98}, {0, 0}, {365, 562}}}, // 4
+        {{15, 15}, {{281, 486}, {310, 585}, {0, 0}}}, // 5
+        {{36, 36}, {{0, 0}, {370, 525}, {329, 566}}}, // 6
+        {{36, 36}, {{359, 536}, {0, 0}, {374, 521}}}, // 7
+        {{24, 24}, {{370, 525}, {0, 0}, {397, 498}}}, // 8
+        {{22, 22}, {{311, 504}, {0, 0}, {319, 576}}}, // 9
+        {{36, 36}, {{378, 517}, {0, 0}, {412, 483}}}, // 10
+        {{25, 25}, {{369, 526}, {0, 0}, {395, 500}}}, // 11
+        {{36, 36}, {{378, 517}, {0, 0}, {407, 488}}}, // 12
+        {{24, 24}, {{37, 106}, {0, 0}, {365, 562}}}, // 13
+        {{29, 29}, {{0, 0}, {0, 0}, {0, 0}}}, // 14
+    };
+    const wide::Stage *StageWide() {
+        const unsigned stage = Ram16(kStage);
+        return stage < std::size(kWideStages) && static_cast<int>(stage) < kStages ? &kWideStages[stage] : nullptr;
+    }
+    wide::Ends StageEnds() {
+        const wide::Stage *facts = StageWide();
+        return facts ? facts->ends : wide::Ends{};
+    }
+    // How far short of the board's ends the camera stops, at each end, in the picture played in
+    int LeftMargin() {
+        return g_play ? kSide + StageEnds().left : 0;
+    }
+    int RightMargin() {
+        return g_play ? kSide + StageEnds().right : 0;
+    }
+
     // --- the camera ---
 
-    // 0FF780: the camera (A6) steps D1 to the right, no further than its right end (here 64 nearer the middle)
+    // 0FF780: the camera (A6) steps D1 to the right, no further than its right end (here 64 nearer the middle, or more)
     bool CameraRight(M68K &c) {
         if (!Margin()) {
             return false;
         }
         const uint32_t camera = c.a[6] & 0xFFFFFF;
         const uint16_t was = Ram16(camera + 0x10), step = static_cast<uint16_t>(c.d[1]);
-        const uint16_t end = static_cast<uint16_t>(Ram16(kCameraRightEnd) - Margin());
+        const uint16_t end = static_cast<uint16_t>(Ram16(kCameraRightEnd) - RightMargin());
         const uint16_t now = static_cast<uint16_t>(was + step);
         if (end < now) {
             SetRam16(camera + 0x10, end);
@@ -77,7 +115,7 @@ namespace {
         }
         const uint32_t camera = c.a[6] & 0xFFFFFF;
         const uint16_t was = Ram16(camera + 0x10), step = static_cast<uint16_t>(c.d[0]);
-        const uint16_t end = static_cast<uint16_t>(Ram16(kCameraLeftEnd) + Margin());
+        const uint16_t end = static_cast<uint16_t>(Ram16(kCameraLeftEnd) + LeftMargin());
         const uint16_t now = static_cast<uint16_t>(was + step);
         if (end >= now) {
             SetRam16(camera + 0x10, end);
@@ -167,11 +205,15 @@ namespace {
             g_side = kSide;
             // (the view's left edge is 64 left of the camera, and no further left than the camera's own end; with
             // invisible walls the camera goes nearer, and the board's picture is then to one side)
-            g_shift = shown - std::clamp<int>(shown, CameraLeftEnd() + kSide, CameraRightEnd() - kSide);
+            g_shift = wide::ViewShift(shown, CameraLeftEnd(), CameraRightEnd(), kSide, StageEnds());
         }
         Video::Wide &wide = machine.video.wide;
         wide.side = g_side;
         wide.scroll[0] = wide.scroll[1] = wide.scroll[2] = g_shift;
+        if (const wide::Stage *facts = g_side ? StageWide() : nullptr) {
+            // (the far planes kept inside their painting over the camera's range: fight/wide_ends.h)
+            wide::FarPlanes(wide.scroll, facts->places, shown, CameraLeftEnd(), CameraRightEnd(), g_play, kSide, facts->ends);
+        }
         wide.object = g_side ? MoveObject : nullptr;
         wide.tile = nullptr;
         wide.fillHoles = g_side != 0;
@@ -187,6 +229,10 @@ bool WidePlay() {
 }
 int WideMargin() {
     return Margin();
+}
+void WideEnds(int &left, int &right) {
+    left = LeftMargin();
+    right = RightMargin();
 }
 int WideSide() {
     return g_side;

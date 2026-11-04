@@ -62,6 +62,14 @@ public:
 
     // (for tools: which layers are drawn; bit 0 objects, bits 1-3 scroll screens 1-3)
     unsigned layerMask = 0xF;
+    // (for tools: what each scroll screen (0-2) drew on each line of the picture, as it is drawn: the line of its map
+    // (-1: not drawn), its column at the picture's left edge (not wrapped to the map), and the first and last of the
+    // picture's columns where it is seen (-1: none): it is the front one painted there, or none is. None: not looked at.)
+    struct LayerLine {
+        int32_t row = -1, left = 0;
+        int16_t first = -1, last = -1;
+    };
+    LayerLine (*layerProbe)[kHeight] = nullptr;
     // For a game's own sources: an object is not drawn when this says so of its tile's number and its
     // attributes (the colour set is the low five bits). A game that can tell its players' objects from its
     // stage's can show one without the other. Not part of a save state: who sets it keeps it set.
