@@ -210,9 +210,12 @@ struct Description {
     // The game's other modes ended (one mode at a time), and whether the stage viewer draws the picture itself
     void (*endModes)() = nullptr;
     bool (*stageViewer)() = nullptr;
-    // The wide picture (0: none): columns it adds on each side, and how far short of each end the camera stops
+    // The wide picture (0: none): columns it adds on each side (where the players are stopped), and how far short of
+    // each end the camera stops; and, where that is further in at a stage's end (fight/wide_ends.h), how far at each
+    // (none: wideMargin at both)
     int (*wideSide)() = nullptr;
     int (*wideMargin)() = nullptr;
+    void (*wideEnds)(int &left, int &right) = nullptr;
     // Objects by what they are (Video::hideObject): all but the stage's pieces, the panel only, the panel and
     // the stage's pieces; a player's own colour sets, as a mask of bits
     bool (*notTheStage)(uint32_t tile, uint16_t attributes) = nullptr;

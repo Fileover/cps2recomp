@@ -141,11 +141,22 @@ namespace {
     }
     // The camera's ends and the picture's width, in 256ths of a pixel, for the picture being played in (a wide
     // picture's camera stops short of where the board's does)
+    // (how far short of each end the camera stops: the picture's margin, or further in at a stage's end)
+    void WideEnds(int &left, int &right) {
+        left = right = d.wideMargin();
+        if (d.wideEnds) {
+            d.wideEnds(left, right);
+        }
+    }
     int32_t LeftEnd() {
-        return (CameraLeft() + d.wideMargin()) * 256;
+        int left, right;
+        WideEnds(left, right);
+        return (CameraLeft() + left) * 256;
     }
     int32_t RightEnd() {
-        return (CameraRight() - d.wideMargin()) * 256;
+        int left, right;
+        WideEnds(left, right);
+        return (CameraRight() - right) * 256;
     }
     int PictureWidth() {
         return Video::kWidth + 2 * d.wideSide();
@@ -1477,8 +1488,10 @@ namespace {
             }
             const int x = static_cast<int16_t>(Ram16(Player(n) + d.x)), half = HalfWidth(Player(n));
             const int margin = d.wideMargin();
-            const int side = camera <= CameraLeft() + margin && x - half < edge - margin ? -1 :
-                             camera >= CameraRight() - margin && x + half > edge + Video::kWidth + margin ? 1 : 0;
+            int left, right;
+            WideEnds(left, right);
+            const int side = camera <= CameraLeft() + left && x - half < edge - margin ? -1 :
+                             camera >= CameraRight() - right && x + half > edge + Video::kWidth + margin ? 1 : 0;
             if (side) {
                 if (Log()) {
                     fprintf(Log(), "out %d side=%d end=%d computer=%d plan=%s free_at=%d\n", g.clock, n, side, g.computer[n],
@@ -2021,9 +2034,11 @@ bool RingOutLetsOut(uint32_t player) {
     }
     const int x = static_cast<int16_t>(Ram16(player + d.x)), half = HalfWidth(player);
     const int camera = CameraX(), edge = PictureLeft();
-    const int margin = d.wideMargin(); // (the picture's edges and the camera's ends)
-    const bool left = camera <= CameraLeft() + margin && x - half <= edge - margin;
-    const bool right = camera >= CameraRight() - margin && x + half >= edge + Video::kWidth + margin;
+    const int margin = d.wideMargin(); // (the picture's edges)
+    int leftEnd, rightEnd;             // (and the camera's ends)
+    WideEnds(leftEnd, rightEnd);
+    const bool left = camera <= CameraLeft() + leftEnd && x - half <= edge - margin;
+    const bool right = camera >= CameraRight() - rightEnd && x + half >= edge + Video::kWidth + margin;
     return left || right;
 }
 

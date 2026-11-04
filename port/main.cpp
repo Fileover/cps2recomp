@@ -1937,6 +1937,30 @@ void Port::RunFrame() {
         Step(pressed);
     }
     frame++;
+    if (!opt.layerLog.empty()) {
+        // FROM:ADDR:FILE (ADDR in hex, a word of work RAM: the camera's place). For every frame from FROM on, the frame's
+        // number (4 bytes), the word (2), the picture's width (2), then Video::LayerLine for each scroll screen's lines
+        // (tools/stage_ends.py reads it). The probe is set from the start, so the frame just run filled it.
+        static Video::LayerLine probe[3][Video::kHeight];
+        static FILE *file = nullptr;
+        static uint64_t from = 0;
+        static uint32_t word = 0;
+        if (!machine->video.layerProbe) {
+            const size_t colon = opt.layerLog.find(':'), colon2 = opt.layerLog.find(':', colon + 1);
+            from = strtoull(opt.layerLog.c_str(), nullptr, 10);
+            word = static_cast<uint32_t>(strtoul(opt.layerLog.c_str() + colon + 1, nullptr, 16)) & 0xFFFF;
+            file = fopen(opt.layerLog.c_str() + colon2 + 1, "wb");
+            machine->video.layerProbe = probe;
+        } else if (file && frame >= from) {
+            const uint32_t number = static_cast<uint32_t>(frame);
+            const uint16_t head[2] = {static_cast<uint16_t>(machine->ram[word] << 8 | machine->ram[word + 1]),
+                                      static_cast<uint16_t>(machine->video.Width())};
+            fwrite(&number, 4, 1, file);
+            fwrite(head, 2, 2, file);
+            fwrite(probe, sizeof(probe), 1, file);
+            fflush(file);
+        }
+    }
     // (for finding things out: --poke ADDR=BYTE,... every frame; --dump-ram FRAME:file)
     if (!opt.poke.empty()) {
         const char *at = opt.poke.c_str();
@@ -2157,6 +2181,7 @@ void Usage() {
             "  --check-rewrites       run every rewritten routine and its original, and report differences\n"
             "  --no-rewrites          run the game's own routines where the sources have rewrites\n"
             "  --trace LOW-HIGH:FILE  those bytes of work RAM after every frame, appended to FILE\n"
+            "  --layer-log F:ADDR:FILE from frame F on, what each scroll screen drew on each line, and the word at ADDR\n"
             "  --watch LOW[-HIGH]     report the 68000's writes to these addresses (hex), with who made them\n"
             "  --keys TICK:KEY,...    keys pressed at those ticks of the screen: p (stop/go), o (a frame on),\n"
             "                         - and = (speed), n and h (a Multi game run's next game, fast forward on/off),\n"
@@ -2353,6 +2378,8 @@ bool ParseArgs(int argc, char **argv, port::Options &o) {
             o.noRewrites = true;
         } else if (a == "--trace") {
             o.trace = next();
+        } else if (a == "--layer-log") {
+            o.layerLog = next();
         } else if (a == "--dump-ram") {
             o.dumpRam.push_back(next());
         } else if (a == "--poke") {

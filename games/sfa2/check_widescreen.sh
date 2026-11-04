@@ -94,6 +94,11 @@ for stage in range(1, 19):
     bad += worst > kMostWalls
 sys.exit(1 if bad else 0)
 PY
+# The stages' ends: past a stage's art (what the board shows of each scroll screen, with the camera at its ends) the
+# wide picture shows nothing, played in it or with invisible walls (tools/stage_ends.sh; fight/wide_ends.h)
+for walls in "" widescreen_walls; do
+    B=${B:-build/$GAME} CORNERS=games/sfa2/movies/corners.txt QUIET=1 REACH=36:2 FEATURES=$walls tools/stage_ends.sh $GAME 18 8290 || status=1
+done
 # Invisible walls: the game is the board's
 differ=0
 for frame in 4000 8000 12000 16000 20000 24000 28000; do

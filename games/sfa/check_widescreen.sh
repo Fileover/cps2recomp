@@ -2,7 +2,9 @@
 # SPDX-License-Identifier: GPL-3.0-only
 # Copyright (C) 2026 Tommy McLeroy
 #
-# Checks the widescreen feature (src/widescreen.cpp). On every stage a training session is walked to both of the
+# Checks the widescreen feature (src/widescreen.cpp). On every stage the players are put in each corner, with the
+# board's picture and with the wide one, and no scroll screen may be shown past what the board itself shows of it
+# (tools/stage_ends.sh). And on every stage a training session is walked to both of the
 # stage's ends with widescreen on, and the wide picture's outer 64 columns are looked at there: a column of a plane the
 # game never painted shows as a run of black down it. The columns with 40 or more black pixels running down them (above
 # the floor) are counted at each end, and more than kMost of them fails. With invisible walls (widescreen_walls) the
@@ -62,6 +64,11 @@ for stage in range(1, 14):
     bad += max(shares) > kMost
 sys.exit(1 if bad else 0)
 PY
+# The stages' ends: past a stage's art (what the board shows of each scroll screen, with the camera at its ends) the
+# wide picture shows nothing, played in it or with invisible walls (tools/stage_ends.sh; fight/wide_ends.h)
+for walls in "" widescreen_walls; do
+    B=${B:-build/$GAME} QUIET=1 REACH=36:2 FEATURES=$walls tools/stage_ends.sh $GAME 13 8290 || status=1
+done
 # Invisible walls: the game as the board plays it
 for run in walls none; do
     features=free_play,no_damage,one_hit

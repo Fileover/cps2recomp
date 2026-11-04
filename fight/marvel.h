@@ -24,6 +24,7 @@
 #include "game.h"
 #include "lift.h"
 #include "machine.h"
+#include "wide_ends.h"
 
 #include <cstdint>
 #include <vector>
@@ -102,6 +103,16 @@ struct Engine {
     // A stage's camera ends across (by the game's stage number), and the byte that is the stage
     void (*cameraEnds)(int stage, int &left, int &right) = nullptr;
     uint32_t stage = 0;
+    // Widescreen at each stage's ends (fight/wide_ends.h; by the stage byte, none: nothing past the art anywhere): how
+    // much further in than 64 the stage's camera stops, for the plane the players stand in and its floor; and each
+    // scroll screen's places across with the camera at the board's ends, where it is a far plane drawn moved ({0, 0}:
+    // it goes with the view). Measured by tools/stage_ends.sh.
+    struct WideStage {
+        wide::Ends ends;
+        int16_t places[3][2];
+    };
+    const WideStage *wideStages = nullptr;
+    int wideStageCount = 0;
     // How the camera moves, a byte: `followsOne` after player 1 alone; a second byte like it two on, which the game
     // goes by in some fights (none: one)
     uint32_t cameraWay = 0;
@@ -191,6 +202,7 @@ bool WidePlay();
 int WideSide();
 int WideStage();
 int WideMargin();
+void WideEnds(int &left, int &right);
 void WideForSpare(Machine &machine);
 void WideForPort(Machine &machine);
 

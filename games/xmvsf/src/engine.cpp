@@ -9,6 +9,24 @@
 
 #include <iterator>
 
+// Widescreen at each stage's ends (by the stage byte; fight/wide_ends.h, marvel.h's Engine::WideStage): how much
+// further in than 64 the camera stops for the plane the players stand in (the scroll screen going fastest with the
+// camera) and its floor, at most 36; and the other scroll screens' places across with the camera at the board's ends,
+// each a far plane drawn moved ({0, 0}: as it is). Measured by tools/stage_ends.sh with every camera kept (kCameraKept).
+static constexpr cps2recomp::marvel::Engine::WideStage kWideStages[] = {
+    {{0, 0}, {{24, 360}, {0, 0}, {768, 1152}}}, // 1
+    {{0, 0}, {{0, 128}, {0, 0}, {64, 320}}}, // 2
+    {{0, 0}, {{16, 112}, {0, 0}, {96, 288}}}, // 3
+    {{0, 0}, {{16, 112}, {96, 288}, {0, 0}}}, // 4
+    {{0, 0}, {{0, 0}, {0, 0}, {96, 288}}}, // 5
+    {{0, 0}, {{96, 288}, {0, 0}, {0, 384}}}, // 6
+    {{10, 0}, {{24, 360}, {0, 0}, {12, 372}}}, // 7
+    {{15, 15}, {{492, 660}, {0, 0}, {96, 288}}}, // 8
+    {{0, 0}, {{0, 0}, {0, 0}, {0, 384}}}, // 9
+    {{0, 0}, {{0, 384}, {0, 0}, {0, 384}}}, // 10
+    {{0, 0}, {{0, 384}, {0, 0}, {0, 384}}}, // 11
+};
+
 namespace cps2recomp {
 
 using namespace xmvsf;
@@ -44,6 +62,11 @@ void DescribeEngine() {
     e.characterNames.assign(std::begin(kCharacterNames), std::end(kCharacterNames));
     e.stageNames.assign(std::begin(kStageNames), std::end(kStageNames));
     e.cameraRecord = CameraRecord;
+    e.wideStages = kWideStages;
+    e.wideStageCount = static_cast<int>(std::size(kWideStages));
+    for (const KeptAt &kept : kCameraKept) {
+        e.keepCameraPlaces.push_back({kept.at, kept.after});
+    }
     e.pictureLeft = kPictureLeft;
     e.wall = kWall;
     e.planes = 0x01E7EC; // (longs by a character's byte +30: the camera's word of the plane it stands in)

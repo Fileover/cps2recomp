@@ -240,6 +240,7 @@ namespace cps2recomp {
 int WideSide();
 int WideStage();
 int WideMargin();
+void WideEnds(int &left, int &right);
 void WideForSpare(Machine &machine);
 void WideForPort(Machine &machine);
 } // namespace cps2recomp
