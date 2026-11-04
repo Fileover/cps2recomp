@@ -49,6 +49,7 @@ struct Options {
     bool checkRewrites = false, noRewrites = false;
     std::string cpu;           // native | blocks | interp | check (default: native when there is translated code)
     std::string sound;         // driver | z80 | check (default: driver when the game's sound program is a known one)
+    std::string video;         // board | check (docs/NATIVE_VIDEO.md; default: board)
     std::string stateSave, stateLoad; // FRAME:path
     uint64_t frames = 0;       // stop after this many (0: run on)
     uint64_t shotEvery = 0;

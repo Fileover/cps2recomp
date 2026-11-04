@@ -10,6 +10,7 @@
 #pragma once
 
 #include "../machine/romset.h"
+#include "native.h"
 
 #include <cstdint>
 #include <vector>
@@ -43,6 +44,10 @@ public:
     void Reset();
     // The palette is copied from video RAM when the game writes its address register
     void CopyPalette();
+    // ... that upload, as the native interface has it (native.h: the board's side of --video check)
+    native_video::PaletteUpload DecodePalette() const {
+        return native_video::DecodePalette(m_src.videoRam, m_src.cpsA, m_src.cpsB, m_src.board);
+    }
     // At the start of vertical blanking the board keeps a copy of the object list for the next picture (and,
     // with a second set of graphics, which of its entries are drawn from that: a byte an entry, or none)
     void LatchObjects(const uint8_t *objectRam, const uint8_t *fromExtra = nullptr);

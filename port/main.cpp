@@ -395,6 +395,14 @@ bool Port::Init(std::string &error) {
     }
     machine->soundCpu.recording = !opt.recordEntries.empty();
     SetRewrites(opt.checkRewrites, opt.noRewrites);
+    // The picture at the game's level (docs/NATIVE_VIDEO.md): the shared rewrites of Capcom's video library
+    if (opt.video == "check") {
+        machine->nativeVideo.checking = true;
+    } else if (!opt.video.empty() && opt.video != "board") {
+        error = "--video: board or check";
+        return false;
+    }
+    RegisterVideoLifts();
     machine->cpu.watchLow = opt.watchLow;
     machine->cpu.watchHigh = opt.watchHigh;
     machine->cpu.recording = !opt.recordEntries.empty();
@@ -2123,6 +2131,9 @@ void Usage() {
             "                         interp (the interpreter, an instruction at a time), check\n"
             "  --sound SIDE           driver (the sound program as ordinary code), z80 (the program itself),\n"
             "                         check (both, every write to the chip compared)\n"
+            "  --video SIDE           board (the picture from the board's registers and memories), check (the\n"
+            "                         native interface the game's video code hands over compared with the\n"
+            "                         board's, every record: docs/NATIVE_VIDEO.md)\n"
             "  --sound-test SEED[:N]  every N frames (30) a command to the sound side: each song in turn, placed\n"
             "                         some made-up way, and the other commands (with --sound check)\n"
             "  --scale N              window size, times 224 lines (else the Display page's)\n"
@@ -2221,6 +2232,8 @@ bool ParseArgs(int argc, char **argv, port::Options &o) {
             }
         } else if (a == "--sound") {
             o.sound = next();
+        } else if (a == "--video") {
+            o.video = next();
         } else if (a == "--scale") {
             o.scale = atoi(next());
         } else if (a == "--zoom") {
@@ -2661,6 +2674,9 @@ int main(int argc, char **argv) {
     }
     if (p.opt.checkRewrites && !ReportRewrites()) {
         return 4;
+    }
+    if (p.machine->nativeVideo.checking && !p.machine->nativeVideo.Report(stderr)) {
+        return 6;
     }
     return ProgramEnded() >= 0 ? ProgramEnded() : result;
 }

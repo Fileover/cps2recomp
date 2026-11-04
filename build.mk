@@ -77,11 +77,13 @@ gen:
 		echo '#define GRAFT_NOT_YET 1 // (the first build: the extra set not read yet; tools/graft.py writes this file)' > $(GEN)/graft_data.h; \
 	fi
 	@region=$$($(CFG) region_at $(GAME)); if [ -n "$$region" ]; then printf '%X\n' $$((0x$$region + 6)); fi > $(GEN)/region_hooks.txt
+	@# (the shared rewrites of Capcom's video library the game asks for, video/lifts.cpp: game.cfg's video_* keys, ADDRESS:CRC)
+	@for key in palette_commit palette_pages palette_upload; do $(CFG) video_$$key $(GAME) | tr ' |' '\n\n' | cut -d: -f1; done | grep . > $(GEN)/video_hooks.txt || true
 	@if [ -f $(PROGRAM) ]; then \
 		python3 $(CR)/tools/recomp.py --program $(PROGRAM) --entries $(ENTRIES) --out $(GEN) \
 			--limit $(shell $(CFG) code_end $(GAME)) --list $(WORK)/program.lst \
 			--guess $(WORK)/guessed.txt --data $(PROGRAM).data \
-			--hook-sources "$(HOOK_SOURCES)" --places games/$(GAME)/family.h --hooks $(GEN)/graft_data_hooks.txt:$(GEN)/region_hooks.txt; \
+			--hook-sources "$(HOOK_SOURCES)" --places games/$(GAME)/family.h --hooks $(GEN)/graft_data_hooks.txt:$(GEN)/region_hooks.txt:$(GEN)/video_hooks.txt; \
 	fi
 	@if [ -f $(PROGRAM).z80 ]; then \
 		python3 $(CR)/tools/recompz80.py --program $(PROGRAM).z80 --entries $(ENTRIES).z80 --out $(GEN) \

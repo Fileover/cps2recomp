@@ -153,6 +153,7 @@ public:
     Z80 soundCpu;
     QSound qsound;
     Video video;
+    NativeVideo nativeVideo; // (the picture at the game's level: video/native.h; --video check compares it)
     Eeprom eeprom;
 
     // Memory, as bytes in the 68000's order
