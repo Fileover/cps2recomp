@@ -194,6 +194,8 @@ namespace native {
     if (cps2recomp::RunHook(c, address)) {                                                                             \
         return;                                                                                                        \
     }
+// An instruction with a watch (lift.h, AddWatch): told before it runs; the block goes on
+#define WATCH(address) cps2recomp::RunWatch(c, address);
 // Leaving the routine for the block at `address`
 #define LEAVE(address)                                                                                                 \
     do {                                                                                                               \

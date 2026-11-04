@@ -215,7 +215,7 @@ def directly(insn, mem, nxt):
         return ["c.pc = 0x%Xu;" % nxt, "c.MoveToSR(0x%04X);" % value, "c.cycles += 16;"]
     return None
 
-def emit_routine(out, head, members, blocks, mem, hooks=()):
+def emit_routine(out, head, members, blocks, mem, hooks=(), watches=()):
     def label(addr):
         return "L_%06X" % addr
 
@@ -250,6 +250,8 @@ def emit_routine(out, head, members, blocks, mem, hooks=()):
             nxt = insn.addr + insn.length
             words = " ".join("%04X" % ((mem[a] << 8) | mem[a + 1]) for a in range(insn.addr, nxt, 2))
             out.append("    // %06X: %-22s %s" % (insn.addr, insn.text, words))
+            if insn.addr in watches and not insn.interp:
+                out.append("    WATCH(0x%Xu)" % insn.addr)  # (one the interpreter does tells it itself)
             if not (insn.interp and not directly(insn, mem, nxt)):
                 jumps = insn.flow in ("branch", "call", "jump", "calli", "return")
                 fetched += insn.length // 2 + (1 if jumps and insn.length == 2 else 0)
@@ -347,6 +349,9 @@ def main():
                          "AddHook(0x...) or AddRewrite(0x...)" % os.pathsep)
     ap.add_argument("--hooks", default=None,
                     help="more places translated code stops by for a hook (files of them, hex, one a line, with %s between)" % os.pathsep)
+    ap.add_argument("--watches", default=None,
+                    help="instructions with a watch (lift.h, AddWatch): told before they run, with no block started there "
+                         "(files of them, hex, one a line, with %s between)" % os.pathsep)
     ap.add_argument("--places", default=None,
                     help="for sources shared with another game: the list of where the places they name as At(0x...) are in "
                          "this one (a game's family.h: {0x..., 0x...} pairs)")
@@ -405,6 +410,10 @@ def main():
         if path and os.path.exists(path):
             hooks |= {int(line, 16) for line in open(path).read().split()}
     hooks = sorted(hooks - {0})  # (0: a place the game does not have, lift.h's kNoPlace)
+    watches = set()
+    for path in (args.watches or "").split(os.pathsep):
+        if path and os.path.exists(path):
+            watches |= {int(line, 16) for line in open(path).read().split()}
     entries += hooks  # (a hook's place is a place to translate from)
     entries = [e for e in dict.fromkeys(entries) if e < limit and not e & 1]
 
@@ -448,7 +457,7 @@ def main():
     files = []
     current = list(header)
     for head, members in routines:
-        emit_routine(current, head, members, blocks, mem, set(hooks))
+        emit_routine(current, head, members, blocks, mem, set(hooks), watches)
         if len(current) > FILE_LINES:
             files.append(current)
             current = list(header)

@@ -178,7 +178,8 @@ against it. Row scroll is a per-line offset buffer for the scroll 2 pass, and ba
 The **CPU rasteriser** draws the same `Frame`, line by line, for check (b). It is the reference against
 `video.cpp`. It does not draw what the player sees.
 
-Done so far: `PaletteUpload` (one upload: the pages taken, the buffer, the colours).
+Done so far: `PaletteUpload` (one upload: the pages taken, the buffer, the colours) and `ObjectList` (the list the
+board takes for a frame: its 1,024 entries, the priority control and the offsets).
 
 ## The checks
 
@@ -191,10 +192,15 @@ Done so far: `PaletteUpload` (one upload: the pages taken, the buffer, the colou
   makes every upload twice.
 - **(b)** (to come) the CPU rasteriser's picture against `video.cpp`'s, every line, with `--video check`.
 - The rewrites among the lifts are checked against the game's code by `--check-rewrites` and `make check-rewrites`.
-  The hooks among them only read, but they are places translated code stops, which could move where an interrupt is
-  taken. So for both, a run's frame hashes (`--hash-log`) must be the same as a build's without them.
-- The game's side keeps a little state of its own (the pages last asked for). It is not yet in the save state, so a
-  check run is to start from the program's start, not from a loaded state or a rollback.
+  The rest are **watches** (`lift.h`, `AddWatch`): told before an instruction runs, they only look. Unlike a hook, a
+  watch is not a place where translated code starts a block, so it is not a place where an interrupt can be taken:
+  the translated code is the same, but for the call (`tools/recomp.py --watches`). Hooks were tried first, and in
+  Super Turbo the hooks at its main loop's bank swaps moved where the vertical blank came, and the game went
+  differently from frame 5,464 of its ladder. For both, a run's frame hashes (`--hash-log`) must be the same as a
+  build's without them.
+- The game's side keeps state of its own (what the game last said to each register, the list it handed over). It is
+  not yet in the save state, so a check run is to start from the program's start, not from a loaded state or a
+  rollback.
 - **Board timing:** with `arcade_timing`, rewrites run only when a game's features need them, and then without the
   bus's waits (`runtime/recomp.cpp`), as for every rewrite. A video lift that is to run always must count the waits
   of the instructions it replaces. That comes before the native renderer is the default.
@@ -216,19 +222,22 @@ Its operands (the three variables, the two registers) are read from the game's o
 its version: `video_palette_commit = 00123E:770DFAA6`. At start-up the toolkit checks the CRC.
 
 **Everywhere else** the upload is one instruction inside a bigger routine (the other families' commits, every game's
-start-up). Each is `move.w <a variable from A5, or a number>,<the register>`. A hook there hands the interface what the
-instruction gives, from the game's variable or number, and the game's instruction then runs as it was. `game.cfg`
-lists them:
+start-up). Each is a `move` to the register. A watch there works out, from the CPU as the instruction finds it, what
+the instruction writes and where, and tells the game's side. The game's side keeps what the game has said to each
+register, and makes the upload's record when the palette's base is written: from the game's buffer and the pages it
+last asked for. `game.cfg` lists the instructions:
 
 ```
-video_palette_pages = 0009D0 000BB4      where the game sets the pages
-video_palette_upload = 0009D8 000B7E     where it gives the buffer
+video_writes = 0009D0 0009D8 000B7E 000BB4 ...
 ```
 
-At start-up the toolkit reads each instruction and takes it only if it is that move to that register. When the frame's
-commit is rewritten whole (step 3 below), these hooks become part of it.
+At start-up the toolkit reads each instruction and takes it only if it is a `move.b` or `move.w` it can read: from a
+data register, an address register's place, a variable or a number; to a fixed address that is a video register, or
+to an address register's place, which is looked at as it runs. When the frame's commit is rewritten whole (step 3
+below), these watches become part of it.
 
-`build.mk` gives every address to the translator (`video_hooks.txt`).
+`build.mk` gives the translator the rewrites' addresses as hooks (`video_hooks.txt`) and the instructions as watches
+(`video_watches.txt`).
 
 The two kinds sit in eight games so far, one or two of each family's version. The other games of a family have the
 same code and get the same lines once they have been run. Results, with `--video check` over attract mode (4,000
@@ -255,15 +264,47 @@ Before the hooks, the commit routine alone (sfa2, Vampire Savior): `--check-rewr
 5,939 calls, 0 differed, the cycles exact (68 a call). The frame hashes with and without it
 (`CPS2RECOMP_SKIP_REWRITES=CommitPalette`) were the same, all 4,800 and 6,000.
 
+## The second slice: the object list
+
+The board draws a frame from the object list it takes as the vertical blank starts: the 1,024 entries of the bank of
+object memory the bank register names, with the object registers' priority control and offsets. The game fills one
+bank through its window at 708000, while the other is shown, and then names the bank it filled.
+
+The game's side is told by watches at every instruction that writes the object registers (400000-40000B) or the
+bank (8040E0), the same `video_writes` list. When the game names the other bank it hands over the list it filled: the
+1,024 entries in its window at 708000, at that moment. Naming the bank already shown, it keeps the list it handed over
+last. At each frame's start the board's list (`DecodeObjects`: the bank latched, the registers) must equal the game's
+(the list handed over, the registers as the game last set them). A list the board takes before the game has named a
+bank at all (the first frames, as the program starts) is counted, not compared.
+
+The instructions are the census's and the listing's (every `move` to a fixed object register or the bank). Games
+whose object list needs code of their own (above) pass as well: what they do between the hand-over and the next
+frame's start does not change the list the board takes.
+
+Results, the same runs as the palette's:
+
+| Game | Attract mode: lists the same (before the game's first) | The ladder: lists the same (before) | Frame hashes |
+| --- | --- | --- | --- |
+| sfa2 | 3,999 (0) | 5,999 (0) | the same, 6,000 |
+| vampire_savior | 3,999 (0) | 5,999 (0) | the same, 6,000 |
+| dstlk | 3,955 (44) | 5,955 (44) | the same, 6,000 |
+| msh | 3,930 (69) | 5,930 (69) | the same, 6,000 |
+| mshvsf | 3,930 (69) | 5,930 (69) | the same, 6,000 |
+| ssf2t | 3,998 (1) | 5,998 (1) | the same, 6,000 |
+| avsp | 3,999 (0) | (no ladder movie) | attract mode the same, 4,000 |
+| gigawing | 3,922 (77) | 5,922 (77) | the same, 6,000 |
+
+None differed. The palette's uploads, now from the watches, are as in the table above, all the same.
+
 ## Order of work
 
 Sizes: S a session, M a few, L a week or more.
 
 1. **Palettes**: done for the eight games above; the same lines for the other twelve CPS-2 games, each run once
    (S together); the CPS-1 games' palette control (another register, S).
-2. **The object list:** the drawers' entries as `Object`s (the Alpha library's list builder and its piece writers,
-   the bank swap). Check (a) against the list latched at the vertical blank. M for Alpha, M for Marvel; SF2's copy
-   in the interrupt, S.
+2. **The object list:** the list handed over at the bank swap, checked against the board's each frame: done for the
+   eight games. Then the drawers' entries as `Object`s from the piece writers themselves (the Alpha library's list
+   builder): M for Alpha, M for Marvel; SF2's copy in the interrupt, S.
 3. **Registers from shadows:** scrolls, layer control, priority masks, object offsets (sfa2's 0013CE is already a
    rewrite, `FrameRegisters`, in the game's sources; it moves to the toolkit). M.
 4. **Raster bands:** Marvel (seen); the Vampire games and Giga Wing set the counters but changed nothing in these

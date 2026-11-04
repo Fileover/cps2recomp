@@ -4,11 +4,13 @@
 // Capcom's video library as the games share it, written once (docs/NATIVE_VIDEO.md): the routines that hand the
 // board the picture, rewritten (docs/READABLE.md) so that they also hand it to the native interface (native.h).
 //
-// A game says in its game.cfg where its copy of each routine is, and the version: the address, then a CRC-32 of the
-// routine's instruction words with their operands left out (`video_palette_commit = 00123E:XXXXXXXX`). The
-// routine's operands (where the game keeps its variables, which of the board's addresses it writes) are read from
-// the game's own copy, so that one rewrite serves every game with that version. A copy that is not that version
-// is not rewritten (its own code runs) and is reported.
+// A game says in its game.cfg where its copy of each part is. A routine rewritten whole: the address, then a CRC-32 of
+// the routine's instruction words with their operands left out (`video_palette_commit = 00123E:XXXXXXXX`); its
+// operands (where the game keeps its variables, which of the board's addresses it writes) are read from the game's
+// own copy, so that one rewrite serves every game with that version. A copy that is not that version is not
+// rewritten (its own code runs) and is reported. Elsewhere, the instructions that write the video's registers
+// (`video_writes = ADDRESS ...`): a hook at each says what it is about to write, and the instruction then runs as it
+// was.
 #include "native.h"
 
 #include "../runtime/game.h"
@@ -58,11 +60,6 @@ namespace {
         return true;
     }
 
-    // Where a palette's buffer is, from the word the game gives the chip
-    inline uint32_t BufferAt(uint16_t base) {
-        return 0x900000 + ((static_cast<uint32_t>(base) << 8) & 0x3FC00);
-    }
-
     // --- The palette's commit, once a frame in the vertical blank's interrupt (Alpha's kernel: Street Fighter Alpha
     // 1-3, Zero 2 Alpha, the Vampire Savior family, Pocket Fighter, Puzzle Fighter). Its three instructions:
     //
@@ -78,10 +75,10 @@ namespace {
     void CommitPalette(M68K &c) {
         const uint16_t pages = Ram16(Variable(c, g_commit.pages));
         const uint16_t base = Ram16(Variable(c, g_commit.base));
-        // The native interface is handed the upload as the game sees it: its buffer, the pages it asks for
-        c.nativeVideo->gamePages = static_cast<uint8_t>(pages);
-        c.nativeVideo->Palette(native_video::GamePalette(c.nativeVideo->videoRam, BufferAt(base), c.nativeVideo->gamePages));
+        // (the native interface is told each write first: the upload is made from the game's buffer and pages)
+        c.nativeVideo->GameWrites(c, g_commit.pagesRegister, pages, false);
         c.Write(g_commit.pagesRegister, 1, pages);
+        c.nativeVideo->GameWrites(c, g_commit.baseRegister, base, false);
         c.Write(g_commit.baseRegister, 1, base);
         const uint16_t next = Ram16(Variable(c, g_commit.next));
         SetRam16(Variable(c, g_commit.base), next);
@@ -108,54 +105,87 @@ namespace {
         // (move.w d16(An),xxx.l twice: 24 cycles each; move.w d16(An),d16(An): 20; Return adds the rts)
         AddRewrite(at, "CommitPalette", CommitPalette, 0, 68);
     }
-    // --- The palette written elsewhere: every other family's commit (inline in its vertical blank's routine), and every
-    // game's start-up. Each is one instruction, `move.w <a variable from A5, or a number>,<the chip's register>`; a hook
-    // there hands the interface what the instruction gives the board, and the game's instruction then runs as it was.
-    // game.cfg names them (addresses, spaces between): video_palette_pages, where the game sets the pages the chip is
-    // to take (CPS-B's palette control); video_palette_upload, where it gives the buffer (CPS-A's palette base: the
-    // chip takes the palette then).
+    // --- The video's registers written elsewhere: every other family's commit, every game's start-up, the object
+    // bank's swaps. Each is a `move.b` or `move.w` (from a data register, an address register's place, a variable or a
+    // number; to a fixed address or an address register's place). The hook works out, from the CPU as the instruction
+    // finds it, the value and the place, and tells the native interface when the place is a video register.
     struct Operand {
-        bool variable = false;
-        int16_t offset = 0; // (a variable: from A5)
-        uint16_t value = 0; // (a number)
-        uint16_t Of(const M68K &c) const {
-            return variable ? Ram16(Variable(c, offset)) : value;
-        }
+        unsigned mode = 0, reg = 0;
+        uint32_t extension = 0; // (where its extension words start)
     };
-    std::map<uint32_t, Operand> g_pagesAt, g_uploadsAt;
+    struct Move {
+        bool byte = false;
+        Operand from, to;
+    };
+    std::map<uint32_t, Move> g_moves;
 
-    // The instruction at `at`, if it is `move.w d16(A5),xxx.l` or `move.w #n,xxx.l` to the register at `chip` (either
-    // of the video chips' two places, 8001xx and 8041xx)
-    bool ReadMove(const char *key, uint32_t at, uint32_t chip, Operand &operand) {
-        const uint16_t op = OpcodeWord(at);
-        uint32_t to = 0;
-        if (op == 0x33ED) { // move.w d16(A5),xxx.l
-            operand.variable = true;
-            operand.offset = static_cast<int16_t>(OpcodeWord(at + 2));
-            to = OpcodeLong(at + 4);
-        } else if (op == 0x33FC) { // move.w #n,xxx.l
-            operand.value = OpcodeWord(at + 2);
-            to = OpcodeLong(at + 4);
+    unsigned ExtensionWords(const Operand &o, bool byte) {
+        switch (o.mode) {
+        case 5: return 1; // d16(An)
+        case 7:
+            switch (o.reg) {
+            case 0: return 1; // xxx.w
+            case 1: return 2; // xxx.l
+            case 2: return 1; // d16(PC)
+            case 4: return 1; // #n (a byte's in the low half of a word)
+            default: return 0;
+            }
+        default: return 0;
         }
-        if ((to & 0xFFBFFF) != chip) {
-            fprintf(stderr, "video: game.cfg's %s: the instruction at %06X is not a move.w of a variable or a number to %06X; "
-                            "not native\n", key, at, chip);
-            return false;
+    }
+    bool Supported(const Operand &o, bool source) {
+        if (o.mode == 6) {
+            return false; // (an index: none of the games' writers so far)
         }
-        return true;
+        if (o.mode == 7) {
+            return o.reg == 0 || o.reg == 1 || (source && (o.reg == 2 || o.reg == 4));
+        }
+        return source || o.mode >= 2; // (a register is no destination here)
+    }
+    // Where an operand of mode 7 is (none of the CPU's registers needed)
+    uint32_t FixedPlace(const Operand &o) {
+        switch (o.reg) {
+        case 0: return static_cast<uint32_t>(static_cast<int16_t>(OpcodeWord(o.extension)));
+        case 1: return OpcodeLong(o.extension);
+        case 2: return o.extension + static_cast<uint32_t>(static_cast<int16_t>(OpcodeWord(o.extension)));
+        default: return 0;
+        }
+    }
+    // Where an operand is in memory, as the CPU is before the instruction
+    uint32_t Place(const M68K &c, const Operand &o, bool byte) {
+        switch (o.mode) {
+        case 2: case 3: return c.a[o.reg];
+        case 4: return c.a[o.reg] - ((byte && o.reg != 7) ? 1 : 2);
+        case 5: return c.a[o.reg] + static_cast<uint32_t>(static_cast<int16_t>(OpcodeWord(o.extension)));
+        case 7: return FixedPlace(o);
+        default: return 0;
+        }
+    }
+    uint16_t Value(M68K &c, const Operand &o, bool byte) {
+        if (o.mode == 0) {
+            return static_cast<uint16_t>(byte ? c.d[o.reg] & 0xFF : c.d[o.reg] & 0xFFFF);
+        }
+        if (o.mode == 1) {
+            return static_cast<uint16_t>(c.a[o.reg]);
+        }
+        if (o.mode == 7 && o.reg == 4) {
+            const uint16_t n = OpcodeWord(o.extension);
+            return byte ? n & 0xFF : n;
+        }
+        const uint32_t at = Place(c, o, byte) & 0xFFFFFF;
+        return byte ? c.bus.Read8(at) : c.bus.Read16(at & ~1u);
     }
 
-    bool PagesSet(M68K &c) {
-        c.nativeVideo->gamePages = static_cast<uint8_t>(g_pagesAt[c.pc].Of(c));
+    bool VideoWrite(M68K &c) {
+        const Move &move = g_moves[c.pc];
+        const uint32_t to = Place(c, move.to, move.byte) & 0xFFFFFF;
+        if (native_video::IsVideoRegister(to)) {
+            c.nativeVideo->GameWrites(c, to, Value(c, move.from, move.byte), move.byte);
+        }
         return false;
     }
-    bool PaletteGiven(M68K &c) {
-        const uint16_t base = g_uploadsAt[c.pc].Of(c);
-        c.nativeVideo->Palette(native_video::GamePalette(c.nativeVideo->videoRam, BufferAt(base), c.nativeVideo->gamePages));
-        return false;
-    }
 
-    void AddMoves(const char *key, const char *list, uint32_t chip, std::map<uint32_t, Operand> &into, HookFn fn, const char *name) {
+    void AddWrites(const char *list) {
         for (const char *p = list; *p;) {
             char *end = nullptr;
             const uint32_t at = static_cast<uint32_t>(strtoul(p, &end, 16));
@@ -164,11 +194,21 @@ namespace {
                 continue;
             }
             p = end;
-            Operand operand;
-            if (ReadMove(key, at, chip, operand)) {
-                into[at] = operand;
-                AddHook(at, name, fn);
+            const uint16_t op = OpcodeWord(at);
+            Move move;
+            move.byte = (op >> 12) == 1;
+            move.from = {static_cast<unsigned>((op >> 3) & 7), static_cast<unsigned>(op & 7), at + 2};
+            move.to = {static_cast<unsigned>((op >> 6) & 7), static_cast<unsigned>((op >> 9) & 7), 0};
+            move.to.extension = move.from.extension + 2 * ExtensionWords(move.from, move.byte);
+            const bool fixed = move.to.mode == 7;
+            if (((op >> 12) != 1 && (op >> 12) != 3) || !Supported(move.from, true) || !Supported(move.to, false) ||
+                (fixed && !native_video::IsVideoRegister(FixedPlace(move.to)))) {
+                fprintf(stderr, "video: game.cfg's video_writes: the instruction at %06X is not a move to the video's registers the "
+                                "toolkit reads; not native\n", at);
+                continue;
             }
+            g_moves[at] = move;
+            AddWatch(at, "VideoWrite", VideoWrite);
         }
     }
 } // namespace
@@ -177,19 +217,15 @@ namespace {
 #ifndef GAME_VIDEO_PALETTE_COMMIT
 #define GAME_VIDEO_PALETTE_COMMIT ""
 #endif
-#ifndef GAME_VIDEO_PALETTE_PAGES
-#define GAME_VIDEO_PALETTE_PAGES ""
-#endif
-#ifndef GAME_VIDEO_PALETTE_UPLOAD
-#define GAME_VIDEO_PALETTE_UPLOAD ""
+#ifndef GAME_VIDEO_WRITES
+#define GAME_VIDEO_WRITES ""
 #endif
 
 void RegisterVideoLifts() {
     if (*GAME_VIDEO_PALETTE_COMMIT) {
         AddPaletteCommit(GAME_VIDEO_PALETTE_COMMIT);
     }
-    AddMoves("video_palette_pages", GAME_VIDEO_PALETTE_PAGES, 0x800170, g_pagesAt, PagesSet, "PalettePages");
-    AddMoves("video_palette_upload", GAME_VIDEO_PALETTE_UPLOAD, 0x80010A, g_uploadsAt, PaletteGiven, "PaletteUpload");
+    AddWrites(GAME_VIDEO_WRITES);
 }
 
 } // namespace cps2recomp
