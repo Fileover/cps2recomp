@@ -19,6 +19,7 @@
 #pragma once
 
 #include <algorithm>
+#include <cstdint>
 
 namespace cps2recomp::wide {
 
@@ -53,6 +54,25 @@ inline int FarScroll(int num, int den, int camera, int end0, int end1, int from,
     // narrower than the wide picture, it stays in the middle of what there is)
     const int left = last < first ? (first + last) / 2 : first + (last - first) * (camera - from) / (to - from);
     return -side - left;
+}
+
+// A stage's facts for the wide picture: how much further in the camera stops, and each scroll screen's places across
+// with the camera at the board's ends where it is a far plane drawn moved ({0, 0}: it goes with the view)
+struct Stage {
+    Ends ends;
+    int16_t places[3][2];
+};
+
+// The far planes' Video::Wide::scroll (the others left as they are: the view's shift), for the picture made from the
+// camera at `camera` between the board's ends; `play`: fights played in the wide picture (the camera then stops short
+// of its ends), else invisible walls (it goes to them)
+inline void FarPlanes(int scroll[3], const int16_t places[3][2], int camera, int end0, int end1, bool play, int side, Ends ends) {
+    const int from = play ? end0 + side + ends.left : end0, to = play ? end1 - side - ends.right : end1;
+    for (int n = 0; n < 3; n++) {
+        if (places[n][1] > places[n][0]) {
+            scroll[n] = FarScroll(places[n][1] - places[n][0], end1 - end0, camera, end0, end1, from, to, side, ends);
+        }
+    }
 }
 
 } // namespace cps2recomp::wide

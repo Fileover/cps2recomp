@@ -67,7 +67,8 @@ for the plane the players stand in and its floor), and a far plane going slower 
 kept on the art (`wide::ViewShift`). A game gives the amounts by stage (`Ends`, and its planes' places with the camera
 at the board's ends: `marvel::Engine::wideStages` for the Marvel engine) and tells the modes and the session where its
 camera stops (`wideEnds`). `tools/stage_ends.sh GAME STAGES CAMERA` measures them, from the port's `--layer-log` with
-the players put in each corner, and each game's `check-widescreen` runs it played wide and with the walls.
+the players put in each corner, and each game's `check-widescreen STAGE_ENDS=1` runs it played wide and with the walls
+(a long run: left out without it).
 
 ## Tag team for four people
 

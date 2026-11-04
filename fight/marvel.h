@@ -88,8 +88,8 @@ struct Engine {
     uint32_t cameraWorkX = 0, cameraWorkY = 0;
     uint32_t keepCameraDown = 0, keptAcross = 0, keptDown = 0;
     // Where the camera's place is kept between its ends, where that is not one routine but a piece of each stage's own
-    // (RegisterWidescreen's keepCamera then 0): the piece's place (a hook), and where the stage's code goes on after it
-    // (0: the piece ends the routine)
+    // (besides RegisterWidescreen's keepCamera, if any): the piece's place (a hook), and where the stage's code goes on
+    // after it (0: the piece ends the routine; with cameraWorkX, where its keeping is over, as keptAcross)
     struct KeepCameraPlace {
         uint32_t at, after;
     };
@@ -107,11 +107,7 @@ struct Engine {
     // much further in than 64 the stage's camera stops, for the plane the players stand in and its floor; and each
     // scroll screen's places across with the camera at the board's ends, where it is a far plane drawn moved ({0, 0}:
     // it goes with the view). Measured by tools/stage_ends.sh.
-    struct WideStage {
-        wide::Ends ends;
-        int16_t places[3][2];
-    };
-    const WideStage *wideStages = nullptr;
+    const wide::Stage *wideStages = nullptr;
     int wideStageCount = 0;
     // How the camera moves, a byte: `followsOne` after player 1 alone; a second byte like it two on, which the game
     // goes by in some fights (none: one)

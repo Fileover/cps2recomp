@@ -9,6 +9,24 @@
 
 #include <iterator>
 
+
+// Widescreen at each stage's ends (by the stage byte; fight/wide_ends.h, wide::Stage): how much further in than 64
+// the camera stops for the plane the players stand in (the scroll screen going fastest with the camera) and its floor,
+// at most 36; and the other scroll screens' places across with the camera at the board's ends, each a far plane drawn
+// moved ({0, 0}: it goes with the view, as one going as fast as the players' plane does). Measured by
+// tools/stage_ends.sh with every camera kept (kCameraKept).
+static constexpr cps2recomp::wide::Stage kWideStages[] = {
+    {{0, 0}, {{0, 0}, {0, 0}, {0, 0}}}, // 1
+    {{0, 0}, {{0, 0}, {0, 0}, {0, 0}}}, // 2
+    {{0, 0}, {{368, 656}, {0, 0}, {1120, 1312}}}, // 3
+    {{0, 0}, {{0, 0}, {0, 0}, {0, 0}}}, // 4
+    {{0, 0}, {{0, 0}, {0, 0}, {0, 0}}}, // 5
+    {{0, 0}, {{0, 0}, {0, 0}, {48, 336}}}, // 6
+    {{0, 0}, {{0, 288}, {0, 0}, {72, 312}}}, // 7
+    {{0, 0}, {{0, 0}, {144, 240}, {168, 216}}}, // 8
+    {{0, 0}, {{0, 0}, {64, 320}, {96, 288}}}, // 9
+    {{0, 0}, {{112, 272}, {0, 0}, {0, 0}}}, // 10
+};
 namespace cps2recomp {
 
 using namespace mvsc;
@@ -53,6 +71,11 @@ void DescribeEngine() {
         }
     }
     e.cameraRecord = CameraRecord;
+    e.wideStages = kWideStages;
+    e.wideStageCount = static_cast<int>(std::size(kWideStages));
+    for (const KeptAt &kept : kCameraKept) {
+        e.keepCameraPlaces.push_back({kept.at, kept.after});
+    }
     e.cameraX = kCameraX;
     e.cameraY = kCameraY;
     e.cameraLeft = kCameraLeft;

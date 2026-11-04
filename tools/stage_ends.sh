@@ -13,7 +13,8 @@
 # for each stage, with commas between (where the camera's record is the stage's own: the Marvel games). Prints
 # tools/stage_ends.py's lines for each stage, and exits 1 if the wide picture went past a stage's art anywhere. The
 # logs are left in DIR if given (else a folder that is removed). B, ROM, CORNERS (another game's corners movie, for a
-# game built from its sources), FEATURES (more features for both runs:
+# game built from its sources), START (the ticks the session's stage is chosen and it is started; 3,5), FEATURES (more
+# features for both runs:
 # widescreen_walls for invisible walls), LAYERS (the scroll screens looked at, as 1,2,3), REACH (tools/stage_ends.py's
 # --reach), JOBS, ONLY (the stages to look at, as "3 7"); QUIET=1 says only the
 # stages that went past their art.
@@ -44,7 +45,8 @@ end=$((walk + 1800))
 } > "$dir/movie.txt"
 # (Start over at the left corner, then the right, three times each: the keys count the port's ticks, which run ahead of
 # the frames while the title is skipped)
-keys="3:ftraining_stage=STAGE,5:ctraining_start"
+start=${START:-3,5}
+keys="${start%,*}:ftraining_stage=STAGE,${start#*,}:ctraining_start"
 for k in 0 400 800; do
     keys="$keys,$((walk + k)):frestart_at=1,$((walk + k + 1)):k1,$((walk + k + 200)):frestart_at=2,$((walk + k + 201)):k1"
 done

@@ -9,22 +9,23 @@
 
 #include <iterator>
 
-// Widescreen at each stage's ends (by the stage byte; fight/wide_ends.h, marvel.h's Engine::WideStage): how much
-// further in than 64 the camera stops for the plane the players stand in (the scroll screen going fastest with the
-// camera) and its floor, at most 36; and the other scroll screens' places across with the camera at the board's ends,
-// each a far plane drawn moved ({0, 0}: as it is). Measured by tools/stage_ends.sh with every camera kept (kCameraKept).
-static constexpr cps2recomp::marvel::Engine::WideStage kWideStages[] = {
+// Widescreen at each stage's ends (by the stage byte; fight/wide_ends.h, wide::Stage): how much further in than 64
+// the camera stops for the plane the players stand in (the scroll screen going fastest with the camera) and its floor,
+// at most 36; and the other scroll screens' places across with the camera at the board's ends, each a far plane drawn
+// moved ({0, 0}: it goes with the view, as one going as fast as the players' plane does). Measured by
+// tools/stage_ends.sh with every camera kept (kCameraKept).
+static constexpr cps2recomp::wide::Stage kWideStages[] = {
     {{0, 0}, {{24, 360}, {0, 0}, {768, 1152}}}, // 1
     {{0, 0}, {{0, 128}, {0, 0}, {64, 320}}}, // 2
     {{0, 0}, {{16, 112}, {0, 0}, {96, 288}}}, // 3
     {{0, 0}, {{16, 112}, {96, 288}, {0, 0}}}, // 4
     {{0, 0}, {{0, 0}, {0, 0}, {96, 288}}}, // 5
-    {{0, 0}, {{96, 288}, {0, 0}, {0, 384}}}, // 6
+    {{0, 0}, {{96, 288}, {0, 0}, {0, 0}}}, // 6
     {{10, 0}, {{24, 360}, {0, 0}, {12, 372}}}, // 7
     {{15, 15}, {{492, 660}, {0, 0}, {96, 288}}}, // 8
-    {{0, 0}, {{0, 0}, {0, 0}, {0, 384}}}, // 9
-    {{0, 0}, {{0, 384}, {0, 0}, {0, 384}}}, // 10
-    {{0, 0}, {{0, 384}, {0, 0}, {0, 384}}}, // 11
+    {{0, 0}, {{0, 0}, {0, 0}, {0, 0}}}, // 9
+    {{0, 0}, {{0, 0}, {0, 0}, {0, 0}}}, // 10
+    {{0, 0}, {{0, 0}, {0, 0}, {0, 0}}}, // 11
 };
 
 namespace cps2recomp {

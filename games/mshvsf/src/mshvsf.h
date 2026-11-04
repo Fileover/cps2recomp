@@ -165,6 +165,21 @@ inline uint32_t CameraRecord() {
     return static_cast<uint32_t>(0xFF8000 + kOffsets[cps2recomp::Ram8(kStage) & 0x0F]);
 }
 constexpr uint32_t kCameraX = 0x0C, kCameraY = 0x10, kCameraWorkX = 0x76, kCameraWorkY = 0x78;
+// The other places that keep the camera's copy across between its ends: each stage's own routine has the piece
+// (move.w 0x68(a6),d0 ... move.w d0,0x76(a6), 0x18 bytes) that RegisterWidescreen's keepCamera (0A55AC) is one of, and
+// its keeping is over at the piece's end. Widescreen has to keep each 64 nearer the middle, or on those stages the
+// camera goes to the board's ends while the players go 64 past them, out of the picture (issue #116). Found as every
+// such piece in the listing (tools/lst.py -r).
+struct KeptAt {
+    uint32_t at, after;
+};
+inline constexpr KeptAt kCameraKept[] = {
+    {cps2recomp::HookAt(0x0A2F46), 0x0A2F5E}, {cps2recomp::HookAt(0x0A35A0), 0x0A35B8},
+    {cps2recomp::HookAt(0x0A36F0), 0x0A3708}, {cps2recomp::HookAt(0x0A3912), 0x0A392A},
+    {cps2recomp::HookAt(0x0A3A0A), 0x0A3A22}, {cps2recomp::HookAt(0x0A3BB4), 0x0A3BCC},
+    {cps2recomp::HookAt(0x0A40F6), 0x0A410E}, {cps2recomp::HookAt(0x0A44EE), 0x0A4506},
+    {cps2recomp::HookAt(0x0A5790), 0x0A57A8}, {cps2recomp::HookAt(0x0A58EA), 0x0A5902},
+    {cps2recomp::HookAt(0x0A5B64), 0x0A5B7C}, {cps2recomp::HookAt(0x0A5EDA), 0x0A5EF2}};
 constexpr uint32_t kCameraLeft = 0x68, kCameraRight = 0x6A, kCameraTop = 0x6C;
 // How the camera moves, a byte (0A1C94 goes by it, or by the one two after it when a point character's +207 says): 0
 // after both players, 4 after player 1 alone; the game sets it every frame

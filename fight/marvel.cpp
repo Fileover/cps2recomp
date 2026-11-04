@@ -274,12 +274,12 @@ namespace {
         return g_play ? kSide : 0;
     }
     // The stage's widescreen facts (none: nothing to change)
-    const Engine::WideStage *StageWide() {
+    const wide::Stage *StageWide() {
         const int stage = e.stage ? Ram8(e.stage) : -1;
         return e.wideStages && stage >= 0 && stage < e.wideStageCount ? &e.wideStages[stage] : nullptr;
     }
     wide::Ends StageEnds() {
-        const Engine::WideStage *facts = StageWide();
+        const wide::Stage *facts = StageWide();
         return facts ? facts->ends : wide::Ends{};
     }
     // How far short of its ends a camera record (A6) is kept: the stage's camera, 64 and the stage's own; another (a
@@ -297,11 +297,19 @@ namespace {
     // nearer the middle across; a mode's camera wanted beyond its ends is not kept in at all
     bool KeepCamera(M68K &c) {
         const uint32_t camera = c.a[6] & 0xFFFFFF;
+        // (where the stages each keep their own camera, the stage's code goes on after the piece that keeps it)
+        uint32_t after = 0;
+        for (const Engine::KeepCameraPlace &place : e.keepCameraPlaces) {
+            if (place.at == c.pc) {
+                after = place.after;
+            }
+        }
         if (e.cameraWorkX) {
             // (the game's own keeping across, its copy put back after: not kept in at all, or first kept 64 nearer the
-            // middle, inside the game's own ends, so that its keeping changes nothing)
+            // middle, inside the game's own ends, so that its keeping changes nothing; each stage's piece goes on at
+            // its own place)
             if (modes::CameraAt().beyondEnds) {
-                c.pc = e.keptAcross;
+                c.pc = after ? after : e.keptAcross;
                 return true;
             }
             if (g_play) {
@@ -312,13 +320,6 @@ namespace {
                 SetRam16(camera + e.cameraWorkX, static_cast<uint16_t>(std::clamp(x, left, std::max(left, right))));
             }
             return false;
-        }
-        // (where the stages each keep their own camera, the stage's code goes on after the piece that keeps it)
-        uint32_t after = 0;
-        for (const Engine::KeepCameraPlace &place : e.keepCameraPlaces) {
-            if (place.at == c.pc) {
-                after = place.after;
-            }
         }
         const auto done = [&] {
             if (after) {
@@ -416,17 +417,10 @@ namespace {
         Video::Wide &wide = machine.video.wide;
         wide.side = g_side;
         wide.scroll[0] = wide.scroll[1] = wide.scroll[2] = g_shift;
-        if (const Engine::WideStage *facts = g_side ? StageWide() : nullptr) {
+        if (const wide::Stage *facts = g_side ? StageWide() : nullptr) {
             // (the far planes kept inside their painting over the camera's range: its ends in the picture played in, or
             // with invisible walls the board's)
-            const int end0 = CameraLeftEnd(), end1 = CameraRightEnd();
-            const int from = g_play ? end0 + kSide + facts->ends.left : end0, to = g_play ? end1 - kSide - facts->ends.right : end1;
-            for (int n = 0; n < 3; n++) {
-                const int16_t *places = facts->places[n];
-                if (places[1] > places[0]) {
-                    wide.scroll[n] = wide::FarScroll(places[1] - places[0], end1 - end0, shown, end0, end1, from, to, kSide, facts->ends);
-                }
-            }
+            wide::FarPlanes(wide.scroll, facts->places, shown, CameraLeftEnd(), CameraRightEnd(), g_play, kSide, facts->ends);
         }
         wide.object = g_side ? MoveObject : nullptr;
         wide.tile = nullptr;

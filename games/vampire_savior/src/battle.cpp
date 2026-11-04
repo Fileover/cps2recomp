@@ -154,6 +154,7 @@ void RegisterBattle() {
     d.stageViewer = StageViewer;
     d.wideSide = WideSide;
     d.wideMargin = WideMargin;
+    d.wideEnds = WideEnds;
     d.notTheStage = NotTheStage;
     d.thePanel = ThePanel;
     d.notTheFighters = NotTheFighters;

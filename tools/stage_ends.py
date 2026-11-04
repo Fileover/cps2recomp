@@ -53,6 +53,9 @@ class Corners:
         kept = [(f, c, w, l) for f, c, w, l in frames(path) if f >= first]
         if not kept:
             sys.exit('%s: no frames from %d' % (path, first))
+        # (before the fight the camera's word holds what it held: from its first change on)
+        moved = next((n for n in range(1, len(kept)) if kept[n][1] != kept[0][1]), 0)
+        kept = kept[moved:]
         self.width = kept[-1][2]
         self.ends = (min(c for _, c, _, _ in kept), max(c for _, c, _, _ in kept))
         self.place = [[collections.defaultdict(set), collections.defaultdict(set)] for _ in range(3)]

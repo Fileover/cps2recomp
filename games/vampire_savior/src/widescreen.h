@@ -24,6 +24,8 @@ bool WidePlay();
 // How many columns the picture fights are played in has on each side of the board's (64, or 0): the picture's
 // left edge is that far left of the camera's place, and the camera stops that far short of each of its ends
 int WideMargin();
+// ... and how far short of each end the camera stops, the stage's own amount further in (fight/wide_ends.h)
+void WideEnds(int &left, int &right);
 // A machine other than the port's is loaded and about to run a frame (modes.h, RunSpare): its picture is to
 // be as wide as the port's this frame, whatever it is showing, so that the two can be put together
 void WideForSpare(Machine &machine);
