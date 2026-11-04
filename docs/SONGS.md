@@ -11,6 +11,7 @@ no name for yet by number.
 - [Alien vs. Predator](#alien-vs-predator) (23)
 - [Cadillacs and Dinosaurs](#cadillacs-and-dinosaurs) (28)
 - [Darkstalkers](#darkstalkers) (22)
+- [Giga Wing](#giga-wing) (16)
 - [Hyper Street Fighter II](#hyper-street-fighter-ii) (43)
 - [Marvel Super Heroes](#marvel-super-heroes) (22)
 - [Marvel Super Heroes vs. Street Fighter](#marvel-super-heroes-vs-street-fighter) (29)
@@ -118,6 +119,27 @@ no name for yet by number.
 | `ending_start` | `21` | After the last fight, before the ending |
 | `ending` | `2A` | Ending (Jon Talbain's) |
 | `after_ending` | `07` | After the ending |
+
+## Giga Wing
+
+| File name | Number | What it is |
+|---|---|---|
+| `title` | `01` | The title |
+| `medallion` | `15` | Attract mode: the Medallion's story |
+| `choose` | `02` | The choice of fighter |
+| `pilot_story` | `0B` | A pilot's story, before each stage |
+| `stage_1` | `03` | Stage 1 |
+| `stage_2` | `04` | Stage 2 |
+| `stage_3` | `05` | Stage 3 |
+| `stage_3_later` | `12` | Stage 3, a stretch after its start |
+| `stage_4` | `06` | Stage 4 |
+| `stage_5` | `07` | Stage 5 |
+| `stage_6` | `08` | Stage 6: the bosses again |
+| `stage_7` | `09` | Stage 7: the Medallion |
+| `midboss` | `13` | A big enemy part way through a stage (stages 2, 4 and 5) |
+| `boss` | `0A` | A boss |
+| `stage_clear` | `14` | A stage cleared (played once) |
+| `continue` | `10` | Continue and game over |
 
 ## Hyper Street Fighter II
 
