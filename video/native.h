@@ -28,6 +28,28 @@ class M68K;
 // The two sides compared (--video check)
 class NativeVideo {
 public:
+    // A frame as the GPU draws it (docs/NATIVE_VIDEO.md, the frame drawn at once): video RAM and the palette as they were
+    // at its first line, the writes and uploads after that with the line they came before, each line's layers, the
+    // frame's objects; and the board's lines, for a check
+    struct FrameEvent {
+        int16_t row;      // (the first line it is seen on)
+        uint32_t address; // (video RAM's; or, for a palette upload, its number in the uploads, with the top bit set)
+        uint16_t value;
+    };
+    struct FrameData {
+        uint64_t frame = 0;
+        const uint8_t *video = nullptr;                          // (0x30000 bytes)
+        const native_video::Raster *raster = nullptr;            // (its colours, tiles and priority control)
+        const std::vector<FrameEvent> *events = nullptr;
+        const std::vector<native_video::PaletteUpload> *uploads = nullptr;
+        const native_video::Layers *layers = nullptr;            // (224)
+        native_video::PictureOptions options;
+        const uint32_t *board = nullptr;                         // (224 lines of Raster::kMaxWidth)
+    };
+    // Told each frame drawn at once (the GPU's check, port/gpu_picture.h), before the CPU draws it
+    void (*frameDrawn)(const FrameData &frame, void *user) = nullptr;
+    void *frameUser = nullptr;
+
     bool checking = false;
     uint64_t frame = 0;                // (for the reports: the machine's frame)
     const uint8_t *videoRam = nullptr; // (the game's side reads the buffers the game fills there)
@@ -80,11 +102,6 @@ private:
     // The frame drawn at once, as the GPU will draw it (docs/NATIVE_VIDEO.md): from video RAM and the palette as they
     // were when its first line was drawn, the writes and uploads after that put in at the line they came before, each
     // line's layers, and the frame's objects; its lines compared with the board's when the frame is over
-    struct FrameEvent {
-        int16_t row;      // (the first line it is seen on)
-        uint32_t address; // (video RAM's; or, for a palette upload, its number in m_frameUploads, with the top bit set)
-        uint16_t value;
-    };
     void FrameStart(const native_video::PictureOptions &options);
     void FrameEnd();
     bool m_inFrame = false, m_frameComparable = false;

@@ -54,6 +54,17 @@ public:
     // the marks above (Video::RenderLine's)
     void Line(int line, const Layers &layers, const uint8_t *videoRam, const PictureOptions &options, uint32_t *out) const;
 
+    // (for the GPU, which draws the same: the colours, the frame's tiles and the priority control)
+    const uint32_t *Colours() const {
+        return m_colours;
+    }
+    const std::vector<ObjectTile> &Tiles() const {
+        return m_tiles;
+    }
+    uint16_t Priority() const {
+        return m_priority;
+    }
+
 private:
     void DrawScroll(int which, int rasterLine, const Layers &layers, const uint8_t *videoRam, const PictureOptions &options, int width,
                     uint16_t *pens, uint8_t *priority, uint8_t mark) const;
