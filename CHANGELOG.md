@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- **The GPU's picture in widescreen** ([docs/NATIVE_VIDEO.md](docs/NATIVE_VIDEO.md)): what a game's widescreen sets on
+  the picture (the wider picture, the stage's tiles beyond the board's columns, moved sprites, filled holes) is drawn on
+  the GPU too, the same as the board's, pixel for pixel, in every game that has widescreen. Nothing changes in play.
 - **The GPU's picture in the window, to try** (`--video gpu`, [docs/NATIVE_VIDEO.md](docs/NATIVE_VIDEO.md)): the window
   shows the picture SDL_GPU draws from what the game hands over, with the training mode's readouts over it; frames it
   cannot draw yet are the board model's. The game's side of the picture is kept in save states, so online play's

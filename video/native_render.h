@@ -38,6 +38,18 @@ struct ObjectTile {
     uint16_t entry = 0;
     uint32_t entryTile = 0;
     uint16_t attributes = 0;
+    // (for the GPU, which places each tile once a frame: what the game's sources said of its entry when the list was
+    // taken, PictureOptions::object and hideObject)
+    int16_t shift = 0;
+    bool hidden = false;
+};
+
+// A tile of a scroll screen beyond the board's own columns that the game's sources give in the map's place
+// (PictureOptions::tile), on a line: for the GPU, which cannot ask them
+struct TileOverride {
+    int16_t at = 0; // (the picture's column its left edge is at)
+    uint8_t which = 0;
+    uint16_t code = 0, attributes = 0;
 };
 
 class Raster {
@@ -57,6 +69,9 @@ public:
     // its row scroll's table): kWidth + 2 x options.side pixels, red in the low byte, then green, then blue, and
     // the marks above (Video::RenderLine's)
     void Line(int line, const Layers &layers, const uint8_t *videoRam, const PictureOptions &options, uint32_t *out) const;
+    // The tiles the game's sources give beyond the board's columns on a line (options.tile asked, as Line asks it)
+    void Overrides(int line, const Layers &layers, const uint8_t *videoRam, const PictureOptions &options,
+                   std::vector<TileOverride> &out) const;
 
     // (for the GPU, which draws the same: the colours, the frame's tiles and the priority control)
     const uint32_t *Colours() const {

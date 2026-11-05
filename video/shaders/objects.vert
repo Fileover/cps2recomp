@@ -6,7 +6,7 @@
 // is the one left at each pixel, whatever order they are drawn in (the board's: the first object to cover a pixel keeps
 // it). As native_render.cpp's DrawObjects.
 layout(std430, set = 0, binding = 0) readonly buffer Tiles { uint tiles[]; };   // 4 words a tile (gpu_picture.cpp)
-layout(std430, set = 0, binding = 1) readonly buffer Frame { uint frame[]; };   // the offsets across and down, the tiles' count, the width, the graphics' size
+layout(std430, set = 0, binding = 1) readonly buffer Frame { uint frame[]; };   // the offsets across and down, the tiles' count, the width, the graphics' size, the side
 layout(location = 0) out vec2 within;       // (the pixel of the tile, 0-16 across and down)
 layout(location = 1) flat out uint tile;
 layout(location = 3) flat out uint graphicsSize;
@@ -25,7 +25,11 @@ void main() {
         y += yOffset;
     }
     const int sy = (y + 16 - yOffset) & 0x3FF;           // (the raster line its top is on)
-    const int sx = ((x + 64 - xOffset - 48) & 0x3FF) - 16; // (the picture's column its left edge is at)
+    // (where the picture's first column is in the objects' count across: the board's, less the added side and where
+    // the game's sources move this object to)
+    const int side = int(frame[5]), shift = int(int(w1 << 16) >> 16);
+    const int first = 64 - side - shift - 16;
+    const int sx = ((x + 64 - xOffset - first) & 0x3FF) - 16; // (the picture's column its left edge is at)
     // (two triangles: corners 0-5)
     const vec2 corners[6] = vec2[6](vec2(0, 0), vec2(16, 0), vec2(0, 16), vec2(16, 0), vec2(16, 16), vec2(0, 16));
     const vec2 c = corners[corner];

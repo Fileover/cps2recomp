@@ -288,6 +288,7 @@ void NativeVideo::FrameEnd() {
         data.events = &m_frameEvents;
         data.uploads = &m_frameUploads;
         data.layers = m_frameLayers;
+        data.overrides = m_frameOverrides;
         data.options = m_frameOptions;
         data.board = checking ? m_frameBoard.data() : nullptr;
         data.whole = m_frameComparable;
@@ -364,6 +365,8 @@ void NativeVideo::BoardLine(int line, const uint32_t *pixels, const native_video
     }
     if (m_inFrame) {
         m_frameLayers[line] = native_video::DecodeLayers(m_cpsA, m_cpsB, m_objectRegs, layerControl, cps1Masks);
+        // (the tiles the game's sources give beyond the board's columns, asked now, as the board's line asks them)
+        m_raster.Overrides(line, m_frameLayers[line], videoRam, options, m_frameOverrides[line]);
         if (checking) {
             memcpy(&m_frameBoard[static_cast<size_t>(line) * native_video::Raster::kMaxWidth], pixels,
                    (native_video::Raster::kWidth + 2 * options.side) * sizeof(uint32_t));

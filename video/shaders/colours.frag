@@ -5,9 +5,9 @@
 // pens there (the masks, from the line's layer order and the objects' priority control), else the screens'; then the
 // pen's colour. As native_render.cpp's Line.
 layout(location = 0) out vec4 colour;
-layout(set = 2, binding = 0) uniform usampler2D screens;  // the first pass's: pen, marks above
+layout(set = 2, binding = 0) uniform usampler2D screens;  // the scroll screens' (holes filled): pen, marks above
 layout(set = 2, binding = 1) uniform usampler2D objects;  // the second's: pen, level, top bit set where an object is
-layout(set = 2, binding = 2) uniform usampler2D lines;    // a line's record a row (16 words: gpu_picture.cpp)
+layout(set = 2, binding = 2) uniform usampler2D lines;    // a line's record a row (common.glsl)
 layout(set = 2, binding = 3) uniform usampler2D palette;  // 64 x 48 colours: red, green, blue in the low three bytes
 
 void main() {
@@ -16,7 +16,7 @@ void main() {
     const uint o = texelFetch(objects, at, 0).r;
     uint pen = s & 0xFFFFu;
     if ((o & 0x80000000u) != 0u) {
-        const uint control = texelFetch(lines, ivec2(12, at.y), 0).r, priority = texelFetch(lines, ivec2(13, at.y), 0).r;
+        const uint control = texelFetch(lines, ivec2(12, at.y), 0).r, priority = texelFetch(lines, ivec2(13, at.y), 0).r;  // (L_LAYER_CONTROL, L_PRIORITY)
         uint l0 = (control >> 6) & 3u, l1 = (control >> 8) & 3u, l2 = (control >> 10) & 3u, l3 = (control >> 12) & 3u;
         uint p0 = (priority >> (4u * l0)) & 0xFu, p1 = (priority >> (4u * l1)) & 0xFu;
         uint p2 = (priority >> (4u * l2)) & 0xFu, p3 = (priority >> (4u * l3)) & 0xFu;
