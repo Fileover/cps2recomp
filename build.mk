@@ -81,6 +81,8 @@ gen:
 	@# the instructions video_writes names are watches, which the translator does not start a block at)
 	@$(CFG) video_palette_commit $(GAME) | tr ' |' '\n\n' | cut -d: -f1 | grep . > $(GEN)/video_hooks.txt || true
 	@$(CFG) video_writes $(GAME) | tr ' |' '\n\n' | grep . > $(GEN)/video_watches.txt || true
+	@# (the palette commit's two moves to the registers watched too, for when the game's own code runs it: lifts.cpp)
+	@commit=$$($(CFG) video_palette_commit $(GAME) | cut -d: -f1); if [ -n "$$commit" ]; then printf '%06X\n%06X\n' $$((0x$$commit)) $$((0x$$commit + 8)) >> $(GEN)/video_watches.txt; fi
 	@if [ -f $(PROGRAM) ]; then \
 		python3 $(CR)/tools/recomp.py --program $(PROGRAM) --entries $(ENTRIES) --out $(GEN) \
 			--limit $(shell $(CFG) code_end $(GAME)) --list $(WORK)/program.lst \
