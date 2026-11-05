@@ -14,6 +14,7 @@
 #include "../fight/battle.h"
 #include "png_write.h"
 #include "present.h"
+#include "gpu_picture.h"
 #include "../runtime/spare.h"
 #include "../runtime/guest.h"
 #include "port.h"
@@ -83,6 +84,10 @@ bool Movie::Save(const std::string &path) const {
     fclose(f);
     return true;
 }
+
+namespace {
+    port::GpuPicture *g_gpuPicture = nullptr; // (--video gpu-check)
+} // namespace
 
 namespace {
     constexpr uint32_t kStateVersion = 9; // (5: the 68000's wait kept; 6: the custom soundtrack's place; 7: the board timing's palette copy;
@@ -396,13 +401,27 @@ bool Port::Init(std::string &error) {
     machine->soundCpu.recording = !opt.recordEntries.empty();
     SetRewrites(opt.checkRewrites, opt.noRewrites);
     // The picture at the game's level (docs/NATIVE_VIDEO.md): the shared rewrites of Capcom's video library
-    if (opt.video == "check") {
+    if (opt.video == "check" || opt.video == "gpu-check") {
         machine->nativeVideo.checking = true;
     } else if (!opt.video.empty() && opt.video != "board") {
-        error = "--video: board or check";
+        error = "--video: board, check or gpu-check";
         return false;
     }
     RegisterVideoLifts();
+    if (opt.video == "gpu-check") {
+        // (each frame drawn on the GPU as well, on a device of the check's own, no window: port/gpu_picture.h)
+        static port::GpuPicture gpuPicture;
+        std::string gpuError;
+        if (!gpuPicture.Open(nullptr, roms.graphics.data(), roms.graphics.size(), gpuError)) {
+            error = "--video gpu-check: " + gpuError;
+            return false;
+        }
+        g_gpuPicture = &gpuPicture;
+        machine->nativeVideo.frameDrawn = [](const NativeVideo::FrameData &frame, void *user) {
+            static_cast<port::GpuPicture *>(user)->Check(frame);
+        };
+        machine->nativeVideo.frameUser = &gpuPicture;
+    }
     machine->cpu.watchLow = opt.watchLow;
     machine->cpu.watchHigh = opt.watchHigh;
     machine->cpu.recording = !opt.recordEntries.empty();
@@ -2133,7 +2152,8 @@ void Usage() {
             "                         check (both, every write to the chip compared)\n"
             "  --video SIDE           board (the picture from the board's registers and memories), check (the\n"
             "                         native interface the game's video code hands over compared with the\n"
-            "                         board's, every record: docs/NATIVE_VIDEO.md)\n"
+            "                         board's, every record: docs/NATIVE_VIDEO.md), gpu-check (that, and each\n"
+            "                         frame drawn on the GPU from it too, read back and compared)\n"
             "  --sound-test SEED[:N]  every N frames (30) a command to the sound side: each song in turn, placed\n"
             "                         some made-up way, and the other commands (with --sound check)\n"
             "  --scale N              window size, times 224 lines (else the Display page's)\n"
@@ -2676,6 +2696,9 @@ int main(int argc, char **argv) {
         return 4;
     }
     if (p.machine->nativeVideo.checking && !p.machine->nativeVideo.Report(stderr)) {
+        return 6;
+    }
+    if (port::g_gpuPicture && !port::g_gpuPicture->Report(stderr)) {
         return 6;
     }
     return ProgramEnded() >= 0 ? ProgramEnded() : result;

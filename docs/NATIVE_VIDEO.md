@@ -394,11 +394,12 @@ frame:
   bands**: the CPU keeps the frame's writes to video RAM with the line each came at. A new band starts at a line where
   a write to a map was made, and that band's writes are put into the GPU's copy before it is drawn, with a scissor for
   its lines.
-- **Pass 2, the objects.** These are instanced 16x16 quads drawn **front to back**, depth-tested so that the first
-  object to cover a pixel claims it, as on the board. The fragment shader reads the marks from pass 1 and writes either
-  the object's pen or, where the object's level puts it behind those screens, the pen that is there. Either way it
-  writes the depth, so a masked object still hides the ones behind it (the CPS-2's way, and `DrawObjects`'s).
-  `hideObject` and `object` (C++ again) are asked once a frame per entry.
+- **Pass 2, the objects.** These are instanced 16x16 quads, each at a depth by its place in the list, depth-tested so
+  that the front-most object pixel is the one left at each pixel, as on the board, whatever order they are drawn in.
+  The colour pass then reads the marks from pass 1 and keeps either the object's pen or, where the object's level puts
+  it behind those screens, the pen that is there. Either way the object has taken the pixel, so a masked object still
+  hides the ones behind it (the CPS-2's way, and `DrawObjects`'s). `hideObject` and `object` (C++ again) are asked once
+  a frame per entry.
 - **Pass 3, the colours.** The pen goes through the palette into the picture texture, with the marks in a second
   target for the pictures that are put together from two (`markObjects`). The presenter then samples that texture as
   it samples today's upload.
@@ -412,6 +413,61 @@ reads the GPU's picture back now and then and compares it with the CPU rasterise
 The work: the three shaders and their buffers (`tools/gen_shaders.py` makes them for Metal, Vulkan and Direct3D 12 as it
 does the presenter's) L; the frame's records kept for the GPU and the presenter taking its texture M; the read-back
 check S.
+
+## The GPU renderer, first slice (`port/gpu_picture.h`, `--video gpu-check`)
+
+`port/gpu_picture.cpp` draws a frame's record (`NativeVideo::FrameData`, below) with SDL_GPU, in three passes whose
+shaders are `video/shaders/`, compiled by `tools/gen_shaders.py` into `video/picture_shaders.inc` (SPIR-V and Metal):
+
+1. **The objects** (`objects.vert`, `objects.frag`) as one instanced draw of the frame's `ObjectTile`s. Each tile's
+   depth is its place in the list, front-most smallest, and the depth test is "less", so the front-most object pixel is
+   the one left at each pixel, whatever order the GPU draws them in. A clear pixel writes nothing. Out: the pen, the
+   level, and that an object is there.
+2. **The scroll screens** (`layers.frag`), a pixel at a time, as `DrawScroll` does, in **bands**: before each band
+   its writes to video RAM go up, and the pass draws its lines with a scissor. Out: the front pen and the screens'
+   marks.
+3. **The colours** (`colours.frag`), band by band with the band's palette: at each pixel, the object's pen where its
+   level puts it in front of the screens' pens there (the masks, from the line's layer order and the priority
+   control), else the screens' pen, then its colour.
+
+A shader reads storage buffers (the graphics ROMs, video RAM, the lines' records, the tiles) or textures (the passes'
+results, the lines, the palette), never both: SDL_GPU numbers a fragment shader's storage buffers after its uniform
+buffers on Metal and after its textures in SPIR-V.
+
+`--video gpu-check` does what `--video check` does, and also draws each frame on a GPU device of its own (SDL's
+offscreen video driver: no window), reads it back and compares it with the board's lines. It draws the board's own
+picture with the objects' offsets the same on every line, and counts other frames as not drawn there.
+
+Results:
+
+Over attract mode (4,000 frames) and the ladder (6,000) in the 20 CPS-2 games compared (all but Vampire Savior
+Definitive, which draws from another set's graphics), every frame drawn on the GPU (Metal, on the Mac mini) was the
+same as the board's, pixel for pixel: 3,999 and 5,999 in the Alpha games, and so on. None needed the CPU: the objects'
+offsets stayed the same down every picture, Marvel Super Heroes' included. Taking objects away from the second pass
+(a test of the check) made the frames with objects on the screen differ at once.
+
+### Next: the GPU's picture on the screen
+
+What has to change for the game to show the GPU's picture (the SDL_GPU presenter only; the SDL renderer's and the
+OpenGL shader presets' presenters keep the CPU's picture):
+
+- **The record every frame.** `NativeVideo` keeps the frame's record when a renderer wants it, not only for the check,
+  and hands the presenter the last frame finished. The GPU draws it when the presenter shows a frame, in the same
+  command buffer, into the texture the presenter samples (`Presenter::Upload`'s place).
+- **The game's side in the save state.** What the game has said to each register, the list it handed over and the
+  palette as its uploads made it are the game's side's own. Online play's rollback and save states put the machine
+  back, so they put these back too (`NativeVideo::Serialize`, beside the machine's; a state is only read by the build
+  that wrote it, so adding to it is allowed), and `make check-rollback` shows a frame run again draws as it did.
+- **The readouts over it.** The training mode's readouts, hit boxes and input display, the status lines and the
+  online messages are drawn into the CPU's picture (`Port::Shown`, `DrawHud`), blended with what is under them
+  (`recomp::text::Canvas`). They are drawn instead into a picture of their own, clear where they draw nothing, its
+  colours with their alpha, put over the GPU's picture in the presenter's pass. Put over that way it is the same
+  blend, but for rounding: the game's picture is exact, the readouts within a step of a colour.
+- **The zoom.** Zoomed, the presenter takes the game's picture and the readouts' apart already (`Zoomed`: the
+  readout's panels kept where they are), so the two textures go where the two halves of today's one go.
+- **What stays on the CPU.** These go on reading the CPU's picture as today: screenshots, frame hashes, online play's
+  rolled-back frames (not drawn), the model viewer and the guest stages' pictures put together. A frame the GPU cannot
+  draw yet (a game's picture settings, objects' offsets changing down the picture) is the CPU's for that frame.
 
 ## The frame drawn at once (the GPU's data, checked on the CPU)
 
@@ -447,8 +503,9 @@ Sizes: S a session, M a few, L a week or more.
    runs. S-M.
 5. **The CPU rasteriser and check (b)** against `video.cpp`: done (above), with the games' picture settings
    (widescreen among them). Left: another set's graphics (Vampire Savior Definitive), with item 8.
-6. **The SDL_GPU renderer** drawing the records ([the plan](#the-gpu-renderer-the-plan)), with the widescreen columns
-   and the existing presenter and its shaders after it. L.
+6. **The SDL_GPU renderer** drawing the records: the first slice is done ([above](#the-gpu-renderer-first-slice-portgpu_pictureh---video-gpu-check)).
+   Next, the presenter drawing from its texture in the game; then the games' picture settings (widescreen, hidden and
+   marked objects) and objects' offsets that change down the picture, on the GPU too. L.
 7. **The native renderer by default**, `video.cpp` kept only for `--video board` and the checks. The bus waits in the
    lifts (above) come first. S.
 8. **Stages between games** through two producers (each record saying which producer's graphics and palette it

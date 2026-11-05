@@ -236,6 +236,18 @@ void NativeVideo::FrameEnd() {
     if (!m_frameComparable) {
         return;
     }
+    if (frameDrawn) {
+        FrameData data;
+        data.frame = frame;
+        data.video = m_frameVideo.data();
+        data.raster = &m_frameRaster;
+        data.events = &m_frameEvents;
+        data.uploads = &m_frameUploads;
+        data.layers = m_frameLayers;
+        data.options = m_frameOptions;
+        data.board = m_frameBoard.data();
+        frameDrawn(data, frameUser);
+    }
     // (how many bands the GPU will draw it in: one, and one more at each line a write comes before)
     // (only writes the drawing reads: into a map or the row scroll's table in use at that line, and palette uploads)
     int bands = 1, last = 0;

@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- **The picture drawn on the GPU, checked** ([docs/NATIVE_VIDEO.md](docs/NATIVE_VIDEO.md)): SDL_GPU draws a frame
+  from what the game hands over (its sprite list as instanced tiles, its scroll layers and palettes in shaders), and
+  every frame is the same as the board's, pixel for pixel, in every CPS-2 game compared (`--video gpu-check`). The game
+  does not show it yet. Nothing changes in play.
 - **The picture drawn a frame at a time, as the GPU will** ([docs/NATIVE_VIDEO.md](docs/NATIVE_VIDEO.md)): drawn from
   what the game hands over, with its writes to its maps put in at the line they came before, every frame is the same as
   the board's in every CPS-2 game compared. Nothing changes in play.
