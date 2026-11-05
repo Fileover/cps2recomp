@@ -386,6 +386,14 @@ frame:
   is a lookup in the table by line, and widescreen's moved screens are numbers per line in the same buffer. The tiles a
   game's sources give beyond the board's columns (`PictureOptions::tile`, C++ the shader cannot call) are asked for on
   the CPU, once a frame per screen and column, and sent as a small override map.
+- **The maps change while the board draws.** The games' main loops write tiles into the maps (stage tiles as the camera
+  moves, text) while the board is drawing the picture, and the board draws each line from the map as it is then. Drawn
+  from the maps as they were at the frame's first line, the ladders differ from the board on 358 lines in sfa2, 1,577
+  in msh, 10,747 in vampire_savior and 25,089 in ssf2t (of about 1.34 million each). With the row scroll's table read
+  live and only the maps from the frame's start, the counts are the same, so it is the maps. So pass 1 is drawn **in
+  bands**: the CPU keeps the frame's writes to video RAM with the line each came at. A new band starts at a line where
+  a write to a map was made, and that band's writes are put into the GPU's copy before it is drawn, with a scissor for
+  its lines.
 - **Pass 2, the objects.** These are instanced 16x16 quads drawn **front to back**, depth-tested so that the first
   object to cover a pixel claims it, as on the board. The fragment shader reads the marks from pass 1 and writes either
   the object's pen or, where the object's level puts it behind those screens, the pen that is there. Either way it
