@@ -173,7 +173,7 @@ void NativeVideo::GameWrites(M68K &c, uint32_t address, uint16_t value, bool byt
     }
 }
 
-void NativeVideo::BoardObjects(const native_video::ObjectList &list) {
+void NativeVideo::BoardObjects(const native_video::ObjectList &list, const native_video::PictureOptions &options) {
     if (!checking) {
         return;
     }
@@ -186,7 +186,7 @@ void NativeVideo::BoardObjects(const native_video::ObjectList &list) {
     mine.priority = m_objectRegs[2];
     mine.xOffset = m_objectRegs[4];
     mine.yOffset = m_objectRegs[5];
-    m_raster.Objects(mine); // (the frame's objects, the game's side's)
+    m_raster.Objects(mine, options); // (the frame's objects, the game's side's)
     if (mine == list) {
         m_listsSame++;
         return;
@@ -213,28 +213,29 @@ void NativeVideo::BoardLayers(const native_video::Layers &layers, int line) {
     }
 }
 
-void NativeVideo::BoardLine(int line, const uint32_t *pixels, bool plain) {
+void NativeVideo::BoardLine(int line, const uint32_t *pixels, const native_video::PictureOptions &options, bool comparable) {
     if (!checking) {
         return;
     }
-    if (!plain || m_bank < 0) {
-        m_picturesNot++; // (a picture changed by the game's sources, or before the game's first list: not compared)
+    if (!comparable || m_bank < 0) {
+        m_picturesNot++; // (another set's graphics, or before the game's first list: not compared)
         return;
     }
-    uint32_t mine[native_video::Raster::kWidth];
-    m_raster.Line(line, native_video::DecodeLayers(m_cpsA, m_cpsB, m_objectRegs, layerControl), videoRam, mine);
+    uint32_t mine[native_video::Raster::kMaxWidth];
+    m_raster.Line(line, native_video::DecodeLayers(m_cpsA, m_cpsB, m_objectRegs, layerControl), videoRam, options, mine);
+    const int width = native_video::Raster::kWidth + 2 * options.side;
     int x = 0;
-    while (x < native_video::Raster::kWidth && (mine[x] & 0xFFFFFF) == (pixels[x] & 0xFFFFFF)) {
+    while (x < width && mine[x] == pixels[x]) {
         x++;
     }
-    if (x == native_video::Raster::kWidth) {
+    if (x == width) {
         m_picturesSame++;
         return;
     }
     if (m_picturesDiffer++ < 10) {
-        fprintf(stderr, "video check: frame %llu, line %d: the picture drawn from the game's side differs from column %d: %06X (the "
-                        "board's: %06X)\n",
-                static_cast<unsigned long long>(frame), line, x, mine[x] & 0xFFFFFF, pixels[x] & 0xFFFFFF);
+        fprintf(stderr, "video check: frame %llu, line %d: the picture drawn from the game's side differs from column %d: %08X (the "
+                        "board's: %08X)\n",
+                static_cast<unsigned long long>(frame), line, x, mine[x], pixels[x]);
     }
 }
 

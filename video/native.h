@@ -43,11 +43,12 @@ public:
 
     // The board's side: what the board did
     void BoardPalette(const native_video::PaletteUpload &upload);
-    void BoardObjects(const native_video::ObjectList &list);
+    void BoardObjects(const native_video::ObjectList &list, const native_video::PictureOptions &options);
     void BoardLayers(const native_video::Layers &layers, int line);
-    // ... and a line it drew (Video::kWidth pixels), when it drew the board's own picture (Video::PlainPicture): the
-    // line drawn from the game's side's records alone (native_render.h) must be the same
-    void BoardLine(int line, const uint32_t *pixels, bool plain);
+    // ... and a line it drew (Video::Width() pixels, as the game's sources set the picture: `options`), when it drew a
+    // CPS-2's picture from its own graphics (Video::ComparablePicture): the line drawn from the game's side's records
+    // alone (native_render.h) must be the same
+    void BoardLine(int line, const uint32_t *pixels, const native_video::PictureOptions &options, bool comparable);
     void SetGraphics(const uint8_t *graphics, size_t size) {
         m_raster.SetGraphics(graphics, size);
     }

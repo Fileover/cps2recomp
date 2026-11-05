@@ -344,10 +344,14 @@ draw as instances. On each line the scroll screens' tiles and the objects' are p
 object pixel in front of or behind the screens' pens by its level. This one draws on the CPU, a line at a time, as the
 reference the GPU renderer must equal.
 
-`--video check` compares each line it draws with the line `video.cpp` drew, pixel for pixel, whenever the board drew
-its own picture (`Video::PlainPicture`: no widescreen, nothing hidden, marked or drawn from another set's graphics; a
-game's features that change the picture are not part of this check). Lines before the game's first object list are
-not compared.
+What a game's sources set on the picture (`PictureOptions`, from `Video`'s members of the same names: a wider picture
+and its columns, the screens and objects moved in it, the tiles beyond the board's columns that the game's sources
+give, holes filled, objects hidden or the list changed, the marks a picture put together from two reads) it follows
+as `video.cpp` does.
+
+`--video check` compares each line it draws with the line `video.cpp` drew, pixel for pixel and mark for mark, at the
+picture's width (`Video::ComparablePicture`: a CPS-2's picture from its own graphics). Lines before the game's first
+object list are not compared.
 
 Results:
 
@@ -358,6 +362,56 @@ object list (38 in the Alpha games; up to 17,258, Giga Wing's 77 frames before i
 set), which the records do not say yet: an object's and a tile's graphics set is what the frame needs for a second
 producer too (stages from another game), and comes with it; and the CPS-1 games, another board. The frame hashes were
 the same as without the lifts.
+
+**With widescreen** (the ladder with `widescreen` on, in the 16 games that have it and a ladder movie: sfa, sfa2,
+sfz2al, sfa3, pocket_fighter, vampire_savior, vsav2, vhunt2, hsf2, ssf2t, nwarr, xmcota, msh, xmvsf, mshvsf, mvsc), every
+line compared was the same too, at the picture's wider width: 1,343,962 in each Alpha-family ladder, with the screens
+and objects moved where each game's widescreen moves them, the tiles its sources give beyond the board's columns, and
+holes filled.
+
+## The GPU renderer: the plan
+
+The records are already what the GPU needs, and `native_render.cpp` already draws the way the GPU will. On the GPU each
+frame:
+
+- **What it reads.** These are buffers, uploaded as they change:
+  - the graphics ROMs as a storage buffer, once at load; the shader unpacks a tile row's four bit planes itself, as
+    `Unpack` does, so there is no atlas to build;
+  - the palette, 0xC00 colours made RGB, after each upload;
+  - video RAM (0x30000 bytes, the game's maps and row-scroll table), the ranges written since the last frame;
+  - the 224 lines' `Layers`;
+  - the frame's `ObjectTile`s, as instances.
+- **Pass 1, the scroll screens.** A fragment shader for every pixel reads its line's `Layers`, walks the three screens
+  back to front in the layer control's order, and writes the pen and the screens' marks (a 16-bit target). Row scroll
+  is a lookup in the table by line, and widescreen's moved screens are numbers per line in the same buffer. The tiles a
+  game's sources give beyond the board's columns (`PictureOptions::tile`, C++ the shader cannot call) are asked for on
+  the CPU, once a frame per screen and column, and sent as a small override map.
+- **The maps change while the board draws.** The games' main loops write tiles into the maps (stage tiles as the camera
+  moves, text) while the board is drawing the picture, and the board draws each line from the map as it is then. Drawn
+  from the maps as they were at the frame's first line, the ladders differ from the board on 358 lines in sfa2, 1,577
+  in msh, 10,747 in vampire_savior and 25,089 in ssf2t (of about 1.34 million each). With the row scroll's table read
+  live and only the maps from the frame's start, the counts are the same, so it is the maps. So pass 1 is drawn **in
+  bands**: the CPU keeps the frame's writes to video RAM with the line each came at. A new band starts at a line where
+  a write to a map was made, and that band's writes are put into the GPU's copy before it is drawn, with a scissor for
+  its lines.
+- **Pass 2, the objects.** These are instanced 16x16 quads drawn **front to back**, depth-tested so that the first
+  object to cover a pixel claims it, as on the board. The fragment shader reads the marks from pass 1 and writes either
+  the object's pen or, where the object's level puts it behind those screens, the pen that is there. Either way it
+  writes the depth, so a masked object still hides the ones behind it (the CPS-2's way, and `DrawObjects`'s).
+  `hideObject` and `object` (C++ again) are asked once a frame per entry.
+- **Pass 3, the colours.** The pen goes through the palette into the picture texture, with the marks in a second
+  target for the pictures that are put together from two (`markObjects`). The presenter then samples that texture as
+  it samples today's upload.
+
+Where pixels are still wanted on the CPU, the CPU rasteriser gives them. Those are the frame hashes, screenshots,
+headless runs and the checks, the guest stages' picture put together (until item 8 does without it), and the two
+presenters that are not SDL_GPU (SDL's renderer, and OpenGL for shader presets). A third check, `--video gpu-check`,
+reads the GPU's picture back now and then and compares it with the CPU rasteriser's, as (b) compares that with
+`video.cpp`'s.
+
+The work: the three shaders and their buffers (`tools/gen_shaders.py` makes them for Metal, Vulkan and Direct3D 12 as it
+does the presenter's) L; the frame's records kept for the GPU and the presenter taking its texture M; the read-back
+check S.
 
 ## Order of work
 
@@ -371,11 +425,10 @@ Sizes: S a session, M a few, L a week or more.
    shadows (the commit routines rewritten, sfa2's `FrameRegisters` among them, which moves to the toolkit). M.
 4. **Raster bands:** Marvel (seen); the Vampire games and Giga Wing set the counters but changed nothing in these
    runs. S-M.
-5. **The CPU rasteriser and check (b)** against `video.cpp`: done (above). Next: with widescreen and the games'
-   picture features (the wide picture's columns, hidden and marked objects), so that it can stand in for `video.cpp`
-   everywhere. M.
-6. **The SDL_GPU renderer** drawing `Frame`, with the widescreen columns and the existing presenters and shaders
-   after it. L.
+5. **The CPU rasteriser and check (b)** against `video.cpp`: done (above), with the games' picture settings
+   (widescreen among them). Left: another set's graphics (Vampire Savior Definitive), with item 8.
+6. **The SDL_GPU renderer** drawing the records ([the plan](#the-gpu-renderer-the-plan)), with the widescreen columns
+   and the existing presenter and its shaders after it. L.
 7. **The native renderer by default**, `video.cpp` kept only for `--video board` and the checks. The bus waits in the
    lifts (above) come first. S.
 8. **Stages between games** through two producers (each record saying which producer's graphics and palette it

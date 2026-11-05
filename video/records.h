@@ -49,6 +49,23 @@ namespace native_video {
         void Describe(const Layers &other, FILE *out) const;
     };
 
+    // What a game's sources set on the picture (Video's members of the same names, video.h: a wider picture, its
+    // screens and objects moved, tiles beyond the board's columns, holes filled, objects hidden or changed, marks, the
+    // layers drawn), which the picture drawn from the records follows as video.cpp does
+    struct PictureOptions {
+        int side = 0;
+        int scroll[3] = {0, 0, 0};
+        const int16_t *rows = nullptr;
+        int (*object)(uint32_t tile, uint16_t attributes, int entry) = nullptr;
+        bool (*tile)(int which, int column, int row, int at, uint16_t &code, uint16_t &attributes) = nullptr;
+        bool fillHoles = false;
+        bool (*hideObject)(uint32_t tile, uint16_t attributes) = nullptr;
+        void (*objectsTaken)(uint16_t *list, int &last) = nullptr;
+        bool markObjects = false;
+        unsigned markLayers = 0;
+        unsigned layerMask = 0xF;
+    };
+
     // The board's side: the upload the palette chip makes now, from its registers and video RAM
     // (as Video::CopyPalette reads them)
     PaletteUpload DecodePalette(const uint8_t *videoRam, const uint16_t *cpsA, const uint16_t *cpsB, const Board &board);
