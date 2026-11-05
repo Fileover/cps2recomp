@@ -79,6 +79,35 @@ namespace native_video {
         }
     }
 
+    Layers DecodeLayers(const uint16_t *cpsA, const uint16_t *cpsB, const uint16_t *objectRegs, uint8_t layerControl) {
+        // (CPS-A's registers, by word: 1-3 the maps, 4 the row scroll's table, 6-11 the scrolls across and down,
+        // 0x10 the row scroll's place, 0x11 the video control; video.cpp)
+        Layers layers;
+        for (int n = 0; n < 3; n++) {
+            layers.maps[n] = cpsA[1 + n];
+            layers.scroll[n][0] = cpsA[6 + 2 * n];
+            layers.scroll[n][1] = cpsA[7 + 2 * n];
+        }
+        layers.rows = cpsA[4];
+        layers.rowOffset = cpsA[0x10];
+        layers.videoControl = cpsA[0x11];
+        layers.layerControl = cpsB[layerControl / 2];
+        layers.xOffset = objectRegs[4];
+        layers.yOffset = objectRegs[5];
+        return layers;
+    }
+
+    void Layers::Describe(const Layers &other, FILE *out) const {
+        fprintf(out, "  maps %04X %04X %04X (the other: %04X %04X %04X), rows %04X (%04X) at %04X (%04X), video control %04X (%04X)\n",
+                maps[0], maps[1], maps[2], other.maps[0], other.maps[1], other.maps[2], rows, other.rows, rowOffset, other.rowOffset,
+                videoControl, other.videoControl);
+        fprintf(out, "  scrolls %04X,%04X %04X,%04X %04X,%04X (the other: %04X,%04X %04X,%04X %04X,%04X), layer control %04X (%04X), "
+                     "object offsets %04X,%04X (%04X,%04X)\n",
+                scroll[0][0], scroll[0][1], scroll[1][0], scroll[1][1], scroll[2][0], scroll[2][1], other.scroll[0][0], other.scroll[0][1],
+                other.scroll[1][0], other.scroll[1][1], other.scroll[2][0], other.scroll[2][1], layerControl, other.layerControl, xOffset,
+                yOffset, other.xOffset, other.yOffset);
+    }
+
     bool IsVideoRegister(uint32_t address) {
         address &= 0xFFFFFF;
         const uint32_t chip = address & ~0x4000u;
@@ -87,6 +116,14 @@ namespace native_video {
     }
 
 } // namespace native_video
+
+void NativeVideo::Reset(const uint16_t *cpsA, const uint16_t *cpsB, const uint16_t *objectRegs) {
+    memcpy(m_cpsA, cpsA, sizeof(m_cpsA));
+    memcpy(m_cpsB, cpsB, sizeof(m_cpsB));
+    memcpy(m_objectRegs, objectRegs, sizeof(m_objectRegs));
+    m_bank = -1;
+    m_hasPending = false;
+}
 
 void NativeVideo::GameWrites(M68K &c, uint32_t address, uint16_t value, bool byte) {
     address &= 0xFFFFFF;
@@ -159,6 +196,22 @@ void NativeVideo::BoardObjects(const native_video::ObjectList &list) {
     }
 }
 
+void NativeVideo::BoardLayers(const native_video::Layers &layers, int line) {
+    if (!checking) {
+        return;
+    }
+    const native_video::Layers mine = native_video::DecodeLayers(m_cpsA, m_cpsB, m_objectRegs, layerControl);
+    if (mine == layers) {
+        m_linesSame++;
+        return;
+    }
+    if (m_linesDiffer++ < 10) {
+        fprintf(stderr, "video check: frame %llu, line %d: the layers' registers differ; the game's side:\n", static_cast<unsigned long long>(frame),
+                line);
+        mine.Describe(layers, stderr);
+    }
+}
+
 void NativeVideo::Palette(const native_video::PaletteUpload &upload) {
     if (!checking) {
         return;
@@ -205,7 +258,9 @@ bool NativeVideo::Report(FILE *out) const {
                  "game gave its first)\n",
             static_cast<unsigned long long>(m_listsSame), static_cast<unsigned long long>(m_listsDiffer),
             static_cast<unsigned long long>(m_listsBefore));
-    return m_differ == 0 && m_gameOnly == 0 && m_boardOnly == 0 && m_listsDiffer == 0;
+    fprintf(out, "video check: lines: %llu drawn with the same layers' registers as the game's side has, %llu not\n",
+            static_cast<unsigned long long>(m_linesSame), static_cast<unsigned long long>(m_linesDiffer));
+    return m_differ == 0 && m_gameOnly == 0 && m_boardOnly == 0 && m_listsDiffer == 0 && m_linesDiffer == 0;
 }
 
 } // namespace cps2recomp

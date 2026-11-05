@@ -183,6 +183,9 @@ public:
         history[historyAt++ & 63] = place;
     }
     uint32_t instruction = 0; // the address of the instruction the interpreter is doing
+    // More than 0 while a rewrite (runtime/lift.h) runs, but not the game's own code it calls: its writes to the video's
+    // registers are what the game's code says to them, and are told to the native interface (video/native.h)
+    int nativeWrites = 0;
 
     uint16_t SR() const {
         return static_cast<uint16_t>(flagC | (flagV << 1) | (flagZ << 2) | (flagN << 3) | (flagX << 4) | (interruptMask << 8) |

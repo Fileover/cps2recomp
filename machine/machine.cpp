@@ -64,6 +64,7 @@ Machine::Machine(const RomSet &roms)
     cpu.videoSize = static_cast<uint32_t>(videoRam.size());
     nativeVideo.videoRam = videoRam.data();
     nativeVideo.paletteControl = roms.board.paletteControl;
+    nativeVideo.layerControl = roms.board.layerControl;
     cpu.nativeVideo = &nativeVideo;
     cpu.rom = roms.program.data();
     cpu.opcodes = roms.opcodes.data();
@@ -104,6 +105,7 @@ void Machine::Reset() {
     cpsA[2] = 0x9040;
     cpsA[3] = 0x9080;
     cpsA[4] = 0x9100;
+    nativeVideo.Reset(cpsA, cpsB, objectRegs); // (the game's side starts where the board does)
     m_line = 0;
     m_lineStart = 0;
     cpu.cycles = 0;
@@ -222,6 +224,11 @@ void Machine::RunLine() {
 
     RunSound(kSoundCyclesPerLine);
 
+    if (nativeVideo.checking && !m_cps1 && m_line >= Video::kFirstLine && m_line < Video::kFirstLine + Video::kHeight) {
+        // (the registers the line is drawn with, as the game's side has them: --video check)
+        nativeVideo.frame = frame;
+        nativeVideo.BoardLayers(native_video::DecodeLayers(cpsA, cpsB, objectRegs, m_roms.board.layerControl), m_line - Video::kFirstLine);
+    }
     if (drawing && m_line >= Video::kFirstLine && m_line < Video::kFirstLine + Video::kHeight) {
         const int row = m_line - Video::kFirstLine;
         video.RenderLine(row, &m_picture[static_cast<size_t>(row) * m_pictureWidth]);

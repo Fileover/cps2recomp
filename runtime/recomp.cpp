@@ -128,7 +128,7 @@ void AddHook(uint32_t address, const char *name, HookFn fn) {
 }
 
 namespace {
-    std::vector<uint8_t> g_watched;    // by address / 2: the watch's number + 1 (0: none)
+    std::vector<uint8_t> g_watched;    // by address / 2: the watch's function's number + 1 (0: none)
     std::vector<HookFn> g_watchFns;
 } // namespace
 const uint8_t *g_watchMap = nullptr;
@@ -139,15 +139,22 @@ void AddWatch(uint32_t address, const char *name, HookFn fn) {
     if (address == kNoPlace || (address & 1)) {
         return;
     }
-    g_watchFns.push_back(fn);
+    // (the map holds which function, + 1: few, however many places)
+    size_t which = 0;
+    while (which < g_watchFns.size() && g_watchFns[which] != fn) {
+        which++;
+    }
+    if (which == g_watchFns.size()) {
+        g_watchFns.push_back(fn);
+    }
     if (g_watchFns.size() > 0xFF) {
-        fprintf(stderr, "more than %d watches\n", 0xFF);
+        fprintf(stderr, "more than %d functions for watches\n", 0xFF);
         abort();
     }
     if (g_watched.size() <= address / 2) {
         g_watched.resize(address / 2 + 1, 0);
     }
-    g_watched[address / 2] = static_cast<uint8_t>(g_watchFns.size());
+    g_watched[address / 2] = static_cast<uint8_t>(which + 1);
     g_watchMap = g_watched.data();
     g_watchMapSize = static_cast<uint32_t>(g_watched.size());
 }
@@ -205,7 +212,9 @@ namespace {
             videoBefore.assign(c.video, c.video + c.videoSize);
         }
         g_inRewrite++;
+        c.nativeWrites++;
         hook.rewrite(c);
+        c.nativeWrites--;
         c.cycles += hook.cycles ? hook.cycles : kRewriteCycles;
         Return(c);
         if (c.waitCycles) {
@@ -368,7 +377,11 @@ void RewriteWhen(uint32_t address, RewriteWhenFn when) {
 }
 
 void Call(M68K &c, uint32_t address) {
+    // (the game's own code: its writes are its instructions', which watches tell, not the rewrite's)
+    const int kept = c.nativeWrites;
+    c.nativeWrites = 0;
     c.CallGuest(address);
+    c.nativeWrites = kept;
 }
 
 bool RunHook(M68K &c, uint32_t address) {
@@ -419,7 +432,9 @@ bool RunHook(M68K &c, uint32_t address) {
         CheckRewrite(c, hook);
         return true;
     }
+    c.nativeWrites++;
     hook.rewrite(c);
+    c.nativeWrites--;
     c.cycles += hook.cycles ? hook.cycles : kRewriteCycles;
     Return(c);
     ArmWait(c);

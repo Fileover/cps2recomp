@@ -5,6 +5,7 @@
 
 #include "../runtime/native.h"
 #include "../runtime/state.h"
+#include "../video/native.h"
 
 #include <bit>
 #include <cstdio>
@@ -126,6 +127,15 @@ void M68K::Write(uint32_t address, unsigned size, uint32_t value) {
     BusWait(address);
     if (size == 2) {
         BusWait(address + 2);
+    }
+    if (nativeWrites && nativeVideo && native_video::IsVideoRegister(address)) {
+        // (a rewrite's: the game's side is told first, as a watch tells it before an instruction)
+        if (size == 2) {
+            nativeVideo->GameWrites(*this, address & 0xFFFFFF, static_cast<uint16_t>(value >> 16), false);
+            nativeVideo->GameWrites(*this, (address + 2) & 0xFFFFFF, static_cast<uint16_t>(value), false);
+        } else {
+            nativeVideo->GameWrites(*this, address & 0xFFFFFF, static_cast<uint16_t>(value), size == 0);
+        }
     }
 #ifdef CPS2RECOMP_CHECK
     if (check::side) {
