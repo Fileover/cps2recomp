@@ -93,6 +93,8 @@ void Raster::Objects(const ObjectList &list, const PictureOptions &options) {
                 t.entry = static_cast<uint16_t>(i / 4);
                 t.entryTile = code;
                 t.attributes = attr;
+                t.shift = static_cast<int16_t>(options.object ? options.object(code, attr, i / 4) : 0);
+                t.hidden = options.hideObject && options.hideObject(code, attr);
                 m_tiles.push_back(t);
             }
         }
@@ -166,6 +168,43 @@ void Raster::DrawScroll(int which, int rasterLine, const Layers &layers, const u
             if (pen != 15) {
                 pens[x] = static_cast<uint16_t>(colour + pen);
                 priority[x] |= mark;
+            }
+        }
+    }
+}
+
+void Raster::Overrides(int line, const Layers &layers, const uint8_t *videoRam, const PictureOptions &options,
+                       std::vector<TileOverride> &out) const {
+    out.clear();
+    if (!options.tile) {
+        return;
+    }
+    const int rasterLine = line + kFirstLine, width = kWidth + 2 * options.side;
+    for (int which = 0; which < 3; which++) {
+        // (as DrawScroll walks the screen's tiles across the line, asking for those not wholly in the board's columns)
+        const int shift = 3 + which, size = 1 << shift;
+        const uint32_t mapMask = (64u << shift) - 1;
+        uint32_t scrollX = layers.scroll[which][0];
+        const uint32_t scrollY = layers.scroll[which][1];
+        const bool rowScroll = which == 1 && (layers.videoControl & 1);
+        if (rowScroll) {
+            const uint32_t rows = (static_cast<uint32_t>(layers.rows) * 256) & ~0x7FFu & 0x3FFFF;
+            scrollX += Word(&videoRam[rows + (((rasterLine + layers.rowOffset) & 0x3FF) * 2)]);
+        }
+        const uint32_t y = (rasterLine + scrollY) & mapMask, row = y >> shift;
+        const int ownLeft = options.side + options.scroll[which] +
+                            (rowScroll && options.rows ? options.rows[(rasterLine + layers.rowOffset) & 0x3FF] : 0);
+        const int ownRight = ownLeft + kWidth;
+        const uint32_t firstX = static_cast<uint32_t>(kFirstColumn - ownLeft + static_cast<int>(scrollX)) & mapMask;
+        int at = -static_cast<int>(firstX & (size - 1));
+        uint32_t column = firstX >> shift;
+        for (; at < width; at += size, column = (column + 1) & 63) {
+            if (at >= ownLeft && at + size <= ownRight) {
+                continue;
+            }
+            uint16_t code = 0, attributes = 0;
+            if (options.tile(which, static_cast<int>(column), static_cast<int>(row), at, code, attributes)) {
+                out.push_back({static_cast<int16_t>(at), static_cast<uint8_t>(which), code, attributes});
             }
         }
     }

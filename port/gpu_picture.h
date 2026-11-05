@@ -8,8 +8,9 @@
 // rasteriser (video/native_render.h) as the reference: --video gpu-check draws each frame here too, reads it back and
 // compares it with the board's lines.
 //
-// So far: the board's own picture (no wider picture or other settings of a game's sources), with the objects' offsets
-// the same on every line; other frames are not drawn here and are counted.
+// So far: the board's picture and what a game's sources set on it (a wider picture, its screens and objects moved, tiles
+// given beyond the board's columns, holes filled, objects hidden), with the objects' offsets the same on every line; not
+// the marks of pictures put together from two, nor layers left out. Other frames are not drawn here and are counted.
 #pragma once
 
 #include "../video/native.h"
@@ -52,12 +53,16 @@ public:
     // the colours times the alpha; none: nothing over it); zoomed, two pictures stacked, the game's above and with the
     // readouts below (present.h, Zoomed). The texture to show.
     SDL_GPUTexture *DrawKept(SDL_GPUCommandBuffer *commands, const uint32_t *readouts, bool zoomed);
+    // (the kept frame's width: Raster::kWidth and the added sides)
+    int KeptWidth() const {
+        return cps2recomp::native_video::Raster::kWidth + 2 * m_kept.options.side;
+    }
 
     // --video gpu-check: the frame drawn, read back and compared with the board's lines
     void Check(const cps2recomp::NativeVideo::FrameData &frame);
     // ... and the frame kept, drawn with the readouts over it (DrawKept), against the CPU's picture with them (`shown`:
     // Port::Shown), within a step of a colour (the readouts' blend rounds)
-    void CheckShown(const uint32_t *readouts, const uint32_t *shown);
+    void CheckShown(const uint32_t *readouts, const uint32_t *shown, int width);
     bool Report(FILE *out) const;
 
 private:
@@ -65,12 +70,14 @@ private:
     SDL_GPUDevice *m_device = nullptr;
     bool m_ownDevice = false;
     size_t m_graphicsSize = 0;
-    SDL_GPUBuffer *m_graphics = nullptr, *m_video = nullptr, *m_lines = nullptr, *m_tiles = nullptr, *m_frame = nullptr;
+    SDL_GPUBuffer *m_graphics = nullptr, *m_video = nullptr, *m_lines = nullptr, *m_tiles = nullptr, *m_frame = nullptr,
+                  *m_overrides = nullptr;
     size_t m_tilesCapacity = 0;
-    SDL_GPUTexture *m_screens = nullptr, *m_objects = nullptr, *m_depth = nullptr, *m_lineTexture = nullptr, *m_palette = nullptr,
+    SDL_GPUTexture *m_screens = nullptr, *m_holes = nullptr, *m_objects = nullptr, *m_depth = nullptr, *m_lineTexture = nullptr, *m_palette = nullptr,
                    *m_picture = nullptr;
     SDL_GPUSampler *m_sampler = nullptr;
-    SDL_GPUGraphicsPipeline *m_layersPipeline = nullptr, *m_objectsPipeline = nullptr, *m_coloursPipeline = nullptr;
+    SDL_GPUGraphicsPipeline *m_layersPipeline = nullptr, *m_holesPipeline = nullptr, *m_objectsPipeline = nullptr,
+                            *m_coloursPipeline = nullptr;
     SDL_GPUTransferBuffer *m_upload = nullptr, *m_download = nullptr;
     size_t m_uploadSize = 0;
     std::vector<uint8_t> m_videoNow; // (video RAM as the frame's bands have it, put in as they go)
@@ -81,14 +88,16 @@ private:
         std::vector<cps2recomp::NativeVideo::FrameEvent> events;
         std::vector<cps2recomp::native_video::PaletteUpload> uploads;
         cps2recomp::native_video::Layers layers[224];
+        std::vector<cps2recomp::native_video::TileOverride> overrides[224];
         cps2recomp::native_video::PictureOptions options;
         bool drawable = false;
     } m_kept;
     bool m_hasKept = false;
     SDL_GPUTexture *m_readouts = nullptr, *m_clear = nullptr, *m_shown = nullptr, *m_stack = nullptr;
+    int m_shownWidth = 0; // (the width m_shown and m_stack were made at: the frame's, which the presenter takes as theirs)
     SDL_GPUGraphicsPipeline *m_shownPipeline = nullptr;
     SDL_GPUTransferBuffer *m_readoutsUpload = nullptr;
-    uint64_t m_same = 0, m_differ = 0, m_notDrawn = 0, m_linesDiffer = 0;
+    uint64_t m_same = 0, m_differ = 0, m_notDrawn = 0, m_linesDiffer = 0, m_wide = 0;
     uint64_t m_shownSame = 0, m_shownDiffer = 0, m_shownWithReadouts = 0;
 };
 

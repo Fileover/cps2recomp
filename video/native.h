@@ -52,6 +52,7 @@ public:
         const std::vector<FrameEvent> *events = nullptr;
         const std::vector<native_video::PaletteUpload> *uploads = nullptr;
         const native_video::Layers *layers = nullptr;            // (224)
+        const std::vector<native_video::TileOverride> *overrides = nullptr; // (224: each line's, PictureOptions::tile)
         native_video::PictureOptions options;
         const uint32_t *board = nullptr;                         // (224 lines of Raster::kMaxWidth)
         bool whole = true; // (false: a frame the records do not make, before the game's first list, or of another set's
@@ -126,6 +127,7 @@ private:
     std::vector<FrameEvent> m_frameEvents;
     std::vector<native_video::PaletteUpload> m_frameUploads;
     native_video::Layers m_frameLayers[224];
+    std::vector<native_video::TileOverride> m_frameOverrides[224];
     std::vector<uint32_t> m_frameBoard; // (the board's lines)
     uint64_t m_framesSame = 0, m_framesDiffer = 0, m_frameLinesDiffer = 0;
     uint64_t m_bands = 0, m_bandFrames = 0; int m_mostBands = 0; // (the lines a frame has writes before: its bands, less one)

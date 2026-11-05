@@ -10,6 +10,13 @@
 #define L_VIDEO_CONTROL 11u
 #define L_LAYER_CONTROL 12u
 #define L_PRIORITY 13u   // (the object list's priority control)
-#define L_WORDS 16u
+#define L_SIDE 14u       // (a wider picture's columns each side: PictureOptions::side)
+#define L_WIDTH 15u      // (the picture's width)
+#define L_OWN_LEFT 16u   // 3 words: where the board's own columns start, for each screen (moved: the game's sources')
+#define L_FILL_HOLES 19u
+#define L_OVERRIDES 20u  // (how many tiles the game's sources give beyond the board's columns on the line)
+#define L_WORDS 24u
+// (each line's tiles given beyond the board's columns: kOverrides of them, two words each)
+#define OVERRIDES 32u
 // (after the 224 lines' records: the graphics ROMs' size, in bytes)
 #define L_GRAPHICS_SIZE (224u * L_WORDS)

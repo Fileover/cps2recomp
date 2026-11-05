@@ -454,8 +454,9 @@ results, the lines, the palette), never both: SDL_GPU numbers a fragment shader'
 buffers on Metal and after its textures in SPIR-V.
 
 `--video gpu-check` does what `--video check` does, and also draws each frame on a GPU device of its own (SDL's
-offscreen video driver: no window), reads it back and compares it with the board's lines. It draws the board's own
-picture with the objects' offsets the same on every line, and counts other frames as not drawn there.
+offscreen video driver: no window), reads it back and compares it with the board's lines. It draws frames whose
+objects' offsets stay the same on every line, with what a game's sources set on the picture (below), and counts
+other frames as not drawn there.
 
 Results:
 
@@ -464,6 +465,34 @@ Definitive, which draws from another set's graphics), every frame drawn on the G
 same as the board's, pixel for pixel: 3,999 and 5,999 in the Alpha games, and so on. None needed the CPU: the objects'
 offsets stayed the same down every picture, Marvel Super Heroes' included. Taking objects away from the second pass
 (a test of the check) made the frames with objects on the screen differ at once.
+
+### A game's picture settings on the GPU (widescreen)
+
+What a game's sources set on the picture (`PictureOptions`) is drawn on the GPU too, except the marks (pictures put
+together from two) and layers left out. These settings are C++, asked as `video.cpp` draws each line and reading the
+game's memory then, so they are asked on the CPU at the time the board would ask, and their answers go to the GPU with
+the frame:
+
+- **A wider picture** (`side`): the textures are as wide as the widest picture (512 columns), and a frame is drawn
+  as wide as its own. The textures the presenter samples are made at the frame's width, which the presenter takes as
+  the picture's.
+- **Screens moved** (`scroll`, `rows`): where the board's own columns start for each screen, on each line, is in the
+  line's record.
+- **Tiles beyond the board's columns** (`tile`): asked on each line as the board draws it (`Raster::Overrides`,
+  with the frame's record: `TileOverride`). The first pass takes a line's from a small list, in the map's place.
+- **Objects moved and hidden** (`object`, `hideObject`): asked for each entry when the list is taken. A tile's move
+  goes with it to the GPU; a hidden one is not sent.
+- **Holes filled** (`fillHoles`): a pass between the scroll screens and the colours (`video/shaders/holes.frag`).
+  Each pixel of the backdrop looks no further than the added side each way for the run it is in, and takes the
+  mirrored pen as `FillHoles` does.
+
+Results, the ladder with `widescreen` on:
+
+In the 16 games with widescreen and a ladder movie (sfa, sfa2, sfz2al, sfa3, pocket_fighter, vampire_savior, vsav2,
+vhunt2, hsf2, ssf2t, nwarr, xmcota, msh, xmvsf, mshvsf, mvsc), every frame drawn on the GPU was the same as the board's,
+pixel for pixel. Between 2,873 (xmcota) and 4,101 (sfa) of each ladder's 6,000 frames were wider than the board's, with
+the stages' tiles given beyond its columns, objects moved and holes filled. The frames not drawn there were only those
+before a game's first object list. Without widescreen, as before (sfa2, msh, dstlk, avsp, gigawing).
 
 ### The GPU's picture on the screen (`--video gpu`)
 
@@ -493,8 +522,8 @@ renderer's presenter and the OpenGL shader presets' keep the CPU's picture.
 - **What stays on the CPU.** These go on using the CPU's picture: screenshots, frame hashes, online play's frames run
   again (not drawn), the model viewer, and the guest stages' pictures put together.
 
-The window itself has not been looked at here (the checks run headless): `--video gpu` is for trying. Next: the
-games' picture settings and changing offsets on the GPU, so that every frame is drawn there.
+The window itself has not been looked at here (the checks run headless): `--video gpu` is for trying. Next: objects'
+offsets that change down the picture, the marks, and another set's graphics, so that every frame is drawn there.
 
 ## The frame drawn at once (the GPU's data, checked on the CPU)
 

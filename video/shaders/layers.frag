@@ -11,6 +11,9 @@ layout(location = 0) out uint result;
 layout(std430, set = 2, binding = 0) readonly buffer Graphics { uint graphics[]; };
 layout(std430, set = 2, binding = 1) readonly buffer Video { uint video[]; };
 layout(std430, set = 2, binding = 2) readonly buffer Lines { uint lines[]; };
+// (a line's tiles given beyond the board's columns: the column its left edge is at (16 bits) and the screen (above);
+// then the tile and its attributes)
+layout(std430, set = 2, binding = 3) readonly buffer Overrides { uint overrides[]; };
 
 uint Word(uint at) {
     return (BYTE(video, at) << 8) | BYTE(video, at + 1u);
@@ -45,14 +48,28 @@ void main() {
             scrollX += Word(rows + (((rasterLine + lines[l + L_ROW_OFFSET]) & 0x3FFu) * 2u));
         }
         const uint y = (rasterLine + scrollY) & mapMask, row = y >> shift;
-        const uint mx = (64u + scrollX + x) & mapMask; // (the map's column of pixels this pixel shows)
+        const int ownLeft = int(lines[l + L_OWN_LEFT + which]);
+        const uint mx = uint(64 - ownLeft + int(scrollX) + int(x)) & mapMask; // (the map's column of pixels this pixel shows)
         const uint column = mx >> shift, k = mx & (size - 1u);
+        const int tileAt = int(x) - int(k); // (the picture's column the tile's left edge is at)
         uint index;
         if (which == 0u) index = (row & 0x1Fu) + (column << 5) + ((row & 0x20u) << 6);
         else if (which == 1u) index = (row & 0x0Fu) + (column << 4) + ((row & 0x30u) << 6);
         else index = (row & 0x07u) + (column << 3) + ((row & 0x38u) << 6);
         uint code = Word(base + index * 4u);
-        const uint attr = Word(base + index * 4u + 2u);
+        uint attr = Word(base + index * 4u + 2u);
+        if (tileAt < ownLeft || tileAt + int(size) > ownLeft + 384) {
+            // (beyond the board's own columns: the game's sources' tile, if they gave one)
+            const uint count = lines[l + L_OVERRIDES], o = line * OVERRIDES * 2u;
+            for (uint n = 0u; n < count; n++) {
+                const uint w = overrides[o + n * 2u];
+                if ((w >> 16) == which && (int(w << 16) >> 16) == tileAt) {
+                    code = overrides[o + n * 2u + 1u] & 0xFFFFu;
+                    attr = overrides[o + n * 2u + 1u] >> 16;
+                    break;
+                }
+            }
+        }
         uint at, rowBytes;
         if (which == 0u) { at = 0x800000u + code * 64u + ((column & 1u) != 0u ? 4u : 0u); rowBytes = 8u; }
         else if (which == 1u) { at = 0x800000u + code * 128u; rowBytes = 8u; }

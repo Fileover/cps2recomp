@@ -2080,11 +2080,11 @@ void Port::RunFrame() {
     }
     // (--video gpu-check: the frame the GPU kept, drawn with the readouts over it, as the window would show it, against
     // the CPU's picture with the readouts: gpu_picture.h)
-    if (g_gpuPicture && ShownWidth() == Video::kWidth && g_gpuPicture->CanDrawKept()) {
+    if (g_gpuPicture && g_gpuPicture->CanDrawKept()) {
         std::vector<uint32_t> readouts, shown;
         Readouts(readouts);
         Shown(shown);
-        g_gpuPicture->CheckShown(readouts.data(), shown.data());
+        g_gpuPicture->CheckShown(readouts.data(), shown.data(), ShownWidth());
     }
 }
 

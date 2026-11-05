@@ -848,7 +848,7 @@ int RunWindowed(Port &port) {
         // (--video gpu: the game's picture drawn on the GPU from the native records, with the readouts over it, when the
         // presenter draws with SDL_GPU and the GPU can draw the frame: gpu_picture.h; else the CPU's picture)
         bool drawn = false;
-        if (port.gpuWanted && presenter.UsesGpu() && !presenter.Shaded() && port.ShownWidth() == Video::kWidth) {
+        if (port.gpuWanted && presenter.UsesGpu() && !presenter.Shaded()) {
             if (port.gpuPicture.Device() != presenter.Device()) {
                 port.gpuPicture.Close();
                 std::string gpuError;
@@ -857,12 +857,12 @@ int RunWindowed(Port &port) {
                     port.gpuWanted = false;
                 }
             }
-            if (port.gpuWanted && port.gpuPicture.CanDrawKept()) {
+            if (port.gpuWanted && port.gpuPicture.CanDrawKept() && port.gpuPicture.KeptWidth() == port.ShownWidth()) {
                 static std::vector<uint32_t> readouts;
                 const bool isZoomed = port.Windowed(readouts, zoomed, true);
                 drawn = presenter.ShowDrawn(
                     [&](SDL_GPUCommandBuffer *commands) { return port.gpuPicture.DrawKept(commands, readouts.data(), isZoomed); },
-                    Video::kWidth, Video::kHeight, where, isZoomed ? &zoomed : nullptr);
+                    port.ShownWidth(), Video::kHeight, where, isZoomed ? &zoomed : nullptr);
             }
         }
         if (!drawn) {
