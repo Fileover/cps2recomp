@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- **Other games' stages at the game's level** ([docs/NATIVE_VIDEO.md](docs/NATIVE_VIDEO.md)): the boards of the games
+  whose stages Vampire Savior Definitive shows (Darkstalkers, Alpha 2) now have their own records of what their code
+  hands over, checked against their boards, and drawn on the GPU with the game's fighters over them.
+  Nothing changes in play.
 - **The CPS-1 games' picture from the game's level and on the GPU** ([docs/NATIVE_VIDEO.md](docs/NATIVE_VIDEO.md)):
   Cadillacs and Dinosaurs and The Punisher are drawn from what the game hands over, on the CPU and on the GPU, by the
   CPS-1's own rules (its layer order, its priority masks), the same as the board's. With them, every game of the

@@ -60,6 +60,17 @@ public:
         return cps2recomp::native_video::Raster::kWidth + 2 * m_kept.options.side;
     }
 
+    // Another game's board beside this one (runtime/guest.h) whose stage this game's objects are drawn over: a frame of
+    // this one's with its objects alone (PictureOptions: layerMask 1 or 0, the objects marked) is drawn over the guest's
+    // last frame (its own GpuPicture, on the same device)
+    void AddGuest(GpuPicture *guest) {
+        m_guests.push_back(guest);
+    }
+    // (whether the frame was put together over a guest's: Machine::guestBehind; drawn over one only when it was)
+    const bool *guestBehind = nullptr;
+    // (what its reports begin with)
+    std::string checkName = "video gpu-check";
+
     // --video gpu-check: the frame drawn, read back and compared with the board's lines
     void Check(const cps2recomp::NativeVideo::FrameData &frame);
     // ... and the frame kept, drawn with the readouts over it (DrawKept), against the CPU's picture with them (`shown`:
@@ -98,12 +109,19 @@ private:
         bool drawable = false;
     } m_kept;
     bool m_hasKept = false;
+    uint64_t m_keptSerial = 0; // (when it was kept, among all GpuPictures: the guest's last frame is the one kept latest)
+    std::vector<GpuPicture *> m_guests;
+    SDL_GPUTexture *m_composite = nullptr; // (the guest's frame with this one's objects over it)
+    static bool Over(const cps2recomp::native_video::PictureOptions &o) {
+        return (o.layerMask & ~1u) == 0 && !o.markLayers && (o.markObjects || o.layerMask == 0);
+    }
+    GpuPicture *LatestGuest() const;
     SDL_GPUTexture *m_readouts = nullptr, *m_clear = nullptr, *m_shown = nullptr, *m_stack = nullptr;
     int m_shownWidth = 0; // (the width m_shown and m_stack were made at: the frame's, which the presenter takes as theirs)
     SDL_GPUGraphicsPipeline *m_shownPipeline = nullptr;
     SDL_GPUTransferBuffer *m_readoutsUpload = nullptr;
-    uint64_t m_same = 0, m_differ = 0, m_notDrawn = 0, m_linesDiffer = 0, m_wide = 0;
-    uint64_t m_shownSame = 0, m_shownDiffer = 0, m_shownWithReadouts = 0;
+    uint64_t m_same = 0, m_differ = 0, m_notDrawn = 0, m_linesDiffer = 0, m_wide = 0, m_over = 0;
+    uint64_t m_shownSame = 0, m_shownDiffer = 0, m_shownWithReadouts = 0, m_shownCpu = 0;
 };
 
 } // namespace port

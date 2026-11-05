@@ -15,6 +15,7 @@
 
 #include "../runtime/game.h"
 #include "../runtime/lift.h"
+#include "../runtime/guest.h"
 #include "game_info.h"
 
 #include <zlib.h>
@@ -23,6 +24,8 @@
 #include <cstdlib>
 #include <cstring>
 #include <map>
+#include <string>
+#include <vector>
 
 namespace cps2recomp {
 
@@ -111,14 +114,22 @@ namespace {
     // native interface when the place is a video register.
     struct Operand {
         unsigned mode = 0, reg = 0;
-        uint32_t extension = 0; // (where its extension words start)
+        uint32_t constant = 0; // (resolved from its extension words: d16's displacement, an address, a number)
     };
     struct Move {
         unsigned size = 2; // (bytes: 1, 2 or 4)
         bool clear = false; // (clr: no source, 0 written)
         Operand from, to;
     };
-    std::map<uint32_t, Move> g_moves;
+    // The instructions watched in a program: the game's own, or a guest board's (guest.h; the CPU's watchContext)
+    struct MoveTable {
+        std::map<uint32_t, Move> moves;
+    };
+    MoveTable g_moves;
+    std::map<std::string, MoveTable> &GuestMoves() {
+        static auto &tables = *new std::map<std::string, MoveTable>; // (never freed: guest boards' spares may outlive us)
+        return tables;
+    }
 
     unsigned ExtensionWords(const Operand &o, unsigned size) {
         switch (o.mode) {
@@ -143,13 +154,23 @@ namespace {
         }
         return source || o.mode >= 2; // (a register is no destination here)
     }
-    // Where an operand of mode 7 is (none of the CPU's registers needed)
-    uint32_t FixedPlace(const Operand &o) {
-        switch (o.reg) {
-        case 0: return static_cast<uint32_t>(static_cast<int16_t>(OpcodeWord(o.extension)));
-        case 1: return OpcodeLong(o.extension);
-        case 2: return o.extension + static_cast<uint32_t>(static_cast<int16_t>(OpcodeWord(o.extension)));
-        default: return 0;
+    // An operand's constant, read from the program its extension words start at (`word`: a word of that program)
+    template <typename Word>
+    void Resolve(Operand &o, uint32_t extension, unsigned size, const Word &word) {
+        auto at16 = [&](uint32_t a) { return static_cast<uint32_t>(static_cast<int16_t>(word(a))); };
+        auto at32 = [&](uint32_t a) { return (static_cast<uint32_t>(word(a)) << 16) | word(a + 2); };
+        switch (o.mode) {
+        case 5: o.constant = at16(extension); break;
+        case 7:
+            switch (o.reg) {
+            case 0: o.constant = at16(extension); break;
+            case 1: o.constant = at32(extension); break;
+            case 2: o.constant = extension + at16(extension); break;
+            case 4: o.constant = size == 4 ? at32(extension) : word(extension) & (size == 1 ? 0xFF : 0xFFFF); break;
+            default: break;
+            }
+            break;
+        default: break;
         }
     }
     // Where an operand is in memory, as the CPU is before the instruction
@@ -157,8 +178,8 @@ namespace {
         switch (o.mode) {
         case 2: case 3: return c.a[o.reg];
         case 4: return c.a[o.reg] - ((size == 1 && o.reg == 7) ? 2 : size);
-        case 5: return c.a[o.reg] + static_cast<uint32_t>(static_cast<int16_t>(OpcodeWord(o.extension)));
-        case 7: return FixedPlace(o);
+        case 5: return c.a[o.reg] + o.constant;
+        case 7: return o.constant;
         default: return 0;
         }
     }
@@ -171,7 +192,7 @@ namespace {
             return c.a[o.reg] & mask;
         }
         if (o.mode == 7 && o.reg == 4) {
-            return (size == 4 ? OpcodeLong(o.extension) : OpcodeWord(o.extension)) & mask;
+            return o.constant & mask;
         }
         const uint32_t at = Place(c, o, size) & 0xFFFFFF;
         switch (size) {
@@ -181,7 +202,12 @@ namespace {
         }
     }
     bool VideoWrite(M68K &c) {
-        const Move &move = g_moves[c.pc];
+        const MoveTable &table = c.watchContext ? *static_cast<const MoveTable *>(c.watchContext) : g_moves;
+        const auto found = table.moves.find(c.pc);
+        if (found == table.moves.end() || !c.nativeVideo) {
+            return false;
+        }
+        const Move &move = found->second;
         const uint32_t to = Place(c, move.to, move.size) & 0xFFFFFF;
         if (!native_video::IsVideoRegister(to)) {
             return false;
@@ -196,7 +222,9 @@ namespace {
         return false;
     }
 
-    void AddWrites(const char *list) {
+    // The instructions in `list` (hex, spaces between) read from a program (`word`), into `table`; each added to `watched`
+    template <typename Word, typename Watch>
+    void AddWrites(const char *key, const char *list, MoveTable &table, const Word &word, const Watch &watched) {
         for (const char *p = list; *p;) {
             char *end = nullptr;
             const uint32_t at = static_cast<uint32_t>(strtoul(p, &end, 16));
@@ -205,30 +233,30 @@ namespace {
                 continue;
             }
             p = end;
-            const uint16_t op = OpcodeWord(at);
+            const uint16_t op = word(at);
             Move move;
             bool known = false;
             if ((op & 0xFF00) == 0x4200 && ((op >> 6) & 3) != 3) { // clr
                 known = true;
                 move.clear = true;
                 move.size = 1u << ((op >> 6) & 3);
-                move.to = {static_cast<unsigned>((op >> 3) & 7), static_cast<unsigned>(op & 7), at + 2};
+                move.to = {static_cast<unsigned>((op >> 3) & 7), static_cast<unsigned>(op & 7), 0};
+                Resolve(move.to, at + 2, move.size, word);
             } else if ((op >> 12) == 1 || (op >> 12) == 2 || (op >> 12) == 3) { // move.b, move.l, move.w
-                known = true;
                 move.size = (op >> 12) == 1 ? 1 : (op >> 12) == 3 ? 2 : 4;
-                move.from = {static_cast<unsigned>((op >> 3) & 7), static_cast<unsigned>(op & 7), at + 2};
+                move.from = {static_cast<unsigned>((op >> 3) & 7), static_cast<unsigned>(op & 7), 0};
                 move.to = {static_cast<unsigned>((op >> 6) & 7), static_cast<unsigned>((op >> 9) & 7), 0};
-                move.to.extension = move.from.extension + 2 * ExtensionWords(move.from, move.size);
+                Resolve(move.from, at + 2, move.size, word);
+                Resolve(move.to, at + 2 + 2 * ExtensionWords(move.from, move.size), move.size, word);
                 known = Supported(move.from, true);
             }
-            if (!known || !Supported(move.to, false) ||
-                (move.to.mode == 7 && !native_video::IsVideoRegister(FixedPlace(move.to)))) {
-                fprintf(stderr, "video: game.cfg's video_writes: the instruction at %06X is not a move or clr to the video's registers "
-                                "the toolkit reads; not native\n", at);
+            if (!known || !Supported(move.to, false) || (move.to.mode == 7 && !native_video::IsVideoRegister(move.to.constant))) {
+                fprintf(stderr, "video: %s: the instruction at %06X is not a move or clr to the video's registers the toolkit reads; "
+                                "not native\n", key, at);
                 continue;
             }
-            g_moves[at] = move;
-            AddWatch(at, "VideoWrite", VideoWrite);
+            table.moves[at] = move;
+            watched(at);
         }
     }
 } // namespace
@@ -241,11 +269,20 @@ namespace {
 #define GAME_VIDEO_WRITES ""
 #endif
 
+void RegisterGuestVideoLifts(const std::string &id, const char *writes, const uint8_t *opcodes, size_t size) {
+    MoveTable &table = GuestMoves()[id];
+    auto word = [&](uint32_t at) -> uint16_t { return at + 1 < size ? static_cast<uint16_t>((opcodes[at] << 8) | opcodes[at + 1]) : 0; };
+    std::vector<uint32_t> watched;
+    AddWrites(("the guest " + id + "'s video_writes").c_str(), writes, table, word, [&](uint32_t at) { watched.push_back(at); });
+    AddGuestWatches(id, watched, VideoWrite, &table);
+}
+
 void RegisterVideoLifts() {
     if (*GAME_VIDEO_PALETTE_COMMIT) {
         AddPaletteCommit(GAME_VIDEO_PALETTE_COMMIT);
     }
-    AddWrites(GAME_VIDEO_WRITES);
+    AddWrites("game.cfg's video_writes", GAME_VIDEO_WRITES, g_moves, OpcodeWord,
+              [](uint32_t at) { AddWatch(at, "VideoWrite", VideoWrite); });
 }
 
 } // namespace cps2recomp

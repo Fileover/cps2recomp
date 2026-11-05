@@ -343,6 +343,20 @@ bool Port::Init(std::string &error) {
                                     : LoadGuest(guest, folder + "/" + guest.id, guestError) || LoadGuest(guest, folder + "/" + guest.set, guestError);
             if (loaded) {
                 fprintf(stderr, "%s: the set %s too (%s)\n", GAME_NAME, guest.set, guest.name);
+#ifdef GAME_GUEST_VIDEO
+                // (its board's own records: its game's instructions that write the video's registers, watched)
+                struct GuestVideo {
+                    const char *id, *writes;
+                };
+                static const GuestVideo kVideo[] = GAME_GUEST_VIDEO;
+                for (const GuestVideo &v : kVideo) {
+                    Machine *board = cps2recomp::Guest(guest.id);
+                    if (board && std::string(v.id) == guest.id) {
+                        RegisterGuestVideoLifts(guest.id, v.writes, board->cpu.opcodes, board->cpu.romSize);
+                        board->nativeVideo.checkName = std::string("video check, ") + guest.id;
+                    }
+                }
+#endif
             } else {
                 fprintf(stderr, "%s: without %s (%s): %s\n", GAME_NAME, guest.set, guest.name, guestError.c_str());
             }
@@ -410,6 +424,15 @@ bool Port::Init(std::string &error) {
     // The picture at the game's level (docs/NATIVE_VIDEO.md): the shared rewrites of Capcom's video library
     if (opt.video == "check" || opt.video == "gpu-check") {
         machine->nativeVideo.checking = true;
+#ifdef GAME_GUEST_TABLE
+        // (the guests' boards' records checked too)
+        static const GuestGame kCheckedGuests[] = GAME_GUEST_TABLE;
+        for (const GuestGame &guest : kCheckedGuests) {
+            if (Machine *board = cps2recomp::Guest(guest.id)) {
+                board->nativeVideo.checking = true;
+            }
+        }
+#endif
     } else if (opt.video == "gpu" || (opt.video.empty() && FeatureOn("display_gpu"))) {
         // (the window's picture drawn on the GPU from the native records, the frames the GPU draws: frontend_sdl.cpp)
         machine->nativeVideo.recording = true;
@@ -418,6 +441,25 @@ bool Port::Init(std::string &error) {
             static_cast<port::GpuPicture *>(user)->Keep(frame);
         };
         machine->nativeVideo.frameUser = &gpuPicture;
+        gpuPicture.guestBehind = &machine->guestBehind;
+#ifdef GAME_GUEST_TABLE
+        // (the guests' boards' frames too, for their stages drawn under the game's objects)
+        static const GuestGame kDrawnGuests[] = GAME_GUEST_TABLE;
+        for (const GuestGame &guest : kDrawnGuests) {
+            if (Machine *board = cps2recomp::Guest(guest.id)) {
+                GuestPicture g;
+                g.picture = std::make_unique<GpuPicture>();
+                g.roms = cps2recomp::GuestRoms(guest.id);
+                board->nativeVideo.recording = true;
+                board->nativeVideo.frameDrawn = [](const NativeVideo::FrameData &frame, void *user) {
+                    static_cast<port::GpuPicture *>(user)->Keep(frame);
+                };
+                board->nativeVideo.frameUser = g.picture.get();
+                gpuPicture.AddGuest(g.picture.get());
+                guestPictures.push_back(std::move(g));
+            }
+        }
+#endif
     } else if (!opt.video.empty() && opt.video != "board") {
         error = "--video: board, gpu, check or gpu-check";
         return false;
@@ -433,6 +475,32 @@ bool Port::Init(std::string &error) {
             return false;
         }
         g_gpuPicture = &checkPicture;
+        checkPicture.guestBehind = &machine->guestBehind;
+#ifdef GAME_GUEST_TABLE
+        static const GuestGame kCheckedGpuGuests[] = GAME_GUEST_TABLE;
+        for (const GuestGame &guest : kCheckedGpuGuests) {
+            Machine *board = cps2recomp::Guest(guest.id);
+            const RomSet *guestRoms = cps2recomp::GuestRoms(guest.id);
+            if (!board || !guestRoms) {
+                continue;
+            }
+            GuestPicture g;
+            g.picture = std::make_unique<GpuPicture>();
+            g.roms = guestRoms;
+            if (!g.picture->Open(checkPicture.Device(), guestRoms->graphics.data(), guestRoms->graphics.size(), gpuError)) {
+                error = std::string("--video gpu-check: ") + guest.id + ": " + gpuError;
+                return false;
+            }
+            g.picture->checkName = std::string("video gpu-check, ") + guest.id;
+            board->nativeVideo.frameDrawn = [](const NativeVideo::FrameData &frame, void *user) {
+                static_cast<port::GpuPicture *>(user)->Check(frame);
+                static_cast<port::GpuPicture *>(user)->Keep(frame);
+            };
+            board->nativeVideo.frameUser = g.picture.get();
+            checkPicture.AddGuest(g.picture.get());
+            guestPictures.push_back(std::move(g));
+        }
+#endif
         machine->nativeVideo.frameDrawn = [](const NativeVideo::FrameData &frame, void *user) {
             static_cast<port::GpuPicture *>(user)->Check(frame);
             static_cast<port::GpuPicture *>(user)->Keep(frame);
@@ -2747,8 +2815,29 @@ int main(int argc, char **argv) {
     if (p.machine->nativeVideo.checking && !p.machine->nativeVideo.Report(stderr)) {
         return 6;
     }
-    if (port::g_gpuPicture && !port::g_gpuPicture->Report(stderr)) {
-        return 6;
+#ifdef GAME_GUEST_TABLE
+    {
+        static const GuestGame kReported[] = GAME_GUEST_TABLE;
+        bool same = true;
+        for (const GuestGame &guest : kReported) {
+            if (Machine *board = cps2recomp::Guest(guest.id); board && board->nativeVideo.checking) {
+                same = board->nativeVideo.Report(stderr) && same;
+            }
+        }
+        if (!same) {
+            return 6;
+        }
+    }
+#endif
+    if (port::g_gpuPicture) {
+        // (all reported, the game's and its guests', before any is said to have failed)
+        bool same = port::g_gpuPicture->Report(stderr);
+        for (const auto &g : p.guestPictures) {
+            same = g.picture->Report(stderr) && same;
+        }
+        if (!same) {
+            return 6;
+        }
     }
     return ProgramEnded() >= 0 ? ProgramEnded() : result;
 }

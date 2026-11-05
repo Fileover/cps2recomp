@@ -16,6 +16,7 @@
 
 #include <cstdint>
 #include <string>
+#include <vector>
 
 namespace cps2recomp {
 
@@ -36,5 +37,10 @@ Machine *GuestSpare(const std::string &id);
 // A hook in a guest's code (as a game's own: runtime/lift.h), at that game's address. Hooks are added before the game
 // runs (whether the set is loaded yet or not) and not changed after.
 void AddGuestHook(const std::string &id, uint32_t address, bool (*fn)(M68K &c));
+// A guest's set, as loaded (none: not loaded)
+const RomSet *GuestRoms(const std::string &id);
+// Watches in a guest's code (lift.h, AddWatch: told before the instruction runs; the interpreter, which guests run in,
+// tells them), at that game's addresses: `fn` for each, with the CPU's watchContext `context`
+void AddGuestWatches(const std::string &id, const std::vector<uint32_t> &addresses, bool (*fn)(M68K &c), void *context);
 
 } // namespace cps2recomp

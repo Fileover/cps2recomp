@@ -55,4 +55,8 @@ void main() {
     }
     const uint rgb = texelFetch(palette, ivec2(pen & 63u, pen >> 6), 0).r;
     colour = vec4(float(rgb & 0xFFu), float((rgb >> 8) & 0xFFu), float((rgb >> 16) & 0xFFu), 255.0) / 255.0;
+    if (texelFetch(lines, ivec2(28, at.y), 0).r != 0u) {
+        // (the objects alone, to go over another picture: their pixels, and clear elsewhere, the colour times its alpha)
+        colour = (o & 0x80000000u) != 0u ? colour : vec4(0.0);
+    }
 }

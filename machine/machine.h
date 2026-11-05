@@ -157,6 +157,8 @@ public:
     QSound qsound;
     Video video;
     NativeVideo nativeVideo; // (the picture at the game's level: video/native.h; --video check compares it)
+    // (the frame's picture was put together over a guest board's: fight/guest_stages.cpp; the GPU's picture follows it)
+    bool guestBehind = false;
     Eeprom eeprom;
 
     // Memory, as bytes in the 68000's order

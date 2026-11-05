@@ -338,6 +338,7 @@ namespace {
 
     // The guest's frame, after the game's: its picture under the game's marked objects, its sound with the game's
     void Frame(Machine &machine) {
+        machine.guestBehind = false;
         if (g_frame) {
             g_frame(machine);
         }
@@ -383,6 +384,7 @@ namespace {
 
         // The picture: the guest's, under the game's marked pixels
         if (shown && machine.drawing && board.PictureWidth() == machine.PictureWidth()) {
+            machine.guestBehind = true;
             uint32_t *picture = machine.Picture();
             const uint32_t *behind = board.Picture();
             const size_t pixels = static_cast<size_t>(machine.PictureWidth()) * Video::kHeight;

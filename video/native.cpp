@@ -179,7 +179,7 @@ void NativeVideo::GameWrites(M68K &c, uint32_t address, uint16_t value, bool byt
         // The game hands over the list it has filled (in the bank it reaches at 708000) when it names the other bank;
         // naming the bank shown, it keeps the list it handed over last
         const int bank = value & 1;
-        if (Active() && bank != m_bank) {
+        if (bank != m_bank) { // (kept whether or not anything records: a spare board's state is another's after)
             for (int n = 0; n < native_video::kObjectWords; n++) {
                 m_list[n] = c.bus.Read16(0x708000 + static_cast<uint32_t>(n) * 2);
             }
@@ -195,7 +195,7 @@ void NativeVideo::GameWrites(M68K &c, uint32_t address, uint16_t value, bool byt
     if (chip >= 0x800100 && chip < 0x800140) {
         const unsigned index = (chip & 0x3E) / 2;
         const uint16_t now = put(m_cpsA[index]);
-        if (index == 0x0A / 2 && Active()) {
+        if (index == 0x0A / 2) {
             // The palette's base: the chip takes the palette from there, the pages the game last asked for
             Palette(native_video::GamePalette(videoRam, 0x900000 + ((static_cast<uint32_t>(now) << 8) & 0x3FC00),
                                               static_cast<uint8_t>(m_cpsB[paletteControl / 2])));
@@ -236,7 +236,7 @@ void NativeVideo::BoardObjects(const native_video::ObjectList &list, const nativ
         return;
     }
     if (m_listsDiffer++ < 10) {
-        fprintf(stderr, "video check: frame %llu: the object list differs; the game's side:\n", static_cast<unsigned long long>(frame));
+        fprintf(stderr, "%s: frame %llu: the object list differs; the game's side:\n", checkName.c_str(), static_cast<unsigned long long>(frame));
         mine.Describe(list, stderr);
     }
 }
@@ -257,8 +257,8 @@ void NativeVideo::BoardObjectsCps1(const native_video::ObjectList &list, const n
         return;
     }
     if (m_listsDiffer++ < 10) {
-        fprintf(stderr, "video check: frame %llu: the object list differs (a CPS-1's, where the game said it is: %04X; the board's: from "
-                        "its register)\n",
+        fprintf(stderr, "%s: frame %llu: the object list differs (a CPS-1's, where the game said it is: %04X; the board's: from "
+                        "its register)\n", checkName.c_str(),
                 static_cast<unsigned long long>(frame), m_cpsA[0]);
     }
 }
@@ -273,7 +273,7 @@ void NativeVideo::BoardLayers(const native_video::Layers &layers, int line) {
         return;
     }
     if (m_linesDiffer++ < 10) {
-        fprintf(stderr, "video check: frame %llu, line %d: the layers' registers differ; the game's side:\n", static_cast<unsigned long long>(frame),
+        fprintf(stderr, "%s: frame %llu, line %d: the layers' registers differ; the game's side:\n", checkName.c_str(), static_cast<unsigned long long>(frame),
                 line);
         mine.Describe(layers, stderr);
     }
@@ -381,7 +381,7 @@ void NativeVideo::FrameEnd() {
     if (differ) {
         m_frameLinesDiffer += differ;
         if (m_framesDiffer++ < 10) {
-            fprintf(stderr, "video check: frame %llu: drawn at once, %d lines differ from the board's\n", static_cast<unsigned long long>(frame),
+            fprintf(stderr, "%s: frame %llu: drawn at once, %d lines differ from the board's\n", checkName.c_str(), static_cast<unsigned long long>(frame),
                     differ);
         }
     } else {
@@ -430,17 +430,17 @@ void NativeVideo::BoardLine(int line, const uint32_t *pixels, const native_video
         return;
     }
     if (m_picturesDiffer++ < 10) {
-        fprintf(stderr, "video check: frame %llu, line %d: the picture drawn from the game's side differs from column %d: %08X (the "
-                        "board's: %08X)\n",
+        fprintf(stderr, "%s: frame %llu, line %d: the picture drawn from the game's side differs from column %d: %08X (the "
+                        "board's: %08X)\n", checkName.c_str(),
                 static_cast<unsigned long long>(frame), line, x, mine[x], pixels[x]);
     }
 }
 
 void NativeVideo::Palette(const native_video::PaletteUpload &upload) {
+    m_raster.Upload(upload); // (the game's side's palette: its uploads'; kept always, as the list is)
     if (!Active()) {
         return;
     }
-    m_raster.Upload(upload); // (the game's side's palette: its uploads')
     if (m_inFrame) {
         m_frameEvents.push_back({static_cast<int16_t>(m_frameRow), 0x80000000u | static_cast<uint32_t>(m_frameUploads.size()), 0});
         m_frameUploads.push_back(upload);
@@ -450,7 +450,7 @@ void NativeVideo::Palette(const native_video::PaletteUpload &upload) {
     }
     if (m_hasPending) {
         m_gameOnly++;
-        fprintf(stderr, "video check: frame %llu: a palette upload the game's side gave, the board did not make\n",
+        fprintf(stderr, "%s: frame %llu: a palette upload the game's side gave, the board did not make\n", checkName.c_str(),
                 static_cast<unsigned long long>(frame));
     }
     m_pending = upload;
@@ -474,37 +474,37 @@ void NativeVideo::BoardPalette(const native_video::PaletteUpload &upload) {
         return;
     }
     if (m_differ++ < 10) {
-        fprintf(stderr, "video check: frame %llu: the palette's upload differs; the game's side:\n", static_cast<unsigned long long>(frame));
+        fprintf(stderr, "%s: frame %llu: the palette's upload differs; the game's side:\n", checkName.c_str(), static_cast<unsigned long long>(frame));
         m_pending.Describe(upload, stderr);
     }
 }
 
 bool NativeVideo::Report(FILE *out) const {
-    fprintf(out, "video check: palette uploads: %llu the same from the game's side and the board's, %llu differ, %llu only the game's side gave\n",
+    fprintf(out, "%s: palette uploads: %llu the same from the game's side and the board's, %llu differ, %llu only the game's side gave\n", checkName.c_str(),
             static_cast<unsigned long long>(m_same), static_cast<unsigned long long>(m_differ), static_cast<unsigned long long>(m_gameOnly));
     if (m_boardOnly) {
-        fprintf(out, "video check: %llu palette uploads made by the game's code that is not native yet (the first in frame %llu)\n",
+        fprintf(out, "%s: %llu palette uploads made by the game's code that is not native yet (the first in frame %llu)\n", checkName.c_str(),
                 static_cast<unsigned long long>(m_boardOnly), static_cast<unsigned long long>(m_firstBoardOnly));
     }
-    fprintf(out, "video check: object lists: %llu the same from the game's side and the board's, %llu differ (and %llu taken before the "
-                 "game gave its first)\n",
+    fprintf(out, "%s: object lists: %llu the same from the game's side and the board's, %llu differ (and %llu taken before the "
+                 "game gave its first)\n", checkName.c_str(),
             static_cast<unsigned long long>(m_listsSame), static_cast<unsigned long long>(m_listsDiffer),
             static_cast<unsigned long long>(m_listsBefore));
     if (objectsFromExtra) {
-        fprintf(out, "video check: another set's graphics: %llu object lists with entries drawn from them, %llu frames with tiles\n",
+        fprintf(out, "%s: another set's graphics: %llu object lists with entries drawn from them, %llu frames with tiles\n", checkName.c_str(),
                 static_cast<unsigned long long>(m_listsExtra), static_cast<unsigned long long>(m_framesExtra));
     }
-    fprintf(out, "video check: lines: %llu drawn with the same layers' registers as the game's side has, %llu not\n",
+    fprintf(out, "%s: lines: %llu drawn with the same layers' registers as the game's side has, %llu not\n", checkName.c_str(),
             static_cast<unsigned long long>(m_linesSame), static_cast<unsigned long long>(m_linesDiffer));
-    fprintf(out, "video check: picture: %llu lines drawn from the game's side's records the same as the board's, %llu not (and %llu "
-                 "not compared)\n",
+    fprintf(out, "%s: picture: %llu lines drawn from the game's side's records the same as the board's, %llu not (and %llu "
+                 "not compared)\n", checkName.c_str(),
             static_cast<unsigned long long>(m_picturesSame), static_cast<unsigned long long>(m_picturesDiffer),
             static_cast<unsigned long long>(m_picturesNot));
-    fprintf(out, "video check: frames drawn at once (as the GPU will): %llu the same as the board's, %llu not (%llu lines)\n",
+    fprintf(out, "%s: frames drawn at once (as the GPU will): %llu the same as the board's, %llu not (%llu lines)\n", checkName.c_str(),
             static_cast<unsigned long long>(m_framesSame), static_cast<unsigned long long>(m_framesDiffer),
             static_cast<unsigned long long>(m_frameLinesDiffer));
     if (m_bandFrames) {
-        fprintf(out, "video check: bands a frame (lines where writes come in): %.1f on average, %d at most\n",
+        fprintf(out, "%s: bands a frame (lines where writes come in): %.1f on average, %d at most\n", checkName.c_str(),
                 static_cast<double>(m_bands) / static_cast<double>(m_bandFrames), m_mostBands);
     }
     return m_differ == 0 && m_gameOnly == 0 && m_boardOnly == 0 && m_listsDiffer == 0 && m_linesDiffer == 0 && m_picturesDiffer == 0 &&

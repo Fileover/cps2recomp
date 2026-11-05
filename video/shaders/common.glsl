@@ -17,6 +17,8 @@
 #define L_OVERRIDES 20u  // (how many tiles the game's sources give beyond the board's columns on the line)
 #define L_CPS1 21u       // (a CPS-1's line: its layers' order and priority masks are another board's)
 #define L_ENABLE 22u     // (a CPS-1's: the layer control's bits that switch scroll screens 1-3 on, a byte each)
+#define L_LAYER_MASK 23u // (PictureOptions::layerMask: the layers drawn, bit 0 the objects, 1-3 the scroll screens)
+#define L_OVER 28u       // (the objects alone over another picture: a guest's stage; out, their pixels and nothing else)
 #define L_MASKS 24u      // (a CPS-1's: 4 words, its priority masks: the pens of a screen in front of the objects)
 #define L_WORDS 32u
 // (each line's tiles given beyond the board's columns: kOverrides of them, two words each)

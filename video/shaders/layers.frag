@@ -100,10 +100,10 @@ uint Cps1(uint x, uint line, uint l) {
         const uint layer = (control >> (6u + 2u * n)) & 3u;
         if (layer == 0u) {
             passed = true;
-            objects = true;
+            objects = (lines[l + L_LAYER_MASK] & 1u) != 0u;
             continue;
         }
-        const bool on = (control & ((enable >> (8u * (layer - 1u))) & 0xFFu)) != 0u &&
+        const bool on = (lines[l + L_LAYER_MASK] & (1u << layer)) != 0u && (control & ((enable >> (8u * (layer - 1u))) & 0xFFu)) != 0u &&
                         (layer == 1u || (videoControl & (layer == 2u ? 4u : 8u)) != 0u);
         if (!on) {
             continue;
@@ -142,7 +142,8 @@ void main() {
     uint pen = 0xBFFu, marks = 0u;
     for (uint n = 0u; n < 3u; n++) {
         const uint layer = order[n];
-        bool on = layer == 1u ? (control & 2u) != 0u
+        bool on = (lines[l + L_LAYER_MASK] & (1u << layer)) == 0u ? false
+                : layer == 1u ? (control & 2u) != 0u
                 : layer == 2u ? (control & 4u) != 0u && (videoControl & 4u) != 0u
                 : layer == 3u ? (control & 8u) != 0u && (videoControl & 8u) != 0u : false;
         uint p, value, attr;

@@ -20,7 +20,16 @@ namespace {
         Machine *spare = nullptr;
         std::vector<uint8_t> hooked; // a byte a word of its ROM: a hook there
         std::map<uint32_t, bool (*)(M68K &c)> hooks;
+        std::vector<uint8_t> watched; // a byte a word of its ROM: a watch there
+        bool (*watch)(M68K &c) = nullptr;
+        void *watchContext = nullptr;
     };
+    void SetWatches(Machine &m, One &one) {
+        m.cpu.ownWatched = one.watched.empty() ? nullptr : one.watched.data();
+        m.cpu.ownWatchedSize = static_cast<uint32_t>(one.watched.size());
+        m.cpu.ownWatch = one.watch;
+        m.cpu.watchContext = one.watchContext;
+    }
     std::map<std::string, One *> &Guests() {
         static auto &guests = *new std::map<std::string, One *>;
         return guests;
@@ -53,6 +62,7 @@ namespace {
         m.cpu.ownHookedSize = static_cast<uint32_t>(one.roms.program.size());
         m.cpu.ownHook = RunGuestHook;
         m.cpu.ownContext = &one;
+        SetWatches(m, one);
         m.Reset();
         return made;
     }
@@ -80,6 +90,11 @@ Machine *Guest(const std::string &id) {
     return found != Guests().end() && found->second->loaded ? found->second->machine.get() : nullptr;
 }
 
+const RomSet *GuestRoms(const std::string &id) {
+    const auto found = Guests().find(id);
+    return found != Guests().end() && found->second->loaded ? &found->second->roms : nullptr;
+}
+
 Machine *GuestSpare(const std::string &id) {
     const auto found = Guests().find(id);
     if (found == Guests().end() || !found->second->loaded) {
@@ -90,6 +105,24 @@ Machine *GuestSpare(const std::string &id) {
         one.spare = MakeMachine(one).release(); // (never freed: as above)
     }
     return one.spare;
+}
+
+void AddGuestWatches(const std::string &id, const std::vector<uint32_t> &addresses, bool (*fn)(M68K &c), void *context) {
+    One &one = Named(id);
+    one.watched.assign(one.roms.program.size() / 2 + 1, 0);
+    for (uint32_t address : addresses) {
+        if (address / 2 < one.watched.size()) {
+            one.watched[address / 2] = 1;
+        }
+    }
+    one.watch = fn;
+    one.watchContext = context;
+    if (one.machine) {
+        SetWatches(*one.machine, one);
+    }
+    if (one.spare) {
+        SetWatches(*one.spare, one);
+    }
 }
 
 void AddGuestHook(const std::string &id, uint32_t address, bool (*fn)(M68K &c)) {

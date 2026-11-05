@@ -320,6 +320,9 @@ int RunWindowed(Port &port) {
         at.maximized = SDL_GetWindowFlags(window) & SDL_WINDOW_MAXIMIZED;
         const bool fullscreen = SDL_GetWindowFlags(window) & SDL_WINDOW_FULLSCREEN;
         port.gpuPicture.Close(); // (its resources are the presenter's device's)
+        for (auto &g : port.guestPictures) {
+            g.picture->Close();
+        }
         presenter.Close();
         SDL_DestroyWindow(window);
         preset = next;
@@ -851,8 +854,16 @@ int RunWindowed(Port &port) {
         if (port.gpuWanted && presenter.UsesGpu() && !presenter.Shaded()) {
             if (port.gpuPicture.Device() != presenter.Device()) {
                 port.gpuPicture.Close();
+                for (auto &g : port.guestPictures) {
+                    g.picture->Close();
+                }
                 std::string gpuError;
-                if (!port.gpuPicture.Open(presenter.Device(), port.roms.graphics.data(), port.roms.graphics.size(), gpuError) ||
+                bool guestsOpen = true;
+                for (auto &g : port.guestPictures) {
+                    guestsOpen = guestsOpen && g.picture->Open(presenter.Device(), g.roms->graphics.data(), g.roms->graphics.size(), gpuError);
+                }
+                if (!guestsOpen ||
+                    !port.gpuPicture.Open(presenter.Device(), port.roms.graphics.data(), port.roms.graphics.size(), gpuError) ||
                     (!port.extraRoms.graphics.empty() &&
                      !port.gpuPicture.SetExtraGraphics(port.extraRoms.graphics.data(), port.extraRoms.graphics.size(), gpuError))) {
                     fprintf(stderr, "--video gpu: %s; the CPU's picture is shown\n", gpuError.c_str());
@@ -908,6 +919,9 @@ int RunWindowed(Port &port) {
 #endif
     }
     port.gpuPicture.Close();
+    for (auto &g : port.guestPictures) {
+        g.picture->Close();
+    }
     presenter.Close();
     SDL_DestroyWindow(window);
     SDL_Quit();

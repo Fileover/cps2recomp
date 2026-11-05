@@ -106,8 +106,16 @@ public:
     void ExecuteOne() {
         const uint32_t start = pc;
         // (a watch is told before its instruction; not on another game's board, which runs another program)
-        if (g_watchMap && !ownHooked && start / 2 < g_watchMapSize && g_watchMap[start / 2]) {
-            RunWatch(*this, start);
+        if (ownHooked ? ownWatched && start / 2 < ownWatchedSize && ownWatched[start / 2]
+                      : g_watchMap && start / 2 < g_watchMapSize && g_watchMap[start / 2]) {
+            if (ownHooked) {
+                const uint32_t kept = pc;
+                pc = start;
+                ownWatch(*this);
+                pc = kept;
+            } else {
+                RunWatch(*this, start);
+            }
         }
         fetchedWords = 0;
         Execute(Fetch());
@@ -138,6 +146,12 @@ public:
     uint32_t ownHookedSize = 0; // (bytes of ROM it covers)
     bool (*ownHook)(M68K &c, uint32_t address) = nullptr;
     const void *ownContext = nullptr; // (whose hooks they are, for ownHook)
+    // ... and its watches (runtime/guest.h, AddGuestWatches): a byte for each word of its ROM, the function, and what it
+    // is told of them (watchContext: a guest's watched instructions; none on the game's own board)
+    const uint8_t *ownWatched = nullptr;
+    uint32_t ownWatchedSize = 0;
+    bool (*ownWatch)(M68K &c) = nullptr;
+    void *watchContext = nullptr;
     bool OwnHook(uint32_t address) {
         return address < ownHookedSize && ownHooked[address / 2] && ownHook(*this, address);
     }
