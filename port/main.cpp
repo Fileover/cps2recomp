@@ -216,6 +216,13 @@ void RegisterPortFeatures() {
                                   "During an online match, how many frames each player's own controls are held back, at the bottom "
                                   "of the picture (\"DELAY 2\"): the host chooses it.",
                                   0});
+    // (display_gpu: --video gpu, docs/NATIVE_VIDEO.md; read as the game starts)
+    TheGame().features.push_back({"display_gpu", "Display", "GPU picture (test)",
+                                  "The game's picture drawn on the GPU from what the game's code hands over (its sprites, its scroll "
+                                  "layers and palettes), in place of a model of the board's video chips: the same picture, pixel for "
+                                  "pixel. A test of what is to come: frames it cannot draw yet are drawn as before. Takes effect when "
+                                  "the game starts; not with a shader preset.",
+                                  0});
     // (display_vsync: Presenter::SetVsync, issue #185)
     TheGame().features.push_back({"display_vsync", "Display", "VSync",
                                   "Each picture shown when the screen refreshes, so the picture never tears. The game keeps the "
@@ -403,7 +410,7 @@ bool Port::Init(std::string &error) {
     // The picture at the game's level (docs/NATIVE_VIDEO.md): the shared rewrites of Capcom's video library
     if (opt.video == "check" || opt.video == "gpu-check") {
         machine->nativeVideo.checking = true;
-    } else if (opt.video == "gpu") {
+    } else if (opt.video == "gpu" || (opt.video.empty() && FeatureOn("display_gpu"))) {
         // (the window's picture drawn on the GPU from the native records, the frames the GPU draws: frontend_sdl.cpp)
         machine->nativeVideo.recording = true;
         gpuWanted = true;
