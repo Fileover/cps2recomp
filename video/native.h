@@ -55,6 +55,7 @@ public:
     const uint8_t *videoRam = nullptr; // (the game's side reads the buffers the game fills there)
     uint8_t paletteControl = 0x30;     // (where the CPS-B's palette control is in its registers: Board::paletteControl)
     uint8_t layerControl = 0x26;       // (... its layer control: Board::layerControl)
+    const uint8_t *cps1Masks = nullptr; // (a CPS-1's: where its priority masks are, Board::priority; a CPS-2's draw without them)
 
     // The board starts, and the game's side with it: the registers are the board's until the game says otherwise
     void Reset(const uint16_t *cpsA, const uint16_t *cpsB, const uint16_t *objectRegs);
@@ -68,6 +69,8 @@ public:
     void BoardPalette(const native_video::PaletteUpload &upload);
     void BoardObjects(const native_video::ObjectList &list, const native_video::PictureOptions &options);
     void BoardLayers(const native_video::Layers &layers, int line);
+    // ... a CPS-1's object list, from video RAM where its register says
+    void BoardObjectsCps1(const native_video::ObjectList &list);
     // ... and a line it drew (Video::Width() pixels, as the game's sources set the picture: `options`), when it drew a
     // CPS-2's picture from its own graphics (Video::ComparablePicture): the line drawn from the game's side's records
     // alone (native_render.h) must be the same

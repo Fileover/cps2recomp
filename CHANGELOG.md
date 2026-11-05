@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- **The picture at the game's level in the CPS-1 games too** ([docs/NATIVE_VIDEO.md](docs/NATIVE_VIDEO.md)): Cadillacs
+  and Dinosaurs' and The Punisher's palettes, sprite lists and layers' registers are known at the game's level and checked
+  against the board's, so every game of the collection has them. Nothing changes in play.
 - **The picture drawn on the GPU, checked** ([docs/NATIVE_VIDEO.md](docs/NATIVE_VIDEO.md)): SDL_GPU draws a frame
   from what the game hands over (its sprite list as instanced tiles, its scroll layers and palettes in shaders), and
   every frame is the same as the board's, pixel for pixel, in every CPS-2 game compared (`--video gpu-check`). The game

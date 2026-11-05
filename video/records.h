@@ -45,6 +45,7 @@ namespace native_video {
     struct Layers {
         uint16_t maps[3] = {}, rows = 0, scroll[3][2] = {}, rowOffset = 0, videoControl = 0, layerControl = 0;
         uint16_t xOffset = 0, yOffset = 0;
+        uint16_t masks[4] = {}; // (a CPS-1's: its four priority masks, the pens of a screen in front of the objects)
         bool operator==(const Layers &) const = default;
         void Describe(const Layers &other, FILE *out) const;
     };
@@ -73,7 +74,11 @@ namespace native_video {
     ObjectList DecodeObjects(const uint8_t *bank, const uint16_t *objectRegs);
     // ... the layers a line is drawn with, from CPS-A's and CPS-B's registers and the object registers (the game's side
     // makes them the same way, from what the game said to each)
-    Layers DecodeLayers(const uint16_t *cpsA, const uint16_t *cpsB, const uint16_t *objectRegs, uint8_t layerControl);
+    Layers DecodeLayers(const uint16_t *cpsA, const uint16_t *cpsB, const uint16_t *objectRegs, uint8_t layerControl,
+                        const uint8_t *masks = nullptr);
+    // A CPS-1's object list: 256 entries in video RAM where CPS-A's first register says (Video::LatchObjectsCps1); the
+    // rest of the record's words 0
+    ObjectList DecodeObjectsCps1(const uint8_t *videoRam, const uint16_t *cpsA);
 
     // The game's side: a buffer of colours in video RAM as the game left it
     // (`pages` and the buffer's place as the game's code works them out)
