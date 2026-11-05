@@ -20,7 +20,7 @@ namespace cps2recomp {
 
 bool BattleMode(); // (fight/battle.h)
 bool StageViewer(); // (modes.cpp)
-bool NotTheStage(uint32_t tile, uint16_t attributes); // (machines.cpp)
+bool ThePanel(uint32_t tile, uint16_t attributes); // (machines.cpp)
 
 namespace {
     using namespace sfa2;
@@ -78,7 +78,12 @@ void RegisterStages() {
     host.cameraRight = 640;
     host.shown = [] { return StageViewer() || InMatch(); };
     host.viewer = StageViewer;
-    host.notTheStage = NotTheStage;
+    // (what is laid over another game's stage: the fighters, in colour sets 11-26, and the panel; not this game's own
+    // stage's pieces, its people and its doors, which are in the sets below and above: battle.cpp's NotTheFighters)
+    host.notTheStage = [](uint32_t tile, uint16_t attributes) {
+        const unsigned set = attributes & 0x1F;
+        return ThePanel(tile, attributes) || (set >= 11 && set < 27);
+    };
     host.stageTunes.assign(std::begin(kStageTunes), std::end(kStageTunes));
     host.wanted = Wanted;
     host.feature = "other_stages";

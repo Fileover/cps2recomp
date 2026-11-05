@@ -470,11 +470,13 @@ void M68K::CallGuest(uint32_t address) {
             fprintf(stderr, "the game's routine at %06X, called from C++, did not come back (it must not wait for anything)\n", address);
             exit(1);
         }
-        if (!g_hooked.empty() && RunHook(*this, pc)) {
+        // (another board's 68000, runtime/guest.h: its own hooks, and only the interpreter: the translated code is the
+        // game's)
+        if (ownHooked ? OwnHook(pc) : !g_hooked.empty() && RunHook(*this, pc)) {
             continue;
         }
 #ifndef CPS2RECOMP_CHECK
-        if (const NativeFn fn = g_inOriginal ? nullptr : tables.At(pc)) {
+        if (const NativeFn fn = g_inOriginal || ownHooked ? nullptr : tables.At(pc)) {
             depth = 0;
             fn(*this);
             continue;

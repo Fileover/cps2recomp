@@ -32,6 +32,7 @@ namespace {
         int8_t guest = 0;  // the guest whose stage is shown, 1 the first (0: the game's own); its board is in its round
         int8_t stage = 0;  // ... its stage, 1 its first
         int8_t follow = 0; // its camera goes where the game's is (while its stage is shown)
+        int8_t built = 0;  // (a stage alone, Guest::StageAlone: its stage has been built on its board)
         int16_t cameraX = 0, cameraY = 0; // where its camera is to be (the game's, as its last frame left it)
     } g;
     std::vector<uint8_t> g_guestState; // (the guest's machine, for a save state: kept so a peer without the set can read past it)
@@ -180,7 +181,7 @@ namespace {
     }
     void StartMaking(int index) {
         Ready &ready = TheReady(index);
-        if (ready.started || !cps2recomp::Guest(Guests()[index].id)) {
+        if (ready.started || Guests()[index].StageAlone() || !cps2recomp::Guest(Guests()[index].id)) {
             return;
         }
         ready.started = true;
@@ -188,13 +189,99 @@ namespace {
         std::thread(MakeRounds, index).detach();
     }
     // A guest's stage's round (1 its first), into its board (waiting for it, if it is not made yet)
+    void ToStage(int index, int stage);
     void ToRound(int index, int stage) {
+        if (Guests()[index].StageAlone()) {
+            ToStage(index, stage);
+            return;
+        }
         Ready &ready = TheReady(index);
         StartMaking(index);
         ready.wanted = stage;
         std::unique_lock<std::mutex> hold(ready.lock);
         ready.done.wait(hold, [&] { return ready.made[stage - 1].load(); });
         Load(*cps2recomp::Guest(Guests()[index].id), ready.round[stage - 1]);
+    }
+
+    // --- a stage alone (Guest::StageAlone): the guest's board at the top of its main loop, its stage's code run there ---
+
+    // The board as its own start-up leaves it at its main loop's top, made once (nothing played: no coin, no control)
+    std::vector<std::vector<uint8_t>> &Booted() {
+        static auto &booted = *new std::vector<std::vector<uint8_t>>(kMostGuests);
+        return booted;
+    }
+    int g_booting = -1;     // (the guest whose board is starting up now: at its main loop it waits, and is there)
+    bool g_reached = false;
+    const std::vector<uint8_t> &BootedState(int index) {
+        std::vector<uint8_t> &booted = Booted()[index];
+        if (booted.empty()) {
+            Machine &m = *cps2recomp::Guest(Guests()[index].id);
+            const bool drawing = m.drawing;
+            m.drawing = false;
+            m.Reset();
+            g_booting = index;
+            g_reached = false;
+            constexpr int kMostFrames = 3000; // (a board's start-up takes a few hundred at most)
+            for (int n = 0; n < kMostFrames && !g_reached; n++) {
+                memset(m.players, 0, sizeof(m.players));
+                m.RunFrame();
+                m.audio.clear();
+            }
+            g_booting = -1;
+            m.drawing = drawing;
+            booted = Saved(m);
+        }
+        return booted;
+    }
+    // The guest's stage (1 its first) to be built on its board, from the board's start (at its next frame: the main
+    // loop's hook builds it, State::built)
+    void ToStage(int index, int stage) {
+        (void)stage;
+        Load(*cps2recomp::Guest(Guests()[index].id), BootedState(index));
+        g.built = 0;
+    }
+    // The main loop's top: the stage's frame in place of the game's modes (its build first, once), then on to the loop's
+    // wait for the frame
+    bool StageAlone(M68K &c) {
+        bool ahead = false;
+        const int index = GuestOf(c, ahead);
+        if (index < 0) {
+            return false;
+        }
+        const Guest &guest = Guests()[index];
+        if (g_booting == index) {
+            g_reached = true;
+        } else if (g.guest == index + 1 && g.stage > 0) {
+            c.a[5] = guest.a5;
+            if (!g.built) {
+                g.built = 1;
+                // (the stage put in place before each routine: the first may clear the words it is kept in, as Vampire
+                // Savior's does, 016C4E)
+                for (const uint32_t at : guest.build) {
+                    guest.setStage(c, g.stage - 1);
+                    c.d[0] = 0;
+                    Call(c, at);
+                }
+                if (guest.afterBuild) {
+                    guest.afterBuild(c);
+                }
+                if (guest.soundQueue && g.stage <= static_cast<int>(guest.stageTunes.size())) {
+                    const uint16_t at = C16(c, guest.soundQueueEnd) & guest.soundQueueMask;
+                    const uint32_t entry = guest.soundQueue + at;
+                    SetC16(c, entry, 0);
+                    SetC16(c, entry + 2, guest.stageTunes[g.stage - 1]);
+                    for (uint32_t n = 4; n < 0x10; n += 2) {
+                        SetC16(c, entry + n, 0);
+                    }
+                    SetC16(c, guest.soundQueueEnd, static_cast<uint16_t>((at + 0x10) & guest.soundQueueMask));
+                }
+            }
+            for (const uint32_t at : guest.frame) {
+                Call(c, at);
+            }
+        }
+        c.pc = guest.loopGoesOn;
+        return true;
     }
 
     // --- the guests' hooks ---
@@ -374,7 +461,9 @@ namespace {
         g.cameraX = static_cast<int16_t>(guest.cameraLeft + (x - h.cameraLeft) * (guest.cameraRight - guest.cameraLeft) /
                                                                  std::max(1, h.cameraRight - h.cameraLeft));
         g.cameraY = static_cast<int16_t>(static_cast<int16_t>(Ram16(h.cameraY)) - guest.lower);
-        SetG8(board, guest.clock, guest.clockFull);
+        if (!guest.StageAlone()) {
+            SetG8(board, guest.clock, guest.clockFull);
+        }
         memset(board.players, 0, sizeof(board.players));
         board.drawing = machine.drawing;
         board.video.hideObject = guest.notTheStage;
@@ -463,7 +552,11 @@ void Register(const Host &host, std::vector<Guest> guests) {
         Ready &ready = TheReady(n);
         ready.round.resize(guest.stageNames.size());
         ready.made = std::make_unique<std::atomic<bool>[]>(guest.stageNames.size());
-        AddGuestHook(guest.id, guest.stageAt, StageSet);
+        if (guest.StageAlone()) {
+            AddGuestHook(guest.id, guest.mainLoop, StageAlone);
+        } else {
+            AddGuestHook(guest.id, guest.stageAt, StageSet);
+        }
         const bool steps = guest.camera == Guest::Camera::Steps;
         AddGuestHook(guest.id, guest.across, steps ? StepAcross : ExtentsAcross);
         AddGuestHook(guest.id, guest.up, steps ? StepUp : ExtentsUp);
