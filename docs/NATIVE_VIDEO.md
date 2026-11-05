@@ -155,6 +155,23 @@ in the same frame by its placing routine, `Guest::placing`); and the train's cam
 (01E098), which is passed over. All twelve stages in the viewer, Alpha 2's ladder and versus movies (widescreen too)
 pass.
 
+Darkstalkers' stages go alone too (`games/dstlk/guest.h`), on another kind of program: its game runs as tasks (start-up,
+attract mode and a game each another), and a game's own loop (02E1AA, the modes at 02E1C0) is there only once a game is
+begun. Its start-up is given a credit and Start (`Guest::beginAfter`) and stops at the character choice, where nothing
+is chosen. What a match then does on its way to a round, the build does: the colour set every load of colours takes put
+back to a match's (1390(A5): the character choice's 0C made the stages blue), every object put away (00521A: the
+character choice's went on painting into the stages' maps), the stage (0059C6, 7734, 5C2C, 3EEE), the round's own task
+(17CC with 0x804: its colours brought up), 5E90, 80CC, 76D8, 56516 (not 56B2 alone, which took an object for the
+round's announcing and left it half made). Each frame, the stage's part of a fight's frame: two lists of objects (0D8C90:
+Victor's lightning, Anakaris's fountain's colours; 0D8290: the sarcophagi), the camera and scroll screens (0ED9EC),
+B925C, C05C8, EEECA, D310C and the object list (0017F4). Found with the call log (`CPS2RECOMP_CALL_LOG`, with
+`CALL_TASK` and `CALL_ORDER`), the guest's memory against a match's, and by which code writes a colour set's sprites.
+Victor's stage starts in its storm's colours until its lightning's first great strike, which comes when the game's own
+random numbers say, as in a match. Checked: the twelve beside the match-played ones, frame for frame the same but for
+their animations' and the lightning's moments; `--stage-check` passes on all twelve, Alpha 2's ladder and versus
+(widescreen too) and Definitive's ladder with them (a stage built before it is shown is brought to the camera when it
+comes into the picture); rollback the same.
+
 What this asks of the interface: **a frame holds layers from more than one producer** (the game and a guest). Each
 producer has its own palettes, its own tile graphics, its own priorities, and its own scroll and row scroll. The
 frame's layer order says how one producer's layers go between the other's: the guest's stage behind the game's

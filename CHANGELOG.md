@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- **Darkstalkers' stages from its stage code alone**: in Alpha 2, Zero 2 Alpha and Vampire Savior Definitive, the first
+  Darkstalkers' stages are run by its own stage code and nothing else of it, as Vampire Savior's are: no match is
+  played behind them. They look and sound as before (Victor's lightning, Anakaris's sarcophagi and fountain) and go
+  with the fight's camera.
 - **Other games' stages scroll with the fight**: Vampire Savior's stages in Alpha 2 and Zero 2 Alpha stood still while
   the fight's camera moved (the fighters seemed to slide against them). Their camera now goes where the game's does,
   every frame, round starts and fast moves too, the train's stage among them. A check of it for the test runs,

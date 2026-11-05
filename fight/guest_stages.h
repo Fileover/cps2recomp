@@ -86,6 +86,10 @@ struct Guest {
     // has it. Its stage's music is asked for as the game asks for a sound: an entry of 16 bytes (the tune's number, a
     // long) put in its ring at `soundQueueEnd` (a word, bytes into the ring at `soundQueue`), each stage's tune.
     uint32_t mainLoop = 0, loopGoesOn = 0, a5 = 0xFF8000;
+    // ... for a game whose main loop is a game's own (its task started when a game is begun, Darkstalkers'): once its
+    // start-up has run `beginAfter` frames, a credit (`credits`) and Start, so that a game begins and its loop is
+    // reached (at its character choice: nothing is chosen or played)
+    int beginAfter = -1;
     std::vector<uint32_t> build, frame;
     void (*afterBuild)(M68K &c) = nullptr;
     // ... and when the game's camera is put somewhere else at once (a round begun): the guest's own round's start, its
@@ -98,8 +102,9 @@ struct Guest {
     // ... and hooks of its own in its code while its stage is alone (a camera let go as far in a frame as the game's
     // goes, say): each told the CPU before the instruction there, as a game's hook is
     std::vector<std::pair<uint32_t, bool (*)(M68K &c)>> hooks;
-    // (a 0 in `build`: what the game's own build does there in its own lines, not in a routine of its own)
-    void (*buildStep)(M68K &c) = nullptr;
+    // (a 0 in `build`: what the game's own build does there in its own lines, not in a routine of its own; `step`
+    // the 0's number, from 0)
+    void (*buildStep)(M68K &c, int step) = nullptr;
     uint32_t soundQueue = 0, soundQueueEnd = 0;
     uint16_t soundQueueMask = 0xFFF;
     std::vector<uint16_t> stageTunes;
