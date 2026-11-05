@@ -186,6 +186,7 @@ void NativeVideo::BoardObjects(const native_video::ObjectList &list) {
     mine.priority = m_objectRegs[2];
     mine.xOffset = m_objectRegs[4];
     mine.yOffset = m_objectRegs[5];
+    m_raster.Objects(mine); // (the frame's objects, the game's side's)
     if (mine == list) {
         m_listsSame++;
         return;
@@ -212,10 +213,36 @@ void NativeVideo::BoardLayers(const native_video::Layers &layers, int line) {
     }
 }
 
+void NativeVideo::BoardLine(int line, const uint32_t *pixels, bool plain) {
+    if (!checking) {
+        return;
+    }
+    if (!plain || m_bank < 0) {
+        m_picturesNot++; // (a picture changed by the game's sources, or before the game's first list: not compared)
+        return;
+    }
+    uint32_t mine[native_video::Raster::kWidth];
+    m_raster.Line(line, native_video::DecodeLayers(m_cpsA, m_cpsB, m_objectRegs, layerControl), videoRam, mine);
+    int x = 0;
+    while (x < native_video::Raster::kWidth && (mine[x] & 0xFFFFFF) == (pixels[x] & 0xFFFFFF)) {
+        x++;
+    }
+    if (x == native_video::Raster::kWidth) {
+        m_picturesSame++;
+        return;
+    }
+    if (m_picturesDiffer++ < 10) {
+        fprintf(stderr, "video check: frame %llu, line %d: the picture drawn from the game's side differs from column %d: %06X (the "
+                        "board's: %06X)\n",
+                static_cast<unsigned long long>(frame), line, x, mine[x] & 0xFFFFFF, pixels[x] & 0xFFFFFF);
+    }
+}
+
 void NativeVideo::Palette(const native_video::PaletteUpload &upload) {
     if (!checking) {
         return;
     }
+    m_raster.Upload(upload); // (the game's side's palette: its uploads')
     if (m_hasPending) {
         m_gameOnly++;
         fprintf(stderr, "video check: frame %llu: a palette upload the game's side gave, the board did not make\n",
@@ -260,7 +287,11 @@ bool NativeVideo::Report(FILE *out) const {
             static_cast<unsigned long long>(m_listsBefore));
     fprintf(out, "video check: lines: %llu drawn with the same layers' registers as the game's side has, %llu not\n",
             static_cast<unsigned long long>(m_linesSame), static_cast<unsigned long long>(m_linesDiffer));
-    return m_differ == 0 && m_gameOnly == 0 && m_boardOnly == 0 && m_listsDiffer == 0 && m_linesDiffer == 0;
+    fprintf(out, "video check: picture: %llu lines drawn from the game's side's records the same as the board's, %llu not (and %llu "
+                 "not compared)\n",
+            static_cast<unsigned long long>(m_picturesSame), static_cast<unsigned long long>(m_picturesDiffer),
+            static_cast<unsigned long long>(m_picturesNot));
+    return m_differ == 0 && m_gameOnly == 0 && m_boardOnly == 0 && m_listsDiffer == 0 && m_linesDiffer == 0 && m_picturesDiffer == 0;
 }
 
 } // namespace cps2recomp

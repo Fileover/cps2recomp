@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- **The picture drawn from the game's level, checked** ([docs/NATIVE_VIDEO.md](docs/NATIVE_VIDEO.md)): a renderer that
+  draws only from what the game hands over (its palettes, its sprite lists, its layers' registers line by line) gives
+  the same picture as the board's, pixel for pixel, on every line compared, in every CPS-2 game but Vampire Savior
+  Definitive (which draws from a second set's graphics). It is laid out the way the GPU renderer to come will draw.
+  Nothing changes in play.
 - **The picture at the game's level in every CPS-2 game**: the palette's uploads, the object lists and the layers'
   registers, checked against the board's, now in all 21 CPS-2 games of the collection. Nothing changes in play.
 - **The picture at the game's level: the layers' registers** ([docs/NATIVE_VIDEO.md](docs/NATIVE_VIDEO.md)): where the

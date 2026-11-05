@@ -45,7 +45,7 @@ if (NOT GEN_Z80_SOURCES)
 endif ()
 
 set(MACHINE_SOURCES
-    video/video.cpp video/native.cpp
+    video/video.cpp video/native.cpp video/native_render.cpp
     sound/z80.cpp sound/qsound.cpp sound/driver.cpp
     machine/m68k.cpp machine/machine.cpp machine/sound_board.cpp machine/soundtrack.cpp machine/eeprom.cpp machine/romset.cpp machine/cps2crypt.cpp machine/kabuki.cpp
     runtime/recomp.cpp runtime/recomp_z80.cpp

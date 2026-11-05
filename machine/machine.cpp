@@ -65,6 +65,7 @@ Machine::Machine(const RomSet &roms)
     nativeVideo.videoRam = videoRam.data();
     nativeVideo.paletteControl = roms.board.paletteControl;
     nativeVideo.layerControl = roms.board.layerControl;
+    nativeVideo.SetGraphics(roms.graphics.data(), roms.graphics.size());
     cpu.nativeVideo = &nativeVideo;
     cpu.rom = roms.program.data();
     cpu.opcodes = roms.opcodes.data();
@@ -232,6 +233,9 @@ void Machine::RunLine() {
     if (drawing && m_line >= Video::kFirstLine && m_line < Video::kFirstLine + Video::kHeight) {
         const int row = m_line - Video::kFirstLine;
         video.RenderLine(row, &m_picture[static_cast<size_t>(row) * m_pictureWidth]);
+        if (nativeVideo.checking) {
+            nativeVideo.BoardLine(row, &m_picture[static_cast<size_t>(row) * m_pictureWidth], video.PlainPicture());
+        }
     }
     m_line = (m_line + 1) % kLines;
 }

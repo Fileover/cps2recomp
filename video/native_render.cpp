@@ -1,0 +1,269 @@
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (C) 2026 Tommy McLeroy. Part of cps2recomp.
+
+#include "native_render.h"
+
+#include <cstring>
+
+namespace cps2recomp::native_video {
+
+namespace {
+    constexpr int kFirstColumn = 64, kFirstLine = 16; // (where the picture starts in the board's raster)
+    constexpr uint16_t kBackdrop = 0xBFF;
+
+    inline uint16_t Word(const uint8_t *p) {
+        return static_cast<uint16_t>((p[0] << 8) | p[1]);
+    }
+    // Eight pixels of a tile row from its four bytes: one bit plane per byte, leftmost pixel in bit 7
+    inline void Unpack(const uint8_t *row, uint8_t *pixels) {
+        const uint8_t b0 = row[0], b1 = row[1], b2 = row[2], b3 = row[3];
+        for (int k = 0; k < 8; k++) {
+            const int s = 7 - k;
+            pixels[k] = static_cast<uint8_t>(((b0 >> s) & 1) | (((b1 >> s) & 1) << 1) | (((b2 >> s) & 1) << 2) | (((b3 >> s) & 1) << 3));
+        }
+    }
+} // namespace
+
+// A colour: 4 bits each of brightness, red, green, blue
+void Raster::Upload(const PaletteUpload &upload) {
+    for (int page = 0; page < kPages; page++) {
+        if (!(upload.pages & (1u << page))) {
+            continue;
+        }
+        for (int n = 0; n < kPageColours; n++) {
+            const uint16_t colour = upload.colours[page][n];
+            const unsigned bright = 0x0F + ((colour >> 12) << 1);
+            const unsigned r = ((colour >> 8) & 0x0F) * 0x11 * bright / 0x2D;
+            const unsigned g = ((colour >> 4) & 0x0F) * 0x11 * bright / 0x2D;
+            const unsigned b = (colour & 0x0F) * 0x11 * bright / 0x2D;
+            m_colours[kPageColours * page + n] = r | (g << 8) | (b << 16);
+        }
+    }
+}
+
+// An entry: x (its level in the top three bits), y (two more bits of the tile's number), the tile, the attributes
+// (colour set, flips, marked to take the offsets, a block of up to 16 x 16 tiles). The list ends at the first entry
+// marked so. Later entries are in front: the tiles are kept front to back.
+void Raster::Objects(const ObjectList &list) {
+    m_tiles.clear();
+    m_priority = list.priority;
+    int last = kObjectWords - 4;
+    for (int n = 0; n < kObjectWords; n += 4) {
+        if (list.words[n + 1] >= 0x8000 || list.words[n + 3] >= 0xFF00) {
+            last = n - 4;
+            break;
+        }
+    }
+    for (int i = last; i >= 0; i -= 4) {
+        const int x = list.words[i], y = list.words[i + 1];
+        const uint32_t code = list.words[i + 2] + ((y & 0x6000u) << 3);
+        const uint16_t attr = list.words[i + 3];
+        const int across = ((attr >> 8) & 0x0F) + 1, down = ((attr >> 12) & 0x0F) + 1;
+        const bool flipX = attr & 0x20, flipY = attr & 0x40;
+        for (int ty = 0; ty < down; ty++) {
+            for (int tx = 0; tx < across; tx++) {
+                ObjectTile t;
+                t.x = static_cast<int16_t>(x + tx * 16); // (the level's bits go with it, as the board's sum has them)
+                t.y = static_cast<int16_t>(y + ty * 16);
+                if (across == 1 && down == 1) {
+                    t.tile = code;
+                } else {
+                    const int cx = flipX ? across - 1 - tx : tx, cy = flipY ? down - 1 - ty : ty;
+                    // (a plain block wraps within its row of sixteen tiles; flipped ones do not)
+                    t.tile = (!flipX && !flipY) ? (code & ~0xFu) + ((code + cx) & 0xF) + 0x10 * cy : code + cx + 0x10 * cy;
+                }
+                t.colour = static_cast<uint16_t>((attr & 0x1F) * 16);
+                t.flipX = flipX;
+                t.flipY = flipY;
+                t.relative = attr & 0x80;
+                t.level = static_cast<uint8_t>((x >> 13) & 7);
+                m_tiles.push_back(t);
+            }
+        }
+    }
+}
+
+void Raster::DrawScroll(int which, int rasterLine, const Layers &layers, const uint8_t *videoRam, uint16_t *pens, uint8_t *priority,
+                        uint8_t mark) const {
+    const uint32_t base = (static_cast<uint32_t>(layers.maps[which]) * 256) & ~0x3FFFu & 0x3FFFF;
+    const uint8_t *map = &videoRam[base];
+    const int shift = 3 + which, size = 1 << shift;
+    const uint32_t mapMask = (64u << shift) - 1; // (the map is 64 x 64 tiles)
+    uint32_t scrollX = layers.scroll[which][0];
+    const uint32_t scrollY = layers.scroll[which][1];
+    if (which == 1 && (layers.videoControl & 1)) {
+        // (scroll 2's row scroll: a place across for each line, from the game's table)
+        const uint32_t rows = (static_cast<uint32_t>(layers.rows) * 256) & ~0x7FFu & 0x3FFFF;
+        scrollX += Word(&videoRam[rows + (((rasterLine + layers.rowOffset) & 0x3FF) * 2)]);
+    }
+    const uint32_t y = (rasterLine + scrollY) & mapMask, row = y >> shift;
+    const uint32_t firstX = static_cast<uint32_t>(kFirstColumn + static_cast<int>(scrollX)) & mapMask;
+    const uint16_t colourBase = static_cast<uint16_t>(0x20 * (which + 1));
+    int out = -static_cast<int>(firstX & (size - 1));
+    uint32_t column = firstX >> shift;
+    for (; out < kWidth; out += size, column = (column + 1) & 63) {
+        uint32_t index;
+        switch (which) {
+        case 0: index = (row & 0x1F) + (column << 5) + ((row & 0x20) << 6); break;
+        case 1: index = (row & 0x0F) + (column << 4) + ((row & 0x30) << 6); break;
+        default: index = (row & 0x07) + (column << 3) + ((row & 0x38) << 6); break;
+        }
+        uint32_t code = Word(&map[index * 4]);
+        const uint16_t attr = Word(&map[index * 4 + 2]);
+        uint32_t at;
+        int rowBytes;
+        switch (which) {
+        case 0: at = 0x800000 + code * 64 + ((column & 1) ? 4 : 0); rowBytes = 8; break; // (odd columns: a strip's right half)
+        case 1: at = 0x800000 + code * 128; rowBytes = 8; break;
+        default: code &= 0x3FFF; at = 0x800000 + code * 512; rowBytes = 16; break;
+        }
+        const int line = static_cast<int>(y & (size - 1));
+        const bool flipX = attr & 0x20, flipY = attr & 0x40;
+        at += static_cast<uint32_t>(flipY ? size - 1 - line : line) * rowBytes;
+        if (at + rowBytes > m_graphicsSize) {
+            continue;
+        }
+        const uint16_t colour = static_cast<uint16_t>(((attr & 0x1F) + colourBase) * 16);
+        uint8_t pixels[32];
+        for (int part = 0; part < size / 8; part++) {
+            Unpack(&m_graphics[at + part * 4], &pixels[part * 8]);
+        }
+        for (int k = 0; k < size; k++) {
+            const int x = out + k;
+            if (x < 0 || x >= kWidth) {
+                continue;
+            }
+            const uint8_t pen = pixels[flipX ? size - 1 - k : k];
+            if (pen != 15) {
+                pens[x] = static_cast<uint16_t>(colour + pen);
+                priority[x] |= mark;
+            }
+        }
+    }
+}
+
+// The objects' tiles, front to back: a pixel once an object's stays the front one's; whether it shows over the scroll
+// screens' pens there is by its level (masks)
+void Raster::DrawObjects(int rasterLine, const Layers &layers, uint16_t *pens, uint8_t *priority, const uint32_t *masks) const {
+    const int xOffset = 64 - layers.xOffset, yOffset = 16 - layers.yOffset;
+    for (const ObjectTile &t : m_tiles) {
+        int x = t.x, y = t.y;
+        if (t.relative) {
+            x += layers.xOffset;
+            y += layers.yOffset;
+        }
+        const int sy = (y + yOffset) & 0x3FF;
+        if (rasterLine < sy || rasterLine >= sy + 16) {
+            continue;
+        }
+        const int sx = ((x + xOffset) & 0x3FF) - kFirstColumn;
+        if (sx <= -16 || sx >= kWidth) {
+            continue;
+        }
+        const int line = rasterLine - sy;
+        const uint32_t at = t.tile * 128 + static_cast<uint32_t>(t.flipY ? 15 - line : line) * 8;
+        if (at + 8 > m_graphicsSize) {
+            continue;
+        }
+        uint8_t pixels[16];
+        Unpack(&m_graphics[at], pixels);
+        Unpack(&m_graphics[at + 4], pixels + 8);
+        const uint32_t mask = masks[t.level] | 0x80000000u;
+        for (int k = 0; k < 16; k++) {
+            const int px = sx + k;
+            if (px < 0 || px >= kWidth) {
+                continue;
+            }
+            const uint8_t pen = pixels[t.flipX ? 15 - k : k];
+            if (pen != 15) {
+                if (!((mask >> (priority[px] & 0x1F)) & 1)) {
+                    pens[px] = static_cast<uint16_t>(t.colour + pen);
+                }
+                priority[px] = 31;
+            }
+        }
+    }
+}
+
+void Raster::Line(int line, const Layers &layers, const uint8_t *videoRam, uint32_t *out) const {
+    const int rasterLine = line + kFirstLine;
+    uint16_t pens[kWidth];
+    uint8_t priority[kWidth];
+    for (int x = 0; x < kWidth; x++) {
+        pens[x] = kBackdrop;
+    }
+    memset(priority, 0, sizeof(priority));
+    // The layer control orders the scroll screens back to front and switches them on; the object list's priority
+    // control gives each its level against the objects
+    const uint16_t control = layers.layerControl, videoControl = layers.videoControl;
+    unsigned l0 = (control >> 6) & 3, l1 = (control >> 8) & 3, l2 = (control >> 10) & 3, l3 = (control >> 12) & 3;
+    unsigned p0 = (m_priority >> (4 * l0)) & 0xF, p1 = (m_priority >> (4 * l1)) & 0xF;
+    unsigned p2 = (m_priority >> (4 * l2)) & 0xF, p3 = (m_priority >> (4 * l3)) & 0xF;
+    if (l0 == 0) {
+        l0 = l1;
+        l1 = 0;
+        p0 = p1;
+    }
+    if (l1 == 0) {
+        l1 = l2;
+        l2 = 0;
+        p1 = p2;
+    }
+    if (l2 == 0) {
+        l2 = l3;
+        l3 = 0;
+        p2 = p3;
+    }
+    // (masks[n]: the combinations of the screens' marks, bit 0 the back one, behind which an object of level n is
+    // not drawn)
+    uint32_t masks[8] = {};
+    {
+        uint32_t mask0 = 0xAA, mask1 = 0xCC;
+        if (p0 > p1) {
+            mask0 &= ~0x88u;
+        }
+        if (p0 > p2) {
+            mask0 &= ~0xA0u;
+        }
+        if (p1 > p2) {
+            mask1 &= ~0xC0u;
+        }
+        masks[0] = 0xFF;
+        for (unsigned n = 1; n < 8; n++) {
+            if (n <= p0 && n <= p1 && n <= p2) {
+                masks[n] = 0xFE;
+                continue;
+            }
+            masks[n] = 0;
+            if (n <= p0) {
+                masks[n] |= mask0;
+            }
+            if (n <= p1) {
+                masks[n] |= mask1;
+            }
+            if (n <= p2) {
+                masks[n] |= 0xF0;
+            }
+        }
+    }
+    auto on = [&](unsigned layer) {
+        switch (layer) {
+        case 1: return (control & 0x02) != 0;
+        case 2: return (control & 0x04) != 0 && (videoControl & 0x04) != 0;
+        case 3: return (control & 0x08) != 0 && (videoControl & 0x08) != 0;
+        default: return false;
+        }
+    };
+    const unsigned order[3] = {l0, l1, l2};
+    for (int n = 0; n < 3; n++) {
+        if (order[n] && on(order[n])) {
+            DrawScroll(static_cast<int>(order[n]) - 1, rasterLine, layers, videoRam, pens, priority, static_cast<uint8_t>(1u << n));
+        }
+    }
+    DrawObjects(rasterLine, layers, pens, priority, masks);
+    for (int x = 0; x < kWidth; x++) {
+        out[x] = m_colours[pens[x]];
+    }
+}
+
+} // namespace cps2recomp::native_video
