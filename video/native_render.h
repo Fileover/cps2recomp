@@ -19,6 +19,10 @@
 #include <cstdint>
 #include <vector>
 
+namespace cps2recomp {
+class Archive;
+}
+
 namespace cps2recomp::native_video {
 
 // A 16x16 tile of an object, as a GPU would have it in an instance: where (before the object registers' offsets,
@@ -64,6 +68,8 @@ public:
     uint16_t Priority() const {
         return m_priority;
     }
+    // (in a save state, as the game's side's: native.h, NativeVideo::Serialize)
+    void Serialize(Archive &ar);
 
 private:
     void DrawScroll(int which, int rasterLine, const Layers &layers, const uint8_t *videoRam, const PictureOptions &options, int width,

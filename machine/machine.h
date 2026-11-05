@@ -212,7 +212,7 @@ private:
         m_readExtraAt = cpu.cycles;
     }
     void VideoWritten(uint32_t address) {
-        if (nativeVideo.checking) {
+        if (nativeVideo.Active()) {
             nativeVideo.VideoWritten(address);
         }
         if (!scrollFromExtra.empty() && (address & 2) == 0) { // (a map entry's tile word)

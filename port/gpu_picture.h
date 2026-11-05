@@ -30,6 +30,9 @@ public:
     // on the GPU once
     bool Open(SDL_GPUDevice *device, const uint8_t *graphics, size_t size, std::string &error);
     void Close();
+    SDL_GPUDevice *Device() const {
+        return m_device;
+    }
 
     // Whether a frame is one drawn here
     static bool Drawable(const cps2recomp::NativeVideo::FrameData &frame);
@@ -39,8 +42,22 @@ public:
         return m_picture;
     }
 
+    // The game (--video gpu): the last frame finished kept (NativeVideo::frameDrawn, with NativeVideo::recording), and
+    // drawn when the presenter shows a frame
+    void Keep(const cps2recomp::NativeVideo::FrameData &frame);
+    bool CanDrawKept() const {
+        return m_hasKept && m_kept.drawable;
+    }
+    // The kept frame drawn, with the readouts over it (`readouts`: Raster::kWidth x 224, red, green, blue and alpha bytes,
+    // the colours times the alpha; none: nothing over it); zoomed, two pictures stacked, the game's above and with the
+    // readouts below (present.h, Zoomed). The texture to show.
+    SDL_GPUTexture *DrawKept(SDL_GPUCommandBuffer *commands, const uint32_t *readouts, bool zoomed);
+
     // --video gpu-check: the frame drawn, read back and compared with the board's lines
     void Check(const cps2recomp::NativeVideo::FrameData &frame);
+    // ... and the frame kept, drawn with the readouts over it (DrawKept), against the CPU's picture with them (`shown`:
+    // Port::Shown), within a step of a colour (the readouts' blend rounds)
+    void CheckShown(const uint32_t *readouts, const uint32_t *shown);
     bool Report(FILE *out) const;
 
 private:
@@ -57,7 +74,22 @@ private:
     SDL_GPUTransferBuffer *m_upload = nullptr, *m_download = nullptr;
     size_t m_uploadSize = 0;
     std::vector<uint8_t> m_videoNow; // (video RAM as the frame's bands have it, put in as they go)
+    struct Kept {
+        uint64_t frame = 0;
+        std::vector<uint8_t> video;
+        cps2recomp::native_video::Raster raster;
+        std::vector<cps2recomp::NativeVideo::FrameEvent> events;
+        std::vector<cps2recomp::native_video::PaletteUpload> uploads;
+        cps2recomp::native_video::Layers layers[224];
+        cps2recomp::native_video::PictureOptions options;
+        bool drawable = false;
+    } m_kept;
+    bool m_hasKept = false;
+    SDL_GPUTexture *m_readouts = nullptr, *m_clear = nullptr, *m_shown = nullptr, *m_stack = nullptr;
+    SDL_GPUGraphicsPipeline *m_shownPipeline = nullptr;
+    SDL_GPUTransferBuffer *m_readoutsUpload = nullptr;
     uint64_t m_same = 0, m_differ = 0, m_notDrawn = 0, m_linesDiffer = 0;
+    uint64_t m_shownSame = 0, m_shownDiffer = 0, m_shownWithReadouts = 0;
 };
 
 } // namespace port

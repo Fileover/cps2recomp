@@ -319,6 +319,7 @@ int RunWindowed(Port &port) {
         SDL_GetWindowSize(window, &width, &at.height);
         at.maximized = SDL_GetWindowFlags(window) & SDL_WINDOW_MAXIMIZED;
         const bool fullscreen = SDL_GetWindowFlags(window) & SDL_WINDOW_FULLSCREEN;
+        port.gpuPicture.Close(); // (its resources are the presenter's device's)
         presenter.Close();
         SDL_DestroyWindow(window);
         preset = next;
@@ -844,8 +845,30 @@ int RunWindowed(Port &port) {
 
         // (zoomed: the part of the picture the camera looks at, the readout's panels as they are)
         Zoomed zoomed;
-        const bool isZoomed = port.Windowed(shown, zoomed);
-        presenter.Show(shown.data(), port.ShownWidth(), Video::kHeight, where, isZoomed ? &zoomed : nullptr);
+        // (--video gpu: the game's picture drawn on the GPU from the native records, with the readouts over it, when the
+        // presenter draws with SDL_GPU and the GPU can draw the frame: gpu_picture.h; else the CPU's picture)
+        bool drawn = false;
+        if (port.gpuWanted && presenter.UsesGpu() && !presenter.Shaded() && port.ShownWidth() == Video::kWidth) {
+            if (port.gpuPicture.Device() != presenter.Device()) {
+                port.gpuPicture.Close();
+                std::string gpuError;
+                if (!port.gpuPicture.Open(presenter.Device(), port.roms.graphics.data(), port.roms.graphics.size(), gpuError)) {
+                    fprintf(stderr, "--video gpu: %s; the CPU's picture is shown\n", gpuError.c_str());
+                    port.gpuWanted = false;
+                }
+            }
+            if (port.gpuWanted && port.gpuPicture.CanDrawKept()) {
+                static std::vector<uint32_t> readouts;
+                const bool isZoomed = port.Windowed(readouts, zoomed, true);
+                drawn = presenter.ShowDrawn(
+                    [&](SDL_GPUCommandBuffer *commands) { return port.gpuPicture.DrawKept(commands, readouts.data(), isZoomed); },
+                    Video::kWidth, Video::kHeight, where, isZoomed ? &zoomed : nullptr);
+            }
+        }
+        if (!drawn) {
+            const bool isZoomed = port.Windowed(shown, zoomed);
+            presenter.Show(shown.data(), port.ShownWidth(), Video::kHeight, where, isZoomed ? &zoomed : nullptr);
+        }
 
         if (!port.opt.unthrottled && !FastForward()) {
             nextFrame += static_cast<uint64_t>(kFrameNs);
@@ -882,6 +905,7 @@ int RunWindowed(Port &port) {
         HandFrontToLauncher();
 #endif
     }
+    port.gpuPicture.Close();
     presenter.Close();
     SDL_DestroyWindow(window);
     SDL_Quit();

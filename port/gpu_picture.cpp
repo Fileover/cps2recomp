@@ -7,6 +7,7 @@
 
 #include <algorithm>
 #include <cstring>
+#include <cstdlib>
 
 namespace port {
 
@@ -117,13 +118,17 @@ bool GpuPicture::Open(SDL_GPUDevice *device, const uint8_t *graphics, size_t siz
     m_lineTexture = MakeTexture(m_device, SDL_GPU_TEXTUREFORMAT_R32_UINT, SDL_GPU_TEXTUREUSAGE_SAMPLER, kLineWords, kHeight);
     m_palette = MakeTexture(m_device, SDL_GPU_TEXTUREFORMAT_R32_UINT, SDL_GPU_TEXTUREUSAGE_SAMPLER, kPaletteWidth, kPaletteHeight);
     m_picture = MakeTexture(m_device, SDL_GPU_TEXTUREFORMAT_R8G8B8A8_UNORM, target, kWidth, kHeight);
+    m_readouts = MakeTexture(m_device, SDL_GPU_TEXTUREFORMAT_R8G8B8A8_UNORM, SDL_GPU_TEXTUREUSAGE_SAMPLER, kWidth, kHeight);
+    m_clear = MakeTexture(m_device, SDL_GPU_TEXTUREFORMAT_R8G8B8A8_UNORM, SDL_GPU_TEXTUREUSAGE_SAMPLER, kWidth, kHeight);
+    m_shown = MakeTexture(m_device, SDL_GPU_TEXTUREFORMAT_R8G8B8A8_UNORM, target, kWidth, kHeight);
+    m_stack = MakeTexture(m_device, SDL_GPU_TEXTUREFORMAT_R8G8B8A8_UNORM, target, kWidth, 2 * kHeight);
     SDL_GPUSamplerCreateInfo sampler = {};
     sampler.min_filter = sampler.mag_filter = SDL_GPU_FILTER_NEAREST;
     sampler.mipmap_mode = SDL_GPU_SAMPLERMIPMAPMODE_NEAREST;
     sampler.address_mode_u = sampler.address_mode_v = sampler.address_mode_w = SDL_GPU_SAMPLERADDRESSMODE_CLAMP_TO_EDGE;
     m_sampler = SDL_CreateGPUSampler(m_device, &sampler);
     if (!m_graphics || !m_video || !m_lines || !m_frame || !m_screens || !m_objects || !m_depth || !m_lineTexture || !m_palette ||
-        !m_picture || !m_sampler || !MakePipelines(error)) {
+        !m_picture || !m_readouts || !m_clear || !m_shown || !m_stack || !m_sampler || !MakePipelines(error)) {
         if (error.empty()) {
             error = std::string("the picture's GPU resources: ") + SDL_GetError();
         }
@@ -150,6 +155,26 @@ bool GpuPicture::Open(SDL_GPUDevice *device, const uint8_t *graphics, size_t siz
     SDL_EndGPUCopyPass(copy);
     SDL_SubmitGPUCommandBuffer(commands);
     SDL_ReleaseGPUTransferBuffer(m_device, transfer);
+    // (the readouts' picture: the transfer for it; and one that is clear all over, for a picture with none)
+    info.size = kWidth * kHeight * 4;
+    m_readoutsUpload = SDL_CreateGPUTransferBuffer(m_device, &info);
+    if (!m_readoutsUpload) {
+        error = std::string("the readouts' upload: ") + SDL_GetError();
+        return false;
+    }
+    memset(SDL_MapGPUTransferBuffer(m_device, m_readoutsUpload, false), 0, info.size);
+    SDL_UnmapGPUTransferBuffer(m_device, m_readoutsUpload);
+    commands = SDL_AcquireGPUCommandBuffer(m_device);
+    copy = SDL_BeginGPUCopyPass(commands);
+    SDL_GPUTextureTransferInfo clearFrom = {m_readoutsUpload, 0, kWidth, kHeight};
+    SDL_GPUTextureRegion clearTo = {};
+    clearTo.texture = m_clear;
+    clearTo.w = kWidth;
+    clearTo.h = kHeight;
+    clearTo.d = 1;
+    SDL_UploadToGPUTexture(copy, &clearFrom, &clearTo, false);
+    SDL_EndGPUCopyPass(copy);
+    SDL_SubmitGPUCommandBuffer(commands);
     m_videoNow.assign(kVideoBytes, 0);
     return true;
 }
@@ -164,7 +189,9 @@ bool GpuPicture::MakePipelines(std::string &error) {
                                             k_objects_frag_msl, 0, 1);
     SDL_GPUShader *colours = MakeShader(m_device, SDL_GPU_SHADERSTAGE_FRAGMENT, k_colours_frag_spirv, sizeof(k_colours_frag_spirv),
                                         k_colours_frag_msl, 4, 0);
-    bool ok = fill && layers && objectsVert && objectsFrag && colours;
+    SDL_GPUShader *shown = MakeShader(m_device, SDL_GPU_SHADERSTAGE_FRAGMENT, k_shown_frag_spirv, sizeof(k_shown_frag_spirv),
+                                      k_shown_frag_msl, 2, 0);
+    bool ok = fill && layers && objectsVert && objectsFrag && colours && shown;
     if (ok) {
         SDL_GPUGraphicsPipelineCreateInfo info = {};
         info.primitive_type = SDL_GPU_PRIMITIVETYPE_TRIANGLELIST;
@@ -193,12 +220,14 @@ bool GpuPicture::MakePipelines(std::string &error) {
         info.vertex_shader = fill;
         info.fragment_shader = colours;
         m_coloursPipeline = SDL_CreateGPUGraphicsPipeline(m_device, &info);
-        ok = m_layersPipeline && m_objectsPipeline && m_coloursPipeline;
+        info.fragment_shader = shown;
+        m_shownPipeline = SDL_CreateGPUGraphicsPipeline(m_device, &info);
+        ok = m_layersPipeline && m_objectsPipeline && m_coloursPipeline && m_shownPipeline;
     }
     if (!ok) {
         error = std::string("the picture's shaders: ") + SDL_GetError();
     }
-    for (SDL_GPUShader *shader : {fill, layers, objectsVert, objectsFrag, colours}) {
+    for (SDL_GPUShader *shader : {fill, layers, objectsVert, objectsFrag, colours, shown}) {
         if (shader) {
             SDL_ReleaseGPUShader(m_device, shader);
         }
@@ -215,12 +244,12 @@ void GpuPicture::Close() {
             SDL_ReleaseGPUBuffer(m_device, buffer);
         }
     }
-    for (SDL_GPUTexture *texture : {m_screens, m_objects, m_depth, m_lineTexture, m_palette, m_picture}) {
+    for (SDL_GPUTexture *texture : {m_screens, m_objects, m_depth, m_lineTexture, m_palette, m_picture, m_readouts, m_clear, m_shown, m_stack}) {
         if (texture) {
             SDL_ReleaseGPUTexture(m_device, texture);
         }
     }
-    for (SDL_GPUGraphicsPipeline *pipeline : {m_layersPipeline, m_objectsPipeline, m_coloursPipeline}) {
+    for (SDL_GPUGraphicsPipeline *pipeline : {m_layersPipeline, m_objectsPipeline, m_coloursPipeline, m_shownPipeline}) {
         if (pipeline) {
             SDL_ReleaseGPUGraphicsPipeline(m_device, pipeline);
         }
@@ -228,7 +257,7 @@ void GpuPicture::Close() {
     if (m_sampler) {
         SDL_ReleaseGPUSampler(m_device, m_sampler);
     }
-    for (SDL_GPUTransferBuffer *transfer : {m_upload, m_download}) {
+    for (SDL_GPUTransferBuffer *transfer : {m_upload, m_download, m_readoutsUpload}) {
         if (transfer) {
             SDL_ReleaseGPUTransferBuffer(m_device, transfer);
         }
@@ -237,9 +266,20 @@ void GpuPicture::Close() {
         SDL_DestroyGPUDevice(m_device);
     }
     m_device = nullptr;
+    m_ownDevice = false;
+    m_graphics = m_video = m_lines = m_tiles = m_frame = nullptr;
+    m_tilesCapacity = 0;
+    m_screens = m_objects = m_depth = m_lineTexture = m_palette = m_picture = m_readouts = m_clear = m_shown = m_stack = nullptr;
+    m_sampler = nullptr;
+    m_layersPipeline = m_objectsPipeline = m_coloursPipeline = m_shownPipeline = nullptr;
+    m_upload = m_download = m_readoutsUpload = nullptr;
+    m_uploadSize = 0;
 }
 
 bool GpuPicture::Drawable(const NativeVideo::FrameData &frame) {
+    if (!frame.whole) {
+        return false;
+    }
     const auto &o = frame.options;
     if (o.side || o.scroll[0] || o.scroll[1] || o.scroll[2] || o.rows || o.object || o.tile || o.fillHoles || o.hideObject ||
         o.markObjects || o.markLayers || o.layerMask != 0xF) {
@@ -449,6 +489,67 @@ void GpuPicture::Draw(SDL_GPUCommandBuffer *commands, const NativeVideo::FrameDa
     }
 }
 
+void GpuPicture::Keep(const NativeVideo::FrameData &frame) {
+    m_kept.frame = frame.frame;
+    m_kept.video.assign(frame.video, frame.video + kVideoBytes);
+    m_kept.raster = *frame.raster;
+    m_kept.events = *frame.events;
+    m_kept.uploads = *frame.uploads;
+    std::copy(frame.layers, frame.layers + kHeight, m_kept.layers);
+    m_kept.options = frame.options;
+    m_kept.drawable = Drawable(frame);
+    m_hasKept = true;
+}
+
+SDL_GPUTexture *GpuPicture::DrawKept(SDL_GPUCommandBuffer *commands, const uint32_t *readouts, bool zoomed) {
+    if (!CanDrawKept()) {
+        return nullptr;
+    }
+    NativeVideo::FrameData frame;
+    frame.frame = m_kept.frame;
+    frame.video = m_kept.video.data();
+    frame.raster = &m_kept.raster;
+    frame.events = &m_kept.events;
+    frame.uploads = &m_kept.uploads;
+    frame.layers = m_kept.layers;
+    frame.options = m_kept.options;
+    Draw(commands, frame);
+    if (readouts) {
+        memcpy(SDL_MapGPUTransferBuffer(m_device, m_readoutsUpload, true), readouts, kWidth * kHeight * 4);
+        SDL_UnmapGPUTransferBuffer(m_device, m_readoutsUpload);
+        SDL_GPUCopyPass *copy = SDL_BeginGPUCopyPass(commands);
+        SDL_GPUTextureTransferInfo from = {m_readoutsUpload, 0, kWidth, kHeight};
+        SDL_GPUTextureRegion to = {};
+        to.texture = m_readouts;
+        to.w = kWidth;
+        to.h = kHeight;
+        to.d = 1;
+        SDL_UploadToGPUTexture(copy, &from, &to, true);
+        SDL_EndGPUCopyPass(copy);
+    }
+    // The picture with the readouts over it; zoomed, the game's alone above that (rows 224-447)
+    SDL_GPUTexture *out = zoomed ? m_stack : m_shown;
+    SDL_GPUColorTargetInfo target = {};
+    target.texture = out;
+    target.load_op = SDL_GPU_LOADOP_DONT_CARE;
+    target.store_op = SDL_GPU_STOREOP_STORE;
+    SDL_GPURenderPass *pass = SDL_BeginGPURenderPass(commands, &target, 1, nullptr);
+    SDL_BindGPUGraphicsPipeline(pass, m_shownPipeline);
+    auto half = [&](int top, SDL_GPUTexture *over) {
+        const SDL_GPUViewport viewport = {0, static_cast<float>(top), static_cast<float>(kWidth), static_cast<float>(kHeight), 0, 1};
+        SDL_SetGPUViewport(pass, &viewport);
+        SDL_GPUTextureSamplerBinding bindings[2] = {{m_picture, m_sampler}, {over, m_sampler}};
+        SDL_BindGPUFragmentSamplers(pass, 0, bindings, 2);
+        SDL_DrawGPUPrimitives(pass, 3, 1, 0, 0);
+    };
+    half(0, zoomed || !readouts ? m_clear : m_readouts);
+    if (zoomed) {
+        half(kHeight, readouts ? m_readouts : m_clear);
+    }
+    SDL_EndGPURenderPass(pass);
+    return out;
+}
+
 void GpuPicture::Check(const NativeVideo::FrameData &frame) {
     if (!Drawable(frame)) {
         m_notDrawn++;
@@ -506,11 +607,57 @@ void GpuPicture::Check(const NativeVideo::FrameData &frame) {
     }
 }
 
+void GpuPicture::CheckShown(const uint32_t *readouts, const uint32_t *shown) {
+    if (!m_download) {
+        return; // (Check makes it, at the first frame drawn)
+    }
+    SDL_GPUCommandBuffer *commands = SDL_AcquireGPUCommandBuffer(m_device);
+    SDL_GPUTexture *texture = DrawKept(commands, readouts, false);
+    SDL_GPUCopyPass *copy = SDL_BeginGPUCopyPass(commands);
+    SDL_GPUTextureRegion region = {};
+    region.texture = texture;
+    region.w = kWidth;
+    region.h = kHeight;
+    region.d = 1;
+    SDL_GPUTextureTransferInfo to = {m_download, 0, kWidth, kHeight};
+    SDL_DownloadFromGPUTexture(copy, &region, &to);
+    SDL_EndGPUCopyPass(copy);
+    SDL_GPUFence *fence = SDL_SubmitGPUCommandBufferAndAcquireFence(commands);
+    SDL_WaitForGPUFences(m_device, true, &fence, 1);
+    SDL_ReleaseGPUFence(m_device, fence);
+    const auto *pixels = static_cast<const uint32_t *>(SDL_MapGPUTransferBuffer(m_device, m_download, false));
+    bool any = false;
+    int worst = 0, at = -1;
+    for (int n = 0; n < kWidth * kHeight; n++) {
+        any = any || (readouts[n] >> 24) != 0;
+        for (int shift = 0; shift < 24; shift += 8) {
+            const int d = std::abs(static_cast<int>((pixels[n] >> shift) & 0xFF) - static_cast<int>((shown[n] >> shift) & 0xFF));
+            if (d > worst) {
+                worst = d;
+                at = n;
+            }
+        }
+    }
+    SDL_UnmapGPUTransferBuffer(m_device, m_download);
+    m_shownWithReadouts += any ? 1 : 0;
+    if (worst <= 1) {
+        m_shownSame++;
+        return;
+    }
+    if (m_shownDiffer++ < 10) {
+        fprintf(stderr, "video gpu-check: frame %llu: shown with the readouts, %d off at line %d, column %d\n",
+                static_cast<unsigned long long>(m_kept.frame), worst, at / kWidth, at % kWidth);
+    }
+}
+
 bool GpuPicture::Report(FILE *out) const {
     fprintf(out, "video gpu-check: frames drawn on the GPU: %llu the same as the board's, %llu not (%llu lines); %llu not drawn there\n",
             static_cast<unsigned long long>(m_same), static_cast<unsigned long long>(m_differ), static_cast<unsigned long long>(m_linesDiffer),
             static_cast<unsigned long long>(m_notDrawn));
-    return m_differ == 0;
+    fprintf(out, "video gpu-check: shown with the readouts over it: %llu within a step of the CPU's (%llu with readouts), %llu not\n",
+            static_cast<unsigned long long>(m_shownSame), static_cast<unsigned long long>(m_shownWithReadouts),
+            static_cast<unsigned long long>(m_shownDiffer));
+    return m_differ == 0 && m_shownDiffer == 0;
 }
 
 } // namespace port

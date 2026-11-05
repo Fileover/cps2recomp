@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- **The GPU's picture in the window, to try** (`--video gpu`, [docs/NATIVE_VIDEO.md](docs/NATIVE_VIDEO.md)): the window
+  shows the picture SDL_GPU draws from what the game hands over, with the training mode's readouts over it; frames it
+  cannot draw yet are the board model's. The game's side of the picture is kept in save states, so online play's
+  rollback puts it back too. Nothing changes in play.
 - **The picture at the game's level in the CPS-1 games too** ([docs/NATIVE_VIDEO.md](docs/NATIVE_VIDEO.md)): Cadillacs
   and Dinosaurs' and The Punisher's palettes, sprite lists and layers' registers are known at the game's level and checked
   against the board's, so every game of the collection has them. Nothing changes in play.

@@ -3,6 +3,8 @@
 
 #include "native_render.h"
 
+#include "../runtime/state.h"
+
 #include <cstring>
 
 namespace cps2recomp::native_video {
@@ -23,6 +25,12 @@ namespace {
         }
     }
 } // namespace
+
+void Raster::Serialize(Archive &ar) {
+    ar.Pod(m_colours);
+    ar.Vec(m_tiles);
+    ar.Pod(m_priority);
+}
 
 // A colour: 4 bits each of brightness, red, green, blue
 void Raster::Upload(const PaletteUpload &upload) {

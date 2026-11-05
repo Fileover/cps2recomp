@@ -24,10 +24,19 @@
 namespace cps2recomp {
 
 class M68K;
+class Archive;
 
 // The two sides compared (--video check)
 class NativeVideo {
 public:
+    // Recording: the game's side keeps its records (for the GPU renderer, port/gpu_picture.h) without comparing them
+    bool recording = false;
+    bool Active() const {
+        return checking || recording;
+    }
+    // The game's side's own state (what the game has said to each register, its list, the palette and objects as it
+    // has them), with the machine's in a save state: online play's rollback puts it back with the machine
+    void Serialize(Archive &ar);
     // A frame as the GPU draws it (docs/NATIVE_VIDEO.md, the frame drawn at once): video RAM and the palette as they were
     // at its first line, the writes and uploads after that with the line they came before, each line's layers, the
     // frame's objects; and the board's lines, for a check
@@ -45,12 +54,14 @@ public:
         const native_video::Layers *layers = nullptr;            // (224)
         native_video::PictureOptions options;
         const uint32_t *board = nullptr;                         // (224 lines of Raster::kMaxWidth)
+        bool whole = true; // (false: a frame the records do not make, before the game's first list, or of another set's
+                           // graphics: the CPU's picture is to be shown, and nothing compared)
     };
     // Told each frame drawn at once (the GPU's check, port/gpu_picture.h), before the CPU draws it
     void (*frameDrawn)(const FrameData &frame, void *user) = nullptr;
     void *frameUser = nullptr;
 
-    bool checking = false;
+    bool checking = false; // (--video check: the records compared with the board's)
     uint64_t frame = 0;                // (for the reports: the machine's frame)
     const uint8_t *videoRam = nullptr; // (the game's side reads the buffers the game fills there)
     uint8_t paletteControl = 0x30;     // (where the CPS-B's palette control is in its registers: Board::paletteControl)
