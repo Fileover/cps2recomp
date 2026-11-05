@@ -614,9 +614,9 @@ attract mode run and 5,999 a ladder in the Alpha games, and so on (not compared:
 list). Bands a frame on average: 1.4 (dstlk's attract mode) to 5.6
 (sfa3's), and 12.6 in Giga Wing's ladder, a shoot-'em-up that rewrites its maps as it scrolls.
 
-## The machine's picture from the records (`--video native`)
+## The machine's picture from the records (the default; `--video native`)
 
-With `--video native` the machine's own picture (what the window shows when the GPU's is not used, screenshots, frame
+The machine's own picture (what the window shows when the GPU's is not used, screenshots, frame
 hashes, the fighting modes' pictures put together) is drawn line by line by the CPU rasteriser from the game's records,
 not by `video.cpp`. `video.cpp` still draws the frames before a game's first object list and the model viewer's probes.
 The guest boards' pictures (stages from another game) are drawn from their own records the same way.
@@ -624,6 +624,20 @@ The guest boards' pictures (stages from another game) are drawn from their own r
 Results: in all 23 games, every frame's hash (the picture in it) was the same as with the board model's picture: the
 ladder movies' 6,000 frames (8,000 in Vampire Savior Definitive with Darkstalkers' stages), attract mode's 4,000 in the
 games without one (Alien vs. Predator, Cadillacs and Dinosaurs); sfa2's ladder in widescreen too.
+
+It is the default: `--video board` draws the board model's picture instead, kept as the reference the checks compare
+with. Before it was, the fighting modes' movies (ring out, tag battle) showed one frame that differed: a spare machine
+reset over the port's state (the next match's stage, made while this one is fought) kept the old game's colours and
+objects on the game's side, where the board's palette and object list start empty. `NativeVideo::Reset` now empties
+them too. And Super Turbo's health bars, once damaged, write their empty pieces into the object bank already shown
+(700000): their loops take their pointer 8000 back after the first piece. The board takes its list with those writes
+in it, so the game's side watches them (`video_writes` in its game.cfg) and puts them into the list it was handed
+(no ladder showed it: the ladder movies take no damage). With that, Alpha 2's, Vampire Savior's and Super Turbo's ring
+out and tag battle movies, with and without widescreen, are the same as the board's frame for frame, as is every
+game's ladder or attract mode.
+
+The GPU's shaders read nothing beyond their buffers (Metal does not check): a map's or the row scroll's address past
+video RAM's 0x30000 bytes reads 0, and the lines' buffer holds the two sizes after the records.
 
 ## Order of work
 
@@ -639,14 +653,13 @@ Sizes: S a session, M a few, L a week or more. Done:
 - **The palette commit's moves watched** as well as rewritten: when the board's timing has the rewrite stand aside,
   the game's own code runs it and the watches tell the native interface (`CPS2RECOMP_SKIP_REWRITES=CommitPalette`:
   every upload still the game's side's).
-- **The machine's picture from the records** (`--video native`): the picture the frame hashes include drawn by the
-  CPU rasteriser, every game's hashes the same as the board model's.
+- **The machine's picture from the records**, the default (`--video board` for the board model's): the picture the
+  frame hashes include drawn by the CPU rasteriser, every game's hashes the same as the board model's, the fighting
+  modes' too.
 
 Left:
 
-1. **The GPU picture by default**, once it has been looked at in the window; then `video.cpp` drawn only for
-   `--video board`, the checks, and what still needs the CPU's picture (screenshots, frame hashes, the fighting modes
-   below). S, then M.
+1. **The GPU picture by default**, once it has been looked at in the window. S.
 2. **The fighting modes' pictures** (`fight/battle.cpp`: endless battle, ring out): the fighters over stages spare
    machines of the same game draw, with fades between stages and darkening. Spare machines as producers, as guest
    boards are, and the fades as a pass. M-L.

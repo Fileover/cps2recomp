@@ -17,6 +17,7 @@
 #include "records.h"
 
 #include <cstdint>
+#include <cstring>
 #include <vector>
 
 namespace cps2recomp {
@@ -108,6 +109,12 @@ public:
     }
     // (in a save state, as the game's side's: native.h, NativeVideo::Serialize)
     void Serialize(Archive &ar);
+    // (as the board's picture starts: no colours, no objects, Video::Reset)
+    void Reset() {
+        memset(m_colours, 0, sizeof(m_colours));
+        m_tiles.clear();
+        m_priority = 0;
+    }
 
 private:
     void DrawScroll(int which, int rasterLine, const Layers &layers, const uint8_t *videoRam, const PictureOptions &options, int width,

@@ -132,7 +132,7 @@ bool GpuPicture::Open(SDL_GPUDevice *device, const uint8_t *graphics, size_t siz
     m_graphicsSize = size;
     m_graphics = MakeBuffer(m_device, size);
     m_video = MakeBuffer(m_device, kVideoBytes);
-    m_lines = MakeBuffer(m_device, (kHeight * kLineWords + 1) * 4);
+    m_lines = MakeBuffer(m_device, (kHeight * kLineWords + 2) * 4); // (the lines' records, the two sizes: common.glsl)
     m_frame = MakeBuffer(m_device, 8 * 4);
     m_overrides = MakeBuffer(m_device, kHeight * kOverrides * 2 * 4);
     m_extraGraphics = MakeBuffer(m_device, 4); // (none: SetExtraGraphics puts a set's there)
