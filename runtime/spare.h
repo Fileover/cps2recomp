@@ -55,6 +55,11 @@ void RunSpare(Machine &machine, Spare &spare, const std::function<void(Machine &
 // spare in it is not run ahead (a game's sources keep more around a spare than its save state holds)
 bool SpareRan();
 void ClearSpareRan();
+// The picture changed after the machine drew its frame (another machine's put in, faded, drawn over), since the port
+// last cleared it (ClearSpareRan); a spare run counts. Such a frame is shown from the CPU's picture: the GPU's draws
+// the machine's own frame only (port/gpu_picture.h)
+void MarkPictureMade();
+bool PictureMade();
 // The spare's machine becomes the port's (and the spare is cleared)
 void Promote(Machine &machine, Spare &spare);
 

@@ -301,6 +301,7 @@ namespace {
             d.wideForPort(machine);
         }
         memcpy(machine.Picture(), shown.data(), pixels * sizeof(uint32_t));
+        MarkPictureMade(); // (another machine ran in this one: RunSpare's way, by hand)
         machine.audio.insert(machine.audio.end(), sound.begin(), sound.end());
     }
 

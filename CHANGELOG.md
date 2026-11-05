@@ -6,6 +6,9 @@
   picture is drawn from what its video code hands over (sprite lists, layers, palettes), not by the model of the
   board's video chip, which is kept as the reference (`--video board`). The picture is the same as before, frame for
   frame.
+- **GPU picture (test) in the fighting modes**: endless battle, ring out, tag and team battles (and the colour editor)
+  showed another machine's frame on the GPU, without the fighters or the HUD; frames those modes put together are now
+  shown from the CPU's picture, until the GPU draws them itself.
 - **GPU picture (test) reads only its own memory**: two reads past the end of the GPU's buffers are fixed.
 - **The machine's picture drawn from the game's level** (`--video native`, [docs/NATIVE_VIDEO.md](docs/NATIVE_VIDEO.md)):
   the picture screenshots, frame hashes and the window use can be drawn from what the game hands over instead of the

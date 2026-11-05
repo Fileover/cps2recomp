@@ -13,6 +13,7 @@
 // palettes folder a little after the last change, and when the editor ends.
 #include "colours.h"
 #include "machine.h"
+#include "spare.h"
 
 #include "../recomp-common/text.h"
 
@@ -336,6 +337,7 @@ namespace {
 
     void Draw(Machine &machine) {
         const int width = machine.PictureWidth(), height = Video::kHeight;
+        MarkPictureMade();
         const Canvas canvas{machine.Picture(), width, height};
         const Color white{255, 255, 255, 255}, dim{150, 150, 170, 255}, black{0, 0, 0, 255};
         const int x = width - kPanelWidth - 4, right = width - 10;

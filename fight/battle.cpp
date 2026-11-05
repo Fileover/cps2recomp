@@ -1439,6 +1439,7 @@ namespace {
     // The picture nearer black by `part` of 256
     void Darken(Machine &machine, int part) {
         const int keep = 256 - std::clamp(part, 0, 256);
+        MarkPictureMade();
         uint32_t *picture = machine.Picture();
         for (int i = 0; i < machine.PictureWidth() * Video::kHeight; i++) {
             const uint32_t p = picture[i];
