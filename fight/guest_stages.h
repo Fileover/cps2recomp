@@ -8,7 +8,9 @@
 // Video::markObjects); the music is the guest stage's own, in place of the game's stage tune (Soundtrack::Take), with
 // the game's fades.
 //
-// Each stage's round is made once, on a spare board of the guest (GuestSpare) and a thread of its own, from the
+// A guest that says where its main loop is (Guest::StageAlone, Vampire Savior's) runs its stage alone: no match, its
+// stage's own code only (below). For the others, each stage's round is made once, on a spare board of the guest
+// (GuestSpare) and a thread of its own, from the
 // program's start: the board played with made-up controls (credits, both Starts, a punch at each screen that waits for
 // one) into a two-player match on the stage, to the round. That is the same board, frame for frame, every time, so a
 // match on a stage always starts from it, however long ago it was made: the same in a run played straight, its frames
@@ -70,6 +72,24 @@ struct Guest {
     uint32_t placeX = 0x10, placeY = 0x14, stepX = 0x34, stepY = 0x36, wayX = 0x2C, wayY = 0x2D;
     uint8_t wayRight = 4, wayLeft = 0, wayUp = 0x0C, wayDown = 0x08;
     int middle = 0xC0, halfApart = 0x60, above = 0x60; // (Extents: the picture's middle; the players' edges; height)
+
+    // Its stage alone, from its own stage code (a guest that says these): no game is played to a round and nothing of
+    // the game but its stage runs. Its board is started and kept at the top of its main loop (`mainLoop`, where its
+    // modes are run each frame), where the loop goes on to its wait for the frame (`loopGoesOn`) and nothing else
+    // runs. A stage is built there once (the routines `build` are called, `setStage` before each, then `afterBuild`), and
+    // each frame after the routines `frame` are called (the scroll screens and the camera, the stage's pieces, the
+    // object list); the board's frame interrupt hands the frame over as the game's own does. `a5` is A5 as its code
+    // has it. Its stage's music is asked for as the game asks for a sound: an entry of 16 bytes (the tune's number, a
+    // long) put in its ring at `soundQueueEnd` (a word, bytes into the ring at `soundQueue`), each stage's tune.
+    uint32_t mainLoop = 0, loopGoesOn = 0, a5 = 0xFF8000;
+    std::vector<uint32_t> build, frame;
+    void (*afterBuild)(M68K &c) = nullptr;
+    uint32_t soundQueue = 0, soundQueueEnd = 0;
+    uint16_t soundQueueMask = 0xFFF;
+    std::vector<uint16_t> stageTunes;
+    bool StageAlone() const {
+        return mainLoop != 0;
+    }
 };
 
 struct Host {

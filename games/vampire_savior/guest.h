@@ -53,6 +53,21 @@ inline cps2recomp::guest_stages::Guest Description() {
     d.middle = 0xC0;
     d.halfApart = 0x60;
     d.above = 0x60;
+    // Its stage alone: its main loop's top 004E82 (the modes, by FF8000) and its wait for the frame 004E8E; a stage
+    // built as a round's first step builds it (005A6E on: the A5 words, the stage's plan, colours and scroll screens'
+    // records, 17144 putting them to work, then 4D60, 1C140, 2207E and the first placing, 1DA3C), the scroll screens
+    // switched on (005B56: bits 1-3 of the video control's word, FF8032); each frame the scroll screens and the camera
+    // (1DA3C), the stage's pieces (07D240, 084738) and the object list (01ABC8); its tunes by stage (family.h)
+    d.mainLoop = 0x004E82;
+    d.loopGoesOn = 0x004E8E;
+    d.build = {0x016C4E, 0x00A4BA, 0x01C256, 0x01C2B0, 0x01C336, 0x017144, 0x004D60, 0x01C140, 0x02207E, 0x01DA3C};
+    d.afterBuild = [](cps2recomp::M68K &c) {
+        c.bus.Write16(0xFF8032, static_cast<uint16_t>(c.bus.Read16(0xFF8032) | 0x0E));
+    };
+    d.frame = {0x01DA3C, 0x07D240, 0x084738, 0x01ABC8};
+    d.soundQueue = 0xFF0E0E;
+    d.soundQueueEnd = 0xFF1E0E;
+    d.stageTunes = {0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F, 0x10, 0x11, 0x12, 0x13, 0x14};
     return d;
 }
 

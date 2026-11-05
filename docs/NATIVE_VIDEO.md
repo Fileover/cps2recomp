@@ -135,6 +135,14 @@ stage's code writes (by the CPS-A's bases at the time).
 | Vampire Savior (`games/vampire_savior/guest.h`) | all three today; to find | the scroll pages, the object page's sets 22 and up | colour sets 22 and up but the players' shadows | asks where the players are (`Extents`, 01E8F4, 01E962); ends 256-640 | by number |
 | Every other fighting game (sfa, sfz2al, sfa3, the other Vampire games, the Marvel games, ssf2t, hsf2, pocket_fighter, xmcota) | to find | to find | its port's `notTheStage` where it has one | its port's camera facts (the widescreen and zoom features found them) | its port's `stageTunes` |
 
+**A stage alone** (`Guest::StageAlone`, first Vampire Savior's): rather than a match played to a round on the guest's
+board, the guest's board is started once and kept at the top of its main loop, and only its stage's code runs there:
+the routines a round's first step calls to build the stage (Vampire Savior's 005A6E on: 016C4E, 00A4BA, 01C256,
+01C2B0, 01C336, 017144, 004D60, 01C140, 02207E, 01DA3C, and its scroll screens switched on), then each frame the scroll
+screens and the camera (01DA3C), the stage's pieces (07D240, 084738) and the object list (01ABC8); its frame interrupt
+hands the frame over as the game's does, and the stage's tune is asked for in its sound ring. All twelve of its stages
+are drawn so in Alpha 2's stage viewer; its music is the same, sample for sample, as from a match played to the round.
+
 What this asks of the interface: **a frame holds layers from more than one producer** (the game and a guest). Each
 producer has its own palettes, its own tile graphics, its own priorities, and its own scroll and row scroll. The
 frame's layer order says how one producer's layers go between the other's: the guest's stage behind the game's

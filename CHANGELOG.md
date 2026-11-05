@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- **Vampire Savior's stages from its stage code alone**: the stages Alpha 2 and Zero 2 Alpha show from Vampire Savior are
+  run by Vampire Savior's own stage code and nothing else of the game: no hidden match is played to them, no fighters,
+  no clock. Its board is started once and kept at the top of its main loop; a stage is built there as a round's first
+  step builds it, and each frame only the stage's routines run. The picture and the music are the same as before.
 - **Other games' stages in Street Fighter Alpha 2 and Zero 2 Alpha**: Darkstalkers' and Vampire Savior's stages, as
   those games show them (their own boards running beside, their music too), in training's, versus's and the stage
   viewer's lists after the game's own; and, with Display's **Other games' stages**, in arcade matches. Each needs that
