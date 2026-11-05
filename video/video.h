@@ -125,6 +125,12 @@ public:
     int Width() const {
         return kWidth + 2 * wide.side;
     }
+    // The board's own picture, as its registers and memories make it: nothing a game's sources set that changes it
+    // (wider, moved, hidden, marked, another set's graphics); what --video check's picture is compared with
+    bool PlainPicture() const {
+        return !m_src.board.cps1 && layerMask == 0xF && !hideObject && !markObjects && !markLayers && !objectsTaken && !m_extraGraphics &&
+               !wide.side && !wide.scroll[0] && !wide.scroll[1] && !wide.scroll[2] && !wide.rows && !wide.object && !wide.tile;
+    }
 
 private:
     void FillHoles(uint16_t *pens, int width) const;

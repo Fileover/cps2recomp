@@ -191,7 +191,8 @@ with: the maps, the scrolls, the row scroll, the layer control, the objects' off
   that differs, is a failure (exit 6). Each machine has its own interface (`Machine::nativeVideo`, reached by the
   lifts through the CPU): the spare and guest boards run the same code, and only the port's own machine is checked. This does not run with `--check-rewrites`, which runs the original as well and so
   makes every upload twice.
-- **(b)** (to come) the CPU rasteriser's picture against `video.cpp`'s, every line, with `--video check`.
+- **(b)** the CPU rasteriser's picture (`video/native_render.h`) against `video.cpp`'s, every line, with
+  `--video check`: [below](#check-b-the-picture-from-the-records).
 - The rewrites among the lifts are checked against the game's code by `--check-rewrites` and `make check-rewrites`.
   The rest are **watches** (`lift.h`, `AddWatch`): told before an instruction runs, they only look. Unlike a hook, a
   watch is not a place where translated code starts a block, so it is not a place where an interrupt can be taken:
@@ -240,9 +241,9 @@ below), these watches become part of it.
 `build.mk` gives the translator the rewrites' addresses as hooks (`video_hooks.txt`) and the instructions as watches
 (`video_watches.txt`).
 
-The two kinds were first put in eight games, one or two of each family's version. Results, with `--video check` over attract mode (4,000
-frames) and the ladder movie (6,000; Giga Wing's with `free_play,invincible`, the rest `free_play,no_damage,one_hit`),
-and the ladder's frame hashes against a build without the lifts:
+The two kinds were first put in eight games, one or two of each family's version. Results, with `--video check`
+over attract mode (4,000 frames) and the ladder movie (6,000; Giga Wing's with `free_play,invincible`, the rest
+`free_play,no_damage,one_hit`), and the ladder's frame hashes against a build without the lifts:
 
 | Game | Lifts | Attract mode: uploads the same | The ladder: uploads the same | Frame hashes |
 | --- | --- | --- | --- | --- |
@@ -330,6 +331,34 @@ as the `widescreen-stage-ends` builds' (without the lifts), all of each run's fr
 game's side now has every palette upload, every object list and every line's layers. The CPS-1 games (dino, punisher)
 are left: another board.
 
+## Check (b): the picture from the records
+
+`video/native_render.h` draws the picture from the records alone: the palette as the game side's uploads made it,
+the object list the game handed over, and on each line the layers' registers as the game set them. With them it
+reads only the game's own data, the scroll screens' maps and the row scroll's table in video RAM, and the graphics
+ROMs. It reads no register of the board's.
+
+It is laid out the way a GPU will draw: once a frame, the object list becomes a list of tiles (`ObjectTile`: one 16x16
+tile each, front to back, with its place before the offsets, tile, colour set, flips and level), which the GPU will
+draw as instances. On each line the scroll screens' tiles and the objects' are put down in the layers' order, each
+object pixel in front of or behind the screens' pens by its level. This one draws on the CPU, a line at a time, as the
+reference the GPU renderer must equal.
+
+`--video check` compares each line it draws with the line `video.cpp` drew, pixel for pixel, whenever the board drew
+its own picture (`Video::PlainPicture`: no widescreen, nothing hidden, marked or drawn from another set's graphics; a
+game's features that change the picture are not part of this check). Lines before the game's first object list are
+not compared.
+
+Results:
+
+Every line compared was the same in all 21 CPS-2 games: 895,962 in each Alpha-family attract mode run (4,000 frames),
+1,343,962 in each ladder (6,000), and so on for each game. The lines not compared are those before the game's first
+object list (38 in the Alpha games; up to 17,258, Giga Wing's 77 frames before its first). Two kinds are left out:
+**Vampire Savior Definitive** (no line compared) draws some objects and tiles from Vampire Savior 2's graphics (its extra
+set), which the records do not say yet: an object's and a tile's graphics set is what the frame needs for a second
+producer too (stages from another game), and comes with it; and the CPS-1 games, another board. The frame hashes were
+the same as without the lifts.
+
 ## Order of work
 
 Sizes: S a session, M a few, L a week or more.
@@ -342,10 +371,13 @@ Sizes: S a session, M a few, L a week or more.
    shadows (the commit routines rewritten, sfa2's `FrameRegisters` among them, which moves to the toolkit). M.
 4. **Raster bands:** Marvel (seen); the Vampire games and Giga Wing set the counters but changed nothing in these
    runs. S-M.
-5. **The CPU rasteriser of `Frame` and check (b)** against `video.cpp` on every game's movies. M.
+5. **The CPU rasteriser and check (b)** against `video.cpp`: done (above). Next: with widescreen and the games'
+   picture features (the wide picture's columns, hidden and marked objects), so that it can stand in for `video.cpp`
+   everywhere. M.
 6. **The SDL_GPU renderer** drawing `Frame`, with the widescreen columns and the existing presenters and shaders
    after it. L.
 7. **The native renderer by default**, `video.cpp` kept only for `--video board` and the checks. The bus waits in the
    lifts (above) come first. S.
-8. **Stages between games** through two producers: Vampire Savior Definitive's guests first, then every fighting
+8. **Stages between games** through two producers (each record saying which producer's graphics and palette it
+   draws with; Vampire Savior Definitive's extra set is the first case of it): Vampire Savior Definitive's guests first, then every fighting
    game's stages in every other's (a guest's facts are already written once per game). L.
