@@ -255,7 +255,8 @@ name and choices in each: the collection's launcher then shows it once, for all 
 
 - **The picture native at the game's level**, not a model of the board's video chips: the games' drawing code hands
   a native interface its frames, and the board model is kept only as the reference the checks compare with
-  ([NATIVE_VIDEO.md](NATIVE_VIDEO.md); the palette's upload is native in eight games so far).
+  ([NATIVE_VIDEO.md](NATIVE_VIDEO.md); the palette's uploads, the object lists and the layers' registers are known at the game's level in every CPS-2
+  game, checked against the board's).
 - **Drawn on the GPU**: SDL_GPU draws the interface's objects, scroll layers (with row scroll) and palettes itself, not
   a picture made on the CPU and handed over.
 - **Every CPS-2 fighting game's stages in every other**, solidly: a stage made by its own game's code hands its
