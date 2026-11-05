@@ -13,7 +13,9 @@
 #include <algorithm>
 #include <atomic>
 #include <condition_variable>
+#include <cstdlib>
 #include <cstring>
+#include <string>
 #include <mutex>
 #include <thread>
 #include <vector>
@@ -32,7 +34,7 @@ namespace {
         int8_t guest = 0;  // the guest whose stage is shown, 1 the first (0: the game's own); its board is in its round
         int8_t stage = 0;  // ... its stage, 1 its first
         int8_t follow = 0; // its camera goes where the game's is (while its stage is shown)
-        int8_t built = 0;  // (a stage alone, Guest::StageAlone: its stage has been built on its board)
+        int8_t built = 0;  // (a stage alone, Guest::StageAlone: its stage has been built on its board; 2: its round to start)
         int16_t cameraX = 0, cameraY = 0; // where its camera is to be (the game's, as its last frame left it)
     } g;
     std::vector<uint8_t> g_guestState; // (the guest's machine, for a save state: kept so a peer without the set can read past it)
@@ -236,7 +238,6 @@ namespace {
     // The guest's stage (1 its first) to be built on its board, from the board's start (at its next frame: the main
     // loop's hook builds it, State::built)
     void ToStage(int index, int stage) {
-        (void)stage;
         Load(*cps2recomp::Guest(Guests()[index].id), BootedState(index));
         g.built = 0;
     }
@@ -253,12 +254,19 @@ namespace {
             g_reached = true;
         } else if (g.guest == index + 1 && g.stage > 0) {
             c.a[5] = guest.a5;
+            const bool justBuilt = !g.built;
             if (!g.built) {
                 g.built = 1;
                 // (the stage put in place before each routine: the first may clear the words it is kept in, as Vampire
                 // Savior's does, 016C4E)
                 for (const uint32_t at : guest.build) {
                     guest.setStage(c, g.stage - 1);
+                    if (!at) {
+                        if (guest.buildStep) {
+                            guest.buildStep(c);
+                        }
+                        continue;
+                    }
                     c.d[0] = 0;
                     Call(c, at);
                 }
@@ -276,8 +284,26 @@ namespace {
                     SetC16(c, guest.soundQueueEnd, static_cast<uint16_t>((at + 0x10) & guest.soundQueueMask));
                 }
             }
+            bool placed = false;
+            if (g.built == 2) {
+                g.built = 1;
+                guest.roundStart(c);
+                placed = true;
+            }
             for (const uint32_t at : guest.frame) {
                 Call(c, at);
+            }
+            // (a stage just made, or its round just started: its camera brought to the place wanted at once)
+            if ((placed || justBuilt) && guest.placing && guest.cameraAtX) {
+                constexpr int kMostCalls = 128;
+                for (int n = 0; n < kMostCalls; n++) {
+                    const int x = static_cast<int16_t>(C16(c, guest.cameraAtX));
+                    const int y = guest.cameraAtY ? static_cast<int16_t>(C16(c, guest.cameraAtY)) : g.cameraY;
+                    if (std::abs(x - std::clamp<int>(g.cameraX, guest.cameraLeft, guest.cameraRight)) <= 1 && std::abs(y - g.cameraY) <= 1) {
+                        break;
+                    }
+                    Call(c, guest.placing);
+                }
             }
         }
         c.pc = guest.loopGoesOn;
@@ -423,6 +449,7 @@ namespace {
         }
     }
 
+    void CheckFrame(const Guest &guest, Machine &board, bool shown);
     // The guest's frame, after the game's: its picture under the game's marked objects, its sound with the game's
     void Frame(Machine &machine) {
         machine.guestBehind = false;
@@ -458,8 +485,16 @@ namespace {
         const bool shown = Shown();
         g.follow = shown;
         const int x = std::clamp<int>(Ram16(h.cameraX), h.cameraLeft, h.cameraRight);
+        const int16_t wasX = g.cameraX;
         g.cameraX = static_cast<int16_t>(guest.cameraLeft + (x - h.cameraLeft) * (guest.cameraRight - guest.cameraLeft) /
                                                                  std::max(1, h.cameraRight - h.cameraLeft));
+        // The game's camera put somewhere else at once (a round begun: back to the middle): the guest's own round's
+        // start (Guest::roundStart: its camera put at the round's place and the stage painted there), rather than its
+        // camera going there at its own pace across the picture
+        constexpr int kJump = 64;
+        if (guest.StageAlone() && g.built == 1 && guest.roundStart && std::abs(g.cameraX - wasX) > kJump) {
+            g.built = 2; // (at the board's next frame: Guest::roundStart)
+        }
         g.cameraY = static_cast<int16_t>(static_cast<int16_t>(Ram16(h.cameraY)) - guest.lower);
         if (!guest.StageAlone()) {
             SetG8(board, guest.clock, guest.clockFull);
@@ -470,7 +505,7 @@ namespace {
         board.video.layerMask = guest.layers;
         board.video.wide.side = machine.video.wide.side;
         board.RunFrame();
-
+        CheckFrame(guest, board, shown);
         // The picture: the guest's, under the game's marked pixels
         if (shown && machine.drawing && board.PictureWidth() == machine.PictureWidth()) {
             machine.guestBehind = true;
@@ -493,6 +528,49 @@ namespace {
             machine.audio[from + i] = static_cast<int16_t>(std::clamp<int64_t>(sample, -32768, 32767));
         }
         board.audio.clear();
+    }
+
+    // --- the check (guest_stages.h, Check) ---
+
+    struct Checked {
+        bool on = false;
+        uint64_t frames = 0, followed = 0, off = 0, unknown = 0;
+        int run = 0, longestRun = 0, worst = 0, settling = 0;
+        int lastGuest = 0, lastStage = 0;
+    } g_check;
+    constexpr int kNear = 8, kLongestOff = 4, kSettle = 60;
+    void CheckFrame(const Guest &guest, Machine &board, bool shown) {
+        if (!g_check.on || !shown) {
+            g_check.run = 0;
+            return;
+        }
+        if (g.guest != g_check.lastGuest || g.stage != g_check.lastStage) {
+            g_check.lastGuest = g.guest;
+            g_check.lastStage = g.stage;
+            g_check.settling = kSettle; // (a stage just made: its camera comes to the place at its own pace)
+        }
+        g_check.frames++;
+        if (!guest.cameraAtX) {
+            g_check.unknown++;
+            return;
+        }
+        if (g_check.settling > 0) {
+            g_check.settling--;
+            return;
+        }
+        const int x = static_cast<int16_t>(G16(board, guest.cameraAtX)), y = static_cast<int16_t>(G16(board, guest.cameraAtY));
+        int wantedX = g.cameraX, wantedY = g.cameraY;
+        wantedX = std::clamp(wantedX, guest.cameraLeft, guest.cameraRight);
+        const int distance = std::max(std::abs(x - wantedX), guest.cameraAtY ? std::abs(y - wantedY) : 0);
+        if (distance <= kNear) {
+            g_check.followed++;
+            g_check.run = 0;
+        } else {
+            g_check.off++;
+            g_check.run++;
+            g_check.longestRun = std::max(g_check.longestRun, g_check.run);
+            g_check.worst = std::max(g_check.worst, distance);
+        }
     }
 
     void StagesState(Archive &ar) {
@@ -539,6 +617,23 @@ const char *StageName(int stage) {
     return Which(stage, index, own) ? Guests()[index].stageNames[own - 1] : "";
 }
 
+void Check(bool on) {
+    g_check.on = on;
+}
+bool Report(FILE *out) {
+    if (!g_check.on) {
+        return true;
+    }
+    // (a run that showed none has checked nothing: not passed)
+    const bool ok = g_check.frames > 0 && g_check.longestRun <= kLongestOff && g_check.unknown == 0;
+    fprintf(out, "stage check: %llu frames of other games' stages shown; the camera within %d of where wanted in %llu, off in %llu "
+                 "(longest %d frames, at most %d off)%s; %s\n",
+            static_cast<unsigned long long>(g_check.frames), kNear, static_cast<unsigned long long>(g_check.followed),
+            static_cast<unsigned long long>(g_check.off), g_check.longestRun, g_check.worst,
+            g_check.unknown ? " (a guest's camera not known: not checked)" : "", ok ? "ok" : "FAILED");
+    return ok;
+}
+
 bool Available(int stage) {
     int index, own;
     return Which(stage, index, own) && cps2recomp::Guest(Guests()[index].id);
@@ -554,6 +649,9 @@ void Register(const Host &host, std::vector<Guest> guests) {
         ready.made = std::make_unique<std::atomic<bool>[]>(guest.stageNames.size());
         if (guest.StageAlone()) {
             AddGuestHook(guest.id, guest.mainLoop, StageAlone);
+            for (const auto &[at, fn] : guest.hooks) {
+                AddGuestHook(guest.id, at, fn);
+            }
         } else {
             AddGuestHook(guest.id, guest.stageAt, StageSet);
         }

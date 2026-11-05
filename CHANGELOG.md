@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- **Other games' stages scroll with the fight**: Vampire Savior's stages in Alpha 2 and Zero 2 Alpha stood still while
+  the fight's camera moved (the fighters seemed to slide against them). Their camera now goes where the game's does,
+  every frame, round starts and fast moves too, the train's stage among them. A check of it for the test runs,
+  `--stage-check`, fails a run whose borrowed stage's camera is off for more than a few frames.
 - **Vampire Savior's stages from its stage code alone**: the stages Alpha 2 and Zero 2 Alpha show from Vampire Savior are
   run by Vampire Savior's own stage code and nothing else of the game: no hidden match is played to them, no fighters,
   no clock. Its board is started once and kept at the top of its main loop; a stage is built there as a round's first

@@ -143,6 +143,18 @@ screens and the camera (01DA3C), the stage's pieces (07D240, 084738) and the obj
 hands the frame over as the game's does, and the stage's tune is asked for in its sound ring. All twelve of its stages
 are drawn so in Alpha 2's stage viewer; its music is the same, sample for sample, as from a match played to the round.
 
+What a person playing sees first is whether the stage goes with the fight's camera, and the first stage-alone build did
+not: its scroll screens' records were never put to work (a round's first step does that in its own lines, 005AE4, not
+in a routine; `Guest::buildStep`), so the stage stood still. `--stage-check` now checks it each frame a borrowed stage
+is shown: the guest's camera (`Guest::cameraAtX`, `cameraAtY`) against the place wanted for it, failing a run where it
+is off by more than 8 pixels for more than 4 frames, or where no borrowed stage was shown. With it, three more things
+were found and fixed: Vampire Savior's camera goes 5 pixels a frame at most (set each frame at 01DA82; raised to 16 for a
+stage alone, within a strip of the 8-pixel scroll screen, `Guest::hooks`); a round's start puts the game's camera back
+at once (the guest's scroll screens' records are started again, `Guest::roundStart`, and the camera brought to its place
+in the same frame by its placing routine, `Guest::placing`); and the train's camera runs its arrival at a round's start
+(01E098), which is passed over. All twelve stages in the viewer, Alpha 2's ladder and versus movies (widescreen too)
+pass.
+
 What this asks of the interface: **a frame holds layers from more than one producer** (the game and a guest). Each
 producer has its own palettes, its own tile graphics, its own priorities, and its own scroll and row scroll. The
 frame's layer order says how one producer's layers go between the other's: the guest's stage behind the game's

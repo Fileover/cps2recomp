@@ -12,6 +12,7 @@
 #include "hud.h"
 #include "../runtime/board.h"
 #include "../fight/battle.h"
+#include "../fight/guest_stages.h"
 #include "png_write.h"
 #include "present.h"
 #include "gpu_picture.h"
@@ -30,6 +31,7 @@
 #include <algorithm>
 #include <chrono>
 #include <cmath>
+#include <map>
 #include <cstdlib>
 #include <cstring>
 #include <ctime>
@@ -2000,7 +2002,73 @@ void Port::RapidFire() {
     }
 }
 
+// CPS2RECOMP_CALL_LOG=FROM:TO:FILE (with --cpu interp): every jsr and bsr the game's 68000 runs in frames FROM to TO,
+// by where it goes: how often, and from where (for finding a game's routines a frame, docs/NATIVE_VIDEO.md)
+namespace {
+    std::map<uint32_t, std::map<uint32_t, uint64_t>> g_calls;
+    uint64_t g_callFrom = 0, g_callTo = 0;
+    std::string g_callFile;
+    uint32_t g_callTask = 0; // (CPS2RECOMP_CALL_TASK=ADDR: a long of work RAM, the task record running: its number, 1 the first, kept with each)
+    const uint8_t *g_callRam = nullptr;
+    // (CPS2RECOMP_CALL_ORDER=FILE: each call too, in the order made, with its frame)
+    FILE *g_callOrder = nullptr;
+    uint64_t g_callFrame = 0;
+    void LogCall(uint32_t from, uint32_t to) {
+        if (g_callOrder) {
+            fprintf(g_callOrder, "%llu %06X %06X\n", static_cast<unsigned long long>(g_callFrame), from & 0xFFFFFF, to & 0xFFFFFF);
+        }
+        uint32_t task = 0;
+        if (g_callTask && g_callRam) {
+            const uint8_t *p = &g_callRam[g_callTask & 0xFFFF];
+            task = ((static_cast<uint32_t>(p[2] << 8 | p[3]) & 0x1FF) / 0x20 + 1) << 24; // (the record's number, 1 the first)
+        }
+        g_calls[to & 0xFFFFFF][(from & 0xFFFFFF) | task]++;
+    }
+    void WriteCalls() {
+        FILE *out = g_callFile.empty() ? nullptr : fopen(g_callFile.c_str(), "w");
+        if (!out) {
+            return;
+        }
+        for (const auto &[to, froms] : g_calls) {
+            uint64_t all = 0;
+            for (const auto &[from, n] : froms) {
+                all += n;
+            }
+            fprintf(out, "%06X %llu", to, static_cast<unsigned long long>(all));
+            for (const auto &[from, n] : froms) {
+                if (from >> 24) {
+                    fprintf(out, " %06X(task %02X):%llu", from & 0xFFFFFF, from >> 24, static_cast<unsigned long long>(n));
+                } else {
+                    fprintf(out, " %06X:%llu", from, static_cast<unsigned long long>(n));
+                }
+            }
+            fprintf(out, "\n");
+        }
+        fclose(out);
+    }
+}
+
 void Port::RunFrame() {
+    if (static const char *log = getenv("CPS2RECOMP_CALL_LOG"); log && g_callFile.empty()) {
+        unsigned long long from = 0, to = 0;
+        char file[1024] = {};
+        if (sscanf(log, "%llu:%llu:%1023s", &from, &to, file) == 3) {
+            g_callFrom = from;
+            g_callTo = to;
+            g_callFile = file;
+        }
+        if (const char *order = getenv("CPS2RECOMP_CALL_ORDER")) {
+            g_callOrder = fopen(order, "w");
+        }
+        if (const char *task = getenv("CPS2RECOMP_CALL_TASK")) {
+            g_callTask = static_cast<uint32_t>(strtoul(task, nullptr, 16));
+            g_callRam = machine->ram.data();
+        }
+    }
+    g_callFrame = frame;
+    if (!g_callFile.empty()) {
+        machine->cpu.callLog = frame >= g_callFrom && frame <= g_callTo ? LogCall : nullptr;
+    }
     ClearSpareRan();
     SoundtrackFollow();
     machine->SetBoardTiming(FeatureOn("arcade_timing"));
@@ -2185,6 +2253,11 @@ void Port::RunFrame() {
 }
 
 void Port::Finish() {
+    WriteCalls();
+    guest_stages::Report(stderr);
+    if (g_callOrder) {
+        fclose(g_callOrder);
+    }
     if (net && !connecting) {
         net->Leave();
         net->Report(true);
@@ -2304,6 +2377,8 @@ void Usage() {
             "  --hash-log FILE        a line per frame with a hash of the game's state\n"
             "  --hash-picture         ... of the picture only (to compare runs whose timing is not the same)\n"
             "  --hash-no-picture      ... of all but the picture (--rollback-test then draws only the frames shown)\n"
+            "  --stage-check          other games' stages: their camera checked against where it is wanted, each frame\n"
+            "                         they are shown (fight/guest_stages.h)\n"
             "  --hash-no-sound        ... and without the sound side, as online play's (to compare a match's --record)\n"
             "  --hash-game            ... without the Z80 and its own memory (to compare --sound driver and z80)\n"
 "  --renderer sdl|gpu     how the picture gets to the window: SDL's GPU API unless said (or not there)\n"
@@ -2428,6 +2503,8 @@ bool ParseArgs(int argc, char **argv, port::Options &o) {
             o.hashNoSound = true;
         } else if (a == "--hash-no-picture") {
             o.hashNoPicture = true;
+        } else if (a == "--stage-check") {
+            guest_stages::Check(true);
         } else if (a == "--hash-game") {
             o.hashGame = true;
         } else if (a == "--hash-picture") {

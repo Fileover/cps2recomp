@@ -41,6 +41,8 @@ inline cps2recomp::guest_stages::Guest Description() {
     // Its camera's ends are this game's own: 256 and 640 (both walked to), the floor 0x28 up
     d.cameraLeft = 0x100;
     d.cameraRight = 0x280;
+    d.cameraAtX = 0xFF9518;
+    d.cameraAtY = 0xFF951C;
     d.camera = Guest::Camera::Steps;
     d.across = 0x0EDAF4;
     d.up = 0x0EDC1A;
