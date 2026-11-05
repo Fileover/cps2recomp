@@ -18,7 +18,8 @@
 // What a game says of itself (Host) and of each guest (Guest) is all of it: a guest is described once, by the facts
 // its own port found (its steps, its credits, where it sets a match's stage, its clock, its stage's objects, its
 // camera), and can then be shown by any game. Vampire Savior Definitive shows Darkstalkers' and Street Fighter Alpha
-// 2's (games/vsav_definitive/src/stages.cpp; the guests' facts in games/dstlk/guest.h, games/sfa2/guest.h).
+// 2's (games/vsav_definitive/src/stages.cpp); Alpha 2 and Zero 2 Alpha show Darkstalkers' and Vampire Savior's
+// (games/sfa2/src/stages.cpp). The guests' facts: games/dstlk/guest.h, games/sfa2/guest.h, games/vampire_savior/guest.h.
 #pragma once
 
 #include "../machine/m68k.h"

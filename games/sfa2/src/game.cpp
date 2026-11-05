@@ -60,6 +60,8 @@ bool StageViewer();
 bool BattleMode();   // battle.cpp
 bool WidePlay();     // widescreen.cpp
 
+void RegisterStages(); // stages.cpp
+
 void RegisterGame() {
     RegisterMusic();
     RegisterMachines();
@@ -131,6 +133,8 @@ void RegisterGame() {
     if (sfa2::family::kDamageLevelsOwn) {
         OwnFeatures({"board_damage"});
     }
+    // Other games' stages: last, as it goes around the frame's callbacks and the state's (stages.cpp)
+    RegisterStages();
 }
 
 } // namespace cps2recomp
