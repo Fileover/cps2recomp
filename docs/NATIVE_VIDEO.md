@@ -662,7 +662,11 @@ Left:
 1. **The GPU picture by default**, once it has been looked at in the window. S.
 2. **The fighting modes' pictures** (`fight/battle.cpp`: endless battle, ring out): the fighters over stages spare
    machines of the same game draw, with fades between stages and darkening. Spare machines as producers, as guest
-   boards are, and the fades as a pass. M-L.
+   boards are, and the fades as a pass. M-L. Until then a frame whose picture was put together or changed after the
+   machine drew it (a spare ran, `Give`, `Darken`, the infinite stage, the colour editor: `MarkPictureMade`,
+   runtime/spare.h) is shown from the CPU's picture: the GPU had kept the last spare's frame (the fighters and HUD
+   missing, seen in the window in endless battle). `--video gpu-check` compares only the frames the window shows from
+   the GPU.
 3. **Objects' offsets that change down the picture** on the GPU (none seen in any game's runs; such frames are the
    CPU's). S.
 4. **Deeper lifts:** the records made from the game's own drawing code (the Alpha library's list builder and its

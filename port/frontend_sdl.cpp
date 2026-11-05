@@ -11,6 +11,7 @@
 #include "touch.h"
 
 #include "../runtime/game.h"
+#include "../runtime/spare.h"
 #include "../recomp-common/gamepads.h"
 
 #include <SDL3/SDL.h>
@@ -870,7 +871,8 @@ int RunWindowed(Port &port) {
                     port.gpuWanted = false;
                 }
             }
-            if (port.gpuWanted && port.gpuPicture.CanDrawKept() && port.gpuPicture.KeptWidth() == port.ShownWidth()) {
+            if (port.gpuWanted && port.gpuPicture.CanDrawKept() && port.gpuPicture.KeptWidth() == port.ShownWidth() &&
+                !cps2recomp::PictureMade()) {
                 static std::vector<uint32_t> readouts;
                 const bool isZoomed = port.Windowed(readouts, zoomed, true);
                 drawn = presenter.ShowDrawn(

@@ -29,18 +29,27 @@ void Take(Machine &machine, size_t soundBefore, Made &made) {
 }
 
 void Give(Machine &machine, const Made &made) {
+    MarkPictureMade();
     memcpy(machine.Picture(), made.picture.data(), made.picture.size() * sizeof(uint32_t));
     machine.audio.insert(machine.audio.end(), made.sound.begin(), made.sound.end());
 }
 
 namespace {
     bool g_spareRan = false;
+    bool g_pictureMade = false;
 }
 bool SpareRan() {
     return g_spareRan;
 }
 void ClearSpareRan() {
     g_spareRan = false;
+    g_pictureMade = false;
+}
+void MarkPictureMade() {
+    g_pictureMade = true;
+}
+bool PictureMade() {
+    return g_spareRan || g_pictureMade;
 }
 
 void RunSpare(Machine &machine, Spare &spare, const std::function<void(Machine &)> &before, Made *made,
