@@ -204,7 +204,7 @@ void Machine::RunLine() {
             }
         } else {
             video.LatchObjects(&objectRam[m_objectBank ? 0x2000 : 0], m_extra ? objectsFromExtra[m_objectBank ? 1 : 0] : nullptr);
-            if (nativeVideo.checking) {
+            if (nativeVideo.Active()) {
                 nativeVideo.frame = frame;
                 nativeVideo.BoardObjects(native_video::DecodeObjects(&objectRam[m_objectBank ? 0x2000 : 0], objectRegs), video.Options());
             }
@@ -239,7 +239,7 @@ void Machine::RunLine() {
     if (drawing && m_line >= Video::kFirstLine && m_line < Video::kFirstLine + Video::kHeight) {
         const int row = m_line - Video::kFirstLine;
         video.RenderLine(row, &m_picture[static_cast<size_t>(row) * m_pictureWidth]);
-        if (nativeVideo.checking) {
+        if (nativeVideo.Active()) {
             nativeVideo.BoardLine(row, &m_picture[static_cast<size_t>(row) * m_pictureWidth], video.Options(), video.ComparablePicture());
         }
     }
@@ -839,6 +839,7 @@ void Machine::Serialize(Archive &ar) {
     }
     qsound.Serialize(ar);
     video.Serialize(ar);
+    nativeVideo.Serialize(ar);
     eeprom.Serialize(ar);
     ar.Vec(ram);
     ar.Vec(videoRam);

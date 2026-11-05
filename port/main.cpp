@@ -403,24 +403,33 @@ bool Port::Init(std::string &error) {
     // The picture at the game's level (docs/NATIVE_VIDEO.md): the shared rewrites of Capcom's video library
     if (opt.video == "check" || opt.video == "gpu-check") {
         machine->nativeVideo.checking = true;
+    } else if (opt.video == "gpu") {
+        // (the window's picture drawn on the GPU from the native records, the frames the GPU draws: frontend_sdl.cpp)
+        machine->nativeVideo.recording = true;
+        gpuWanted = true;
+        machine->nativeVideo.frameDrawn = [](const NativeVideo::FrameData &frame, void *user) {
+            static_cast<port::GpuPicture *>(user)->Keep(frame);
+        };
+        machine->nativeVideo.frameUser = &gpuPicture;
     } else if (!opt.video.empty() && opt.video != "board") {
-        error = "--video: board, check or gpu-check";
+        error = "--video: board, gpu, check or gpu-check";
         return false;
     }
     RegisterVideoLifts();
     if (opt.video == "gpu-check") {
         // (each frame drawn on the GPU as well, on a device of the check's own, no window: port/gpu_picture.h)
-        static port::GpuPicture gpuPicture;
+        static port::GpuPicture checkPicture;
         std::string gpuError;
-        if (!gpuPicture.Open(nullptr, roms.graphics.data(), roms.graphics.size(), gpuError)) {
+        if (!checkPicture.Open(nullptr, roms.graphics.data(), roms.graphics.size(), gpuError)) {
             error = "--video gpu-check: " + gpuError;
             return false;
         }
-        g_gpuPicture = &gpuPicture;
+        g_gpuPicture = &checkPicture;
         machine->nativeVideo.frameDrawn = [](const NativeVideo::FrameData &frame, void *user) {
             static_cast<port::GpuPicture *>(user)->Check(frame);
+            static_cast<port::GpuPicture *>(user)->Keep(frame);
         };
-        machine->nativeVideo.frameUser = &gpuPicture;
+        machine->nativeVideo.frameUser = &checkPicture;
     }
     machine->cpu.watchLow = opt.watchLow;
     machine->cpu.watchHigh = opt.watchHigh;
@@ -909,9 +918,13 @@ bool Port::Tick() {
     return true;
 }
 
-void Port::Shown(std::vector<uint32_t> &pixels, std::vector<SDL_Rect> *panels) const {
+void Port::Shown(std::vector<uint32_t> &pixels, std::vector<SDL_Rect> *panels, bool over, uint32_t base) const {
     const int across = ShownWidth();
-    pixels.assign(machine->Picture(), machine->Picture() + across * Video::kHeight);
+    if (over) {
+        pixels.assign(static_cast<size_t>(across) * Video::kHeight, base);
+    } else {
+        pixels.assign(machine->Picture(), machine->Picture() + across * Video::kHeight);
+    }
     DrawHud(pixels.data(), across, Video::kHeight, panels);
     // A line at the bottom, in the middle (`up` lines higher)
     auto status = [&](const char *text, int up) {
@@ -1077,7 +1090,18 @@ void Port::Shown(std::vector<uint32_t> &pixels, std::vector<SDL_Rect> *panels) c
     }
 }
 
-bool Port::Windowed(std::vector<uint32_t> &pixels, Zoomed &zoomed) {
+void Port::Readouts(std::vector<uint32_t> &rgba, std::vector<SDL_Rect> *panels) const {
+    std::vector<uint32_t> white;
+    Shown(rgba, panels, true, 0xFF000000u);
+    Shown(white, nullptr, true, 0xFFFFFFFFu);
+    for (size_t n = 0; n < rgba.size(); n++) {
+        // (over black, what is left is the readouts' colour times its alpha; over white, that and what they leave)
+        const uint32_t black = rgba[n], left = (white[n] & 0xFF) - (black & 0xFF);
+        rgba[n] = (black & 0xFFFFFF) | ((255 - std::min<uint32_t>(left, 255)) << 24);
+    }
+}
+
+bool Port::Windowed(std::vector<uint32_t> &pixels, Zoomed &zoomed, bool readouts) {
     const int across = ShownWidth();
     zoom.Follow(across, Video::kHeight);
     const Menu::Rate rate = menu.GameRate();
@@ -1092,8 +1116,16 @@ bool Port::Windowed(std::vector<uint32_t> &pixels, Zoomed &zoomed) {
     }
     zoomed.keep.clear();
     if (!zoom.View(across, Video::kHeight, zoomed.view)) {
-        Shown(pixels);
+        if (readouts) {
+            Readouts(pixels);
+        } else {
+            Shown(pixels);
+        }
         return false;
+    }
+    if (readouts) {
+        Readouts(pixels, &zoomed.keep);
+        return true;
     }
     // (the game's own picture above, the one with the readout below)
     Shown(pixels, &zoomed.keep);
@@ -2046,6 +2078,14 @@ void Port::RunFrame() {
         Shown(shown);
         WritePng(shot, shown.data(), ShownWidth(), Video::kHeight);
     }
+    // (--video gpu-check: the frame the GPU kept, drawn with the readouts over it, as the window would show it, against
+    // the CPU's picture with the readouts: gpu_picture.h)
+    if (g_gpuPicture && ShownWidth() == Video::kWidth && g_gpuPicture->CanDrawKept()) {
+        std::vector<uint32_t> readouts, shown;
+        Readouts(readouts);
+        Shown(shown);
+        g_gpuPicture->CheckShown(readouts.data(), shown.data());
+    }
 }
 
 void Port::Finish() {
@@ -2153,7 +2193,8 @@ void Usage() {
             "  --video SIDE           board (the picture from the board's registers and memories), check (the\n"
             "                         native interface the game's video code hands over compared with the\n"
             "                         board's, every record: docs/NATIVE_VIDEO.md), gpu-check (that, and each\n"
-            "                         frame drawn on the GPU from it too, read back and compared)\n"
+            "                         frame drawn on the GPU from it too, read back and compared), gpu (the window's\n"
+            "                         picture drawn on the GPU from the native records, where it can be)\n"
             "  --sound-test SEED[:N]  every N frames (30) a command to the sound side: each song in turn, placed\n"
             "                         some made-up way, and the other commands (with --sound check)\n"
             "  --scale N              window size, times 224 lines (else the Display page's)\n"

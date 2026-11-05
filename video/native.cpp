@@ -4,6 +4,7 @@
 #include "native.h"
 
 #include "../machine/m68k.h"
+#include "../runtime/state.h"
 
 #include <cstring>
 
@@ -129,6 +130,19 @@ namespace native_video {
 
 } // namespace native_video
 
+void NativeVideo::Serialize(Archive &ar) {
+    ar.Pod(m_objectRegs);
+    ar.Pod(m_cpsA);
+    ar.Pod(m_cpsB);
+    ar.Pod(m_bank);
+    ar.Pod(m_list);
+    m_raster.Serialize(ar);
+    if (!ar.Saving()) {
+        m_inFrame = false; // (a frame begun before the state was put back is not one)
+        m_hasPending = false;
+    }
+}
+
 void NativeVideo::Reset(const uint16_t *cpsA, const uint16_t *cpsB, const uint16_t *objectRegs) {
     memcpy(m_cpsA, cpsA, sizeof(m_cpsA));
     memcpy(m_cpsB, cpsB, sizeof(m_cpsB));
@@ -161,7 +175,7 @@ void NativeVideo::GameWrites(M68K &c, uint32_t address, uint16_t value, bool byt
         // The game hands over the list it has filled (in the bank it reaches at 708000) when it names the other bank;
         // naming the bank shown, it keeps the list it handed over last
         const int bank = value & 1;
-        if (checking && bank != m_bank) {
+        if (Active() && bank != m_bank) {
             for (int n = 0; n < native_video::kObjectWords; n++) {
                 m_list[n] = c.bus.Read16(0x708000 + static_cast<uint32_t>(n) * 2);
             }
@@ -173,7 +187,7 @@ void NativeVideo::GameWrites(M68K &c, uint32_t address, uint16_t value, bool byt
     if (chip >= 0x800100 && chip < 0x800140) {
         const unsigned index = (chip & 0x3E) / 2;
         const uint16_t now = put(m_cpsA[index]);
-        if (index == 0x0A / 2 && checking) {
+        if (index == 0x0A / 2 && Active()) {
             // The palette's base: the chip takes the palette from there, the pages the game last asked for
             Palette(native_video::GamePalette(videoRam, 0x900000 + ((static_cast<uint32_t>(now) << 8) & 0x3FC00),
                                               static_cast<uint8_t>(m_cpsB[paletteControl / 2])));
@@ -186,7 +200,7 @@ void NativeVideo::GameWrites(M68K &c, uint32_t address, uint16_t value, bool byt
 }
 
 void NativeVideo::BoardObjects(const native_video::ObjectList &list, const native_video::PictureOptions &options) {
-    if (!checking) {
+    if (!Active()) {
         return;
     }
     if (m_bank < 0) {
@@ -199,6 +213,9 @@ void NativeVideo::BoardObjects(const native_video::ObjectList &list, const nativ
     mine.xOffset = m_objectRegs[4];
     mine.yOffset = m_objectRegs[5];
     m_raster.Objects(mine, options); // (the frame's objects, the game's side's)
+    if (!checking) {
+        return;
+    }
     if (mine == list) {
         m_listsSame++;
         return;
@@ -256,14 +273,13 @@ void NativeVideo::FrameStart(const native_video::PictureOptions &options) {
     m_frameOptions = options;
     m_frameEvents.clear();
     m_frameUploads.clear();
-    m_frameBoard.assign(static_cast<size_t>(native_video::Raster::kMaxWidth) * 224, 0);
+    if (checking) {
+        m_frameBoard.assign(static_cast<size_t>(native_video::Raster::kMaxWidth) * 224, 0);
+    }
 }
 
 void NativeVideo::FrameEnd() {
     m_inFrame = false;
-    if (!m_frameComparable) {
-        return;
-    }
     if (frameDrawn) {
         FrameData data;
         data.frame = frame;
@@ -273,8 +289,15 @@ void NativeVideo::FrameEnd() {
         data.uploads = &m_frameUploads;
         data.layers = m_frameLayers;
         data.options = m_frameOptions;
-        data.board = m_frameBoard.data();
+        data.board = checking ? m_frameBoard.data() : nullptr;
+        data.whole = m_frameComparable;
         frameDrawn(data, frameUser);
+    }
+    if (!m_frameComparable) {
+        return;
+    }
+    if (!checking) {
+        return;
     }
     // (how many bands the GPU will draw it in: one, and one more at each line a write comes before)
     // (only writes the drawing reads: into a map or the row scroll's table in use at that line, and palette uploads)
@@ -331,7 +354,7 @@ void NativeVideo::FrameEnd() {
 }
 
 void NativeVideo::BoardLine(int line, const uint32_t *pixels, const native_video::PictureOptions &options, bool comparable) {
-    if (!checking) {
+    if (!Active()) {
         return;
     }
     // (the frame drawn at once: its start, each line's layers and the board's line, its end)
@@ -341,12 +364,17 @@ void NativeVideo::BoardLine(int line, const uint32_t *pixels, const native_video
     }
     if (m_inFrame) {
         m_frameLayers[line] = native_video::DecodeLayers(m_cpsA, m_cpsB, m_objectRegs, layerControl, cps1Masks);
-        memcpy(&m_frameBoard[static_cast<size_t>(line) * native_video::Raster::kMaxWidth], pixels,
-               (native_video::Raster::kWidth + 2 * options.side) * sizeof(uint32_t));
+        if (checking) {
+            memcpy(&m_frameBoard[static_cast<size_t>(line) * native_video::Raster::kMaxWidth], pixels,
+                   (native_video::Raster::kWidth + 2 * options.side) * sizeof(uint32_t));
+        }
         m_frameRow = line + 1;
         if (line == 223) {
             FrameEnd();
         }
+    }
+    if (!checking) {
+        return; // (recording only: the record kept, the CPU's picture not drawn)
     }
     if (!comparable || m_bank < 0) {
         m_picturesNot++; // (another set's graphics, or before the game's first list: not compared)
@@ -371,13 +399,16 @@ void NativeVideo::BoardLine(int line, const uint32_t *pixels, const native_video
 }
 
 void NativeVideo::Palette(const native_video::PaletteUpload &upload) {
-    if (!checking) {
+    if (!Active()) {
         return;
     }
     m_raster.Upload(upload); // (the game's side's palette: its uploads')
     if (m_inFrame) {
         m_frameEvents.push_back({static_cast<int16_t>(m_frameRow), 0x80000000u | static_cast<uint32_t>(m_frameUploads.size()), 0});
         m_frameUploads.push_back(upload);
+    }
+    if (!checking) {
+        return;
     }
     if (m_hasPending) {
         m_gameOnly++;

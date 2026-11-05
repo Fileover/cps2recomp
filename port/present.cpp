@@ -467,6 +467,37 @@ void Presenter::Draw(SDL_GPUCommandBuffer *commands, SDL_GPUTexture *target, con
     SDL_EndGPURenderPass(pass);
 }
 
+bool Presenter::ShowDrawn(const std::function<SDL_GPUTexture *(SDL_GPUCommandBuffer *)> &draw, int width, int height,
+                          const SDL_FRect &where, const Zoomed *zoomed) {
+    if (m_shading || !m_device) {
+        return false;
+    }
+    SDL_GPUCommandBuffer *commands = SDL_AcquireGPUCommandBuffer(m_device);
+    if (!commands) {
+        return true;
+    }
+    SDL_GPUTexture *screen = nullptr;
+    Uint32 screenWidth = 0, screenHeight = 0;
+    if ((m_vsync ? SDL_WaitAndAcquireGPUSwapchainTexture(commands, m_window, &screen, &screenWidth, &screenHeight)
+                 : SDL_AcquireGPUSwapchainTexture(commands, m_window, &screen, &screenWidth, &screenHeight)) &&
+        screen) {
+        if (SDL_GPUTexture *picture = draw(commands)) {
+            // (the drawn picture in the uploaded one's place for this frame: Draw samples m_picture, m_width x m_height)
+            SDL_GPUTexture *const kept = m_picture;
+            const int keptWidth = m_width, keptHeight = m_height;
+            m_picture = picture;
+            m_width = width;
+            m_height = zoomed ? 2 * height : height;
+            Draw(commands, screen, where, zoomed, screenWidth, screenHeight);
+            m_picture = kept;
+            m_width = keptWidth;
+            m_height = keptHeight;
+        }
+    }
+    SDL_SubmitGPUCommandBuffer(commands);
+    return true;
+}
+
 void Presenter::Show(const uint32_t *pixels, int width, int height, const SDL_FRect &where, const Zoomed *zoomed, bool shade) {
     if (m_shading) {
         // Zoomed, the preset draws the whole picture and the camera closes in on what it drew, scanlines and all,

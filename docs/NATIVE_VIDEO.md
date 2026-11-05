@@ -465,28 +465,36 @@ same as the board's, pixel for pixel: 3,999 and 5,999 in the Alpha games, and so
 offsets stayed the same down every picture, Marvel Super Heroes' included. Taking objects away from the second pass
 (a test of the check) made the frames with objects on the screen differ at once.
 
-### Next: the GPU's picture on the screen
+### The GPU's picture on the screen (`--video gpu`)
 
-What has to change for the game to show the GPU's picture (the SDL_GPU presenter only; the SDL renderer's and the
-OpenGL shader presets' presenters keep the CPU's picture):
+With `--video gpu` the window shows the GPU's picture, where it can, when the presenter draws with SDL_GPU. The SDL
+renderer's presenter and the OpenGL shader presets' keep the CPU's picture.
 
-- **The record every frame.** `NativeVideo` keeps the frame's record when a renderer wants it, not only for the check,
-  and hands the presenter the last frame finished. The GPU draws it when the presenter shows a frame, in the same
-  command buffer, into the texture the presenter samples (`Presenter::Upload`'s place).
+- **The record every frame.** `NativeVideo::recording` keeps the game's side's records without comparing them, and at
+  each frame's end hands the frame over (`frameDrawn`). The GPU renderer keeps the last one (`GpuPicture::Keep`) and
+  draws it when the presenter shows a frame, in the same command buffer (`Presenter::ShowDrawn`, `DrawKept`), into the
+  texture the presenter samples in its upload's place. A frame the GPU does not draw yet (before the game's first
+  object list, another set's graphics, a game's picture settings such as widescreen, objects' offsets changing down
+  the picture) is shown from the CPU's picture, as before.
 - **The game's side in the save state.** What the game has said to each register, the list it handed over and the
-  palette as its uploads made it are the game's side's own. Online play's rollback and save states put the machine
-  back, so they put these back too (`NativeVideo::Serialize`, beside the machine's; a state is only read by the build
-  that wrote it, so adding to it is allowed), and `make check-rollback` shows a frame run again draws as it did.
-- **The readouts over it.** The training mode's readouts, hit boxes and input display, the status lines and the
-  online messages are drawn into the CPU's picture (`Port::Shown`, `DrawHud`), blended with what is under them
-  (`recomp::text::Canvas`). They are drawn instead into a picture of their own, clear where they draw nothing, its
-  colours with their alpha, put over the GPU's picture in the presenter's pass. Put over that way it is the same
-  blend, but for rounding: the game's picture is exact, the readouts within a step of a colour.
-- **The zoom.** Zoomed, the presenter takes the game's picture and the readouts' apart already (`Zoomed`: the
-  readout's panels kept where they are), so the two textures go where the two halves of today's one go.
-- **What stays on the CPU.** These go on reading the CPU's picture as today: screenshots, frame hashes, online play's
-  rolled-back frames (not drawn), the model viewer and the guest stages' pictures put together. A frame the GPU cannot
-  draw yet (a game's picture settings, objects' offsets changing down the picture) is the CPU's for that frame.
+  palette and objects as its records have them are put in the save state with the machine (`NativeVideo::Serialize`).
+  So online play's rollback and save states put them back too; a state is only read by the build that wrote it, so
+  adding to it is allowed. With `--rollback-test` and `--video check`, every record is the same and the hashes are a
+  plain run's. With the game's side left out of the state, 25 object lists and 149 picture lines of sfa2's versus movie
+  differ.
+- **The readouts over it.** The training mode's readouts, the hit boxes, the input display and the status lines are
+  drawn as the CPU's picture has them, twice: over black and over white (`Port::Readouts`). What they leave of what is
+  under them is the difference, so that gives each pixel's colour times its alpha, and its alpha, exactly, with no
+  change to the drawing. A last pass (`video/shaders/shown.frag`) puts them over the GPU's picture. Zoomed, the two are
+  stacked as the presenter takes them (the game's above, with the readouts below).
+- **Checked.** `--video gpu-check` also draws the kept frame with the readouts over it and compares it with the CPU's
+  picture with them (`Port::Shown`), within a step of a colour (the blend's rounding). In sfa2's training session
+  (5,500 frames, 3,666 with readouts on the screen), every frame was within a step.
+- **What stays on the CPU.** These go on using the CPU's picture: screenshots, frame hashes, online play's frames run
+  again (not drawn), the model viewer, and the guest stages' pictures put together.
+
+The window itself has not been looked at here (the checks run headless): `--video gpu` is for trying. Next: the
+games' picture settings and changing offsets on the GPU, so that every frame is drawn there.
 
 ## The frame drawn at once (the GPU's data, checked on the CPU)
 

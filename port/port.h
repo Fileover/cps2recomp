@@ -8,6 +8,7 @@
 #include "menu.h"
 #include "netplay.h"
 #include "present.h"
+#include "gpu_picture.h"
 #include "soundtrack.h"
 #include "zoom.h"
 
@@ -174,11 +175,21 @@ struct Port {
     void MenuPicture(std::vector<uint32_t> &pixels, uint32_t &width, uint32_t &height) const;
     // The picture with the readout over it (runtime/game.h, SetHud), as the window and screenshots show it; and
     // where on it the readout's panels went (none: not asked)
-    void Shown(std::vector<uint32_t> &pixels, std::vector<SDL_Rect> *panels = nullptr) const;
+    // (`over`: drawn over a picture all of `base` instead of the game's: for the readouts alone, Readouts)
+    void Shown(std::vector<uint32_t> &pixels, std::vector<SDL_Rect> *panels = nullptr, bool over = false, uint32_t base = 0) const;
+    // The readouts alone (all Shown draws over the game's picture), for the GPU's picture (gpu_picture.h): red, green,
+    // blue, alpha bytes, the colours times the alpha; from Shown over black and over white, whose difference is what
+    // the readouts leave of what is under them
+    void Readouts(std::vector<uint32_t> &rgba, std::vector<SDL_Rect> *panels = nullptr) const;
     // The camera's zoom (zoom.h), the window's: a gamepad's left stick held and a shoulder pressed
     Zoom zoom;
     // The picture for the window, a step of the zoom on: as Shown, or zoomed (true), as `zoomed` says (present.h)
-    bool Windowed(std::vector<uint32_t> &pixels, Zoomed &zoomed);
+    // (`readouts`: the readouts alone, as Readouts, and not stacked when zoomed: the GPU's picture stacks them)
+    bool Windowed(std::vector<uint32_t> &pixels, Zoomed &zoomed, bool readouts = false);
+    // The picture drawn on the GPU from the native records (--video gpu: docs/NATIVE_VIDEO.md), when the window's
+    // presenter draws with SDL_GPU
+    GpuPicture gpuPicture;
+    bool gpuWanted = false;
     // How many pixels a line of it has (the machine's picture: wider when the game's sources ask)
     int ShownWidth() const {
         return machine->PictureWidth();

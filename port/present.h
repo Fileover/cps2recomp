@@ -11,6 +11,7 @@
 #include <SDL3/SDL.h>
 
 #include <cstdint>
+#include <functional>
 #include <memory>
 #include <string>
 #include <vector>
@@ -78,6 +79,11 @@ public:
     // rectangle `where` of the window, the rest black (zoomed: part of it larger, as `zoomed` says). Shaded, through
     // the preset unless `shade` is false (the menu, drawn larger than the game's picture: only fitted to `where`)
     void Show(const uint32_t *pixels, int width, int height, const SDL_FRect &where, const Zoomed *zoomed = nullptr, bool shade = true);
+    // The same with a picture drawn on the GPU (gpu_picture.h): `draw` draws it in the frame's command buffer and gives
+    // its texture (`width` x `height`, twice as tall zoomed), or none, and then nothing is shown; false when the
+    // picture is not drawn with SDL_GPU here (SDL's renderer, a shader preset): Show the CPU's then
+    bool ShowDrawn(const std::function<SDL_GPUTexture *(SDL_GPUCommandBuffer *)> &draw, int width, int height, const SDL_FRect &where,
+                   const Zoomed *zoomed = nullptr);
     // Vsync (the Display page's VSync, issue #185): each picture shown when the screen next refreshes, so never
     // torn, and none left out for want of a free one of the window's. Off unless set (frames are paced by the port,
     // and shown as soon as made). The same after the presenter is opened again.
