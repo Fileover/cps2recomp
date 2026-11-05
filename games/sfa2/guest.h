@@ -52,6 +52,8 @@ inline cps2recomp::guest_stages::Guest Description() {
     // Its camera's ends: 256 and 640, the players from 280 to 1000, the floor 0x28 up (as Vampire Savior's)
     d.cameraLeft = 256;
     d.cameraRight = 640;
+    d.cameraAtX = 0xFF8290;
+    d.cameraAtY = 0xFF8294;
     d.camera = Guest::Camera::Extents;
     d.across = 0x01BFE0;
     d.up = 0x01C1D0;

@@ -47,6 +47,8 @@ inline cps2recomp::guest_stages::Guest Description() {
     // Its camera's ends: 256 and 640, the players from 280 to 1000, the floor 0x28 up (as Alpha 2's)
     d.cameraLeft = 256;
     d.cameraRight = 640;
+    d.cameraAtX = 0xFF8290;
+    d.cameraAtY = 0xFF8294;
     d.camera = Guest::Camera::Extents;
     d.across = 0x01E8F4;
     d.up = 0x01E962;
@@ -60,11 +62,47 @@ inline cps2recomp::guest_stages::Guest Description() {
     // (1DA3C), the stage's pieces (07D240, 084738) and the object list (01ABC8); its tunes by stage (family.h)
     d.mainLoop = 0x004E82;
     d.loopGoesOn = 0x004E8E;
-    d.build = {0x016C4E, 0x00A4BA, 0x01C256, 0x01C2B0, 0x01C336, 0x017144, 0x004D60, 0x01C140, 0x02207E, 0x01DA3C};
+    d.build = {0x016C4E, 0x00A4BA, 0x01C256, 0x01C2B0, 0x01C336, 0, 0x017144, 0x004D60, 0x01C140, 0x02207E, 0x01DA3C};
+    // (005AE4: the three scroll screens' records put to work, the camera's among them; 005AF6: the round's words)
+    d.buildStep = [](cps2recomp::M68K &c) {
+        c.bus.Write8(0xFF8200, 1);
+        c.bus.Write8(0xFF8280, 1);
+        c.bus.Write8(0xFF8300, 1);
+        c.bus.Write8(0xFF8102, 3);
+        c.bus.Write8(0xFF8103, 0);
+    };
     d.afterBuild = [](cps2recomp::M68K &c) {
         c.bus.Write16(0xFF8032, static_cast<uint16_t>(c.bus.Read16(0xFF8032) | 0x0E));
     };
     d.frame = {0x01DA3C, 0x07D240, 0x084738, 0x01ABC8};
+    d.placing = 0x01DA3C;
+    // (a round's own start: the three scroll screens' records back to their first step, +04, where the camera is put at
+    // the round's place and each is painted there)
+    d.roundStart = [](cps2recomp::M68K &c) {
+        c.bus.Write8(0xFF8204, 0);
+        c.bus.Write8(0xFF8284, 0);
+        c.bus.Write8(0xFF8304, 0);
+    };
+    // (the camera's most in a frame, +5C across and +5E up, set each frame at 01DA82, 5 and 1 in a match: as far as
+    // another game's camera goes, within a strip of the 8-pixel scroll screen, which is painted as it goes, 16)
+    d.hooks = {{0x01DA9A, [](cps2recomp::M68K &c) {
+                    c.bus.Write16(0xFF82DC, 16);
+                    c.bus.Write16(0xFF82DE, 16);
+                    return false;
+                }},
+               // (the train, Iron Horse, Iron Terror: its camera's own script, +05 of its record, is the train's arrival
+               // at a round's start, the camera put off by +50 and +54 and brought back, 01E098 on. A stage taken into
+               // another game's fight is one under way: past it, step 6, nothing off, the round begun, 103(A5); each time
+               // its record starts again, a round's start)
+               {0x01E098, [](cps2recomp::M68K &c) {
+                    const uint32_t camera = c.a[6] & 0xFFFFFF;
+                    c.bus.Write8(camera + 0x05, 6);
+                    for (uint32_t at = 0x50; at < 0x58; at += 2) {
+                        c.bus.Write16(camera + at, 0);
+                    }
+                    c.bus.Write8(0xFF8103, 1);
+                    return false;
+                }}};
     d.soundQueue = 0xFF0E0E;
     d.soundQueueEnd = 0xFF1E0E;
     d.stageTunes = {0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F, 0x10, 0x11, 0x12, 0x13, 0x14};

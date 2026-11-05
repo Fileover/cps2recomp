@@ -27,6 +27,8 @@
 #include "../machine/m68k.h"
 
 #include <cstdint>
+#include <cstdio>
+#include <utility>
 #include <vector>
 
 namespace cps2recomp {
@@ -72,6 +74,8 @@ struct Guest {
     uint32_t placeX = 0x10, placeY = 0x14, stepX = 0x34, stepY = 0x36, wayX = 0x2C, wayY = 0x2D;
     uint8_t wayRight = 4, wayLeft = 0, wayUp = 0x0C, wayDown = 0x08;
     int middle = 0xC0, halfApart = 0x60, above = 0x60; // (Extents: the picture's middle; the players' edges; height)
+    // Where its camera's place is kept, across and up (words), for the check (--stage-check): that it goes where wanted
+    uint32_t cameraAtX = 0, cameraAtY = 0;
 
     // Its stage alone, from its own stage code (a guest that says these): no game is played to a round and nothing of
     // the game but its stage runs. Its board is started and kept at the top of its main loop (`mainLoop`, where its
@@ -84,6 +88,18 @@ struct Guest {
     uint32_t mainLoop = 0, loopGoesOn = 0, a5 = 0xFF8000;
     std::vector<uint32_t> build, frame;
     void (*afterBuild)(M68K &c) = nullptr;
+    // ... and when the game's camera is put somewhere else at once (a round begun): the guest's own round's start, its
+    // camera put at the round's place and its stage painted there (its pieces and music go on)
+    void (*roundStart)(M68K &c) = nullptr;
+    // ... the routine of `frame` that places its scroll screens and its camera: called again, once a stage is built or
+    // its round started, until its camera is where wanted (as far as it goes in a call each time, painting as it goes),
+    // so that the stage is not seen to come there
+    uint32_t placing = 0;
+    // ... and hooks of its own in its code while its stage is alone (a camera let go as far in a frame as the game's
+    // goes, say): each told the CPU before the instruction there, as a game's hook is
+    std::vector<std::pair<uint32_t, bool (*)(M68K &c)>> hooks;
+    // (a 0 in `build`: what the game's own build does there in its own lines, not in a routine of its own)
+    void (*buildStep)(M68K &c) = nullptr;
     uint32_t soundQueue = 0, soundQueueEnd = 0;
     uint16_t soundQueueMask = 0xFFF;
     std::vector<uint16_t> stageTunes;
@@ -112,5 +128,10 @@ bool Available(int stage);
 // The game's sources describe themselves and their guests, after the rest of their registering (this goes around the
 // frame's callbacks and the state's)
 void Register(const Host &host, std::vector<Guest> guests);
+// The check (--stage-check): each frame another game's stage is shown, its camera against the place wanted for it (the
+// game's camera's, between the guest's ends); at the end, Report says how often and how far it was off, and false when
+// it stayed off longer than the camera takes to catch up (half a second)
+void Check(bool on);
+bool Report(FILE *out);
 
 } // namespace cps2recomp::guest_stages

@@ -118,9 +118,19 @@ public:
             }
         }
         fetchedWords = 0;
-        Execute(Fetch());
+        if (callLog) {
+            // (CPS2RECOMP_CALL_LOG: each jsr and bsr the interpreter runs, where from and where to)
+            const uint16_t op = bus.Fetch16(start);
+            Execute(Fetch());
+            if ((op & 0xFFC0) == 0x4E80 || (op & 0xFF00) == 0x6100) {
+                callLog(start, pc);
+            }
+        } else {
+            Execute(Fetch());
+        }
         RefillWait(start);
     }
+    void (*callLog)(uint32_t from, uint32_t to) = nullptr;
     uint64_t budget = 0; // translated code stops at the first block that starts at or after this
     // A wait (runtime/lift.h, Wait): the 68000 does nothing for so many cycles when it is next at `waitResume`
     // with the stack at `waitStack`; interrupts are taken meanwhile as they would be. When the wait is over
