@@ -852,7 +852,9 @@ int RunWindowed(Port &port) {
             if (port.gpuPicture.Device() != presenter.Device()) {
                 port.gpuPicture.Close();
                 std::string gpuError;
-                if (!port.gpuPicture.Open(presenter.Device(), port.roms.graphics.data(), port.roms.graphics.size(), gpuError)) {
+                if (!port.gpuPicture.Open(presenter.Device(), port.roms.graphics.data(), port.roms.graphics.size(), gpuError) ||
+                    (!port.extraRoms.graphics.empty() &&
+                     !port.gpuPicture.SetExtraGraphics(port.extraRoms.graphics.data(), port.extraRoms.graphics.size(), gpuError))) {
                     fprintf(stderr, "--video gpu: %s; the CPU's picture is shown\n", gpuError.c_str());
                     port.gpuWanted = false;
                 }

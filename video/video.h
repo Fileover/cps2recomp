@@ -146,7 +146,7 @@ public:
     // A CPS-2's picture from its own graphics: what --video check's picture drawn from the records is compared with
     // (another set's graphics, Vampire Savior Definitive's, are not in the records yet)
     bool ComparablePicture() const {
-        return !m_src.board.cps1 && !m_extraGraphics;
+        return !m_src.board.cps1;
     }
 
 private:

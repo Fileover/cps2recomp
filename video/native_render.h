@@ -42,6 +42,7 @@ struct ObjectTile {
     // taken, PictureOptions::object and hideObject)
     int16_t shift = 0;
     bool hidden = false;
+    bool extra = false; // (drawn from another set's graphics: ObjectList::fromExtra)
 };
 
 // A tile of a scroll screen beyond the board's own columns that the game's sources give in the map's place
@@ -60,6 +61,11 @@ public:
         m_graphics = graphics;
         m_graphicsSize = size;
     }
+    // Another set's graphics, which the objects and tiles marked so are drawn from (Vampire Savior Definitive's)
+    void SetExtraGraphics(const uint8_t *graphics, size_t size) {
+        m_extraGraphics = graphics;
+        m_extraGraphicsSize = size;
+    }
     // The palette: the colours an upload takes (its pages), as the board's palette memory keeps them
     void Upload(const PaletteUpload &upload);
     // The frame's objects: the list the game handed over, as the board takes it at the frame's start (and as the
@@ -68,7 +74,10 @@ public:
     // A line of the picture (0-223), from the layers' registers it is drawn with and video RAM (the game's maps and
     // its row scroll's table): kWidth + 2 x options.side pixels, red in the low byte, then green, then blue, and
     // the marks above (Video::RenderLine's)
-    void Line(int line, const Layers &layers, const uint8_t *videoRam, const PictureOptions &options, uint32_t *out) const;
+    // (`scrollExtra`: with another set's graphics, which of the maps' tiles are drawn from them, a byte for each four of
+    // video RAM)
+    void Line(int line, const Layers &layers, const uint8_t *videoRam, const PictureOptions &options, uint32_t *out,
+              const uint8_t *scrollExtra = nullptr) const;
     // The tiles the game's sources give beyond the board's columns on a line (options.tile asked, as Line asks it)
     void Overrides(int line, const Layers &layers, const uint8_t *videoRam, const PictureOptions &options,
                    std::vector<TileOverride> &out) const;
@@ -88,12 +97,12 @@ public:
 
 private:
     void DrawScroll(int which, int rasterLine, const Layers &layers, const uint8_t *videoRam, const PictureOptions &options, int width,
-                    uint16_t *pens, uint8_t *priority, uint8_t mark) const;
+                    uint16_t *pens, uint8_t *priority, uint8_t mark, const uint8_t *scrollExtra) const;
     void DrawObjects(int rasterLine, const Layers &layers, const PictureOptions &options, int width, uint16_t *pens, uint8_t *priority,
                      const uint32_t *masks) const;
 
-    const uint8_t *m_graphics = nullptr;
-    size_t m_graphicsSize = 0;
+    const uint8_t *m_graphics = nullptr, *m_extraGraphics = nullptr;
+    size_t m_graphicsSize = 0, m_extraGraphicsSize = 0;
     uint32_t m_colours[kPages * kPageColours] = {};
     std::vector<ObjectTile> m_tiles; // (the frame's, front to back)
     uint16_t m_priority = 0;         // (the object registers' priority control, as the list was taken)

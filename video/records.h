@@ -34,6 +34,9 @@ namespace native_video {
     struct ObjectList {
         uint16_t words[kObjectWords] = {};
         uint16_t priority = 0, xOffset = 0, yOffset = 0;
+        // (a game with another set's graphics, Vampire Savior Definitive's: which entries are drawn from them,
+        // Machine::objectsFromExtra)
+        uint8_t fromExtra[kObjectWords / 4] = {};
         bool operator==(const ObjectList &) const = default;
         void Describe(const ObjectList &other, FILE *out) const;
     };
@@ -71,7 +74,7 @@ namespace native_video {
     // (as Video::CopyPalette reads them)
     PaletteUpload DecodePalette(const uint8_t *videoRam, const uint16_t *cpsA, const uint16_t *cpsB, const Board &board);
     // ... the object list it takes, from the bank of object memory it latches and the object registers
-    ObjectList DecodeObjects(const uint8_t *bank, const uint16_t *objectRegs);
+    ObjectList DecodeObjects(const uint8_t *bank, const uint16_t *objectRegs, const uint8_t *fromExtra = nullptr);
     // ... the layers a line is drawn with, from CPS-A's and CPS-B's registers and the object registers (the game's side
     // makes them the same way, from what the game said to each)
     Layers DecodeLayers(const uint16_t *cpsA, const uint16_t *cpsB, const uint16_t *objectRegs, uint8_t layerControl,

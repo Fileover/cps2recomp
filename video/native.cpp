@@ -56,8 +56,11 @@ namespace native_video {
         }
     }
 
-    ObjectList DecodeObjects(const uint8_t *bank, const uint16_t *objectRegs) {
+    ObjectList DecodeObjects(const uint8_t *bank, const uint16_t *objectRegs, const uint8_t *fromExtra) {
         ObjectList list;
+        if (fromExtra) {
+            memcpy(list.fromExtra, fromExtra, sizeof(list.fromExtra));
+        }
         for (int n = 0; n < kObjectWords; n++) {
             list.words[n] = Word(&bank[n * 2]);
         }
@@ -136,6 +139,7 @@ void NativeVideo::Serialize(Archive &ar) {
     ar.Pod(m_cpsB);
     ar.Pod(m_bank);
     ar.Pod(m_list);
+    ar.Pod(m_listExtra);
     m_raster.Serialize(ar);
     if (!ar.Saving()) {
         m_inFrame = false; // (a frame begun before the state was put back is not one)
@@ -179,6 +183,10 @@ void NativeVideo::GameWrites(M68K &c, uint32_t address, uint16_t value, bool byt
             for (int n = 0; n < native_video::kObjectWords; n++) {
                 m_list[n] = c.bus.Read16(0x708000 + static_cast<uint32_t>(n) * 2);
             }
+            // (and which of its entries are drawn from another set's graphics: those of the bank it names)
+            if (objectsFromExtra) {
+                memcpy(m_listExtra, objectsFromExtra[bank], sizeof(m_listExtra));
+            }
         }
         m_bank = bank;
         return;
@@ -209,10 +217,17 @@ void NativeVideo::BoardObjects(const native_video::ObjectList &list, const nativ
     }
     native_video::ObjectList mine;
     memcpy(mine.words, m_list, sizeof(mine.words));
+    memcpy(mine.fromExtra, m_listExtra, sizeof(mine.fromExtra));
     mine.priority = m_objectRegs[2];
     mine.xOffset = m_objectRegs[4];
     mine.yOffset = m_objectRegs[5];
     m_raster.Objects(mine, options); // (the frame's objects, the game's side's)
+    for (uint8_t e : mine.fromExtra) {
+        if (e) {
+            m_listsExtra++; // (a list with entries drawn from another set's graphics)
+            break;
+        }
+    }
     if (!checking) {
         return;
     }
@@ -261,7 +276,8 @@ void NativeVideo::BoardLayers(const native_video::Layers &layers, int line) {
 void NativeVideo::VideoWritten(uint32_t address) {
     if (m_inFrame) {
         const uint32_t at = (address - 0x900000) & 0x3FFFE;
-        m_frameEvents.push_back({static_cast<int16_t>(m_frameRow), at, static_cast<uint16_t>((videoRam[at] << 8) | videoRam[at + 1])});
+        m_frameEvents.push_back({static_cast<int16_t>(m_frameRow), at, static_cast<uint16_t>((videoRam[at] << 8) | videoRam[at + 1]),
+                                 static_cast<uint8_t>(scrollFromExtra ? scrollFromExtra[at / 4] : 0)});
     }
 }
 
@@ -269,6 +285,15 @@ void NativeVideo::FrameStart(const native_video::PictureOptions &options) {
     m_inFrame = true;
     m_frameRow = 0;
     m_frameVideo.assign(videoRam, videoRam + 0x30000);
+    if (scrollFromExtra) {
+        m_frameScrollExtra.assign(scrollFromExtra, scrollFromExtra + 0x30000 / 4);
+        for (uint8_t e : m_frameScrollExtra) {
+            if (e) {
+                m_framesExtra++; // (a frame whose maps have tiles of another set's graphics)
+                break;
+            }
+        }
+    }
     m_frameRaster = m_raster; // (the palette as it is, and the frame's objects)
     m_frameOptions = options;
     m_frameEvents.clear();
@@ -288,6 +313,7 @@ void NativeVideo::FrameEnd() {
         data.events = &m_frameEvents;
         data.uploads = &m_frameUploads;
         data.layers = m_frameLayers;
+        data.scrollExtra = scrollFromExtra ? m_frameScrollExtra.data() : nullptr;
         data.overrides = m_frameOverrides;
         data.options = m_frameOptions;
         data.board = checking ? m_frameBoard.data() : nullptr;
@@ -335,10 +361,13 @@ void NativeVideo::FrameEnd() {
             } else {
                 m_frameVideo[e.address] = static_cast<uint8_t>(e.value >> 8);
                 m_frameVideo[e.address + 1] = static_cast<uint8_t>(e.value);
+                if (scrollFromExtra) {
+                    m_frameScrollExtra[e.address / 4] = e.extra;
+                }
             }
         }
         uint32_t mine[native_video::Raster::kMaxWidth];
-        m_frameRaster.Line(row, m_frameLayers[row], m_frameVideo.data(), m_frameOptions, mine);
+        m_frameRaster.Line(row, m_frameLayers[row], m_frameVideo.data(), m_frameOptions, mine, scrollFromExtra ? m_frameScrollExtra.data() : nullptr);
         if (memcmp(mine, &m_frameBoard[static_cast<size_t>(row) * native_video::Raster::kMaxWidth], width * sizeof(uint32_t)) != 0) {
             differ++;
         }
@@ -384,7 +413,7 @@ void NativeVideo::BoardLine(int line, const uint32_t *pixels, const native_video
         return;
     }
     uint32_t mine[native_video::Raster::kMaxWidth];
-    m_raster.Line(line, native_video::DecodeLayers(m_cpsA, m_cpsB, m_objectRegs, layerControl, cps1Masks), videoRam, options, mine);
+    m_raster.Line(line, native_video::DecodeLayers(m_cpsA, m_cpsB, m_objectRegs, layerControl, cps1Masks), videoRam, options, mine, scrollFromExtra);
     const int width = native_video::Raster::kWidth + 2 * options.side;
     int x = 0;
     while (x < width && mine[x] == pixels[x]) {
@@ -455,6 +484,10 @@ bool NativeVideo::Report(FILE *out) const {
                  "game gave its first)\n",
             static_cast<unsigned long long>(m_listsSame), static_cast<unsigned long long>(m_listsDiffer),
             static_cast<unsigned long long>(m_listsBefore));
+    if (objectsFromExtra) {
+        fprintf(out, "video check: another set's graphics: %llu object lists with entries drawn from them, %llu frames with tiles\n",
+                static_cast<unsigned long long>(m_listsExtra), static_cast<unsigned long long>(m_framesExtra));
+    }
     fprintf(out, "video check: lines: %llu drawn with the same layers' registers as the game's side has, %llu not\n",
             static_cast<unsigned long long>(m_linesSame), static_cast<unsigned long long>(m_linesDiffer));
     fprintf(out, "video check: picture: %llu lines drawn from the game's side's records the same as the board's, %llu not (and %llu "

@@ -95,6 +95,7 @@ void Raster::Objects(const ObjectList &list, const PictureOptions &options) {
                 t.attributes = attr;
                 t.shift = static_cast<int16_t>(options.object ? options.object(code, attr, i / 4) : 0);
                 t.hidden = options.hideObject && options.hideObject(code, attr);
+                t.extra = list.fromExtra[i / 4] != 0;
                 m_tiles.push_back(t);
             }
         }
@@ -102,7 +103,7 @@ void Raster::Objects(const ObjectList &list, const PictureOptions &options) {
 }
 
 void Raster::DrawScroll(int which, int rasterLine, const Layers &layers, const uint8_t *videoRam, const PictureOptions &options, int width,
-                        uint16_t *pens, uint8_t *priority, uint8_t mark) const {
+                        uint16_t *pens, uint8_t *priority, uint8_t mark, const uint8_t *scrollExtra) const {
     const uint32_t base = (static_cast<uint32_t>(layers.maps[which]) * 256) & ~0x3FFFu & 0x3FFFF;
     const uint8_t *map = &videoRam[base];
     const int shift = 3 + which, size = 1 << shift;
@@ -151,13 +152,16 @@ void Raster::DrawScroll(int which, int rasterLine, const Layers &layers, const u
         const int line = static_cast<int>(y & (size - 1));
         const bool flipX = attr & 0x20, flipY = attr & 0x40;
         at += static_cast<uint32_t>(flipY ? size - 1 - line : line) * rowBytes;
-        if (at + rowBytes > m_graphicsSize) {
+        // (a tile of another set's: in its graphics)
+        const bool extra = m_extraGraphics && scrollExtra && scrollExtra[(base + index * 4) / 4];
+        const uint8_t *graphics = extra ? m_extraGraphics : m_graphics;
+        if (at + rowBytes > (extra ? m_extraGraphicsSize : m_graphicsSize)) {
             continue;
         }
         const uint16_t colour = static_cast<uint16_t>(((attr & 0x1F) + colourBase) * 16);
         uint8_t pixels[32];
         for (int part = 0; part < size / 8; part++) {
-            Unpack(&m_graphics[at + part * 4], &pixels[part * 8]);
+            Unpack(&graphics[at + part * 4], &pixels[part * 8]);
         }
         for (int k = 0; k < size; k++) {
             const int x = out + k;
@@ -237,12 +241,13 @@ void Raster::DrawObjects(int rasterLine, const Layers &layers, const PictureOpti
         }
         const int line = rasterLine - sy;
         const uint32_t at = t.tile * 128 + static_cast<uint32_t>(t.flipY ? 15 - line : line) * 8;
-        if (at + 8 > m_graphicsSize) {
+        const uint8_t *graphics = t.extra && m_extraGraphics ? m_extraGraphics : m_graphics;
+        if (at + 8 > (t.extra && m_extraGraphics ? m_extraGraphicsSize : m_graphicsSize)) {
             continue;
         }
         uint8_t pixels[16];
-        Unpack(&m_graphics[at], pixels);
-        Unpack(&m_graphics[at + 4], pixels + 8);
+        Unpack(&graphics[at], pixels);
+        Unpack(&graphics[at + 4], pixels + 8);
         const uint32_t mask = masks[t.level] | 0x80000000u;
         for (int k = 0; k < 16; k++) {
             const int px = sx + k;
@@ -287,7 +292,8 @@ static void FillHoles(uint16_t *pens, int width, int side) {
     }
 }
 
-void Raster::Line(int line, const Layers &layers, const uint8_t *videoRam, const PictureOptions &options, uint32_t *out) const {
+void Raster::Line(int line, const Layers &layers, const uint8_t *videoRam, const PictureOptions &options, uint32_t *out,
+                  const uint8_t *scrollExtra) const {
     const int rasterLine = line + kFirstLine;
     const int width = kWidth + 2 * options.side;
     uint16_t pens[kMaxWidth];
@@ -364,7 +370,7 @@ void Raster::Line(int line, const Layers &layers, const uint8_t *videoRam, const
     for (int n = 0; n < 3; n++) {
         if (order[n] && on(order[n])) {
             DrawScroll(static_cast<int>(order[n]) - 1, rasterLine, layers, videoRam, options, width, pens, priority,
-                       static_cast<uint8_t>(1u << n));
+                       static_cast<uint8_t>(1u << n), scrollExtra);
         }
     }
     // (holes filled from the scroll screens alone, before the objects)

@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- **Vampire Savior Definitive's picture from the game's level and on the GPU**
+  ([docs/NATIVE_VIDEO.md](docs/NATIVE_VIDEO.md)): the sprites and tiles of the three characters taken from Vampire
+  Savior 2 are drawn from that game's graphics in the picture made from the records and on the GPU too, the same as
+  the board's. Nothing changes in play.
 - **The GPU's picture in widescreen** ([docs/NATIVE_VIDEO.md](docs/NATIVE_VIDEO.md)): what a game's widescreen sets on
   the picture (the wider picture, the stage's tiles beyond the board's columns, moved sprites, filled holes) is drawn on
   the GPU too, the same as the board's, pixel for pixel, in every game that has widescreen. Nothing changes in play.

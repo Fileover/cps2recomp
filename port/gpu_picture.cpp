@@ -125,6 +125,8 @@ bool GpuPicture::Open(SDL_GPUDevice *device, const uint8_t *graphics, size_t siz
     m_lines = MakeBuffer(m_device, (kHeight * kLineWords + 1) * 4);
     m_frame = MakeBuffer(m_device, 8 * 4);
     m_overrides = MakeBuffer(m_device, kHeight * kOverrides * 2 * 4);
+    m_extraGraphics = MakeBuffer(m_device, 4); // (none: SetExtraGraphics puts a set's there)
+    m_scrollExtra = MakeBuffer(m_device, kVideoBytes / 4);
     m_screens = MakeTexture(m_device, SDL_GPU_TEXTUREFORMAT_R32_UINT, target, kMaxWidth, kHeight);
     m_holes = MakeTexture(m_device, SDL_GPU_TEXTUREFORMAT_R32_UINT, target, kMaxWidth, kHeight);
     m_objects = MakeTexture(m_device, SDL_GPU_TEXTUREFORMAT_R32_UINT, target, kMaxWidth, kHeight);
@@ -140,7 +142,8 @@ bool GpuPicture::Open(SDL_GPUDevice *device, const uint8_t *graphics, size_t siz
     sampler.address_mode_u = sampler.address_mode_v = sampler.address_mode_w = SDL_GPU_SAMPLERADDRESSMODE_CLAMP_TO_EDGE;
     m_sampler = SDL_CreateGPUSampler(m_device, &sampler);
     if (!m_graphics || !m_video || !m_lines || !m_frame || !m_screens || !m_objects || !m_depth || !m_lineTexture || !m_palette ||
-        !m_picture || !m_readouts || !m_clear || !m_overrides || !m_holes || !m_sampler || !MakePipelines(error)) {
+        !m_picture || !m_readouts || !m_clear || !m_overrides || !m_holes || !m_extraGraphics || !m_scrollExtra || !m_sampler ||
+        !MakePipelines(error)) {
         if (error.empty()) {
             error = std::string("the picture's GPU resources: ") + SDL_GetError();
         }
@@ -191,16 +194,43 @@ bool GpuPicture::Open(SDL_GPUDevice *device, const uint8_t *graphics, size_t siz
     return true;
 }
 
+bool GpuPicture::SetExtraGraphics(const uint8_t *graphics, size_t size, std::string &error) {
+    SDL_ReleaseGPUBuffer(m_device, m_extraGraphics);
+    m_extraGraphics = MakeBuffer(m_device, size);
+    SDL_GPUTransferBufferCreateInfo info = {};
+    info.usage = SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD;
+    info.size = static_cast<Uint32>((size + 3) & ~size_t{3});
+    SDL_GPUTransferBuffer *transfer = SDL_CreateGPUTransferBuffer(m_device, &info);
+    if (!m_extraGraphics || !transfer) {
+        error = std::string("the other set's graphics: ") + SDL_GetError();
+        return false;
+    }
+    auto *to = static_cast<uint8_t *>(SDL_MapGPUTransferBuffer(m_device, transfer, false));
+    memset(to, 0, info.size);
+    memcpy(to, graphics, size);
+    SDL_UnmapGPUTransferBuffer(m_device, transfer);
+    SDL_GPUCommandBuffer *commands = SDL_AcquireGPUCommandBuffer(m_device);
+    SDL_GPUCopyPass *copy = SDL_BeginGPUCopyPass(commands);
+    SDL_GPUTransferBufferLocation from = {transfer, 0};
+    SDL_GPUBufferRegion region = {m_extraGraphics, 0, info.size};
+    SDL_UploadToGPUBuffer(copy, &from, &region, false);
+    SDL_EndGPUCopyPass(copy);
+    SDL_SubmitGPUCommandBuffer(commands);
+    SDL_ReleaseGPUTransferBuffer(m_device, transfer);
+    m_extraGraphicsSize = size;
+    return true;
+}
+
 bool GpuPicture::MakePipelines(std::string &error) {
     SDL_GPUShader *fill = MakeShader(m_device, SDL_GPU_SHADERSTAGE_VERTEX, k_fill_vert_spirv, sizeof(k_fill_vert_spirv), k_fill_vert_msl, 0, 0);
     SDL_GPUShader *layers = MakeShader(m_device, SDL_GPU_SHADERSTAGE_FRAGMENT, k_layers_frag_spirv, sizeof(k_layers_frag_spirv),
-                                       k_layers_frag_msl, 0, 4);
+                                       k_layers_frag_msl, 0, 6);
     SDL_GPUShader *holes = MakeShader(m_device, SDL_GPU_SHADERSTAGE_FRAGMENT, k_holes_frag_spirv, sizeof(k_holes_frag_spirv),
                                       k_holes_frag_msl, 2, 0);
     SDL_GPUShader *objectsVert = MakeShader(m_device, SDL_GPU_SHADERSTAGE_VERTEX, k_objects_vert_spirv, sizeof(k_objects_vert_spirv),
                                             k_objects_vert_msl, 0, 2);
     SDL_GPUShader *objectsFrag = MakeShader(m_device, SDL_GPU_SHADERSTAGE_FRAGMENT, k_objects_frag_spirv, sizeof(k_objects_frag_spirv),
-                                            k_objects_frag_msl, 0, 1);
+                                            k_objects_frag_msl, 0, 2);
     SDL_GPUShader *colours = MakeShader(m_device, SDL_GPU_SHADERSTAGE_FRAGMENT, k_colours_frag_spirv, sizeof(k_colours_frag_spirv),
                                         k_colours_frag_msl, 4, 0);
     SDL_GPUShader *shown = MakeShader(m_device, SDL_GPU_SHADERSTAGE_FRAGMENT, k_shown_frag_spirv, sizeof(k_shown_frag_spirv),
@@ -255,7 +285,7 @@ void GpuPicture::Close() {
     if (!m_device) {
         return;
     }
-    for (SDL_GPUBuffer *buffer : {m_graphics, m_video, m_lines, m_tiles, m_frame, m_overrides}) {
+    for (SDL_GPUBuffer *buffer : {m_graphics, m_video, m_lines, m_tiles, m_frame, m_overrides, m_extraGraphics, m_scrollExtra}) {
         if (buffer) {
             SDL_ReleaseGPUBuffer(m_device, buffer);
         }
@@ -284,7 +314,8 @@ void GpuPicture::Close() {
     }
     m_device = nullptr;
     m_ownDevice = false;
-    m_graphics = m_video = m_lines = m_tiles = m_frame = m_overrides = nullptr;
+    m_graphics = m_video = m_lines = m_tiles = m_frame = m_overrides = m_extraGraphics = m_scrollExtra = nullptr;
+    m_extraGraphicsSize = 0;
     m_tilesCapacity = 0;
     m_screens = m_holes = m_objects = m_depth = m_lineTexture = m_palette = m_picture = m_readouts = m_clear = m_shown = m_stack = nullptr;
     m_shownWidth = 0;
@@ -332,10 +363,11 @@ void GpuPicture::Draw(SDL_GPUCommandBuffer *commands, const NativeVideo::FrameDa
     starts.push_back(kHeight);
     // What goes up, laid out in one transfer buffer: video RAM; the lines' records (for the first pass, and as a texture
     // for the third); the tiles; the frame's numbers; and for each band its palette and its part of video RAM
-    const size_t linesBytes = (kHeight * kLineWords + 1) * 4, tilesBytes = std::max<size_t>(tiles.size(), 1) * 16;
+    const size_t linesBytes = (kHeight * kLineWords + 2) * 4, tilesBytes = std::max<size_t>(tiles.size(), 1) * 16;
     const size_t paletteBytes = kPaletteWidth * kPaletteHeight * 4;
     const size_t overridesBytes = kHeight * kOverrides * 2 * 4;
-    const size_t need = kVideoBytes + linesBytes + tilesBytes + 32 + overridesBytes + starts.size() * (paletteBytes + kVideoBytes);
+    const size_t need = kVideoBytes + linesBytes + tilesBytes + 32 + overridesBytes + kVideoBytes / 4 +
+                        starts.size() * (paletteBytes + kVideoBytes + kVideoBytes / 4);
     const int width = kWidth + 2 * frame.options.side; // (the picture's: wider when the game's sources ask)
     if (need > m_uploadSize) {
         if (m_upload) {
@@ -367,6 +399,7 @@ void GpuPicture::Draw(SDL_GPUCommandBuffer *commands, const NativeVideo::FrameDa
         LineRecord(line, frame.layers[line], raster.Priority(), frame.options, overrides, &lineWords[line * kLineWords]);
     }
     lineWords[kHeight * kLineWords] = static_cast<uint32_t>(m_graphicsSize);
+    lineWords[kHeight * kLineWords + 1] = frame.scrollExtra ? static_cast<uint32_t>(m_extraGraphicsSize) : 0;
     at += linesBytes;
     const size_t tilesAt = at;
     auto *tileWords = reinterpret_cast<uint32_t *>(up + at);
@@ -380,8 +413,8 @@ void GpuPicture::Draw(SDL_GPUCommandBuffer *commands, const NativeVideo::FrameDa
         tileWords[n * 4] = static_cast<uint32_t>(static_cast<uint16_t>(t.x)) | (static_cast<uint32_t>(static_cast<uint16_t>(t.y)) << 16);
         tileWords[n * 4 + 1] = static_cast<uint16_t>(t.shift); // (where the game's sources move it: PictureOptions::object)
         tileWords[n * 4 + 2] = t.tile;
-        tileWords[n * 4 + 3] = t.colour | (t.flipX ? 1u << 16 : 0) | (t.flipY ? 1u << 17 : 0) | (t.relative ? 1u << 19 : 0) |
-                               (static_cast<uint32_t>(t.level) << 20);
+        tileWords[n * 4 + 3] = t.colour | (t.flipX ? 1u << 16 : 0) | (t.flipY ? 1u << 17 : 0) | (t.extra ? 1u << 18 : 0) |
+                               (t.relative ? 1u << 19 : 0) | (static_cast<uint32_t>(t.level) << 20);
     }
     at += tilesBytes;
     const size_t frameAt = at;
@@ -392,6 +425,7 @@ void GpuPicture::Draw(SDL_GPUCommandBuffer *commands, const NativeVideo::FrameDa
     frameWords[3] = static_cast<uint32_t>(width);
     frameWords[4] = static_cast<uint32_t>(m_graphicsSize);
     frameWords[5] = static_cast<uint32_t>(frame.options.side);
+    frameWords[6] = static_cast<uint32_t>(m_extraGraphicsSize);
     at += 32;
     // Each line's tiles given beyond the board's columns: the column (16 bits) and the screen above; the tile and its
     // attributes
@@ -407,11 +441,20 @@ void GpuPicture::Draw(SDL_GPUCommandBuffer *commands, const NativeVideo::FrameDa
         }
     }
     at += overridesBytes;
+    // Which tiles are another set's, as the frame began
+    const size_t scrollExtraAt = at;
+    if (frame.scrollExtra) {
+        m_scrollExtraNow.assign(frame.scrollExtra, frame.scrollExtra + kVideoBytes / 4);
+    } else {
+        m_scrollExtraNow.assign(kVideoBytes / 4, 0);
+    }
+    memcpy(up + at, m_scrollExtraNow.data(), kVideoBytes / 4);
+    at += kVideoBytes / 4;
     // Each band's palette and video RAM's range written before it
     Raster colours = raster; // (the palette, as the uploads change it band by band)
     struct Band {
-        size_t paletteAt, videoAt;
-        uint32_t videoFrom, videoSize;
+        size_t paletteAt, videoAt, extraAt;
+        uint32_t videoFrom, videoSize, extraFrom, extraSize;
     };
     std::vector<Band> bands;
     size_t next = 0;
@@ -426,11 +469,14 @@ void GpuPicture::Draw(SDL_GPUCommandBuffer *commands, const NativeVideo::FrameDa
                 m_videoNow[e.address + 1] = static_cast<uint8_t>(e.value);
                 low = std::min(low, e.address & ~3u);
                 high = std::max(high, (e.address + 4) & ~3u);
+                if (frame.scrollExtra && !(e.address & 2)) {
+                    m_scrollExtraNow[e.address / 4] = e.extra;
+                }
             } else {
                 // (before the first line: in the copy already, the writes having been made before it was taken)
             }
         }
-        Band band = {at, 0, 0, 0};
+        Band band = {at, 0, 0, 0, 0, 0, 0};
         memcpy(up + at, colours.Colours(), paletteBytes);
         at += paletteBytes;
         if (high > low) {
@@ -439,6 +485,15 @@ void GpuPicture::Draw(SDL_GPUCommandBuffer *commands, const NativeVideo::FrameDa
             band.videoSize = high - low;
             memcpy(up + at, &m_videoNow[low], high - low);
             at += high - low;
+            if (frame.scrollExtra) {
+                // (the marks of the same entries: a byte each, from a whole word of them)
+                const uint32_t from = (low / 4) & ~3u, to = std::min<uint32_t>(((high / 4) + 3) & ~3u, kVideoBytes / 4);
+                band.extraAt = at;
+                band.extraFrom = from;
+                band.extraSize = to - from;
+                memcpy(up + at, &m_scrollExtraNow[from], to - from);
+                at += to - from;
+            }
         }
         bands.push_back(band);
     }
@@ -468,6 +523,7 @@ void GpuPicture::Draw(SDL_GPUCommandBuffer *commands, const NativeVideo::FrameDa
     }
     upload(frameAt, m_frame, 0, 32);
     upload(overridesAt, m_overrides, 0, overridesBytes);
+    upload(scrollExtraAt, m_scrollExtra, 0, kVideoBytes / 4);
     SDL_EndGPUCopyPass(copy);
 
     // The objects, once for the frame: the front one's pen and level at each pixel
@@ -490,7 +546,8 @@ void GpuPicture::Draw(SDL_GPUCommandBuffer *commands, const NativeVideo::FrameDa
             SDL_BindGPUGraphicsPipeline(pass, m_objectsPipeline);
             SDL_GPUBuffer *vertexBuffers[2] = {m_tiles, m_frame};
             SDL_BindGPUVertexStorageBuffers(pass, 0, vertexBuffers, 2);
-            SDL_BindGPUFragmentStorageBuffers(pass, 0, &m_graphics, 1);
+            SDL_GPUBuffer *graphicsBuffers[2] = {m_graphics, m_extraGraphics};
+            SDL_BindGPUFragmentStorageBuffers(pass, 0, graphicsBuffers, 2);
             SDL_DrawGPUPrimitives(pass, 6, static_cast<Uint32>(drawnTiles), 0, 0);
         }
         SDL_EndGPURenderPass(pass);
@@ -501,6 +558,9 @@ void GpuPicture::Draw(SDL_GPUCommandBuffer *commands, const NativeVideo::FrameDa
         copy = SDL_BeginGPUCopyPass(commands);
         if (band.videoSize) {
             upload(band.videoAt, m_video, band.videoFrom, band.videoSize);
+        }
+        if (band.extraSize) {
+            upload(band.extraAt, m_scrollExtra, band.extraFrom, band.extraSize);
         }
         uploadTexture(band.paletteAt, m_palette, kPaletteWidth, kPaletteHeight);
         SDL_EndGPUCopyPass(copy);
@@ -514,8 +574,8 @@ void GpuPicture::Draw(SDL_GPUCommandBuffer *commands, const NativeVideo::FrameDa
             SDL_SetGPUViewport(pass, &viewport);
             SDL_SetGPUScissor(pass, &scissor);
             SDL_BindGPUGraphicsPipeline(pass, m_layersPipeline);
-            SDL_GPUBuffer *buffers[4] = {m_graphics, m_video, m_lines, m_overrides};
-            SDL_BindGPUFragmentStorageBuffers(pass, 0, buffers, 4);
+            SDL_GPUBuffer *buffers[6] = {m_graphics, m_video, m_lines, m_overrides, m_extraGraphics, m_scrollExtra};
+            SDL_BindGPUFragmentStorageBuffers(pass, 0, buffers, 6);
             SDL_DrawGPUPrimitives(pass, 3, 1, 0, 0);
             SDL_EndGPURenderPass(pass);
         }
@@ -567,6 +627,11 @@ void GpuPicture::Keep(const NativeVideo::FrameData &frame) {
         }
     }
     m_kept.options = frame.options;
+    if (frame.scrollExtra) {
+        m_kept.scrollExtra.assign(frame.scrollExtra, frame.scrollExtra + kVideoBytes / 4);
+    } else {
+        m_kept.scrollExtra.clear();
+    }
     m_kept.drawable = Drawable(frame);
     m_hasKept = true;
 }
@@ -584,6 +649,7 @@ SDL_GPUTexture *GpuPicture::DrawKept(SDL_GPUCommandBuffer *commands, const uint3
     frame.layers = m_kept.layers;
     frame.overrides = m_kept.overrides;
     frame.options = m_kept.options;
+    frame.scrollExtra = m_kept.scrollExtra.empty() ? nullptr : m_kept.scrollExtra.data();
     Draw(commands, frame);
     const int width = KeptWidth();
     if (width != m_shownWidth) {

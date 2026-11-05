@@ -427,7 +427,8 @@ bool Port::Init(std::string &error) {
         // (each frame drawn on the GPU as well, on a device of the check's own, no window: port/gpu_picture.h)
         static port::GpuPicture checkPicture;
         std::string gpuError;
-        if (!checkPicture.Open(nullptr, roms.graphics.data(), roms.graphics.size(), gpuError)) {
+        if (!checkPicture.Open(nullptr, roms.graphics.data(), roms.graphics.size(), gpuError) ||
+            (!extraRoms.graphics.empty() && !checkPicture.SetExtraGraphics(extraRoms.graphics.data(), extraRoms.graphics.size(), gpuError))) {
             error = "--video gpu-check: " + gpuError;
             return false;
         }

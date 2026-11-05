@@ -6,10 +6,10 @@
 // is the one left at each pixel, whatever order they are drawn in (the board's: the first object to cover a pixel keeps
 // it). As native_render.cpp's DrawObjects.
 layout(std430, set = 0, binding = 0) readonly buffer Tiles { uint tiles[]; };   // 4 words a tile (gpu_picture.cpp)
-layout(std430, set = 0, binding = 1) readonly buffer Frame { uint frame[]; };   // the offsets across and down, the tiles' count, the width, the graphics' size, the side
+layout(std430, set = 0, binding = 1) readonly buffer Frame { uint frame[]; };   // the offsets across and down, the tiles' count, the width, the graphics' size, the side, another set's graphics' size
 layout(location = 0) out vec2 within;       // (the pixel of the tile, 0-16 across and down)
 layout(location = 1) flat out uint tile;
-layout(location = 3) flat out uint graphicsSize;
+layout(location = 3) flat out uint graphicsSize; // (of the graphics it is drawn from: another set's, marked so)
 layout(location = 2) flat out uint looks;   // the pen of its colour set's first (bits 0-15), flips (16, 17), marked (19), level (20-22)
 
 void main() {
@@ -17,7 +17,7 @@ void main() {
     const uint w0 = tiles[i * 4u], w1 = tiles[i * 4u + 1u];
     tile = tiles[i * 4u + 2u];
     looks = tiles[i * 4u + 3u];
-    graphicsSize = frame[4];
+    graphicsSize = (looks & 0x40000u) != 0u ? frame[6] : frame[4];
     const int xOffset = int(frame[0]), yOffset = int(frame[1]);
     int x = int(w0 & 0xFFFFu), y = int(w0 >> 16);
     if ((looks & 0x80000u) != 0u) { // (marked to take the offsets)

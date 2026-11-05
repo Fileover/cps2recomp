@@ -10,6 +10,7 @@ layout(location = 2) flat in uint looks;
 layout(location = 3) flat in uint graphicsSize;
 layout(location = 0) out uint result;
 layout(std430, set = 2, binding = 0) readonly buffer Graphics { uint graphics[]; };
+layout(std430, set = 2, binding = 1) readonly buffer ExtraGraphics { uint extraGraphics[]; }; // (bit 18 of `looks`: from these)
 
 void main() {
     const uint k = min(uint(within.x), 15u), line = min(uint(within.y), 15u);
@@ -20,8 +21,13 @@ void main() {
     }
     const uint p = flipX ? 15u - k : k;
     const uint part = at + (p >> 3) * 4u, s = 7u - (p & 7u);
-    const uint value = ((BYTE(graphics, part) >> s) & 1u) | (((BYTE(graphics, part + 1u) >> s) & 1u) << 1) |
-                       (((BYTE(graphics, part + 2u) >> s) & 1u) << 2) | (((BYTE(graphics, part + 3u) >> s) & 1u) << 3);
+    uint b0, b1, b2, b3;
+    if ((looks & 0x40000u) != 0u) {
+        b0 = BYTE(extraGraphics, part); b1 = BYTE(extraGraphics, part + 1u); b2 = BYTE(extraGraphics, part + 2u); b3 = BYTE(extraGraphics, part + 3u);
+    } else {
+        b0 = BYTE(graphics, part); b1 = BYTE(graphics, part + 1u); b2 = BYTE(graphics, part + 2u); b3 = BYTE(graphics, part + 3u);
+    }
+    const uint value = ((b0 >> s) & 1u) | (((b1 >> s) & 1u) << 1) | (((b2 >> s) & 1u) << 2) | (((b3 >> s) & 1u) << 3);
     if (value == 15u) {
         discard;
     }
