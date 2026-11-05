@@ -240,8 +240,7 @@ below), these watches become part of it.
 `build.mk` gives the translator the rewrites' addresses as hooks (`video_hooks.txt`) and the instructions as watches
 (`video_watches.txt`).
 
-The two kinds sit in eight games so far, one or two of each family's version. The other games of a family have the
-same code and get the same lines once they have been run. Results, with `--video check` over attract mode (4,000
+The two kinds were first put in eight games, one or two of each family's version. Results, with `--video check` over attract mode (4,000
 frames) and the ladder movie (6,000; Giga Wing's with `free_play,invincible`, the rest `free_play,no_damage,one_hit`),
 and the ladder's frame hashes against a build without the lifts:
 
@@ -320,16 +319,26 @@ the registers the game's side has, in all eight games (Marvel Super Heroes' line
 among them); the palette's uploads and the object lists as before, all the same; the frame hashes the same as without
 the lifts.
 
+## Every CPS-2 game
+
+The other thirteen CPS-2 games (sfa, sfz2al, sfa3, pocket_fighter, puzzle_fighter, vsav2, vhunt2, vsav_definitive,
+hsf2, nwarr, xmcota, mvsc, xmvsf) got their lines from their listings alone: the Alpha games' commit routine (the same
+version in each), and every `move` or `clr` to a fixed video register. With all three records checked over attract mode
+and the ladder (Vampire Savior Definitive: attract mode; it has no ladder movie), every palette upload, every object
+list and every line was the same from both sides, none was made by code not native, and the frame hashes were the same
+as the `widescreen-stage-ends` builds' (without the lifts), all of each run's frames. So in all 21 CPS-2 games the
+game's side now has every palette upload, every object list and every line's layers. The CPS-1 games (dino, punisher)
+are left: another board.
+
 ## Order of work
 
 Sizes: S a session, M a few, L a week or more.
 
-1. **Palettes**: done for the eight games above; the same lines for the other twelve CPS-2 games, each run once
-   (S together); the CPS-1 games' palette control (another register, S).
-2. **The object list:** the list handed over at the bank swap, checked against the board's each frame: done for the
-   eight games. Then the drawers' entries as `Object`s from the piece writers themselves (the Alpha library's list
+1. **Palettes**: done in every CPS-2 game; the CPS-1 games' palette control (another register, S).
+2. **The object list:** the list handed over at the bank swap, checked against the board's each frame: done in every
+   CPS-2 game. Then the drawers' entries as `Object`s from the piece writers themselves (the Alpha library's list
    builder): M for Alpha, M for Marvel; SF2's copy in the interrupt, S.
-3. **The layers' registers**, line by line: done for the eight games. Next: the same records made from the game's own
+3. **The layers' registers**, line by line: done in every CPS-2 game. Next: the same records made from the game's own
    shadows (the commit routines rewritten, sfa2's `FrameRegisters` among them, which moves to the toolkit). M.
 4. **Raster bands:** Marvel (seen); the Vampire games and Giga Wing set the counters but changed nothing in these
    runs. S-M.

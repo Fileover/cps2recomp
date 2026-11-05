@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- **The picture at the game's level in every CPS-2 game**: the palette's uploads, the object lists and the layers'
+  registers, checked against the board's, now in all 21 CPS-2 games of the collection. Nothing changes in play.
 - **The picture at the game's level: the layers' registers** ([docs/NATIVE_VIDEO.md](docs/NATIVE_VIDEO.md)): where the
   game's scroll layers are, where each is scrolled to, the row scroll and the layers' order, as the game sets them,
   are checked against the board's on every line drawn, in the same eight games. Nothing changes in play.
