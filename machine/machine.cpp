@@ -243,7 +243,12 @@ void Machine::RunLine() {
     }
     if (drawing && m_line >= Video::kFirstLine && m_line < Video::kFirstLine + Video::kHeight) {
         const int row = m_line - Video::kFirstLine;
-        video.RenderLine(row, &m_picture[static_cast<size_t>(row) * m_pictureWidth]);
+        uint32_t *out = &m_picture[static_cast<size_t>(row) * m_pictureWidth];
+        // (--video native: the line drawn from the game's side's records, with no model of the board's video chips; but
+        // before the game's first object list, and for a tool that probes the layers: video.cpp)
+        if (!(nativeVideo.drawsPicture && !video.layerProbe && nativeVideo.DrawLine(row, out, video.Options()))) {
+            video.RenderLine(row, out);
+        }
         if (nativeVideo.Active()) {
             nativeVideo.BoardLine(row, &m_picture[static_cast<size_t>(row) * m_pictureWidth], video.Options(), video.ComparablePicture());
         }
