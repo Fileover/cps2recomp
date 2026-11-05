@@ -19,6 +19,7 @@
 
 #include <cstdint>
 #include <cstdio>
+#include <vector>
 
 namespace cps2recomp {
 
@@ -52,6 +53,9 @@ public:
     void SetGraphics(const uint8_t *graphics, size_t size) {
         m_raster.SetGraphics(graphics, size);
     }
+    // The game wrote a word of video RAM (its maps, its row scroll's table, its palettes' buffers): for the frame drawn
+    // at once (below), with the line it came before
+    void VideoWritten(uint32_t address);
 
     // At the end of a run: the counts, and false if anything differed or was made by code not native yet
     bool Report(FILE *out) const;
@@ -72,6 +76,28 @@ private:
     uint64_t m_linesSame = 0, m_linesDiffer = 0;
     native_video::Raster m_raster;
     uint64_t m_picturesSame = 0, m_picturesDiffer = 0, m_picturesNot = 0;
+
+    // The frame drawn at once, as the GPU will draw it (docs/NATIVE_VIDEO.md): from video RAM and the palette as they
+    // were when its first line was drawn, the writes and uploads after that put in at the line they came before, each
+    // line's layers, and the frame's objects; its lines compared with the board's when the frame is over
+    struct FrameEvent {
+        int16_t row;      // (the first line it is seen on)
+        uint32_t address; // (video RAM's; or, for a palette upload, its number in m_frameUploads, with the top bit set)
+        uint16_t value;
+    };
+    void FrameStart(const native_video::PictureOptions &options);
+    void FrameEnd();
+    bool m_inFrame = false, m_frameComparable = false;
+    int m_frameRow = 0; // (the lines drawn so far)
+    std::vector<uint8_t> m_frameVideo;
+    native_video::Raster m_frameRaster;
+    native_video::PictureOptions m_frameOptions;
+    std::vector<FrameEvent> m_frameEvents;
+    std::vector<native_video::PaletteUpload> m_frameUploads;
+    native_video::Layers m_frameLayers[224];
+    std::vector<uint32_t> m_frameBoard; // (the board's lines)
+    uint64_t m_framesSame = 0, m_framesDiffer = 0, m_frameLinesDiffer = 0;
+    uint64_t m_bands = 0, m_bandFrames = 0; int m_mostBands = 0; // (the lines a frame has writes before: its bands, less one)
 };
 
 // The rewrites and hooks of Capcom's video library that the game's game.cfg asks for (video/lifts.cpp)

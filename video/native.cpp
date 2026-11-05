@@ -213,9 +213,100 @@ void NativeVideo::BoardLayers(const native_video::Layers &layers, int line) {
     }
 }
 
+void NativeVideo::VideoWritten(uint32_t address) {
+    if (m_inFrame) {
+        const uint32_t at = (address - 0x900000) & 0x3FFFE;
+        m_frameEvents.push_back({static_cast<int16_t>(m_frameRow), at, static_cast<uint16_t>((videoRam[at] << 8) | videoRam[at + 1])});
+    }
+}
+
+void NativeVideo::FrameStart(const native_video::PictureOptions &options) {
+    m_inFrame = true;
+    m_frameRow = 0;
+    m_frameVideo.assign(videoRam, videoRam + 0x30000);
+    m_frameRaster = m_raster; // (the palette as it is, and the frame's objects)
+    m_frameOptions = options;
+    m_frameEvents.clear();
+    m_frameUploads.clear();
+    m_frameBoard.assign(static_cast<size_t>(native_video::Raster::kMaxWidth) * 224, 0);
+}
+
+void NativeVideo::FrameEnd() {
+    m_inFrame = false;
+    if (!m_frameComparable) {
+        return;
+    }
+    // (how many bands the GPU will draw it in: one, and one more at each line a write comes before)
+    // (only writes the drawing reads: into a map or the row scroll's table in use at that line, and palette uploads)
+    int bands = 1, last = 0;
+    for (const FrameEvent &e : m_frameEvents) {
+        if (e.row <= last || e.row >= 224) {
+            continue;
+        }
+        bool read = (e.address & 0x80000000u) != 0;
+        const native_video::Layers &l = m_frameLayers[e.row];
+        for (int n = 0; n < 3 && !read; n++) {
+            const uint32_t map = (static_cast<uint32_t>(l.maps[n]) * 256) & ~0x3FFFu & 0x3FFFF;
+            read = e.address - map < 0x4000;
+        }
+        const uint32_t rows = (static_cast<uint32_t>(l.rows) * 256) & ~0x7FFu & 0x3FFFF;
+        read = read || ((l.videoControl & 1) && e.address - rows < 0x800);
+        if (read) {
+            bands++;
+            last = e.row;
+        }
+    }
+    m_bands += static_cast<uint64_t>(bands);
+    m_bandFrames++;
+    m_mostBands = bands > m_mostBands ? bands : m_mostBands;
+    // Each line drawn with what was written before it: the GPU's bands, a line at a time
+    size_t next = 0;
+    const int width = native_video::Raster::kWidth + 2 * m_frameOptions.side;
+    int differ = 0;
+    for (int row = 0; row < 224; row++) {
+        for (; next < m_frameEvents.size() && m_frameEvents[next].row <= row; next++) {
+            const FrameEvent &e = m_frameEvents[next];
+            if (e.address & 0x80000000u) {
+                m_frameRaster.Upload(m_frameUploads[e.address & 0x7FFFFFFF]);
+            } else {
+                m_frameVideo[e.address] = static_cast<uint8_t>(e.value >> 8);
+                m_frameVideo[e.address + 1] = static_cast<uint8_t>(e.value);
+            }
+        }
+        uint32_t mine[native_video::Raster::kMaxWidth];
+        m_frameRaster.Line(row, m_frameLayers[row], m_frameVideo.data(), m_frameOptions, mine);
+        if (memcmp(mine, &m_frameBoard[static_cast<size_t>(row) * native_video::Raster::kMaxWidth], width * sizeof(uint32_t)) != 0) {
+            differ++;
+        }
+    }
+    if (differ) {
+        m_frameLinesDiffer += differ;
+        if (m_framesDiffer++ < 10) {
+            fprintf(stderr, "video check: frame %llu: drawn at once, %d lines differ from the board's\n", static_cast<unsigned long long>(frame),
+                    differ);
+        }
+    } else {
+        m_framesSame++;
+    }
+}
+
 void NativeVideo::BoardLine(int line, const uint32_t *pixels, const native_video::PictureOptions &options, bool comparable) {
     if (!checking) {
         return;
+    }
+    // (the frame drawn at once: its start, each line's layers and the board's line, its end)
+    if (line == 0) {
+        FrameStart(options);
+        m_frameComparable = comparable && m_bank >= 0;
+    }
+    if (m_inFrame) {
+        m_frameLayers[line] = native_video::DecodeLayers(m_cpsA, m_cpsB, m_objectRegs, layerControl);
+        memcpy(&m_frameBoard[static_cast<size_t>(line) * native_video::Raster::kMaxWidth], pixels,
+               (native_video::Raster::kWidth + 2 * options.side) * sizeof(uint32_t));
+        m_frameRow = line + 1;
+        if (line == 223) {
+            FrameEnd();
+        }
     }
     if (!comparable || m_bank < 0) {
         m_picturesNot++; // (another set's graphics, or before the game's first list: not compared)
@@ -244,6 +335,10 @@ void NativeVideo::Palette(const native_video::PaletteUpload &upload) {
         return;
     }
     m_raster.Upload(upload); // (the game's side's palette: its uploads')
+    if (m_inFrame) {
+        m_frameEvents.push_back({static_cast<int16_t>(m_frameRow), 0x80000000u | static_cast<uint32_t>(m_frameUploads.size()), 0});
+        m_frameUploads.push_back(upload);
+    }
     if (m_hasPending) {
         m_gameOnly++;
         fprintf(stderr, "video check: frame %llu: a palette upload the game's side gave, the board did not make\n",
@@ -292,7 +387,15 @@ bool NativeVideo::Report(FILE *out) const {
                  "not compared)\n",
             static_cast<unsigned long long>(m_picturesSame), static_cast<unsigned long long>(m_picturesDiffer),
             static_cast<unsigned long long>(m_picturesNot));
-    return m_differ == 0 && m_gameOnly == 0 && m_boardOnly == 0 && m_listsDiffer == 0 && m_linesDiffer == 0 && m_picturesDiffer == 0;
+    fprintf(out, "video check: frames drawn at once (as the GPU will): %llu the same as the board's, %llu not (%llu lines)\n",
+            static_cast<unsigned long long>(m_framesSame), static_cast<unsigned long long>(m_framesDiffer),
+            static_cast<unsigned long long>(m_frameLinesDiffer));
+    if (m_bandFrames) {
+        fprintf(out, "video check: bands a frame (lines where writes come in): %.1f on average, %d at most\n",
+                static_cast<double>(m_bands) / static_cast<double>(m_bandFrames), m_mostBands);
+    }
+    return m_differ == 0 && m_gameOnly == 0 && m_boardOnly == 0 && m_listsDiffer == 0 && m_linesDiffer == 0 && m_picturesDiffer == 0 &&
+           m_framesDiffer == 0;
 }
 
 } // namespace cps2recomp

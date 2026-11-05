@@ -413,6 +413,26 @@ The work: the three shaders and their buffers (`tools/gen_shaders.py` makes them
 does the presenter's) L; the frame's records kept for the GPU and the presenter taking its texture M; the read-back
 check S.
 
+## The frame drawn at once (the GPU's data, checked on the CPU)
+
+Before any shader, the GPU's frame is drawn on the CPU and checked. At a frame's first line the check keeps video RAM
+and the palette as they are, then logs every write to video RAM and every palette upload after that, with the line it
+came before. When the frame is over, it draws all 224 lines from that copy, putting each write in before the first
+line it was seen on, with each line's layers and the frame's objects. That is the GPU's data for a frame (a copy at
+its start, a log, the lines' layers, the objects), and its bands are where the log has writes the drawing reads.
+`--video check` compares the frame with the board's lines.
+
+A frame's bands are where it has writes into a map or the row scroll's table in use, or palette uploads, at a line
+other than the first. Some frames need one at every line (a whole map rewritten while the picture is drawn, as
+screens change); most need two or three.
+
+Results:
+
+Over attract mode and the ladder in the 21 CPS-2 games, every frame compared was the same as the board's: 3,999 an
+attract mode run and 5,999 a ladder in the Alpha games, and so on (not compared: the frames before a game's first object
+list, and Vampire Savior Definitive's, as for check (b)). Bands a frame on average: 1.4 (dstlk's attract mode) to 5.6
+(sfa3's), and 12.6 in Giga Wing's ladder, a shoot-'em-up that rewrites its maps as it scrolls.
+
 ## Order of work
 
 Sizes: S a session, M a few, L a week or more.

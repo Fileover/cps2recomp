@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- **The picture drawn a frame at a time, as the GPU will** ([docs/NATIVE_VIDEO.md](docs/NATIVE_VIDEO.md)): drawn from
+  what the game hands over, with its writes to its maps put in at the line they came before, every frame is the same as
+  the board's in every CPS-2 game compared. Nothing changes in play.
 - **The picture drawn from the game's level, with widescreen** ([docs/NATIVE_VIDEO.md](docs/NATIVE_VIDEO.md)): the
   renderer that draws only from what the game hands over now follows what a game's sources set on the picture (the
   wider picture, its moved layers and objects, hidden and marked objects), and is the same as the board's, pixel for
