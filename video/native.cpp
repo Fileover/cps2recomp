@@ -241,12 +241,18 @@ void NativeVideo::BoardObjects(const native_video::ObjectList &list, const nativ
     }
 }
 
-void NativeVideo::BoardObjectsCps1(const native_video::ObjectList &list) {
-    if (!checking) {
+void NativeVideo::BoardObjectsCps1(const native_video::ObjectList &list, const native_video::PictureOptions &options) {
+    if (!Active()) {
         return;
     }
     // (the game's list: in video RAM where the game said, as the board takes it)
-    if (native_video::DecodeObjectsCps1(videoRam, m_cpsA) == list) {
+    const native_video::ObjectList mine = native_video::DecodeObjectsCps1(videoRam, m_cpsA);
+    m_raster.Objects(mine, options);
+    m_bank = 0; // (a list given: a CPS-1 has no bank to name)
+    if (!checking) {
+        return;
+    }
+    if (mine == list) {
         m_listsSame++;
         return;
     }

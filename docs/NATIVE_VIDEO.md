@@ -329,7 +329,7 @@ and the ladder (Vampire Savior Definitive: attract mode; it has no ladder movie)
 list and every line was the same from both sides, none was made by code not native, and the frame hashes were the same
 as the `widescreen-stage-ends` builds' (without the lifts), all of each run's frames. So in all 21 CPS-2 games the
 game's side now has every palette upload, every object list and every line's layers. The CPS-1 games (dino, punisher)
-are left: another board.
+followed: [below](#the-cps-1-games).
 
 ## The CPS-1 games
 
@@ -512,6 +512,27 @@ lists a run with entries drawn from the other set's graphics, 138 to 422 frames 
 of the picture drawn from the records and every frame drawn at once was the same as the board's; with
 `--video gpu-check` (seeds 2 and 4), every frame drawn on the GPU too.
 
+### The CPS-1 games' picture
+
+Cadillacs and Dinosaurs and The Punisher are drawn from the records too, on the CPU (`Raster::LineCps1`) and on the
+GPU. A CPS-1 draws by other rules (`Video::RenderLineCps1`):
+
+- **The order:** the layer control's four places, back to front, take the objects (0) among the scroll screens, as
+  they are, with no compacting. Each screen is on by its own bit of the layer control, which the board's `cps_b` gives.
+- **The objects:** the first entry in front. A pixel once an object's stays its, and it shows unless the screen just
+  behind the objects has a high pen there: one its tile's priority mask (CPS-B's four, in the line's record) puts in
+  front of them. Screens after the objects in the order draw over them.
+- **Tiles:** the scroll screens' tiles are numbered from the graphics' start, as the objects' are.
+
+On the GPU the first pass gives two pens at each pixel: that of the screens behind the objects (and whether the one
+just behind has a high pen there), and that of the screens in front of them, if one drew. The objects' pass places the
+objects by the CPS-1's raster, and the colours' pass takes the screens in front if any drew, else the object unless
+the pen behind is high, else the screens behind.
+
+Results: every line and frame compared was the same as the board's. On the CPU that is Dino's attract mode (895,776
+lines) and The Punisher's ladder (25,000 frames, 5,599,776 lines); on the GPU, Dino's attract mode (3,999 frames) and
+The Punisher's ladder (24,999 frames). With them every game of the collection can be drawn on the GPU.
+
 ### The GPU's picture on the screen (`--video gpu`)
 
 With `--video gpu` the window shows the GPU's picture, where it can, when the presenter draws with SDL_GPU. The SDL
@@ -576,7 +597,7 @@ Sizes: S a session, M a few, L a week or more.
 4. **Raster bands:** Marvel (seen); the Vampire games and Giga Wing set the counters but changed nothing in these
    runs. S-M.
 5. **The CPU rasteriser and check (b)** against `video.cpp`: done (above), with the games' picture settings
-   (widescreen among them), and another set's graphics (Vampire Savior Definitive). Left: the CPS-1 games' picture.
+   (widescreen among them), another set's graphics (Vampire Savior Definitive) and the CPS-1 games.
 6. **The SDL_GPU renderer** drawing the records: the first slice is done ([above](#the-gpu-renderer-first-slice-portgpu_pictureh---video-gpu-check)).
    Next, the presenter drawing from its texture in the game; then the games' picture settings (widescreen, hidden and
    marked objects) and objects' offsets that change down the picture, on the GPU too. L.
