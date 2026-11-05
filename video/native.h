@@ -44,6 +44,7 @@ public:
         int16_t row;      // (the first line it is seen on)
         uint32_t address; // (video RAM's; or, for a palette upload, its number in the uploads, with the top bit set)
         uint16_t value;
+        uint8_t extra = 0; // (a tile word's: drawn from another set's graphics, Machine::scrollFromExtra)
     };
     struct FrameData {
         uint64_t frame = 0;
@@ -52,6 +53,7 @@ public:
         const std::vector<FrameEvent> *events = nullptr;
         const std::vector<native_video::PaletteUpload> *uploads = nullptr;
         const native_video::Layers *layers = nullptr;            // (224)
+        const uint8_t *scrollExtra = nullptr; // (another set's graphics: which tiles of the maps are drawn from them, at the start)
         const std::vector<native_video::TileOverride> *overrides = nullptr; // (224: each line's, PictureOptions::tile)
         native_video::PictureOptions options;
         const uint32_t *board = nullptr;                         // (224 lines of Raster::kMaxWidth)
@@ -67,7 +69,14 @@ public:
     const uint8_t *videoRam = nullptr; // (the game's side reads the buffers the game fills there)
     uint8_t paletteControl = 0x30;     // (where the CPS-B's palette control is in its registers: Board::paletteControl)
     uint8_t layerControl = 0x26;       // (... its layer control: Board::layerControl)
-    const uint8_t *cps1Masks = nullptr; // (a CPS-1's: where its priority masks are, Board::priority; a CPS-2's draw without them)
+    const uint8_t *cps1Masks = nullptr;
+    // (a game with another set's graphics: which object entries and which tiles are drawn from them, the machine's
+    // marks: Machine::objectsFromExtra, scrollFromExtra)
+    const uint8_t (*objectsFromExtra)[0x400] = nullptr;
+    const uint8_t *scrollFromExtra = nullptr;
+    void SetExtraGraphics(const uint8_t *graphics, size_t size) {
+        m_raster.SetExtraGraphics(graphics, size);
+    } // (a CPS-1's: where its priority masks are, Board::priority; a CPS-2's draw without them)
 
     // The board starts, and the game's side with it: the registers are the board's until the game says otherwise
     void Reset(const uint16_t *cpsA, const uint16_t *cpsB, const uint16_t *objectRegs);
@@ -104,12 +113,13 @@ private:
     uint16_t m_objectRegs[6] = {}, m_cpsA[32] = {}, m_cpsB[32] = {};
     int m_bank = -1; // (-1: not said yet)
     uint16_t m_list[native_video::kObjectWords] = {};
+    uint8_t m_listExtra[native_video::kObjectWords / 4] = {};
     native_video::PaletteUpload m_pending;
     bool m_hasPending = false;
 
     uint64_t m_same = 0, m_differ = 0, m_boardOnly = 0, m_gameOnly = 0;
     uint64_t m_firstBoardOnly = 0;
-    uint64_t m_listsSame = 0, m_listsDiffer = 0, m_listsBefore = 0;
+    uint64_t m_listsSame = 0, m_listsDiffer = 0, m_listsBefore = 0, m_listsExtra = 0, m_framesExtra = 0;
     uint64_t m_linesSame = 0, m_linesDiffer = 0;
     native_video::Raster m_raster;
     uint64_t m_picturesSame = 0, m_picturesDiffer = 0, m_picturesNot = 0;
@@ -121,7 +131,7 @@ private:
     void FrameEnd();
     bool m_inFrame = false, m_frameComparable = false;
     int m_frameRow = 0; // (the lines drawn so far)
-    std::vector<uint8_t> m_frameVideo;
+    std::vector<uint8_t> m_frameVideo, m_frameScrollExtra;
     native_video::Raster m_frameRaster;
     native_video::PictureOptions m_frameOptions;
     std::vector<FrameEvent> m_frameEvents;

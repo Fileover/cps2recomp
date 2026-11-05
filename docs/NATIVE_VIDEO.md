@@ -376,11 +376,10 @@ Results:
 
 Every line compared was the same in all 21 CPS-2 games: 895,962 in each Alpha-family attract mode run (4,000 frames),
 1,343,962 in each ladder (6,000), and so on for each game. The lines not compared are those before the game's first
-object list (38 in the Alpha games; up to 17,258, Giga Wing's 77 frames before its first). Two kinds are left out:
-**Vampire Savior Definitive** (no line compared) draws some objects and tiles from Vampire Savior 2's graphics (its extra
-set), which the records do not say yet: an object's and a tile's graphics set is what the frame needs for a second
-producer too (stages from another game), and comes with it; and the CPS-1 games, another board. The frame hashes were
-the same as without the lifts.
+object list (38 in the Alpha games; up to 17,258, Giga Wing's 77 frames before its first). Two kinds were left out at
+first: **Vampire Savior Definitive**, which draws some objects and tiles from Vampire Savior 2's graphics (its extra set:
+now in the records, [below](#another-sets-graphics-vampire-savior-definitive)); and the CPS-1 games, another board. The
+frame hashes were the same as without the lifts.
 
 **With widescreen** (the ladder with `widescreen` on, in the 16 games that have it and a ladder movie: sfa, sfa2,
 sfz2al, sfa3, pocket_fighter, vampire_savior, vsav2, vhunt2, hsf2, ssf2t, nwarr, xmcota, msh, xmvsf, mshvsf, mvsc), every
@@ -494,6 +493,25 @@ pixel for pixel. Between 2,873 (xmcota) and 4,101 (sfa) of each ladder's 6,000 f
 the stages' tiles given beyond its columns, objects moved and holes filled. The frames not drawn there were only those
 before a game's first object list. Without widescreen, as before (sfa2, msh, dstlk, avsp, gigawing).
 
+### Another set's graphics (Vampire Savior Definitive)
+
+Vampire Savior Definitive draws the three characters it takes from Vampire Savior 2 from that game's graphics. The
+machine marks which object entries and which tiles of the maps are drawn from them (`Machine::objectsFromExtra`,
+`scrollFromExtra`: what was written just after the other set's program was read). The records carry those marks:
+
+- **The object list** has its entries' marks (`ObjectList::fromExtra`). The game's side takes them with the list it
+  hands over, those of the bank it names, and they are compared with the board's at each frame's start, as the
+  entries are.
+- **The frame's record** has the tiles' marks as the frame began, and each write to a map in its log carries the mark
+  it was given.
+- The CPU rasteriser and the GPU draw each object and tile from the graphics its mark says. On the GPU, the other set's
+  graphics are a second buffer, and the marks a buffer put up band by band as video RAM is.
+
+Made-up play (`--auto`, seeds 1-6, 9,000 frames each, with `free_play`) picks the three often enough: 122 to 328 object
+lists a run with entries drawn from the other set's graphics, 138 to 422 frames with its tiles. Every record, every line
+of the picture drawn from the records and every frame drawn at once was the same as the board's; with
+`--video gpu-check` (seeds 2 and 4), every frame drawn on the GPU too.
+
 ### The GPU's picture on the screen (`--video gpu`)
 
 With `--video gpu` the window shows the GPU's picture, where it can, when the presenter draws with SDL_GPU. The SDL
@@ -523,7 +541,7 @@ renderer's presenter and the OpenGL shader presets' keep the CPU's picture.
   again (not drawn), the model viewer, and the guest stages' pictures put together.
 
 The window itself has not been looked at here (the checks run headless): `--video gpu` is for trying. Next: objects'
-offsets that change down the picture, the marks, and another set's graphics, so that every frame is drawn there.
+offsets that change down the picture and the marks, so that every frame is drawn there.
 
 ## The frame drawn at once (the GPU's data, checked on the CPU)
 
@@ -542,7 +560,7 @@ Results:
 
 Over attract mode and the ladder in the 21 CPS-2 games, every frame compared was the same as the board's: 3,999 an
 attract mode run and 5,999 a ladder in the Alpha games, and so on (not compared: the frames before a game's first object
-list, and Vampire Savior Definitive's, as for check (b)). Bands a frame on average: 1.4 (dstlk's attract mode) to 5.6
+list). Bands a frame on average: 1.4 (dstlk's attract mode) to 5.6
 (sfa3's), and 12.6 in Giga Wing's ladder, a shoot-'em-up that rewrites its maps as it scrolls.
 
 ## Order of work
@@ -558,7 +576,7 @@ Sizes: S a session, M a few, L a week or more.
 4. **Raster bands:** Marvel (seen); the Vampire games and Giga Wing set the counters but changed nothing in these
    runs. S-M.
 5. **The CPU rasteriser and check (b)** against `video.cpp`: done (above), with the games' picture settings
-   (widescreen among them). Left: another set's graphics (Vampire Savior Definitive), with item 8.
+   (widescreen among them), and another set's graphics (Vampire Savior Definitive). Left: the CPS-1 games' picture.
 6. **The SDL_GPU renderer** drawing the records: the first slice is done ([above](#the-gpu-renderer-first-slice-portgpu_pictureh---video-gpu-check)).
    Next, the presenter drawing from its texture in the game; then the games' picture settings (widescreen, hidden and
    marked objects) and objects' offsets that change down the picture, on the GPU too. L.

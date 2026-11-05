@@ -14,6 +14,9 @@ layout(std430, set = 2, binding = 2) readonly buffer Lines { uint lines[]; };
 // (a line's tiles given beyond the board's columns: the column its left edge is at (16 bits) and the screen (above);
 // then the tile and its attributes)
 layout(std430, set = 2, binding = 3) readonly buffer Overrides { uint overrides[]; };
+// (another set's graphics, and which tiles of the maps are drawn from them: a byte for each four bytes of video RAM)
+layout(std430, set = 2, binding = 4) readonly buffer ExtraGraphics { uint extraGraphics[]; };
+layout(std430, set = 2, binding = 5) readonly buffer ScrollExtra { uint scrollExtra[]; };
 
 uint Word(uint at) {
     return (BYTE(video, at) << 8) | BYTE(video, at + 1u);
@@ -77,13 +80,19 @@ void main() {
         const uint tileLine = y & (size - 1u);
         const bool flipX = (attr & 0x20u) != 0u, flipY = (attr & 0x40u) != 0u;
         at += (flipY ? size - 1u - tileLine : tileLine) * rowBytes;
-        if (at + rowBytes > lines[L_GRAPHICS_SIZE]) {
+        const bool extra = lines[L_EXTRA_SIZE] != 0u && BYTE(scrollExtra, (base + index * 4u) / 4u) != 0u;
+        if (at + rowBytes > lines[extra ? L_EXTRA_SIZE : L_GRAPHICS_SIZE]) {
             continue;
         }
         const uint p = flipX ? size - 1u - k : k;   // (the pixel of the tile's row: 8 to each 4 bytes, one plane each)
         const uint part = at + (p >> 3) * 4u, s = 7u - (p & 7u);
-        const uint value = ((BYTE(graphics, part) >> s) & 1u) | (((BYTE(graphics, part + 1u) >> s) & 1u) << 1) |
-                           (((BYTE(graphics, part + 2u) >> s) & 1u) << 2) | (((BYTE(graphics, part + 3u) >> s) & 1u) << 3);
+        uint b0, b1, b2, b3;
+        if (extra) {
+            b0 = BYTE(extraGraphics, part); b1 = BYTE(extraGraphics, part + 1u); b2 = BYTE(extraGraphics, part + 2u); b3 = BYTE(extraGraphics, part + 3u);
+        } else {
+            b0 = BYTE(graphics, part); b1 = BYTE(graphics, part + 1u); b2 = BYTE(graphics, part + 2u); b3 = BYTE(graphics, part + 3u);
+        }
+        const uint value = ((b0 >> s) & 1u) | (((b1 >> s) & 1u) << 1) | (((b2 >> s) & 1u) << 2) | (((b3 >> s) & 1u) << 3);
         if (value != 15u) {
             pen = ((attr & 0x1Fu) + 0x20u * (which + 1u)) * 16u + value;
             marks |= 1u << n;

@@ -18,5 +18,6 @@
 #define L_WORDS 24u
 // (each line's tiles given beyond the board's columns: kOverrides of them, two words each)
 #define OVERRIDES 32u
-// (after the 224 lines' records: the graphics ROMs' size, in bytes)
+// (after the 224 lines' records: the graphics ROMs' size, in bytes; then another set's graphics' size, 0 if none)
 #define L_GRAPHICS_SIZE (224u * L_WORDS)
+#define L_EXTRA_SIZE (224u * L_WORDS + 1u)

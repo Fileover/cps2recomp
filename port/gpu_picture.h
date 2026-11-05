@@ -30,6 +30,8 @@ public:
     // On `device` (the presenter's), or a device of its own when none (headless: no window); the graphics ROMs are put
     // on the GPU once
     bool Open(SDL_GPUDevice *device, const uint8_t *graphics, size_t size, std::string &error);
+    // Another set's graphics, which the objects and tiles marked so are drawn from (Vampire Savior Definitive's), after Open
+    bool SetExtraGraphics(const uint8_t *graphics, size_t size, std::string &error);
     void Close();
     SDL_GPUDevice *Device() const {
         return m_device;
@@ -71,7 +73,9 @@ private:
     bool m_ownDevice = false;
     size_t m_graphicsSize = 0;
     SDL_GPUBuffer *m_graphics = nullptr, *m_video = nullptr, *m_lines = nullptr, *m_tiles = nullptr, *m_frame = nullptr,
-                  *m_overrides = nullptr;
+                  *m_overrides = nullptr, *m_extraGraphics = nullptr, *m_scrollExtra = nullptr;
+    size_t m_extraGraphicsSize = 0;
+    std::vector<uint8_t> m_scrollExtraNow; // (which tiles are another set's, as the frame's bands have it)
     size_t m_tilesCapacity = 0;
     SDL_GPUTexture *m_screens = nullptr, *m_holes = nullptr, *m_objects = nullptr, *m_depth = nullptr, *m_lineTexture = nullptr, *m_palette = nullptr,
                    *m_picture = nullptr;
@@ -88,6 +92,7 @@ private:
         std::vector<cps2recomp::NativeVideo::FrameEvent> events;
         std::vector<cps2recomp::native_video::PaletteUpload> uploads;
         cps2recomp::native_video::Layers layers[224];
+        std::vector<uint8_t> scrollExtra;
         std::vector<cps2recomp::native_video::TileOverride> overrides[224];
         cps2recomp::native_video::PictureOptions options;
         bool drawable = false;

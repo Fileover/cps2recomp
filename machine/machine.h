@@ -74,6 +74,9 @@ public:
             video.SetExtraGraphics(extra->graphics.data(), extra->graphics.size());
             scrollFromExtra.assign(videoRam.size() / 4, 0);
             video.SetScrollFromExtra(scrollFromExtra.data());
+            nativeVideo.SetExtraGraphics(extra->graphics.data(), extra->graphics.size());
+            nativeVideo.objectsFromExtra = objectsFromExtra;
+            nativeVideo.scrollFromExtra = scrollFromExtra.data();
         }
         // (its sound side too, where it has one: machine/sound_board.h)
         extraSound.reset();
@@ -212,11 +215,11 @@ private:
         m_readExtraAt = cpu.cycles;
     }
     void VideoWritten(uint32_t address) {
-        if (nativeVideo.Active()) {
-            nativeVideo.VideoWritten(address);
-        }
         if (!scrollFromExtra.empty() && (address & 2) == 0) { // (a map entry's tile word)
             scrollFromExtra[(address - 0x900000) / 4] = m_readExtraEver && cpu.cycles - m_readExtraAt < kExtraReadNear;
+        }
+        if (nativeVideo.Active()) {
+            nativeVideo.VideoWritten(address); // (with the mark just made)
         }
     }
     void ObjectWritten(int bank, uint32_t address) {

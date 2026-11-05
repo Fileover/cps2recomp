@@ -206,7 +206,9 @@ void Machine::RunLine() {
             video.LatchObjects(&objectRam[m_objectBank ? 0x2000 : 0], m_extra ? objectsFromExtra[m_objectBank ? 1 : 0] : nullptr);
             if (nativeVideo.Active()) {
                 nativeVideo.frame = frame;
-                nativeVideo.BoardObjects(native_video::DecodeObjects(&objectRam[m_objectBank ? 0x2000 : 0], objectRegs), video.Options());
+                nativeVideo.BoardObjects(native_video::DecodeObjects(&objectRam[m_objectBank ? 0x2000 : 0], objectRegs,
+                                                                  m_extra ? objectsFromExtra[m_objectBank ? 1 : 0] : nullptr),
+                                         video.Options());
             }
         }
     }
