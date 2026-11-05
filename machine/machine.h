@@ -212,6 +212,9 @@ private:
         m_readExtraAt = cpu.cycles;
     }
     void VideoWritten(uint32_t address) {
+        if (nativeVideo.checking) {
+            nativeVideo.VideoWritten(address);
+        }
         if (!scrollFromExtra.empty() && (address & 2) == 0) { // (a map entry's tile word)
             scrollFromExtra[(address - 0x900000) / 4] = m_readExtraEver && cpu.cycles - m_readExtraAt < kExtraReadNear;
         }
