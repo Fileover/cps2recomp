@@ -127,8 +127,9 @@ namespace native_video {
     bool IsVideoRegister(uint32_t address) {
         address &= 0xFFFFFF;
         const uint32_t chip = address & ~0x4000u;
+        // (and the object bank shown, at 700000: what is written there after it was handed over is in the list taken)
         return (address >= 0x400000 && address < 0x40000C) || address == 0x8040E0 || address == 0x8040E1 ||
-               (chip >= 0x800100 && chip < 0x800180);
+               (chip >= 0x800100 && chip < 0x800180) || (address >= 0x700000 && address < 0x702000);
     }
 
 } // namespace native_video
@@ -153,6 +154,11 @@ void NativeVideo::Reset(const uint16_t *cpsA, const uint16_t *cpsB, const uint16
     memcpy(m_objectRegs, objectRegs, sizeof(m_objectRegs));
     m_bank = -1;
     m_hasPending = false;
+    // (the board's palette and object list start empty too: a machine reset over another game's state, as the fighting
+    // modes' spare machines are, keeps none of its picture)
+    memset(m_list, 0, sizeof(m_list));
+    memset(m_listExtra, 0, sizeof(m_listExtra));
+    m_raster.Reset();
 }
 
 void NativeVideo::GameWrites(M68K &c, uint32_t address, uint16_t value, bool byte) {
@@ -170,6 +176,14 @@ void NativeVideo::GameWrites(M68K &c, uint32_t address, uint16_t value, bool byt
     };
     if (address >= 0x400000 && address < 0x40000C) {
         put(m_objectRegs[(address - 0x400000) / 2]);
+        return;
+    }
+    if (address >= 0x700000 && address < 0x702000) {
+        // The bank shown, written after it was handed over: the board takes it with the write in it, so the list does
+        // too (Super Turbo's health bars write their empty pieces there, games/ssf2t/game.cfg)
+        if (m_bank >= 0) {
+            put(m_list[(address & 0x1FFE) / 2]);
+        }
         return;
     }
     if (address == 0x8040E0 || address == 0x8040E1) {

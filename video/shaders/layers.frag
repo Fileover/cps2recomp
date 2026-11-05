@@ -19,7 +19,7 @@ layout(std430, set = 2, binding = 4) readonly buffer ExtraGraphics { uint extraG
 layout(std430, set = 2, binding = 5) readonly buffer ScrollExtra { uint scrollExtra[]; };
 
 uint Word(uint at) {
-    return (BYTE(video, at) << 8) | BYTE(video, at + 1u);
+    return at + 1u < VIDEO_BYTES ? (BYTE(video, at) << 8) | BYTE(video, at + 1u) : 0u;
 }
 
 // Scroll screen `which` (0-2) at the pixel: true and its pen and tile's attributes if it draws there
@@ -46,7 +46,7 @@ bool Screen(uint which, uint x, uint line, uint l, out uint pen, out uint penVal
     uint attr = Word(base + index * 4u + 2u);
     if (tileAt < ownLeft || tileAt + int(size) > ownLeft + 384) {
         // (beyond the board's own columns: the game's sources' tile, if they gave one)
-        const uint count = lines[l + L_OVERRIDES], o = line * OVERRIDES * 2u;
+        const uint count = min(lines[l + L_OVERRIDES], OVERRIDES), o = line * OVERRIDES * 2u;
         for (uint n = 0u; n < count; n++) {
             const uint w = overrides[o + n * 2u];
             if ((w >> 16) == which && (int(w << 16) >> 16) == tileAt) {
@@ -65,7 +65,7 @@ bool Screen(uint which, uint x, uint line, uint l, out uint pen, out uint penVal
     const uint tileLine = y & (size - 1u);
     const bool flipX = (attr & 0x20u) != 0u, flipY = (attr & 0x40u) != 0u;
     at += (flipY ? size - 1u - tileLine : tileLine) * rowBytes;
-    const bool extra = lines[L_EXTRA_SIZE] != 0u && BYTE(scrollExtra, (base + index * 4u) / 4u) != 0u;
+    const bool extra = lines[L_EXTRA_SIZE] != 0u && base + index * 4u < VIDEO_BYTES && BYTE(scrollExtra, (base + index * 4u) / 4u) != 0u;
     if (at + rowBytes > lines[extra ? L_EXTRA_SIZE : L_GRAPHICS_SIZE]) {
         return false;
     }
@@ -127,7 +127,7 @@ uint Cps1(uint x, uint line, uint l) {
 }
 
 void main() {
-    const uint x = uint(gl_FragCoord.x), line = uint(gl_FragCoord.y);
+    const uint x = uint(gl_FragCoord.x), line = min(uint(gl_FragCoord.y), 223u);
     const uint l = line * L_WORDS;
     if (lines[l + L_CPS1] != 0u) {
         result = Cps1(x, line, l);

@@ -26,3 +26,6 @@
 // (after the 224 lines' records: the graphics ROMs' size, in bytes; then another set's graphics' size, 0 if none)
 #define L_GRAPHICS_SIZE (224u * L_WORDS)
 #define L_EXTRA_SIZE (224u * L_WORDS + 1u)
+// (video RAM's size, 900000-92FFFF: the maps' and row scroll's addresses can be set up to 0x3FFFF, and nothing is read
+// beyond a buffer, which Metal does not check)
+#define VIDEO_BYTES 0x30000u

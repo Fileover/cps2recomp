@@ -433,8 +433,11 @@ bool Port::Init(std::string &error) {
             }
         }
 #endif
-    } else if (opt.video == "native") {
-        // (the machine's picture drawn from the game's side's records, a line at a time, not by video.cpp)
+    }
+    // The machine's picture drawn from the game's side's records, a line at a time, not by video.cpp, unless the board's
+    // is asked for (--video board) or the checks compare the two
+    const bool gpu = opt.video == "gpu" || (opt.video.empty() && FeatureOn("display_gpu"));
+    if (opt.video == "native" || gpu || opt.video.empty()) {
         machine->nativeVideo.recording = true;
         machine->nativeVideo.drawsPicture = true;
 #ifdef GAME_GUEST_TABLE
@@ -447,7 +450,8 @@ bool Port::Init(std::string &error) {
             }
         }
 #endif
-    } else if (opt.video == "gpu" || (opt.video.empty() && FeatureOn("display_gpu"))) {
+    }
+    if (gpu) {
         // (the window's picture drawn on the GPU from the native records, the frames the GPU draws: frontend_sdl.cpp)
         machine->nativeVideo.recording = true;
         gpuWanted = true;
@@ -474,7 +478,9 @@ bool Port::Init(std::string &error) {
             }
         }
 #endif
-    } else if (!opt.video.empty() && opt.video != "board") {
+    }
+    if (!opt.video.empty() && opt.video != "board" && opt.video != "native" && opt.video != "gpu" && opt.video != "check" &&
+        opt.video != "gpu-check") {
         error = "--video: board, native, gpu, check or gpu-check";
         return false;
     }
@@ -2280,13 +2286,13 @@ void Usage() {
             "                         interp (the interpreter, an instruction at a time), check\n"
             "  --sound SIDE           driver (the sound program as ordinary code), z80 (the program itself),\n"
             "                         check (both, every write to the chip compared)\n"
-            "  --video SIDE           board (the picture from the board's registers and memories), check (the\n"
+            "  --video SIDE           native (the default: the picture drawn from the records the game's video code\n"
+            "                         hands over, on the CPU), board (the picture from the board's registers and\n"
+            "                         memories, the reference), check (the\n"
             "                         native interface the game's video code hands over compared with the\n"
             "                         board's, every record: docs/NATIVE_VIDEO.md), gpu-check (that, and each\n"
             "                         frame drawn on the GPU from it too, read back and compared), gpu (the window's\n"
-            "                         picture drawn on the GPU from the native records, where it can be),\n"
-            "                         native (the picture drawn from the native records on the CPU, not by\n"
-            "                         the board model)\n"
+            "                         picture drawn on the GPU from the native records, where it can be)\n"
             "  --sound-test SEED[:N]  every N frames (30) a command to the sound side: each song in turn, placed\n"
             "                         some made-up way, and the other commands (with --sound check)\n"
             "  --scale N              window size, times 224 lines (else the Display page's)\n"
