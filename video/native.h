@@ -76,6 +76,10 @@ public:
     const uint8_t *scrollFromExtra = nullptr;
     void SetExtraGraphics(const uint8_t *graphics, size_t size) {
         m_raster.SetExtraGraphics(graphics, size);
+    }
+    // (a CPS-1: its layers' enable bits, Board::enable)
+    void SetCps1(const uint8_t *enable) {
+        m_raster.SetCps1(enable);
     } // (a CPS-1's: where its priority masks are, Board::priority; a CPS-2's draw without them)
 
     // The board starts, and the game's side with it: the registers are the board's until the game says otherwise
@@ -91,7 +95,7 @@ public:
     void BoardObjects(const native_video::ObjectList &list, const native_video::PictureOptions &options);
     void BoardLayers(const native_video::Layers &layers, int line);
     // ... a CPS-1's object list, from video RAM where its register says
-    void BoardObjectsCps1(const native_video::ObjectList &list);
+    void BoardObjectsCps1(const native_video::ObjectList &list, const native_video::PictureOptions &options);
     // ... and a line it drew (Video::Width() pixels, as the game's sources set the picture: `options`), when it drew a
     // CPS-2's picture from its own graphics (Video::ComparablePicture): the line drawn from the game's side's records
     // alone (native_render.h) must be the same

@@ -17,7 +17,7 @@ using cps2recomp::native_video::Raster;
 
 namespace {
     constexpr int kWidth = Raster::kWidth, kMaxWidth = Raster::kMaxWidth, kHeight = 224;
-    constexpr uint32_t kLineWords = 24;               // (video/shaders/common.glsl, L_WORDS)
+    constexpr uint32_t kLineWords = 32;               // (video/shaders/common.glsl, L_WORDS)
     constexpr uint32_t kOverrides = 32;               // (... OVERRIDES: a line's tiles given beyond the board's columns)
     constexpr uint32_t kVideoBytes = 0x30000;
     constexpr uint32_t kPaletteWidth = 64, kPaletteHeight = 48;
@@ -65,7 +65,7 @@ namespace {
 
     // A line's record (video/shaders/common.glsl)
     void LineRecord(int line, const Layers &l, uint16_t priority, const cps2recomp::native_video::PictureOptions &o, uint32_t overrides,
-                    uint32_t *out) {
+                    const Raster &raster, uint32_t *out) {
         memset(out, 0, kLineWords * 4);
         out[14] = static_cast<uint32_t>(o.side);
         out[15] = static_cast<uint32_t>(kWidth + 2 * o.side);
@@ -77,6 +77,13 @@ namespace {
         }
         out[19] = o.fillHoles ? 1 : 0;
         out[20] = overrides;
+        if (raster.Cps1()) {
+            out[21] = 1;
+            out[22] = raster.Enable()[0] | (static_cast<uint32_t>(raster.Enable()[1]) << 8) | (static_cast<uint32_t>(raster.Enable()[2]) << 16);
+            for (int n = 0; n < 4; n++) {
+                out[24 + n] = l.masks[n];
+            }
+        }
         for (int n = 0; n < 3; n++) {
             out[n] = l.maps[n];
             out[4 + 2 * n] = l.scroll[n][0];
@@ -329,6 +336,9 @@ bool GpuPicture::Drawable(const NativeVideo::FrameData &frame) {
     if (!frame.whole) {
         return false;
     }
+    if (frame.raster->Cps1() && frame.options.fillHoles) {
+        return false; // (a CPS-1's holes: not filled on the GPU)
+    }
     const auto &o = frame.options;
     // (the marks, for pictures put together from two, and layers left out are the CPU's; and a line with more tiles given
     // beyond the board's columns than there is room for)
@@ -396,7 +406,7 @@ void GpuPicture::Draw(SDL_GPUCommandBuffer *commands, const NativeVideo::FrameDa
     auto *lineWords = reinterpret_cast<uint32_t *>(up + at);
     for (int line = 0; line < kHeight; line++) {
         const uint32_t overrides = frame.overrides ? static_cast<uint32_t>(frame.overrides[line].size()) : 0;
-        LineRecord(line, frame.layers[line], raster.Priority(), frame.options, overrides, &lineWords[line * kLineWords]);
+        LineRecord(line, frame.layers[line], raster.Priority(), frame.options, overrides, raster, &lineWords[line * kLineWords]);
     }
     lineWords[kHeight * kLineWords] = static_cast<uint32_t>(m_graphicsSize);
     lineWords[kHeight * kLineWords + 1] = frame.scrollExtra ? static_cast<uint32_t>(m_extraGraphicsSize) : 0;
@@ -426,6 +436,7 @@ void GpuPicture::Draw(SDL_GPUCommandBuffer *commands, const NativeVideo::FrameDa
     frameWords[4] = static_cast<uint32_t>(m_graphicsSize);
     frameWords[5] = static_cast<uint32_t>(frame.options.side);
     frameWords[6] = static_cast<uint32_t>(m_extraGraphicsSize);
+    frameWords[7] = raster.Cps1() ? 1 : 0;
     at += 32;
     // Each line's tiles given beyond the board's columns: the column (16 bits) and the screen above; the tile and its
     // attributes

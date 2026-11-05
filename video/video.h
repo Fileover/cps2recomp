@@ -143,10 +143,10 @@ public:
         o.layerMask = layerMask;
         return o;
     }
-    // A CPS-2's picture from its own graphics: what --video check's picture drawn from the records is compared with
-    // (another set's graphics, Vampire Savior Definitive's, are not in the records yet)
+    // The picture --video check's picture drawn from the records is compared with: every one now (a CPS-2's or a
+    // CPS-1's, another set's graphics or not)
     bool ComparablePicture() const {
-        return !m_src.board.cps1;
+        return true;
     }
 
 private:

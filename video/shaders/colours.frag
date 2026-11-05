@@ -15,7 +15,17 @@ void main() {
     const uint s = texelFetch(screens, at, 0).r;
     const uint o = texelFetch(objects, at, 0).r;
     uint pen = s & 0xFFFFu;
-    if ((o & 0x80000000u) != 0u) {
+    if (texelFetch(lines, ivec2(21, at.y), 0).r != 0u) {
+        // (a CPS-1's: a screen in front of the objects, if one drew; else the front object, but where the screen just
+        // behind them has a high pen; else the screens behind: layers.frag, Cps1)
+        if ((s & 0x80000000u) != 0u) {
+            pen = (s >> 16) & 0xFFFu;
+        } else if ((s & 0x2000u) != 0u && (o & 0x80000000u) != 0u && (s & 0x1000u) == 0u) {
+            pen = o & 0xFFFFu;
+        } else {
+            pen = s & 0xFFFu;
+        }
+    } else if ((o & 0x80000000u) != 0u) {
         const uint control = texelFetch(lines, ivec2(12, at.y), 0).r, priority = texelFetch(lines, ivec2(13, at.y), 0).r;  // (L_LAYER_CONTROL, L_PRIORITY)
         uint l0 = (control >> 6) & 3u, l1 = (control >> 8) & 3u, l2 = (control >> 10) & 3u, l3 = (control >> 12) & 3u;
         uint p0 = (priority >> (4u * l0)) & 0xFu, p1 = (priority >> (4u * l1)) & 0xFu;

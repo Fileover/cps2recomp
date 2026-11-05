@@ -66,6 +66,9 @@ Machine::Machine(const RomSet &roms)
     nativeVideo.paletteControl = roms.board.paletteControl;
     nativeVideo.layerControl = roms.board.layerControl;
     nativeVideo.cps1Masks = m_cps1 ? m_roms.board.priority : nullptr;
+    if (m_cps1) {
+        nativeVideo.SetCps1(m_roms.board.enable);
+    }
     nativeVideo.SetGraphics(roms.graphics.data(), roms.graphics.size());
     cpu.nativeVideo = &nativeVideo;
     cpu.rom = roms.program.data();
@@ -198,9 +201,9 @@ void Machine::RunLine() {
         UpdateInterruptLevel();
         if (m_cps1) {
             video.LatchObjectsCps1();
-            if (nativeVideo.checking) {
+            if (nativeVideo.Active()) {
                 nativeVideo.frame = frame;
-                nativeVideo.BoardObjectsCps1(native_video::DecodeObjectsCps1(videoRam.data(), cpsA));
+                nativeVideo.BoardObjectsCps1(native_video::DecodeObjectsCps1(videoRam.data(), cpsA), video.Options());
             }
         } else {
             video.LatchObjects(&objectRam[m_objectBank ? 0x2000 : 0], m_extra ? objectsFromExtra[m_objectBank ? 1 : 0] : nullptr);

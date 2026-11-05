@@ -61,6 +61,20 @@ public:
         m_graphics = graphics;
         m_graphicsSize = size;
     }
+    // A CPS-1 (its objects' list, its layers' order and their enable bits: Board::enable, the bits of the layer control
+    // that switch scroll screens 1-3 on)
+    void SetCps1(const uint8_t *enable) {
+        m_cps1 = true;
+        for (int n = 0; n < 3; n++) {
+            m_enable[n] = enable[n];
+        }
+    }
+    bool Cps1() const {
+        return m_cps1;
+    }
+    const uint8_t *Enable() const {
+        return m_enable;
+    }
     // Another set's graphics, which the objects and tiles marked so are drawn from (Vampire Savior Definitive's)
     void SetExtraGraphics(const uint8_t *graphics, size_t size) {
         m_extraGraphics = graphics;
@@ -97,7 +111,9 @@ public:
 
 private:
     void DrawScroll(int which, int rasterLine, const Layers &layers, const uint8_t *videoRam, const PictureOptions &options, int width,
-                    uint16_t *pens, uint8_t *priority, uint8_t mark, const uint8_t *scrollExtra) const;
+                    uint16_t *pens, uint8_t *priority, uint8_t mark, const uint8_t *scrollExtra, uint8_t *high = nullptr) const;
+    // (a CPS-1's line: Video::RenderLineCps1)
+    void LineCps1(int line, const Layers &layers, const uint8_t *videoRam, const PictureOptions &options, uint32_t *out) const;
     void DrawObjects(int rasterLine, const Layers &layers, const PictureOptions &options, int width, uint16_t *pens, uint8_t *priority,
                      const uint32_t *masks) const;
 
@@ -106,6 +122,8 @@ private:
     uint32_t m_colours[kPages * kPageColours] = {};
     std::vector<ObjectTile> m_tiles; // (the frame's, front to back)
     uint16_t m_priority = 0;         // (the object registers' priority control, as the list was taken)
+    bool m_cps1 = false;
+    uint8_t m_enable[3] = {2, 4, 8};
 };
 
 } // namespace cps2recomp::native_video

@@ -15,7 +15,10 @@
 #define L_OWN_LEFT 16u   // 3 words: where the board's own columns start, for each screen (moved: the game's sources')
 #define L_FILL_HOLES 19u
 #define L_OVERRIDES 20u  // (how many tiles the game's sources give beyond the board's columns on the line)
-#define L_WORDS 24u
+#define L_CPS1 21u       // (a CPS-1's line: its layers' order and priority masks are another board's)
+#define L_ENABLE 22u     // (a CPS-1's: the layer control's bits that switch scroll screens 1-3 on, a byte each)
+#define L_MASKS 24u      // (a CPS-1's: 4 words, its priority masks: the pens of a screen in front of the objects)
+#define L_WORDS 32u
 // (each line's tiles given beyond the board's columns: kOverrides of them, two words each)
 #define OVERRIDES 32u
 // (after the 224 lines' records: the graphics ROMs' size, in bytes; then another set's graphics' size, 0 if none)

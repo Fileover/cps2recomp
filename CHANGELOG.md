@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- **The CPS-1 games' picture from the game's level and on the GPU** ([docs/NATIVE_VIDEO.md](docs/NATIVE_VIDEO.md)):
+  Cadillacs and Dinosaurs and The Punisher are drawn from what the game hands over, on the CPU and on the GPU, by the
+  CPS-1's own rules (its layer order, its priority masks), the same as the board's. With them, every game of the
+  collection's picture can be drawn on the GPU. Nothing changes in play.
 - **Vampire Savior Definitive's picture from the game's level and on the GPU**
   ([docs/NATIVE_VIDEO.md](docs/NATIVE_VIDEO.md)): the sprites and tiles of the three characters taken from Vampire
   Savior 2 are drawn from that game's graphics in the picture made from the records and on the GPU too, the same as
