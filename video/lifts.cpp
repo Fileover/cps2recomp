@@ -90,10 +90,11 @@ namespace {
         c.flagV = c.flagC = false;
     }
 
-    void AddPaletteCommit(const char *value) {
+    // (the routine's address, or 0 if it is not taken)
+    uint32_t AddPaletteCommit(const char *value) {
         uint32_t at;
         if (!Find("video_palette_commit", value, {0, 8, 16, 22}, at)) {
-            return;
+            return 0;
         }
         g_commit.pages = static_cast<int16_t>(OpcodeWord(at + 2));
         g_commit.pagesRegister = OpcodeLong(at + 4);
@@ -102,10 +103,11 @@ namespace {
         g_commit.next = static_cast<int16_t>(OpcodeWord(at + 18));
         if (static_cast<int16_t>(OpcodeWord(at + 20)) != g_commit.base) {
             fprintf(stderr, "video: the palette's commit at %06X does not move the next buffer into the one it gave\n", at);
-            return;
+            return 0;
         }
         // (move.w d16(An),xxx.l twice: 24 cycles each; move.w d16(An),d16(An): 20; Return adds the rts)
         AddRewrite(at, "CommitPalette", CommitPalette, 0, 68);
+        return at;
     }
     // --- The video's registers written elsewhere: every other family's commit, every game's start-up, the object
     // bank's swaps, the scrolls and the layers. Each is a `move` of a byte, a word or a long (from a data register, an
@@ -279,7 +281,13 @@ void RegisterGuestVideoLifts(const std::string &id, const char *writes, const ui
 
 void RegisterVideoLifts() {
     if (*GAME_VIDEO_PALETTE_COMMIT) {
-        AddPaletteCommit(GAME_VIDEO_PALETTE_COMMIT);
+        if (const uint32_t at = AddPaletteCommit(GAME_VIDEO_PALETTE_COMMIT)) {
+            // (its two moves to the registers watched as well, for when the rewrite stands aside and the game's own code
+            // runs it: the board's timing with no feature that needs rewrites; build.mk gives the translator them too)
+            char moves[32];
+            snprintf(moves, sizeof(moves), "%06X %06X", at, at + 8);
+            AddWrites("video_palette_commit", moves, g_moves, OpcodeWord, [](uint32_t a) { AddWatch(a, "VideoWrite", VideoWrite); });
+        }
     }
     AddWrites("game.cfg's video_writes", GAME_VIDEO_WRITES, g_moves, OpcodeWord,
               [](uint32_t at) { AddWatch(at, "VideoWrite", VideoWrite); });

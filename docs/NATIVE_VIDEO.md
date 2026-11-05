@@ -616,23 +616,31 @@ list). Bands a frame on average: 1.4 (dstlk's attract mode) to 5.6
 
 ## Order of work
 
-Sizes: S a session, M a few, L a week or more.
+Sizes: S a session, M a few, L a week or more. Done:
 
-1. **Palettes**: done in every game, the CPS-1 games among them.
-2. **The object list:** the list handed over at the bank swap, checked against the board's each frame: done in every
-   CPS-2 game. Then the drawers' entries as `Object`s from the piece writers themselves (the Alpha library's list
-   builder): M for Alpha, M for Marvel; SF2's copy in the interrupt, S.
-3. **The layers' registers**, line by line: done in every CPS-2 game. Next: the same records made from the game's own
-   shadows (the commit routines rewritten, sfa2's `FrameRegisters` among them, which moves to the toolkit). M.
-4. **Raster bands:** Marvel (seen); the Vampire games and Giga Wing set the counters but changed nothing in these
-   runs. S-M.
-5. **The CPU rasteriser and check (b)** against `video.cpp`: done (above), with the games' picture settings
-   (widescreen among them), another set's graphics (Vampire Savior Definitive) and the CPS-1 games.
-6. **The SDL_GPU renderer** drawing the records: the first slice is done ([above](#the-gpu-renderer-first-slice-portgpu_pictureh---video-gpu-check)).
-   Next, the presenter drawing from its texture in the game; then the games' picture settings (widescreen, hidden and
-   marked objects) and objects' offsets that change down the picture, on the GPU too. L.
-7. **The native renderer by default**, `video.cpp` kept only for `--video board` and the checks. The bus waits in the
-   lifts (above) come first. S.
-8. **Stages between games** through two producers (each record saying which producer's graphics and palette it
-   draws with; Vampire Savior Definitive's extra set is the first case of it): Vampire Savior Definitive's guests first, then every fighting
-   game's stages in every other's (a guest's facts are already written once per game). L.
+- **The records** (palette uploads, object lists, the layers' registers line by line) in every game of the collection,
+  CPS-1 games and guest boards among them, checked against the board's each frame (check a).
+- **The picture from the records** on the CPU (check b) and drawn a frame at a time in bands, every game, with the
+  games' picture settings (widescreen), another set's graphics, and the CPS-1's rules.
+- **The SDL_GPU renderer**, every game, checked frame by frame against the board (`--video gpu-check`); in the
+  window with `--video gpu` or the Display page's **GPU picture (test)**, the readouts over it, the game's side in the
+  save state for online play's rollback; guest boards' stages under the game's fighters (Vampire Savior Definitive).
+- **The palette commit's moves watched** as well as rewritten: when the board's timing has the rewrite stand aside,
+  the game's own code runs it and the watches tell the native interface (`CPS2RECOMP_SKIP_REWRITES=CommitPalette`:
+  every upload still the game's side's).
+
+Left:
+
+1. **The GPU picture by default**, once it has been looked at in the window; then `video.cpp` drawn only for
+   `--video board`, the checks, and what still needs the CPU's picture (screenshots, frame hashes, the fighting modes
+   below). S, then M.
+2. **The fighting modes' pictures** (`fight/battle.cpp`: endless battle, ring out): the fighters over stages spare
+   machines of the same game draw, with fades between stages and darkening. Spare machines as producers, as guest
+   boards are, and the fades as a pass. M-L.
+3. **Objects' offsets that change down the picture** on the GPU (none seen in any game's runs; such frames are the
+   CPU's). S.
+4. **Deeper lifts:** the records made from the game's own drawing code (the Alpha library's list builder and its
+   piece writers, the frame's commit with sfa2's `FrameRegisters` moved to the toolkit) rather than at the register
+   writes and the bank swap. M per family.
+5. **Every fighting game's stages in every other's** through two producers (a guest's facts are written once per
+   game, `games/<id>/guest.h`). L.
