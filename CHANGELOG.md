@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- **Other games' stages in Street Fighter Alpha 2 and Zero 2 Alpha**: Darkstalkers' and Vampire Savior's stages, as
+  those games show them (their own boards running beside, their music too), in training's, versus's and the stage
+  viewer's lists after the game's own; and, with Display's **Other games' stages**, in arcade matches. Each needs that
+  game's ROM set. Vampire Savior's stages can now be shown by any game that takes guests (`games/vampire_savior/guest.h`).
 - **The picture drawn from the game's level by default** ([docs/NATIVE_VIDEO.md](docs/NATIVE_VIDEO.md)): every game's
   picture is drawn from what its video code hands over (sprite lists, layers, palettes), not by the model of the
   board's video chip, which is kept as the reference (`--video board`). The picture is the same as before, frame for
