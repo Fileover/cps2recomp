@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- **The machine's picture drawn from the game's level** (`--video native`, [docs/NATIVE_VIDEO.md](docs/NATIVE_VIDEO.md)):
+  the picture screenshots, frame hashes and the window use can be drawn from what the game hands over instead of the
+  board model, the same as the board's in every game. Nothing changes in play.
 - **Other games' stages at the game's level** ([docs/NATIVE_VIDEO.md](docs/NATIVE_VIDEO.md)): the boards of the games
   whose stages Vampire Savior Definitive shows (Darkstalkers, Alpha 2) now have their own records of what their code
   hands over, checked against their boards, and drawn on the GPU with the game's fighters over them.

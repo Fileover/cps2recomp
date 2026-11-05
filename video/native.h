@@ -32,6 +32,11 @@ class NativeVideo {
 public:
     // Recording: the game's side keeps its records (for the GPU renderer, port/gpu_picture.h) without comparing them
     bool recording = false;
+    // --video native: the machine's picture drawn from the records, a line at a time (DrawLine), in place of video.cpp
+    bool drawsPicture = false;
+    // A line of the picture drawn from the game's side's records (its registers as they are now, its list, its palette;
+    // the game's video RAM): false, and nothing drawn, before the game's first object list
+    bool DrawLine(int line, uint32_t *out, const native_video::PictureOptions &options) const;
     bool Active() const {
         return checking || recording;
     }

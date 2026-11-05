@@ -614,6 +614,17 @@ attract mode run and 5,999 a ladder in the Alpha games, and so on (not compared:
 list). Bands a frame on average: 1.4 (dstlk's attract mode) to 5.6
 (sfa3's), and 12.6 in Giga Wing's ladder, a shoot-'em-up that rewrites its maps as it scrolls.
 
+## The machine's picture from the records (`--video native`)
+
+With `--video native` the machine's own picture (what the window shows when the GPU's is not used, screenshots, frame
+hashes, the fighting modes' pictures put together) is drawn line by line by the CPU rasteriser from the game's records,
+not by `video.cpp`. `video.cpp` still draws the frames before a game's first object list and the model viewer's probes.
+The guest boards' pictures (stages from another game) are drawn from their own records the same way.
+
+Results: in all 23 games, every frame's hash (the picture in it) was the same as with the board model's picture: the
+ladder movies' 6,000 frames (8,000 in Vampire Savior Definitive with Darkstalkers' stages), attract mode's 4,000 in the
+games without one (Alien vs. Predator, Cadillacs and Dinosaurs); sfa2's ladder in widescreen too.
+
 ## Order of work
 
 Sizes: S a session, M a few, L a week or more. Done:
@@ -628,6 +639,8 @@ Sizes: S a session, M a few, L a week or more. Done:
 - **The palette commit's moves watched** as well as rewritten: when the board's timing has the rewrite stand aside,
   the game's own code runs it and the watches tell the native interface (`CPS2RECOMP_SKIP_REWRITES=CommitPalette`:
   every upload still the game's side's).
+- **The machine's picture from the records** (`--video native`): the picture the frame hashes include drawn by the
+  CPU rasteriser, every game's hashes the same as the board model's.
 
 Left:
 

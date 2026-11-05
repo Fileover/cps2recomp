@@ -389,6 +389,15 @@ void NativeVideo::FrameEnd() {
     }
 }
 
+bool NativeVideo::DrawLine(int line, uint32_t *out, const native_video::PictureOptions &options) const {
+    if (m_bank < 0) {
+        return false;
+    }
+    m_raster.Line(line, native_video::DecodeLayers(m_cpsA, m_cpsB, m_objectRegs, layerControl, cps1Masks), videoRam, options, out,
+                  scrollFromExtra);
+    return true;
+}
+
 void NativeVideo::BoardLine(int line, const uint32_t *pixels, const native_video::PictureOptions &options, bool comparable) {
     if (!Active()) {
         return;
