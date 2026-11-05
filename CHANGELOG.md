@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- **The picture drawn from the game's level, with widescreen** ([docs/NATIVE_VIDEO.md](docs/NATIVE_VIDEO.md)): the
+  renderer that draws only from what the game hands over now follows what a game's sources set on the picture (the
+  wider picture, its moved layers and objects, hidden and marked objects), and is the same as the board's, pixel for
+  pixel, with widescreen on in every game that has it. The plan for drawing it on the GPU is written. Nothing changes in
+  play.
 - **The picture drawn from the game's level, checked** ([docs/NATIVE_VIDEO.md](docs/NATIVE_VIDEO.md)): a renderer that
   draws only from what the game hands over (its palettes, its sprite lists, its layers' registers line by line) gives
   the same picture as the board's, pixel for pixel, on every line compared, in every CPS-2 game but Vampire Savior

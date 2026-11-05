@@ -125,11 +125,28 @@ public:
     int Width() const {
         return kWidth + 2 * wide.side;
     }
-    // The board's own picture, as its registers and memories make it: nothing a game's sources set that changes it
-    // (wider, moved, hidden, marked, another set's graphics); what --video check's picture is compared with
-    bool PlainPicture() const {
-        return !m_src.board.cps1 && layerMask == 0xF && !hideObject && !markObjects && !markLayers && !objectsTaken && !m_extraGraphics &&
-               !wide.side && !wide.scroll[0] && !wide.scroll[1] && !wide.scroll[2] && !wide.rows && !wide.object && !wide.tile;
+    // What the game's sources have set on the picture, for the picture drawn from the native records (native_render.h)
+    native_video::PictureOptions Options() const {
+        native_video::PictureOptions o;
+        o.side = wide.side;
+        for (int n = 0; n < 3; n++) {
+            o.scroll[n] = wide.scroll[n];
+        }
+        o.rows = wide.rows;
+        o.object = wide.object;
+        o.tile = wide.tile;
+        o.fillHoles = wide.fillHoles;
+        o.hideObject = hideObject;
+        o.objectsTaken = objectsTaken;
+        o.markObjects = markObjects;
+        o.markLayers = markLayers;
+        o.layerMask = layerMask;
+        return o;
+    }
+    // A CPS-2's picture from its own graphics: what --video check's picture drawn from the records is compared with
+    // (another set's graphics, Vampire Savior Definitive's, are not in the records yet)
+    bool ComparablePicture() const {
+        return !m_src.board.cps1 && !m_extraGraphics;
     }
 
 private:

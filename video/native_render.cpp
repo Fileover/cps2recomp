@@ -44,20 +44,25 @@ void Raster::Upload(const PaletteUpload &upload) {
 // An entry: x (its level in the top three bits), y (two more bits of the tile's number), the tile, the attributes
 // (colour set, flips, marked to take the offsets, a block of up to 16 x 16 tiles). The list ends at the first entry
 // marked so. Later entries are in front: the tiles are kept front to back.
-void Raster::Objects(const ObjectList &list) {
+void Raster::Objects(const ObjectList &list, const PictureOptions &options) {
     m_tiles.clear();
     m_priority = list.priority;
+    uint16_t words[kObjectWords];
+    memcpy(words, list.words, sizeof(words));
     int last = kObjectWords - 4;
     for (int n = 0; n < kObjectWords; n += 4) {
-        if (list.words[n + 1] >= 0x8000 || list.words[n + 3] >= 0xFF00) {
+        if (words[n + 1] >= 0x8000 || words[n + 3] >= 0xFF00) {
             last = n - 4;
             break;
         }
     }
+    if (options.objectsTaken) {
+        options.objectsTaken(words, last); // (the game's sources' change to the list, as Video::LatchObjects makes it)
+    }
     for (int i = last; i >= 0; i -= 4) {
-        const int x = list.words[i], y = list.words[i + 1];
-        const uint32_t code = list.words[i + 2] + ((y & 0x6000u) << 3);
-        const uint16_t attr = list.words[i + 3];
+        const int x = words[i], y = words[i + 1];
+        const uint32_t code = words[i + 2] + ((y & 0x6000u) << 3);
+        const uint16_t attr = words[i + 3];
         const int across = ((attr >> 8) & 0x0F) + 1, down = ((attr >> 12) & 0x0F) + 1;
         const bool flipX = attr & 0x20, flipY = attr & 0x40;
         for (int ty = 0; ty < down; ty++) {
@@ -77,31 +82,39 @@ void Raster::Objects(const ObjectList &list) {
                 t.flipY = flipY;
                 t.relative = attr & 0x80;
                 t.level = static_cast<uint8_t>((x >> 13) & 7);
+                t.entry = static_cast<uint16_t>(i / 4);
+                t.entryTile = code;
+                t.attributes = attr;
                 m_tiles.push_back(t);
             }
         }
     }
 }
 
-void Raster::DrawScroll(int which, int rasterLine, const Layers &layers, const uint8_t *videoRam, uint16_t *pens, uint8_t *priority,
-                        uint8_t mark) const {
+void Raster::DrawScroll(int which, int rasterLine, const Layers &layers, const uint8_t *videoRam, const PictureOptions &options, int width,
+                        uint16_t *pens, uint8_t *priority, uint8_t mark) const {
     const uint32_t base = (static_cast<uint32_t>(layers.maps[which]) * 256) & ~0x3FFFu & 0x3FFFF;
     const uint8_t *map = &videoRam[base];
     const int shift = 3 + which, size = 1 << shift;
     const uint32_t mapMask = (64u << shift) - 1; // (the map is 64 x 64 tiles)
     uint32_t scrollX = layers.scroll[which][0];
     const uint32_t scrollY = layers.scroll[which][1];
-    if (which == 1 && (layers.videoControl & 1)) {
+    const bool rowScroll = which == 1 && (layers.videoControl & 1);
+    if (rowScroll) {
         // (scroll 2's row scroll: a place across for each line, from the game's table)
         const uint32_t rows = (static_cast<uint32_t>(layers.rows) * 256) & ~0x7FFu & 0x3FFFF;
         scrollX += Word(&videoRam[rows + (((rasterLine + layers.rowOffset) & 0x3FF) * 2)]);
     }
     const uint32_t y = (rasterLine + scrollY) & mapMask, row = y >> shift;
-    const uint32_t firstX = static_cast<uint32_t>(kFirstColumn + static_cast<int>(scrollX)) & mapMask;
+    // (the board's own columns, where they are in a wider picture, and where the screen is moved to in it)
+    const int ownLeft = options.side + options.scroll[which] +
+                        (rowScroll && options.rows ? options.rows[(rasterLine + layers.rowOffset) & 0x3FF] : 0);
+    const int ownRight = ownLeft + kWidth;
+    const uint32_t firstX = static_cast<uint32_t>(kFirstColumn - ownLeft + static_cast<int>(scrollX)) & mapMask;
     const uint16_t colourBase = static_cast<uint16_t>(0x20 * (which + 1));
     int out = -static_cast<int>(firstX & (size - 1));
     uint32_t column = firstX >> shift;
-    for (; out < kWidth; out += size, column = (column + 1) & 63) {
+    for (; out < width; out += size, column = (column + 1) & 63) {
         uint32_t index;
         switch (which) {
         case 0: index = (row & 0x1F) + (column << 5) + ((row & 0x20) << 6); break;
@@ -109,7 +122,15 @@ void Raster::DrawScroll(int which, int rasterLine, const Layers &layers, const u
         default: index = (row & 0x07) + (column << 3) + ((row & 0x38) << 6); break;
         }
         uint32_t code = Word(&map[index * 4]);
-        const uint16_t attr = Word(&map[index * 4 + 2]);
+        uint16_t attr = Word(&map[index * 4 + 2]);
+        if (options.tile && (out < ownLeft || out + size > ownRight)) {
+            // (beyond the board's own columns the game's sources may know better than the map)
+            uint16_t itsCode = 0, itsAttr = 0;
+            if (options.tile(which, static_cast<int>(column), static_cast<int>(row), out, itsCode, itsAttr)) {
+                code = itsCode;
+                attr = itsAttr;
+            }
+        }
         uint32_t at;
         int rowBytes;
         switch (which) {
@@ -130,7 +151,7 @@ void Raster::DrawScroll(int which, int rasterLine, const Layers &layers, const u
         }
         for (int k = 0; k < size; k++) {
             const int x = out + k;
-            if (x < 0 || x >= kWidth) {
+            if (x < 0 || x >= width) {
                 continue;
             }
             const uint8_t pen = pixels[flipX ? size - 1 - k : k];
@@ -144,9 +165,13 @@ void Raster::DrawScroll(int which, int rasterLine, const Layers &layers, const u
 
 // The objects' tiles, front to back: a pixel once an object's stays the front one's; whether it shows over the scroll
 // screens' pens there is by its level (masks)
-void Raster::DrawObjects(int rasterLine, const Layers &layers, uint16_t *pens, uint8_t *priority, const uint32_t *masks) const {
+void Raster::DrawObjects(int rasterLine, const Layers &layers, const PictureOptions &options, int width, uint16_t *pens, uint8_t *priority,
+                         const uint32_t *masks) const {
     const int xOffset = 64 - layers.xOffset, yOffset = 16 - layers.yOffset;
     for (const ObjectTile &t : m_tiles) {
+        if (options.hideObject && options.hideObject(t.entryTile, t.attributes)) {
+            continue;
+        }
         int x = t.x, y = t.y;
         if (t.relative) {
             x += layers.xOffset;
@@ -156,8 +181,11 @@ void Raster::DrawObjects(int rasterLine, const Layers &layers, uint16_t *pens, u
         if (rasterLine < sy || rasterLine >= sy + 16) {
             continue;
         }
-        const int sx = ((x + xOffset) & 0x3FF) - kFirstColumn;
-        if (sx <= -16 || sx >= kWidth) {
+        // (where the picture's first column is in the objects' count across, which wraps at 1024: the board's own
+        // first column, less the added side and where the game's sources move this object to)
+        const int first = kFirstColumn - options.side - (options.object ? options.object(t.entryTile, t.attributes, t.entry) : 0) - 16;
+        const int sx = ((x + xOffset - first) & 0x3FF) - 16;
+        if (sx <= -16 || sx >= width) {
             continue;
         }
         const int line = rasterLine - sy;
@@ -171,7 +199,7 @@ void Raster::DrawObjects(int rasterLine, const Layers &layers, uint16_t *pens, u
         const uint32_t mask = masks[t.level] | 0x80000000u;
         for (int k = 0; k < 16; k++) {
             const int px = sx + k;
-            if (px < 0 || px >= kWidth) {
+            if (px < 0 || px >= width) {
                 continue;
             }
             const uint8_t pen = pixels[t.flipX ? 15 - k : k];
@@ -185,11 +213,39 @@ void Raster::DrawObjects(int rasterLine, const Layers &layers, uint16_t *pens, u
     }
 }
 
-void Raster::Line(int line, const Layers &layers, const uint8_t *videoRam, uint32_t *out) const {
+// Pixels nothing was drawn at (the backdrop's pen), in runs no wider than the added side, take the line's own picture
+// mirrored at the nearest drawn pixel (or that pixel, where the mirror finds nothing): Video::FillHoles
+static void FillHoles(uint16_t *pens, int width, int side) {
+    uint16_t drawn[Raster::kMaxWidth];
+    memcpy(drawn, pens, static_cast<size_t>(width) * sizeof(uint16_t));
+    for (int start = 0; start < width;) {
+        if (drawn[start] != kBackdrop) {
+            start++;
+            continue;
+        }
+        int end = start;
+        while (end < width && drawn[end] == kBackdrop) {
+            end++;
+        }
+        const bool left = start > 0, right = end < width;
+        if (end - start <= side && (left || right)) {
+            for (int x = start; x < end; x++) {
+                const bool fromLeft = left && (!right || x - (start - 1) <= end - x);
+                const int edge = fromLeft ? start - 1 : end;
+                const int mirror = 2 * edge - x;
+                pens[x] = mirror >= 0 && mirror < width && drawn[mirror] != kBackdrop ? drawn[mirror] : drawn[edge];
+            }
+        }
+        start = end;
+    }
+}
+
+void Raster::Line(int line, const Layers &layers, const uint8_t *videoRam, const PictureOptions &options, uint32_t *out) const {
     const int rasterLine = line + kFirstLine;
-    uint16_t pens[kWidth];
-    uint8_t priority[kWidth];
-    for (int x = 0; x < kWidth; x++) {
+    const int width = kWidth + 2 * options.side;
+    uint16_t pens[kMaxWidth];
+    uint8_t priority[kMaxWidth];
+    for (int x = 0; x < width; x++) {
         pens[x] = kBackdrop;
     }
     memset(priority, 0, sizeof(priority));
@@ -247,6 +303,9 @@ void Raster::Line(int line, const Layers &layers, const uint8_t *videoRam, uint3
         }
     }
     auto on = [&](unsigned layer) {
+        if (!(options.layerMask & (1u << layer))) {
+            return false;
+        }
         switch (layer) {
         case 1: return (control & 0x02) != 0;
         case 2: return (control & 0x04) != 0 && (videoControl & 0x04) != 0;
@@ -257,12 +316,32 @@ void Raster::Line(int line, const Layers &layers, const uint8_t *videoRam, uint3
     const unsigned order[3] = {l0, l1, l2};
     for (int n = 0; n < 3; n++) {
         if (order[n] && on(order[n])) {
-            DrawScroll(static_cast<int>(order[n]) - 1, rasterLine, layers, videoRam, pens, priority, static_cast<uint8_t>(1u << n));
+            DrawScroll(static_cast<int>(order[n]) - 1, rasterLine, layers, videoRam, options, width, pens, priority,
+                       static_cast<uint8_t>(1u << n));
         }
     }
-    DrawObjects(rasterLine, layers, pens, priority, masks);
-    for (int x = 0; x < kWidth; x++) {
+    // (holes filled from the scroll screens alone, before the objects)
+    if (options.fillHoles && options.side > 0) {
+        FillHoles(pens, width, options.side);
+    }
+    if (options.layerMask & 1) {
+        DrawObjects(rasterLine, layers, options, width, pens, priority, masks);
+    }
+    for (int x = 0; x < width; x++) {
         out[x] = m_colours[pens[x]];
+    }
+    if (options.markObjects) {
+        // (an object's pixels, and those of the scroll screens marked, have the top byte set: 0x80 and the colour set)
+        unsigned marked = 0;
+        for (int n = 0; n < 3; n++) {
+            if (order[n] && (options.markLayers & (1u << order[n]))) {
+                marked |= 1u << n;
+            }
+        }
+        for (int x = 0; x < width; x++) {
+            const bool mark = priority[x] == 31 || (priority[x] & marked) != 0;
+            out[x] |= mark ? 0x80000000u | (static_cast<uint32_t>(pens[x] >> 4) & 0x1F) << 24 : 0;
+        }
     }
 }
 
