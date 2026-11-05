@@ -79,7 +79,7 @@ namespace native_video {
         }
     }
 
-    Layers DecodeLayers(const uint16_t *cpsA, const uint16_t *cpsB, const uint16_t *objectRegs, uint8_t layerControl) {
+    Layers DecodeLayers(const uint16_t *cpsA, const uint16_t *cpsB, const uint16_t *objectRegs, uint8_t layerControl, const uint8_t *masks) {
         // (CPS-A's registers, by word: 1-3 the maps, 4 the row scroll's table, 6-11 the scrolls across and down,
         // 0x10 the row scroll's place, 0x11 the video control; video.cpp)
         Layers layers;
@@ -94,7 +94,19 @@ namespace native_video {
         layers.layerControl = cpsB[layerControl / 2];
         layers.xOffset = objectRegs[4];
         layers.yOffset = objectRegs[5];
+        for (int n = 0; masks && n < 4; n++) {
+            layers.masks[n] = cpsB[masks[n] / 2];
+        }
         return layers;
+    }
+
+    ObjectList DecodeObjectsCps1(const uint8_t *videoRam, const uint16_t *cpsA) {
+        ObjectList list;
+        const uint32_t base = (static_cast<uint32_t>(cpsA[0]) * 256) & ~0x7FFu & 0x3FFFF;
+        for (int n = 0; n < 0x400 && base + n * 2 + 1 < 0x30000; n++) {
+            list.words[n] = Word(&videoRam[base + n * 2]);
+        }
+        return list;
     }
 
     void Layers::Describe(const Layers &other, FILE *out) const {
@@ -197,11 +209,27 @@ void NativeVideo::BoardObjects(const native_video::ObjectList &list, const nativ
     }
 }
 
+void NativeVideo::BoardObjectsCps1(const native_video::ObjectList &list) {
+    if (!checking) {
+        return;
+    }
+    // (the game's list: in video RAM where the game said, as the board takes it)
+    if (native_video::DecodeObjectsCps1(videoRam, m_cpsA) == list) {
+        m_listsSame++;
+        return;
+    }
+    if (m_listsDiffer++ < 10) {
+        fprintf(stderr, "video check: frame %llu: the object list differs (a CPS-1's, where the game said it is: %04X; the board's: from "
+                        "its register)\n",
+                static_cast<unsigned long long>(frame), m_cpsA[0]);
+    }
+}
+
 void NativeVideo::BoardLayers(const native_video::Layers &layers, int line) {
     if (!checking) {
         return;
     }
-    const native_video::Layers mine = native_video::DecodeLayers(m_cpsA, m_cpsB, m_objectRegs, layerControl);
+    const native_video::Layers mine = native_video::DecodeLayers(m_cpsA, m_cpsB, m_objectRegs, layerControl, cps1Masks);
     if (mine == layers) {
         m_linesSame++;
         return;
@@ -312,7 +340,7 @@ void NativeVideo::BoardLine(int line, const uint32_t *pixels, const native_video
         m_frameComparable = comparable && m_bank >= 0;
     }
     if (m_inFrame) {
-        m_frameLayers[line] = native_video::DecodeLayers(m_cpsA, m_cpsB, m_objectRegs, layerControl);
+        m_frameLayers[line] = native_video::DecodeLayers(m_cpsA, m_cpsB, m_objectRegs, layerControl, cps1Masks);
         memcpy(&m_frameBoard[static_cast<size_t>(line) * native_video::Raster::kMaxWidth], pixels,
                (native_video::Raster::kWidth + 2 * options.side) * sizeof(uint32_t));
         m_frameRow = line + 1;
@@ -325,7 +353,7 @@ void NativeVideo::BoardLine(int line, const uint32_t *pixels, const native_video
         return;
     }
     uint32_t mine[native_video::Raster::kMaxWidth];
-    m_raster.Line(line, native_video::DecodeLayers(m_cpsA, m_cpsB, m_objectRegs, layerControl), videoRam, options, mine);
+    m_raster.Line(line, native_video::DecodeLayers(m_cpsA, m_cpsB, m_objectRegs, layerControl, cps1Masks), videoRam, options, mine);
     const int width = native_video::Raster::kWidth + 2 * options.side;
     int x = 0;
     while (x < width && mine[x] == pixels[x]) {

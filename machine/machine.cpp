@@ -65,6 +65,7 @@ Machine::Machine(const RomSet &roms)
     nativeVideo.videoRam = videoRam.data();
     nativeVideo.paletteControl = roms.board.paletteControl;
     nativeVideo.layerControl = roms.board.layerControl;
+    nativeVideo.cps1Masks = m_cps1 ? m_roms.board.priority : nullptr;
     nativeVideo.SetGraphics(roms.graphics.data(), roms.graphics.size());
     cpu.nativeVideo = &nativeVideo;
     cpu.rom = roms.program.data();
@@ -197,6 +198,10 @@ void Machine::RunLine() {
         UpdateInterruptLevel();
         if (m_cps1) {
             video.LatchObjectsCps1();
+            if (nativeVideo.checking) {
+                nativeVideo.frame = frame;
+                nativeVideo.BoardObjectsCps1(native_video::DecodeObjectsCps1(videoRam.data(), cpsA));
+            }
         } else {
             video.LatchObjects(&objectRam[m_objectBank ? 0x2000 : 0], m_extra ? objectsFromExtra[m_objectBank ? 1 : 0] : nullptr);
             if (nativeVideo.checking) {
@@ -225,10 +230,11 @@ void Machine::RunLine() {
 
     RunSound(kSoundCyclesPerLine);
 
-    if (nativeVideo.checking && !m_cps1 && m_line >= Video::kFirstLine && m_line < Video::kFirstLine + Video::kHeight) {
+    if (nativeVideo.checking && m_line >= Video::kFirstLine && m_line < Video::kFirstLine + Video::kHeight) {
         // (the registers the line is drawn with, as the game's side has them: --video check)
         nativeVideo.frame = frame;
-        nativeVideo.BoardLayers(native_video::DecodeLayers(cpsA, cpsB, objectRegs, m_roms.board.layerControl), m_line - Video::kFirstLine);
+        nativeVideo.BoardLayers(native_video::DecodeLayers(cpsA, cpsB, objectRegs, m_roms.board.layerControl, nativeVideo.cps1Masks),
+                                m_line - Video::kFirstLine);
     }
     if (drawing && m_line >= Video::kFirstLine && m_line < Video::kFirstLine + Video::kHeight) {
         const int row = m_line - Video::kFirstLine;

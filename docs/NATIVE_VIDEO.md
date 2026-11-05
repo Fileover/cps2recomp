@@ -331,6 +331,25 @@ as the `widescreen-stage-ends` builds' (without the lifts), all of each run's fr
 game's side now has every palette upload, every object list and every line's layers. The CPS-1 games (dino, punisher)
 are left: another board.
 
+## The CPS-1 games
+
+Cadillacs and Dinosaurs (dino) and The Punisher (punisher) are on the CPS-1 board. They have no object bank and no
+object registers: their object list is 256 entries in video RAM where CPS-A's first register says, and the board takes
+it as the vertical blank starts (`Video::LatchObjectsCps1`). Their palette control and layer control are CPS-B
+registers at other places, which `game.cfg`'s `cps_b` gives, and they are drawn with CPS-B's four priority masks: the
+pens of a screen in front of the objects.
+
+So for them the game's side makes the object list from video RAM where the game said the list is (its word to CPS-A's
+first register), when the board takes it (`DecodeObjectsCps1`), and a line's layers have the four masks too. The
+palette's upload is as on the CPS-2, with the board's palette control. Their `video_writes` are every `move` or `clr`
+to a fixed video register in their listings.
+
+Over attract mode (4,000 frames each), and The Punisher's ladder (25,000 frames, into its second stage, with its cheats:
+`free_play,infinite_health,infinite_time,infinite_lives`), every palette upload, object list and line was the same from
+both sides (The Punisher's ladder: 24,940 uploads, 24,999 lists, 5.6 million lines). The frame hashes were the same as
+the `widescreen-stage-ends` builds' (without the lifts). The picture drawn from the records (check b) is the CPS-2's
+only so far.
+
 ## Check (b): the picture from the records
 
 `video/native_render.h` draws the picture from the records alone: the palette as the game side's uploads made it,
@@ -493,7 +512,7 @@ list, and Vampire Savior Definitive's, as for check (b)). Bands a frame on avera
 
 Sizes: S a session, M a few, L a week or more.
 
-1. **Palettes**: done in every CPS-2 game; the CPS-1 games' palette control (another register, S).
+1. **Palettes**: done in every game, the CPS-1 games among them.
 2. **The object list:** the list handed over at the bank swap, checked against the board's each frame: done in every
    CPS-2 game. Then the drawers' entries as `Object`s from the piece writers themselves (the Alpha library's list
    builder): M for Alpha, M for Marvel; SF2's copy in the interrupt, S.
