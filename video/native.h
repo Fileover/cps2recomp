@@ -19,6 +19,7 @@
 
 #include <cstdint>
 #include <cstdio>
+#include <string>
 #include <vector>
 
 namespace cps2recomp {
@@ -65,6 +66,7 @@ public:
     void *frameUser = nullptr;
 
     bool checking = false; // (--video check: the records compared with the board's)
+    std::string checkName = "video check"; // (what its reports begin with: a guest board's says whose)
     uint64_t frame = 0;                // (for the reports: the machine's frame)
     const uint8_t *videoRam = nullptr; // (the game's side reads the buffers the game fills there)
     uint8_t paletteControl = 0x30;     // (where the CPS-B's palette control is in its registers: Board::paletteControl)
@@ -149,5 +151,7 @@ private:
 
 // The rewrites and hooks of Capcom's video library that the game's game.cfg asks for (video/lifts.cpp)
 void RegisterVideoLifts();
+// ... and a guest board's (runtime/guest.h): its game's video_writes, read from its program (opcodes, as the CPU reads it)
+void RegisterGuestVideoLifts(const std::string &id, const char *writes, const uint8_t *opcodes, size_t size);
 
 } // namespace cps2recomp

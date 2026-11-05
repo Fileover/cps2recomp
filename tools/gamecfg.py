@@ -76,6 +76,18 @@ def main():
                                                                     g.get("program", ""), g.get("graphics", ""), g.get("sound_program", ""),
                                                                     g.get("samples", ""), g.get("key", ""))) + "}")
             lines.append("#define GAME_GUEST_TABLE {" + ", ".join(entries) + "}")
+            # (each guest's instructions that write the video's registers, for its board's own records: video/lifts.cpp;
+            # its palette commit's two moves to the registers watched too, as the guest's board has no rewrites)
+            video = []
+            for guest in cfg["guests"].split():
+                g = load(guest)
+                writes = " ".join(g.get("video_writes", "").replace("||", " ").split())
+                commit = g.get("video_palette_commit", "").split(":")[0]
+                if commit:
+                    at = int(commit, 16)
+                    writes = (writes + " %06X %06X" % (at, at + 8)).strip()
+                video.append("{" + quoted(guest) + ", " + quoted(writes) + "}")
+            lines.append("#define GAME_GUEST_VIDEO {" + ", ".join(video) + "}")
         content = "\n".join(lines) + "\n"
         if not os.path.exists(args[1]) or open(args[1]).read() != content:
             os.makedirs(os.path.dirname(args[1]) or ".", exist_ok=True)

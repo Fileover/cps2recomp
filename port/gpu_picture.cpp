@@ -77,6 +77,9 @@ namespace {
         }
         out[19] = o.fillHoles ? 1 : 0;
         out[20] = overrides;
+        out[23] = o.layerMask;
+        // (the objects alone over another picture: GpuPicture::Over)
+        out[28] = (o.layerMask & ~1u) == 0 && !o.markLayers && (o.markObjects || o.layerMask == 0) ? 1 : 0;
         if (raster.Cps1()) {
             out[21] = 1;
             out[22] = raster.Enable()[0] | (static_cast<uint32_t>(raster.Enable()[1]) << 8) | (static_cast<uint32_t>(raster.Enable()[2]) << 16);
@@ -143,13 +146,14 @@ bool GpuPicture::Open(SDL_GPUDevice *device, const uint8_t *graphics, size_t siz
     m_picture = MakeTexture(m_device, SDL_GPU_TEXTUREFORMAT_R8G8B8A8_UNORM, target, kMaxWidth, kHeight);
     m_readouts = MakeTexture(m_device, SDL_GPU_TEXTUREFORMAT_R8G8B8A8_UNORM, SDL_GPU_TEXTUREUSAGE_SAMPLER, kMaxWidth, kHeight);
     m_clear = MakeTexture(m_device, SDL_GPU_TEXTUREFORMAT_R8G8B8A8_UNORM, SDL_GPU_TEXTUREUSAGE_SAMPLER, kMaxWidth, kHeight);
+    m_composite = MakeTexture(m_device, SDL_GPU_TEXTUREFORMAT_R8G8B8A8_UNORM, target, kMaxWidth, kHeight);
     SDL_GPUSamplerCreateInfo sampler = {};
     sampler.min_filter = sampler.mag_filter = SDL_GPU_FILTER_NEAREST;
     sampler.mipmap_mode = SDL_GPU_SAMPLERMIPMAPMODE_NEAREST;
     sampler.address_mode_u = sampler.address_mode_v = sampler.address_mode_w = SDL_GPU_SAMPLERADDRESSMODE_CLAMP_TO_EDGE;
     m_sampler = SDL_CreateGPUSampler(m_device, &sampler);
     if (!m_graphics || !m_video || !m_lines || !m_frame || !m_screens || !m_objects || !m_depth || !m_lineTexture || !m_palette ||
-        !m_picture || !m_readouts || !m_clear || !m_overrides || !m_holes || !m_extraGraphics || !m_scrollExtra || !m_sampler ||
+        !m_picture || !m_readouts || !m_clear || !m_overrides || !m_holes || !m_composite || !m_extraGraphics || !m_scrollExtra || !m_sampler ||
         !MakePipelines(error)) {
         if (error.empty()) {
             error = std::string("the picture's GPU resources: ") + SDL_GetError();
@@ -298,7 +302,7 @@ void GpuPicture::Close() {
         }
     }
     for (SDL_GPUTexture *texture : {m_screens, m_holes, m_objects, m_depth, m_lineTexture, m_palette, m_picture, m_readouts, m_clear, m_shown,
-                                    m_stack}) {
+                                    m_stack, m_composite}) {
         if (texture) {
             SDL_ReleaseGPUTexture(m_device, texture);
         }
@@ -325,6 +329,7 @@ void GpuPicture::Close() {
     m_extraGraphicsSize = 0;
     m_tilesCapacity = 0;
     m_screens = m_holes = m_objects = m_depth = m_lineTexture = m_palette = m_picture = m_readouts = m_clear = m_shown = m_stack = nullptr;
+    m_composite = nullptr;
     m_shownWidth = 0;
     m_sampler = nullptr;
     m_layersPipeline = m_holesPipeline = m_objectsPipeline = m_coloursPipeline = m_shownPipeline = nullptr;
@@ -342,7 +347,10 @@ bool GpuPicture::Drawable(const NativeVideo::FrameData &frame) {
     const auto &o = frame.options;
     // (the marks, for pictures put together from two, and layers left out are the CPU's; and a line with more tiles given
     // beyond the board's columns than there is room for)
-    if (o.markObjects || o.markLayers || o.layerMask != 0xF || o.side > Raster::kMaxSide) {
+    if (!Over(o) && (o.markObjects || o.markLayers || o.layerMask != 0xF)) {
+        return false;
+    }
+    if (o.side > Raster::kMaxSide) {
         return false;
     }
     for (int line = 0; frame.overrides && line < kHeight; line++) {
@@ -553,7 +561,7 @@ void GpuPicture::Draw(SDL_GPUCommandBuffer *commands, const NativeVideo::FrameDa
         depth.stencil_store_op = SDL_GPU_STOREOP_DONT_CARE;
         SDL_GPURenderPass *pass = SDL_BeginGPURenderPass(commands, &target, 1, &depth);
         SDL_SetGPUViewport(pass, &viewport);
-        if (drawnTiles) {
+        if (drawnTiles && (frame.options.layerMask & 1)) {
             SDL_BindGPUGraphicsPipeline(pass, m_objectsPipeline);
             SDL_GPUBuffer *vertexBuffers[2] = {m_tiles, m_frame};
             SDL_BindGPUVertexStorageBuffers(pass, 0, vertexBuffers, 2);
@@ -623,7 +631,22 @@ void GpuPicture::Draw(SDL_GPUCommandBuffer *commands, const NativeVideo::FrameDa
     }
 }
 
+namespace {
+    uint64_t g_keptSerial = 0;
+} // namespace
+
+GpuPicture *GpuPicture::LatestGuest() const {
+    GpuPicture *latest = nullptr;
+    for (GpuPicture *guest : m_guests) {
+        if (guest->CanDrawKept() && (!latest || guest->m_keptSerial > latest->m_keptSerial)) {
+            latest = guest;
+        }
+    }
+    return latest;
+}
+
 void GpuPicture::Keep(const NativeVideo::FrameData &frame) {
+    m_keptSerial = ++g_keptSerial;
     m_kept.frame = frame.frame;
     m_kept.video.assign(frame.video, frame.video + kVideoBytes);
     m_kept.raster = *frame.raster;
@@ -649,6 +672,20 @@ void GpuPicture::Keep(const NativeVideo::FrameData &frame) {
 
 SDL_GPUTexture *GpuPicture::DrawKept(SDL_GPUCommandBuffer *commands, const uint32_t *readouts, bool zoomed) {
     if (!CanDrawKept()) {
+        return nullptr;
+    }
+    // (the objects alone, over a guest's stage: the guest's last frame drawn first, on the same device)
+    // (and only when the frame was: else the CPU's picture, as it was made)
+    GpuPicture *guest = Over(m_kept.options) ? LatestGuest() : nullptr;
+    if (Over(m_kept.options) && (!guest || guest->KeptWidth() != KeptWidth() || !guestBehind || !*guestBehind ||
+                                 guest->m_keptSerial < m_keptSerial)) {
+        return nullptr;
+    }
+    if (!Over(m_kept.options) && guestBehind && *guestBehind) {
+        return nullptr; // (put together over a guest's, but not of objects alone: the CPU's)
+    }
+    SDL_GPUTexture *stage = guest ? guest->DrawKept(commands, nullptr, false) : nullptr;
+    if (guest && !stage) {
         return nullptr;
     }
     NativeVideo::FrameData frame;
@@ -688,6 +725,24 @@ SDL_GPUTexture *GpuPicture::DrawKept(SDL_GPUCommandBuffer *commands, const uint3
         SDL_UploadToGPUTexture(copy, &from, &to, true);
         SDL_EndGPUCopyPass(copy);
     }
+    // (over a guest's stage: the stage, and this game's objects over it, the colours times their alpha: shown.frag's
+    // blend, with the objects as what goes over)
+    SDL_GPUTexture *base = m_picture;
+    if (stage) {
+        SDL_GPUColorTargetInfo composite = {};
+        composite.texture = m_composite;
+        composite.load_op = SDL_GPU_LOADOP_DONT_CARE;
+        composite.store_op = SDL_GPU_STOREOP_STORE;
+        SDL_GPURenderPass *pass = SDL_BeginGPURenderPass(commands, &composite, 1, nullptr);
+        SDL_BindGPUGraphicsPipeline(pass, m_shownPipeline);
+        const SDL_GPUViewport viewport = {0, 0, static_cast<float>(width), static_cast<float>(kHeight), 0, 1};
+        SDL_SetGPUViewport(pass, &viewport);
+        SDL_GPUTextureSamplerBinding bindings[2] = {{stage, m_sampler}, {m_picture, m_sampler}};
+        SDL_BindGPUFragmentSamplers(pass, 0, bindings, 2);
+        SDL_DrawGPUPrimitives(pass, 3, 1, 0, 0);
+        SDL_EndGPURenderPass(pass);
+        base = m_composite;
+    }
     // The picture with the readouts over it; zoomed, the game's alone above that (rows 224-447)
     SDL_GPUTexture *out = zoomed ? m_stack : m_shown;
     SDL_GPUColorTargetInfo target = {};
@@ -699,7 +754,7 @@ SDL_GPUTexture *GpuPicture::DrawKept(SDL_GPUCommandBuffer *commands, const uint3
     auto half = [&](int top, SDL_GPUTexture *over) {
         const SDL_GPUViewport viewport = {0, static_cast<float>(top), static_cast<float>(width), static_cast<float>(kHeight), 0, 1};
         SDL_SetGPUViewport(pass, &viewport);
-        SDL_GPUTextureSamplerBinding bindings[2] = {{m_picture, m_sampler}, {over, m_sampler}};
+        SDL_GPUTextureSamplerBinding bindings[2] = {{base, m_sampler}, {over, m_sampler}};
         SDL_BindGPUFragmentSamplers(pass, 0, bindings, 2);
         SDL_DrawGPUPrimitives(pass, 3, 1, 0, 0);
     };
@@ -741,11 +796,17 @@ void GpuPicture::Check(const NativeVideo::FrameData &frame) {
     const auto *pixels = static_cast<const uint32_t *>(SDL_MapGPUTransferBuffer(m_device, m_download, false));
     int differ = 0, firstLine = -1, firstColumn = -1;
     uint32_t mine = 0, board = 0;
+    const bool over = Over(frame.options);
+    m_over += over ? 1 : 0;
     for (int line = 0; line < kHeight; line++) {
         const uint32_t *row = &frame.board[static_cast<size_t>(line) * Raster::kMaxWidth];
         for (int x = 0; x < width; x++) {
-            // (red, green, blue, alpha bytes: the board's red, green, blue in the low three)
-            if ((pixels[line * width + x] & 0xFFFFFF) != row[x]) {
+            // (red, green, blue, alpha bytes: the board's red, green, blue in the low three; the objects alone, to go
+            // over a guest's stage: the board's marked pixels, and clear where it marked none)
+            const uint32_t gpu = pixels[line * width + x];
+            const bool same = over ? ((row[x] & 0x80000000u) ? gpu == ((row[x] & 0xFFFFFF) | 0xFF000000u) : (gpu >> 24) == 0)
+                                   : (gpu & 0xFFFFFF) == row[x];
+            if (!same) {
                 if (firstLine < 0) {
                     firstLine = line;
                     firstColumn = x;
@@ -764,9 +825,9 @@ void GpuPicture::Check(const NativeVideo::FrameData &frame) {
     }
     m_linesDiffer += static_cast<uint64_t>(differ);
     if (m_differ++ < 10) {
-        fprintf(stderr, "video gpu-check: frame %llu: %d lines differ from the board's, the first at line %d, column %d: %06X (the "
+        fprintf(stderr, "%s: frame %llu: %d lines differ from the board's, the first at line %d, column %d: %06X (the "
                         "board's: %06X)\n",
-                static_cast<unsigned long long>(frame.frame), differ, firstLine, firstColumn, mine, board);
+                checkName.c_str(), static_cast<unsigned long long>(frame.frame), differ, firstLine, firstColumn, mine, board);
     }
 }
 
@@ -776,6 +837,11 @@ void GpuPicture::CheckShown(const uint32_t *readouts, const uint32_t *shown, int
     }
     SDL_GPUCommandBuffer *commands = SDL_AcquireGPUCommandBuffer(m_device);
     SDL_GPUTexture *texture = DrawKept(commands, readouts, false);
+    if (!texture) {
+        SDL_SubmitGPUCommandBuffer(commands);
+        m_shownCpu++; // (a frame the window shows from the CPU)
+        return;
+    }
     SDL_GPUCopyPass *copy = SDL_BeginGPUCopyPass(commands);
     SDL_GPUTextureRegion region = {};
     region.texture = texture;
@@ -808,19 +874,21 @@ void GpuPicture::CheckShown(const uint32_t *readouts, const uint32_t *shown, int
         return;
     }
     if (m_shownDiffer++ < 10) {
-        fprintf(stderr, "video gpu-check: frame %llu: shown with the readouts, %d off at line %d, column %d\n",
-                static_cast<unsigned long long>(m_kept.frame), worst, at / width, at % width);
+        fprintf(stderr, "%s: frame %llu: shown with the readouts, %d off at line %d, column %d\n",
+                checkName.c_str(), static_cast<unsigned long long>(m_kept.frame), worst, at / width, at % width);
     }
 }
 
 bool GpuPicture::Report(FILE *out) const {
-    fprintf(out, "video gpu-check: frames drawn on the GPU: %llu the same as the board's, %llu not (%llu lines); %llu not drawn there; "
-                 "%llu of them wider than the board's\n",
-            static_cast<unsigned long long>(m_same), static_cast<unsigned long long>(m_differ), static_cast<unsigned long long>(m_linesDiffer),
-            static_cast<unsigned long long>(m_notDrawn), static_cast<unsigned long long>(m_wide));
-    fprintf(out, "video gpu-check: shown with the readouts over it: %llu within a step of the CPU's (%llu with readouts), %llu not\n",
-            static_cast<unsigned long long>(m_shownSame), static_cast<unsigned long long>(m_shownWithReadouts),
-            static_cast<unsigned long long>(m_shownDiffer));
+    fprintf(out, "%s: frames drawn on the GPU: %llu the same as the board's, %llu not (%llu lines); %llu not drawn there; "
+                 "%llu of them wider than the board's; %llu of objects alone, over another game's stage\n",
+            checkName.c_str(), static_cast<unsigned long long>(m_same), static_cast<unsigned long long>(m_differ),
+            static_cast<unsigned long long>(m_linesDiffer), static_cast<unsigned long long>(m_notDrawn), static_cast<unsigned long long>(m_wide),
+            static_cast<unsigned long long>(m_over));
+    fprintf(out, "%s: shown with the readouts over it: %llu within a step of the CPU's (%llu with readouts), %llu not (and %llu the "
+                 "CPU's)\n",
+            checkName.c_str(), static_cast<unsigned long long>(m_shownSame), static_cast<unsigned long long>(m_shownWithReadouts),
+            static_cast<unsigned long long>(m_shownDiffer), static_cast<unsigned long long>(m_shownCpu));
     return m_differ == 0 && m_shownDiffer == 0;
 }
 

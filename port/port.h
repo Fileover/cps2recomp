@@ -190,6 +190,12 @@ struct Port {
     // presenter draws with SDL_GPU
     GpuPicture gpuPicture;
     bool gpuWanted = false;
+    // (the guests' boards', whose stages the game's objects are drawn over: runtime/guest.h; their sets' graphics)
+    struct GuestPicture {
+        std::unique_ptr<GpuPicture> picture;
+        const cps2recomp::RomSet *roms = nullptr;
+    };
+    std::vector<GuestPicture> guestPictures;
     // How many pixels a line of it has (the machine's picture: wider when the game's sources ask)
     int ShownWidth() const {
         return machine->PictureWidth();

@@ -533,6 +533,36 @@ Results: every line and frame compared was the same as the board's. On the CPU t
 lines) and The Punisher's ladder (25,000 frames, 5,599,776 lines); on the GPU, Dino's attract mode (3,999 frames) and
 The Punisher's ladder (24,999 frames). With them every game of the collection can be drawn on the GPU.
 
+### Guest boards' own records (stages from another game)
+
+A game that shows another game's stages runs that game's board beside its own (`runtime/guest.h`: Vampire Savior
+Definitive's Darkstalkers and Alpha 2 stages). Each board is a machine with its own native interface, and now with its
+own game's side too:
+
+- **Watches on a guest's board.** A guest runs its own game's program, at that game's addresses, with hooks of its
+  own. Its game's `video_writes` (and its palette commit's two moves to the registers, as a guest's board has no
+  rewrites) go into the host's build (`GAME_GUEST_VIDEO`, from each guest's `game.cfg`), and are watched on the guest's
+  board when it is loaded (`RegisterGuestVideoLifts`, `AddGuestWatches`). The CPU tells a guest's watches as it tells the
+  game's (`ownWatched`). The moves are read from the guest's own program when they are registered, not as they run.
+- **The list and the palette kept always.** A guest's matches are made on a spare board and put into the guest's board
+  as a save state. So the game's side keeps its object list and palette whether or not anything records, and a spare's
+  state has them right. That costs a frame a few thousand reads.
+- **Checked.** `--video check` checks the guests' boards too, each report saying whose ("video check, dstlk").
+
+In Vampire Savior Definitive's arcade mode with `dstlk_stages` (Vampire Savior's ladder movie, 8,000 frames), the
+Darkstalkers board showed its stages for 4,229 frames. Every palette upload, object list and line of its, the picture
+drawn from its records and every frame drawn at once were the same as its board's, and so were Definitive's own.
+
+**On the GPU.** Each guest board has a GPU renderer of its own (its graphics, its palette), on the same device, and its
+frames are recorded and kept. A frame of the game's with its objects alone (layer mask 1, marked: `GpuPicture::Over`)
+is drawn with them as the colour times their alpha, and put over the guest's last frame; the readouts over that, as
+always. The GPU follows the frame as the CPU put it together (`Machine::guestBehind`): a frame not put together over a
+guest's is the CPU's. `--video gpu-check` checks a game's frame of objects alone by the board's marks, the guests'
+frames against their boards, and the whole against the CPU's picture. Definitive's ladder with `dstlk_stages`
+(8,000 frames): 3,922 frames of objects alone over Darkstalkers' stages, every one the same; 4,229 of the Darkstalkers
+board's; the pictures put together within a step (13 at a stage's start or end the CPU's). In training on an Alpha 2
+stage (9,000 frames): 5,650 over Alpha 2's stage, 8,995 of its board's, all the same.
+
 ### The GPU's picture on the screen (`--video gpu`)
 
 With `--video gpu` the window shows the GPU's picture, where it can, when the presenter draws with SDL_GPU. The SDL
