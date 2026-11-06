@@ -19,6 +19,7 @@
 namespace cps2recomp {
 
 bool BattleMode(); // (fight/battle.h)
+int BattleStage();
 bool StageViewer(); // (modes.cpp)
 bool ThePanel(uint32_t tile, uint16_t attributes); // (machines.cpp)
 
@@ -35,7 +36,9 @@ namespace {
     // The stage wanted now, 1 the guests' first (Darkstalkers' are first: game.cfg's guests); 0 this game's own
     int Wanted() {
         if (BattleMode()) {
-            return 0; // (the modes' stages are this game's own: its spare machines make them)
+            // (the modes' stages are this game's own, but one chosen for the endless or the team battle from the guests')
+            const int chosen = BattleStage();
+            return chosen > kStages && chosen <= kStages + guest_stages::Stages() ? chosen - kStages : 0;
         }
         // (a stage chosen by name: training's, the viewer's; after this game's eighteen)
         const int wanted = session::WantedStage();

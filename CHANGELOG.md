@@ -18,6 +18,9 @@
 - **Night Warriors' stages in Vampire Savior Definitive**: all fourteen (Darkstalkers' in their Night Warriors colours,
   Hsien-Ko's and Donovan's), each run from Night Warriors' own stage code alone, after Alpha's in the lists (Night
   Warriors' ROM set needed).
+- **Other games' stages in the endless and team battles**: in Vampire Savior Definitive, Vampire Savior, Vampire Savior
+  2, Vampire Hunter 2, Alpha 2 and Zero 2 Alpha, the endless battle's **Stage** and the team battle's list have them
+  after the game's own (the endless battle's Shuffle and Scroll still go through the game's own).
 - **Street Fighter Alpha's stages in Vampire Savior Definitive**: all thirteen, each run from Alpha's own stage code
   alone, in training's and the stage viewer's lists after Super Turbo's (Alpha's ROM set needed).
 - **Street Fighter Alpha's stage viewer plays the music chosen** (it went on with the stage's own).

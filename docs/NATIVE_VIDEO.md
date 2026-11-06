@@ -219,6 +219,11 @@ Darkstalkers' stages had no music: their build asked the sound program to stop e
 interrupt, sending that, empties the sound ring, the stage's tune asked for after it too. The build leaves it out now;
 the tune is the first stage's, as in Darkstalkers' own viewer.
 
+The endless battle (its one stage) and the team battle take other games' stages too: their lists (`stageChoices`) have
+them after the game's own, and a match on one is fought on the game's first stage, the other drawn behind it, as
+training's are (`BattleStage`, read by the host's `wanted`). The endless battle's Shuffle and Scroll go on through the
+game's own stages: each shows two stages at once, made on the game's spare boards.
+
 Alpha's stages go alone too (`games/sfa/guest.h`). Its start-up and attract mode keep a loop (001996, the modes called
 at 00199E). A match builds its stage by a task that wipes the picture over before the versus screen (009CC6 with D1
 0x0C, a step a frame); the build does its steps at once: the memory of objects set out again (016170, as a match does
