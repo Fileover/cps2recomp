@@ -183,6 +183,16 @@ whose calls the interpreter does not see). Checked: all eighteen beside the matc
 (the same but for their animations' moments), every one passing `--stage-check`, and a training session on Ken's stage
 with both players walked to each end (no frame off); rollback the same; Definitive's hashes main's with the feature off.
 
+Hosts: Vampire Savior, Vampire Savior 2 and Vampire Hunter 2 show Darkstalkers' and Alpha 2's stages too
+(`games/vampire_savior/src/stages.cpp`, called from their family.h's `RegisterOwnSources`; Definitive keeps its own).
+Their check found three more things: Alpha 2's camera goes 5 pixels a frame across and 1 up as constants in its code
+(01B6A0 on: hooked, as Vampire Savior's is raised); what the port calls in a guest's loop took the guest's frame, so a
+heavy frame (a stage's build) left Darkstalkers' loop a frame short and its camera a frame late (the calls now take none
+of it); and the host's own stage under a borrowed one still moves the host's camera: the train's arrival and Fetus of
+God's shake took it 32 pixels below where any other stage goes. So a stage chosen by name puts Feast of the Damned under
+it, and the arcade's choice passes over those two. Every host's ladder passes `--stage-check`, plays as main's with the
+feature off, and runs again the same (`--rollback-test`).
+
 What this asks of the interface: **a frame holds layers from more than one producer** (the game and a guest). Each
 producer has its own palettes, its own tile graphics, its own priorities, and its own scroll and row scroll. The
 frame's layer order says how one producer's layers go between the other's: the guest's stage behind the game's

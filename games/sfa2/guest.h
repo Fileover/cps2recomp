@@ -35,6 +35,16 @@ inline bool ThePanel(uint32_t tile, uint16_t attributes) {
            (tile >= 0x0A400 && tile < 0x0A700 && (set < 11 || set > 25));
 }
 
+// A step of its camera (D2, a word) no more than another game's camera goes in a frame, then on to `next`
+inline bool Most(cps2recomp::M68K &c, uint32_t next) {
+    constexpr uint16_t kMost = 16;
+    if ((c.d[2] & 0xFFFF) > kMost) {
+        c.d[2] = (c.d[2] & 0xFFFF0000) | kMost;
+    }
+    c.pc = next;
+    return true;
+}
+
 inline cps2recomp::guest_stages::Guest Description() {
     using namespace cps2recomp::guest_stages;
     Guest d;
@@ -98,6 +108,15 @@ inline cps2recomp::guest_stages::Guest Description() {
     };
     d.frame = {0x01E308, 0x01E582, 0x01E640, 0x01A7F6, 0x01E6AE, 0x0127A4};
     d.placing = 0x01A7F6;
+    // (its camera goes 5 pixels a frame at most across and 1 up, 01B6A0 on, as constants: for a stage alone, as far as
+    // another game's camera goes, within a strip of a scroll screen painted as it goes, 16; each test of D2 against the
+    // most done here, and on to where the step is added)
+    d.hooks = {
+        {0x01B6A0, [](cps2recomp::M68K &c) { return Most(c, 0x01B6A8); }},
+        {0x01B6BE, [](cps2recomp::M68K &c) { return Most(c, 0x01B6C6); }},
+        {0x01B6F4, [](cps2recomp::M68K &c) { return Most(c, 0x01B6FC); }},
+        {0x01B712, [](cps2recomp::M68K &c) { return Most(c, 0x01B71A); }},
+    };
     d.soundQueue = 0xFFCF60;
     d.soundQueueEnd = 0xFFDF60;
     d.stageTunes = {0x01, 0x02, 0x0B, 0x09, 0x03, 0x06, 0x05, 0x08, 0x07, 0x0A, 0x0C, 0x04, 0x0D, 0x12, 0x11, 0x0E, 0x0F, 0x10};

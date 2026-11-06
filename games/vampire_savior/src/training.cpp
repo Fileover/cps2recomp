@@ -55,6 +55,13 @@ namespace {
         }
         // (0: the game's choice)
         const int stage = session::WantedStage();
+        if (stage > kStages && Ram8(kPlayersThen) == 3) {
+            // Another game's stage (its own stage code shows it, fight/guest_stages.h): this game's own under it is the
+            // first, whose camera does nothing of its own (the train's and Fetus of God's shake it at a round's start)
+            SetRam16(kStage, 0);
+            Return(c);
+            return true;
+        }
         if (stage < 1 || stage > kStages || Ram8(kPlayersThen) != 3) {
             return false;
         }

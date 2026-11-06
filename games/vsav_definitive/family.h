@@ -215,6 +215,8 @@ inline constexpr const char *kColoursFile = "vm3j.10b", *kColoursFileWhose = "th
 
 // What this game's own sources add: the characters taken in (src/graft.cpp)
 void RegisterOwnSources();
+// (src/stages.cpp of Vampire Savior's sources: the other games' stages of the games without their own; here its own)
+void RegisterOtherStages();
 
 // What a character put in by a mode in place of the one chosen needs besides its number (src/training.cpp): Phobos's
 // and Donovan's form, +3C2, which the character choice sets from Start held as they are chosen (01F832 in Vampire Savior 2; here none: src/rules.cpp); the form
