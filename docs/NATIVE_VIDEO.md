@@ -172,6 +172,17 @@ their animations' and the lightning's moments; `--stage-check` passes on all twe
 (widescreen too) and Definitive's ladder with them (a stage built before it is shown is brought to the camera when it
 comes into the picture); rollback the same.
 
+Alpha 2's stages go alone too (`games/sfa2/guest.h`). Its start-up and attract mode keep a loop of their own (0017F6,
+the modes called at 0017FE; a game has another, 004AC0), which is where its stage runs. Its stage is built a step a
+frame before the versus screen (by A5+10, 0051B8): the scroll screens switched on, 01A88C, 01B1DE, 01C31E and 01B7FC,
+its colours (012608 with its registers, 012510 to 0125D8), 0188B8, then 019774 and 01EB00 (its objects); and, as a
+round's start does in its own lines (002446), its scroll screens' records put to work. Each frame: its objects (01E308,
+01E582, 01E640), its scroll screens and camera (01A7F6), its object list (01E6AE), its colours given over (0127A4). The
+routines were found with the call log run on the game's own code (`--no-rewrites`: Alpha 2's port has many rewrites,
+whose calls the interpreter does not see). Checked: all eighteen beside the match-played ones in Definitive's viewer
+(the same but for their animations' moments), every one passing `--stage-check`, and a training session on Ken's stage
+with both players walked to each end (no frame off); rollback the same; Definitive's hashes main's with the feature off.
+
 What this asks of the interface: **a frame holds layers from more than one producer** (the game and a guest). Each
 producer has its own palettes, its own tile graphics, its own priorities, and its own scroll and row scroll. The
 frame's layer order says how one producer's layers go between the other's: the guest's stage behind the game's
