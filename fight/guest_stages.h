@@ -69,13 +69,22 @@ struct Guest {
     //   (words), the step it took (words: the scroll screens behind move by it) and which way (bytes)
     // - Extents: the routines its camera asks where the players are (D0 and D1: their outer edges across, their
     //   heights), answered so that its own camera goes where it is wanted (as far as it goes in a frame)
-    enum class Camera { Steps, Extents } camera = Camera::Steps;
+    // - Place: the routines that move its camera (A6 its record), at the point where they move it: its place set there
+    //   (placeX, placeY), the routine returned from; with `endLeft` its record's own ends (words at these offsets, by
+    //   stage), the place wanted put as far between them as the game's is between its own; with `placeDown` its place
+    //   up and down counts down the picture (the top's), from its lowest
+    enum class Camera { Steps, Extents, Place } camera = Camera::Steps;
     uint32_t across = 0, up = 0;
     uint32_t placeX = 0x10, placeY = 0x14, stepX = 0x34, stepY = 0x36, wayX = 0x2C, wayY = 0x2D;
     uint8_t wayRight = 4, wayLeft = 0, wayUp = 0x0C, wayDown = 0x08;
     int middle = 0xC0, halfApart = 0x60, above = 0x60; // (Extents: the picture's middle; the players' edges; height)
     // Where its camera's place is kept, across and up (words), for the check (--stage-check): that it goes where wanted
     uint32_t cameraAtX = 0, cameraAtY = 0;
+    // ... or, when its record is not the same on every stage, where it is (its memory, from FF0000), the place at
+    // placeX and placeY in it
+    uint32_t (*cameraRecord)(const uint8_t *ram) = nullptr;
+    uint32_t endLeft = 0, endRight = 0, endTop = 0, endBottom = 0;
+    bool placeDown = false;
 
     // Its stage alone, from its own stage code (a guest that says these): no game is played to a round and nothing of
     // the game but its stage runs. Its board is started and kept at the top of its main loop (`mainLoop`, where its

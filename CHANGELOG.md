@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- **Marvel Super Heroes' stages in Vampire Savior Definitive**: all twelve, each run from Marvel Super Heroes' own
+  stage code alone, after Night Warriors' in the lists (its ROM set needed).
 - **Night Warriors' stages in Vampire Savior Definitive**: all fourteen (Darkstalkers' in their Night Warriors colours,
   Hsien-Ko's and Donovan's), each run from Night Warriors' own stage code alone, after Alpha's in the lists (Night
   Warriors' ROM set needed).
