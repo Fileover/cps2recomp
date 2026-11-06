@@ -383,7 +383,7 @@ void Register(const Description &description) {
     game.features.push_back({"restart_at", page, "Start over at",
                              "Where \"Start over\" puts the players: the middle or a corner, player 1 on the left or (swapped) on the right.",
                              0, {"Middle", "Left corner", "Right corner", "Middle, swapped", "Left corner, swapped", "Right corner, swapped"}});
-    game.features.push_back({"training_stage", page, "Stage", d.stageWords, 0, d.stageChoices});
+    game.features.push_back({"training_stage", page, "Stage", d.stageWords, kFeatureFavourites, d.stageChoices});
     game.features.push_back({"training_mode", page, "Training session",
                              "The fight has no clock and nobody is knocked out. (\"Start\" above switches this on and takes the game to "
                              "the character choice; Reset ends it.)",

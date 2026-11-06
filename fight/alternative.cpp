@@ -573,7 +573,7 @@ void Register(const Description &description) {
     game.features.push_back({"viewer_stage", kViewer, "Stage",
                              "The stage the viewer shows, or Infinite: every stage in turn, each scrolling into the next with its "
                              "own tune. Changing it while viewing goes to the new one.",
-                             0, StageChoices({}, {"Infinite"})});
+                             kFeatureFavourites, StageChoices({}, {"Infinite"})});
     game.features.push_back({"viewer_scroll", kViewer, "Scrolling",
                              "How the viewer moves across the stage: with the stick, or by itself from one end to the other and back "
                              "(Infinite: always onwards).",

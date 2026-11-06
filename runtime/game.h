@@ -47,6 +47,10 @@ enum : unsigned {
     // A long choice whose list in the in-game menu the player may make shorter on the launcher (recomp-common/settings.h:
     // MenuChoices, settings.ini's [menu]): the menu goes past the choices left out
     kFeatureMenuChoices = 128,
+    // A list of the stages: the in-game menu keeps the player's favourites of it (port/menu.cpp: Confirm on its row marks
+    // the stage shown, and a row under it goes through the favourites alone; settings.ini's [favourites] stages, by
+    // name, the same for every list of the stages)
+    kFeatureFavourites = 256,
 };
 
 // Something the game's sources can do when the player asks (a row of the in-game menu, and a key if it has
