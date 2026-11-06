@@ -140,7 +140,8 @@ stage's code writes (by the CPS-A's bases at the time).
 | Marvel Super Heroes (`games/msh/guest.h`), alone | its stage's own, 082346 | its own (007A1A) | colour sets 13 and up | its record set where its routines move it (`Place`, 082440, 0826AA), between the record's own ends | by stage |
 | X-Men vs. Street Fighter (`games/xmvsf/guest.h`), alone | Marvel Super Heroes' at its own places | as Marvel Super Heroes' | colour sets 13 and up | `Place` (07025A, 0704D0) | a character's theme each (its stages have none) |
 | Marvel Super Heroes vs. Street Fighter (`games/mshvsf/guest.h`), alone | X-Men vs. Street Fighter's at its own places | as X-Men vs. Street Fighter's | colour sets 1A and up | `Place` (0A1C94, 0A1F52), on the copy its step keeps (+76, +78; ends +68-6E) | a character's theme each |
-| Every other fighting game (sfz2al, the other Vampire games, the other Marvel games, pocket_fighter, xmcota) | to find | to find | its port's `notTheStage` where it has one | its port's camera facts (the widescreen and zoom features found them) | its port's `stageTunes` |
+| Marvel vs. Capcom (`games/mvsc/guest.h`), alone | Marvel Super Heroes vs. Street Fighter's at its own places | as theirs | colour sets 16-1D | `Place` (0CB2E2, 0CB560), on the copy | a character's theme each |
+| Every other fighting game (sfz2al, the other Vampire games, X-Men: Children of the Atom, pocket_fighter, xmcota) | to find | to find | its port's `notTheStage` where it has one | its port's camera facts (the widescreen and zoom features found them) | its port's `stageTunes` |
 
 **A stage alone** (`Guest::StageAlone`, first Vampire Savior's): rather than a match played to a round on the guest's
 board, the guest's board is started once and kept at the top of its main loop, and only its stage's code runs there:
@@ -265,6 +266,12 @@ have (`kMostGuests`, now sixteen): the ninth was left out without a word, and th
 Checked: all twelve beside its own viewer (the same but for their animations' moments: the desert base sinks into its
 hangar and on to its alarm, as in the game), every one passing the check, a training session on two (rollback the
 same), the music.
+
+Marvel vs. Capcom's stages go alone as Marvel Super Heroes vs. Street Fighter's do (`games/mvsc/guest.h`). One more
+thing a stage reads that only a round runs: the canyon turns to dusk and to night as the round's clock (A5-3FF8) runs
+below 60 and 30 (0CDD26), and with nothing running it, it read 0, night from the start; it is set full after the build.
+(A guest's clock could follow the game's round's, the canyon darkening with it: not done.) Checked: all ten beside its
+own viewer, every one passing the check, a training session on two (rollback the same), the music.
 
 What this asks of the interface: **a frame holds layers from more than one producer** (the game and a guest). Each
 producer has its own palettes, its own tile graphics, its own priorities, and its own scroll and row scroll. The
