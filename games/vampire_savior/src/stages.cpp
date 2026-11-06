@@ -3,7 +3,7 @@
 //
 // Other games' stages behind Vampire Savior's fighters (and Vampire Savior 2's, Vampire Hunter 2's), as those games show
 // them (fight/guest_stages.h; game.cfg's guests): every other fighting game's in the collection, each run from its own
-// stage code alone, in games/guests.h's order (each one's facts in its own folder's guest.h). Here is what is this
+// stage code alone, in fight/all_guests.h's order (each one's facts in its own folder's guest.h). Here is what is this
 // game's: its camera, when a stage is shown, its objects that are not its stage's, its stage tunes, and which stage is
 // wanted. Vampire Savior Definitive, built from these sources too, has its own (games/vsav_definitive/src/stages.cpp:
 // its Darkstalkers' stages by the opponent); family.h says which game calls this.
@@ -15,7 +15,7 @@
 #include "session.h"
 #include "vsav.h"
 
-#include "../../guests.h"
+#include "all_guests.h"
 
 namespace cps2recomp {
 
@@ -89,7 +89,7 @@ void RegisterOtherStages() {
     host.stageTunes.assign(std::begin(family::kStageTunes), std::end(family::kStageTunes));
     host.wanted = Wanted;
     host.feature = "other_stages";
-    guest_stages::Register(host, guests::AllBut("vampire_savior")); // (games/guests.h: family.h's kMoreStageNames the same)
+    guest_stages::Register(host, guests::AllBut("vampire_savior")); // (fight/all_guests.h: family.h's kMoreStageNames the same)
 }
 
 } // namespace cps2recomp

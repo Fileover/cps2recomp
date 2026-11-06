@@ -16,7 +16,7 @@
 #include "session.h"
 #include "vsav.h"
 
-#include "../../guests.h"
+#include "all_guests.h"
 
 namespace cps2recomp {
 
@@ -98,7 +98,7 @@ void RegisterStages() {
     host.stageTunes.assign(std::begin(family::kStageTunes), std::end(family::kStageTunes));
     host.wanted = Wanted;
     host.feature = "dstlk_stages";
-    guest_stages::Register(host, guests::AllBut("vampire_savior")); // (games/guests.h: family.h's kMoreStageNames the same)
+    guest_stages::Register(host, guests::AllBut("vampire_savior")); // (fight/all_guests.h: family.h's kMoreStageNames the same)
 }
 
 } // namespace definitive

@@ -6,7 +6,7 @@
 #include "battle.h"
 #include "modes.h"
 
-#include "../../guests.h"
+#include "all_guests.h"
 
 #include <iterator>
 
@@ -75,7 +75,7 @@ void RegisterBattle() {
     d.stageChoices = {"Shuffle", "Scroll"};
     d.stageChoices.insert(d.stageChoices.end(), std::begin(kStageNames), std::end(kStageNames));
     // (other games' stages after its own, as training's: BattleStage, stages.cpp)
-    const std::vector<const char *> others = guests::NamesBut("sfa2"); // (games/guests.h)
+    const std::vector<const char *> others = guests::NamesBut("sfa2"); // (fight/all_guests.h)
     d.stageChoices.insert(d.stageChoices.end(), others.begin(), others.end());
     d.tuneOff = kTuneOff;
     d.inGame = [] { return Ram16(kMode) == 2; };

@@ -7,19 +7,19 @@
 // guests line), so that their sets are found.
 #pragma once
 
-#include "dstlk/guest.h"
-#include "msh/guest.h"
-#include "mshvsf/guest.h"
-#include "mvsc/guest.h"
-#include "nwarr/guest.h"
-#include "pocket_fighter/guest.h"
-#include "sfa/guest.h"
-#include "sfa2/guest.h"
-#include "sfa3/guest.h"
-#include "ssf2t/guest.h"
-#include "vampire_savior/guest.h"
-#include "xmcota/guest.h"
-#include "xmvsf/guest.h"
+#include "../games/dstlk/guest.h"
+#include "../games/msh/guest.h"
+#include "../games/mshvsf/guest.h"
+#include "../games/mvsc/guest.h"
+#include "../games/nwarr/guest.h"
+#include "../games/pocket_fighter/guest.h"
+#include "../games/sfa/guest.h"
+#include "../games/sfa2/guest.h"
+#include "../games/sfa3/guest.h"
+#include "../games/ssf2t/guest.h"
+#include "../games/vampire_savior/guest.h"
+#include "../games/xmcota/guest.h"
+#include "../games/xmvsf/guest.h"
 
 #include <cstring>
 #include <vector>

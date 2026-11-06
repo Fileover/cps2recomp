@@ -13,7 +13,7 @@
 #include "session.h"
 #include "sfa3.h"
 
-#include "../../guests.h"
+#include "all_guests.h"
 
 #include <iterator>
 
@@ -126,7 +126,7 @@ void RegisterModes() {
     d.player1 = kPlayer1;
     d.playerSize = kPlayerSize;
     d.x = kX;
-    // (this game's stages, then the other games': stages.cpp, games/guests.h. Not in the Infinite, whose stages are
+    // (this game's stages, then the other games': stages.cpp, fight/all_guests.h. Not in the Infinite, whose stages are
     // this game's spare machines'; each plays the first stage's tune in this game's place: its own plays)
     d.stageNames.assign(std::begin(kStageNames), std::end(kStageNames));
     const std::vector<const char *> others = guests::NamesBut("sfa3");

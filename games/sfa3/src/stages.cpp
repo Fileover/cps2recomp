@@ -2,7 +2,7 @@
 // Copyright (C) 2026 Tommy McLeroy
 //
 // Other games' stages behind Alpha 3's fighters, as those games show them (fight/guest_stages.h: each run from its own
-// stage code alone): every other fighting game's in the collection, in games/guests.h's order (game.cfg's guests; each
+// stage code alone): every other fighting game's in the collection, in fight/all_guests.h's order (game.cfg's guests; each
 // one's facts in its own folder's guest.h). Here is what is this game's: its camera, when a stage is shown, its objects
 // that are not its stage's, its fights' tunes, and which stage is wanted.
 //
@@ -14,7 +14,7 @@
 #include "session.h"
 #include "sfa3.h"
 
-#include "../../guests.h"
+#include "all_guests.h"
 
 namespace cps2recomp {
 
@@ -29,7 +29,7 @@ namespace {
         return Ram16(kMode) == 2 && Ram16(kGameStep) == kGameMatch && Ram16(kMatchStep) == kMatchRound;
     }
 
-    // The stage wanted now, 1 the guests' first (games/guests.h's order); 0 this game's own
+    // The stage wanted now, 1 the guests' first (fight/all_guests.h's order); 0 this game's own
     int Wanted() {
         if (BattleMode()) {
             // (the modes' stages are this game's own, but one chosen for the endless or the team battle from the guests')

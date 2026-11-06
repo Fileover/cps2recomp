@@ -297,7 +297,7 @@ but the players'. Checked: all eight beside its own viewer, every one passing th
 Vampire Savior's).
 
 Hosts: Vampire Savior Definitive, Vampire Savior, Vampire Savior 2, Vampire Hunter 2, Alpha 2, Zero 2 Alpha, Alpha 3
-and Alpha show every other fighting game's stages, from one list (`games/guests.h`: each takes it without its own, so
+and Alpha show every other fighting game's stages, from one list (`fight/all_guests.h`: each takes it without its own, so
 the stages keep the numbers they had). Alpha 3's stage viewer reaches its round through the character choice, its
 camera 768 up on the way: its borrowed stage is shown once the round is on. Alpha's panel (bars, names, clock) is a
 scroll screen, not objects: a host says which of its scroll screens are its panel (`Host::panelLayers`), drawn marked
