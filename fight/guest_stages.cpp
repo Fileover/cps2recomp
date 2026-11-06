@@ -497,7 +497,17 @@ namespace {
         return g.guest > 0 && h.shown && h.shown();
     }
 
+    bool g_drawnOver = false; // (the game's picture was drawn to go over a guest's last frame)
     void BeforeFrame(Machine &machine) {
+        // (the game's picture as it was, before the game's own sources set theirs: what was changed here for a guest's
+        // stage put back, so that a stage of its own shows again once no other game's is)
+        if (g_drawnOver) {
+            g_drawnOver = false;
+            machine.video.layerMask = 0xF;
+            machine.video.hideObject = nullptr;
+            machine.video.markObjects = false;
+            machine.video.markLayers = 0;
+        }
         if (g_before) {
             g_before(machine);
         }
@@ -517,14 +527,16 @@ namespace {
         if (!Shown()) {
             return;
         }
+        g_drawnOver = true;
         // The game draws its fighters and its panel alone, marked, to be laid over the guest's stage (the stage
         // viewer: nothing of its own)
         if (h.viewer && h.viewer()) {
             machine.video.layerMask = 0;
         } else {
-            machine.video.layerMask = 1;
+            machine.video.layerMask = 1 | h.panelLayers;
             machine.video.hideObject = [](uint32_t tile, uint16_t attributes) { return !h.notTheStage(tile, attributes); };
             machine.video.markObjects = true;
+            machine.video.markLayers = h.panelLayers;
         }
     }
 
@@ -620,6 +632,7 @@ namespace {
         uint64_t frames = 0, followed = 0, off = 0, unknown = 0, blank = 0;
         int run = 0, longestRun = 0, worst = 0, settling = 0, blankRun = 0, longestBlank = 0;
         int lastGuest = 0, lastStage = 0;
+        const char *worstStage = nullptr; // (the stage of the longest time off)
     } g_check;
     constexpr int kNear = 8, kLongestOff = 4, kSettle = 60;
     // (a picture of one colour, or nearly: the stage not drawn at all. Longer than a fade's)
@@ -689,7 +702,10 @@ namespace {
         } else {
             g_check.off++;
             g_check.run++;
-            g_check.longestRun = std::max(g_check.longestRun, g_check.run);
+            if (g_check.run > g_check.longestRun) {
+                g_check.longestRun = g_check.run;
+                g_check.worstStage = guest.stageNames[g.stage - 1];
+            }
             g_check.worst = std::max(g_check.worst, distance);
         }
     }
@@ -753,6 +769,9 @@ bool Report(FILE *out) {
             static_cast<unsigned long long>(g_check.frames), kNear, static_cast<unsigned long long>(g_check.followed),
             static_cast<unsigned long long>(g_check.off), g_check.longestRun, g_check.worst,
             static_cast<unsigned long long>(g_check.blank), g_check.longestBlank, g_check.unknown ? " (a guest's camera not known: not checked)" : "", ok ? "ok" : "FAILED");
+    if (g_check.worstStage) {
+        fprintf(out, "stage check: the longest time off on %s\n", g_check.worstStage);
+    }
     return ok;
 }
 

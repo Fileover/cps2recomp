@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-only
 // Copyright (C) 2026 Tommy McLeroy
 //
-// Other games' stages behind Alpha 2's fighters, as those games show them (fight/guest_stages.h: their boards run beside
-// this one, game.cfg's guests): Darkstalkers' and Vampire Savior's (their facts in games/dstlk/guest.h,
-// games/vampire_savior/guest.h). Here is what is this game's: its camera, when a stage is shown, its objects that are
+// Other games' stages behind Alpha 2's fighters, as those games show them (fight/guest_stages.h: each run from its own
+// stage code alone): every other fighting game's in the collection, in fight/all_guests.h's order (game.cfg's guests; each
+// one's facts in its own folder's guest.h). Here is what is this game's: its camera, when a stage is shown, its objects that are
 // not its stage's, its stage tunes, and which stage is wanted.
 //
 // Which: a stage chosen by name (training's, versus's, the stage viewer's: the guests' after this game's eighteen), or,
@@ -13,12 +13,12 @@
 #include "session.h"
 #include "sfa2.h"
 
-#include "../../dstlk/guest.h"
-#include "../../vampire_savior/guest.h"
+#include "all_guests.h"
 
 namespace cps2recomp {
 
 bool BattleMode(); // (fight/battle.h)
+int BattleStage();
 bool StageViewer(); // (modes.cpp)
 bool ThePanel(uint32_t tile, uint16_t attributes); // (machines.cpp)
 
@@ -35,7 +35,9 @@ namespace {
     // The stage wanted now, 1 the guests' first (Darkstalkers' are first: game.cfg's guests); 0 this game's own
     int Wanted() {
         if (BattleMode()) {
-            return 0; // (the modes' stages are this game's own: its spare machines make them)
+            // (the modes' stages are this game's own, but one chosen for the endless or the team battle from the guests')
+            const int chosen = BattleStage();
+            return chosen > kStages && chosen <= kStages + guest_stages::Stages() ? chosen - kStages : 0;
         }
         // (a stage chosen by name: training's, the viewer's; after this game's eighteen)
         const int wanted = session::WantedStage();
@@ -67,8 +69,8 @@ void RegisterStages() {
     // (Display: it changes nothing of the game's play; online, each player sees the stage of their own choice)
     game.features.push_back({"other_stages", "Display", "Other games' stages",
                              "An arcade match is fought on a stage of another game's, as that game shows it, its music too: "
-                             "Darkstalkers' and Vampire Savior's, those whose ROM sets are there (beside this game's, or "
-                             "chosen on their pages in the launcher). Training's, versus's and the stage viewer's lists have "
+                             "the other fighting games in the collection, those whose ROM sets are there (beside this "
+                             "game's, or chosen on their pages in the launcher). Training's, versus's and the stage viewer's lists have "
                              "them all after this game's own.",
                              0});
     guest_stages::Host host;
@@ -87,7 +89,7 @@ void RegisterStages() {
     host.stageTunes.assign(std::begin(kStageTunes), std::end(kStageTunes));
     host.wanted = Wanted;
     host.feature = "other_stages";
-    guest_stages::Register(host, {dstlk_guest::Description(), vampire_savior_guest::Description()});
+    guest_stages::Register(host, guests::AllBut("sfa2"));
 }
 
 } // namespace cps2recomp

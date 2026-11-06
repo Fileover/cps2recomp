@@ -219,6 +219,11 @@ Darkstalkers' stages had no music: their build asked the sound program to stop e
 interrupt, sending that, empties the sound ring, the stage's tune asked for after it too. The build leaves it out now;
 the tune is the first stage's, as in Darkstalkers' own viewer.
 
+The endless battle (its one stage) and the team battle take other games' stages too: their lists (`stageChoices`) have
+them after the game's own, and a match on one is fought on the game's first stage, the other drawn behind it, as
+training's are (`BattleStage`, read by the host's `wanted`). The endless battle's Shuffle and Scroll go on through the
+game's own stages: each shows two stages at once, made on the game's spare boards.
+
 Alpha's stages go alone too (`games/sfa/guest.h`). Its start-up and attract mode keep a loop (001996, the modes called
 at 00199E). A match builds its stage by a task that wipes the picture over before the versus screen (009CC6 with D1
 0x0C, a step a frame); the build does its steps at once: the memory of objects set out again (016170, as a match does
@@ -290,6 +295,14 @@ but the players'. Checked: all eight beside its own viewer, every one passing th
 (rollback the same), the music. With it, every fighting game in the collection with stages of its own is a guest
 (Hyper Street Fighter II's are Super Turbo's, Zero 2 Alpha's Alpha 2's, Vampire Savior 2's and Vampire Hunter 2's
 Vampire Savior's).
+
+Hosts: Vampire Savior Definitive, Vampire Savior, Vampire Savior 2, Vampire Hunter 2, Alpha 2, Zero 2 Alpha, Alpha 3
+and Alpha show every other fighting game's stages, from one list (`fight/all_guests.h`: each takes it without its own, so
+the stages keep the numbers they had). Alpha 3's stage viewer reaches its round through the character choice, its
+camera 768 up on the way: its borrowed stage is shown once the round is on. Alpha's panel (bars, names, clock) is a
+scroll screen, not objects: a host says which of its scroll screens are its panel (`Host::panelLayers`), drawn marked
+over the borrowed stage as its objects are. Every host's ladder plays as main's with the feature off, runs again the
+same (`--rollback-test`) and passes the check.
 
 What this asks of the interface: **a frame holds layers from more than one producer** (the game and a guest). Each
 producer has its own palettes, its own tile graphics, its own priorities, and its own scroll and row scroll. The

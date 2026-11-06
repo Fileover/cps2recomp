@@ -128,6 +128,7 @@ struct Host {
     bool (*shown)() = nullptr;  // a frame in which the stage is shown (a match's, not its versus screen; the viewer's)
     bool (*viewer)() = nullptr; // the stage viewer: nothing of the game's own is drawn
     bool (*notTheStage)(uint32_t tile, uint16_t attributes) = nullptr; // the game's objects that are not its stage's
+    unsigned panelLayers = 0; // its scroll screens that are its panel, not its stage's (layerMask's bits): laid over too
     std::vector<uint16_t> stageTunes; // its stages' tunes: the guest's music plays in their place
     // The stage wanted now: 1 the first guest's first, on through each guest's in turn (0: the game's own)
     int (*wanted)() = nullptr;

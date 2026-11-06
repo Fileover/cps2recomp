@@ -371,6 +371,9 @@ namespace {
     // The endless battle's stage: its feature's choices are two ways of changing it, then the stages
     int ChosenStage() {
         const int choice = FeatureValue("endless_stage");
+        if (choice >= 2 + d.stages) {
+            return 1; // (another game's stage, after the game's own: fought on its first, the other drawn behind: BattleStage)
+        }
         return choice >= 2 && choice < 2 + d.stages ? choice - 1 : static_cast<int>(Random() % static_cast<uint32_t>(d.stages)) + 1;
     }
     int AnyStage(int notThis) {
@@ -449,7 +452,7 @@ namespace {
         g.computer[1] = TeamComputer();
         g.tag = d.tagIn && FeatureValue("team_style") == 0; // (the tag style first: what a team battle is unless chosen)
         const int stage = FeatureValue("team_stage");
-        g.stage = stage >= 1 && stage <= d.stages ? stage : AnyStage(0);
+        g.stage = stage >= 1 && stage <= d.stages ? stage : stage > d.stages ? 1 : AnyStage(0); // (BattleStage)
     }
     // A match decided (the round's result: 1 player 1 has won, 2 player 2, 3 both down): the one knocked down is
     // out and the next of that side comes on; the other stays on with what it has left, and a little back
@@ -1841,6 +1844,17 @@ namespace {
 
 bool BattleMode() {
     return g.kind != Kind::None;
+}
+int BattleStage() {
+    if (g.kind == Kind::Endless && g.way == kStageOne) {
+        const int choice = FeatureValue("endless_stage");
+        return choice >= 2 + d.stages ? choice - 1 : 0;
+    }
+    if (g.kind == Kind::Team) {
+        const int choice = FeatureValue("team_stage");
+        return choice > d.stages ? choice : 0;
+    }
+    return 0;
 }
 void EndBattle() {
     End();

@@ -7,6 +7,16 @@
 
 #include "../dstlk/guest.h"
 #include "../sfa2/guest.h"
+#include "../sfa3/guest.h"
+#include "../msh/guest.h"
+#include "../mshvsf/guest.h"
+#include "../mvsc/guest.h"
+#include "../xmcota/guest.h"
+#include "../xmvsf/guest.h"
+#include "../nwarr/guest.h"
+#include "../pocket_fighter/guest.h"
+#include "../sfa/guest.h"
+#include "../ssf2t/guest.h"
 
 #include <array>
 #include <cstddef>
@@ -703,7 +713,7 @@ constexpr std::array<const char *, A + B> Joined(const std::array<const char *, 
     }
     return out;
 }
-inline constexpr auto kMoreStageNames = Joined(dstlk_guest::kStageNames, sfa2_guest::kStageNames);
+inline constexpr auto kMoreStageNames = Joined(Joined(Joined(Joined(Joined(Joined(Joined(Joined(Joined(Joined(Joined(dstlk_guest::kStageNames, sfa2_guest::kStageNames), sfa3_guest::kStageNames), ssf2t_guest::kStageNames), sfa_guest::kStageNames), nwarr_guest::kStageNames), msh_guest::kStageNames), xmvsf_guest::kStageNames), mshvsf_guest::kStageNames), mvsc_guest::kStageNames), xmcota_guest::kStageNames), pocket_fighter_guest::kStageNames);
 
 // The frame's lists of objects to draw that the objects of kind 12 have, one for each depth (src/picture.cpp): one more
 // than Vampire Savior's (the table at 013D0C), so that the stage's pieces' lists come one later
