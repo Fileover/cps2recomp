@@ -139,6 +139,7 @@ stage's code writes (by the CPS-A's bases at the time).
 | Night Warriors (`games/nwarr/guest.h`), alone | Darkstalkers' at its own places | as Darkstalkers' | colour sets 14 and up | as Darkstalkers' (`Steps`, 0FF6C4, 0FF7EA) | by stage |
 | Marvel Super Heroes (`games/msh/guest.h`), alone | its stage's own, 082346 | its own (007A1A) | colour sets 13 and up | its record set where its routines move it (`Place`, 082440, 0826AA), between the record's own ends | by stage |
 | X-Men vs. Street Fighter (`games/xmvsf/guest.h`), alone | Marvel Super Heroes' at its own places | as Marvel Super Heroes' | colour sets 13 and up | `Place` (07025A, 0704D0) | a character's theme each (its stages have none) |
+| Marvel Super Heroes vs. Street Fighter (`games/mshvsf/guest.h`), alone | X-Men vs. Street Fighter's at its own places | as X-Men vs. Street Fighter's | colour sets 1A and up | `Place` (0A1C94, 0A1F52), on the copy its step keeps (+76, +78; ends +68-6E) | a character's theme each |
 | Every other fighting game (sfz2al, the other Vampire games, the other Marvel games, pocket_fighter, xmcota) | to find | to find | its port's `notTheStage` where it has one | its port's camera facts (the widescreen and zoom features found them) | its port's `stageTunes` |
 
 **A stage alone** (`Guest::StageAlone`, first Vampire Savior's): rather than a match played to a round on the guest's
@@ -256,6 +257,14 @@ steps and the fight's frame read beside each other. Its stages have no tunes of 
 theme): each is given one. Checked: all eleven beside its own viewer (the same but for their animations' moments: the
 space base's lights go round, the tree's leaves), every one passing the check, a training session on two (rollback
 the same), the music.
+
+Marvel Super Heroes vs. Street Fighter's stages go alone as X-Men vs. Street Fighter's do (`games/mshvsf/guest.h`),
+but its camera's step works on a copy of the place (+76 and +78), kept between ends of its own (+68 to +6E) and put
+back by the stage's code: the copy is what is set. Definitive now shows nine games' stages, past the eight a game could
+have (`kMostGuests`, now sixteen): the ninth was left out without a word, and the check's "no frames shown" found it.
+Checked: all twelve beside its own viewer (the same but for their animations' moments: the desert base sinks into its
+hangar and on to its alarm, as in the game), every one passing the check, a training session on two (rollback the
+same), the music.
 
 What this asks of the interface: **a frame holds layers from more than one producer** (the game and a guest). Each
 producer has its own palettes, its own tile graphics, its own priorities, and its own scroll and row scroll. The

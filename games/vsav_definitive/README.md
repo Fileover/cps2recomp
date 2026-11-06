@@ -61,8 +61,8 @@ Not yet: Donovan's stage and Vampire Savior 2's music (Vampire Savior's twelve s
 With other games' ROM sets as well, their stages are here too, each with its own music, as those games show them: the
 first *Darkstalkers*' twelve (`dstlk`), *Street Fighter Alpha*'s thirteen (`sfa`), *Street Fighter Alpha 2*'s eighteen
 (`sfa2u`), *Street Fighter Alpha 3*'s twenty-six (`sfa3u`), *Super Street Fighter II Turbo*'s sixteen
-(`ssf2xjr1`), *Night Warriors*' fourteen (`nwarr`), *Marvel Super Heroes*' twelve (`msh`) and *X-Men vs. Street
-Fighter*'s eleven (`xmvsf`). The
+(`ssf2xjr1`), *Night Warriors*' fourteen (`nwarr`), *Marvel Super Heroes*' twelve (`msh`), *X-Men vs. Street
+Fighter*'s eleven (`xmvsf`) and *Marvel Super Heroes vs. Street Fighter*'s twelve (`mshvsf`). The
 **Darkstalkers' stages** option (Display) puts each match on the opponent's stage in Darkstalkers, where it has one:
 twelve of the eighteen characters have (not Lilith, Q-Bee, B.B. Hood, Jedah, Lei-Lei or Donovan, who keep Vampire
 Savior's). Training's stage and the stage viewer have all of them by name. Each is run from that game's own stage code alone,
@@ -77,8 +77,8 @@ Nothing of the game's play changes, so online each player sees the stages they c
 - For other games' stages (not needed to play): `dstlk` (*Darkstalkers: The Night Warriors*, Europe 940705),
   `sfa` (*Street Fighter Alpha*, Europe 950727), `sfa2u` (*Street Fighter Alpha 2*, USA 960430), `sfa3u` (*Street
   Fighter Alpha 3*, USA 980904), `ssf2xjr1` (*Super Street Fighter II Turbo*), `nwarr` (*Night Warriors:
-  Darkstalkers' Revenge*), `msh` (*Marvel Super Heroes*) and `xmvsf` (*X-Men vs. Street Fighter*), each chosen on
-  its own game's page.
+  Darkstalkers' Revenge*), `msh` (*Marvel Super Heroes*), `xmvsf` (*X-Men vs. Street Fighter*) and `mshvsf`
+  (*Marvel Super Heroes vs. Street Fighter*), each chosen on its own game's page.
 - One of: macOS 13 or later (Apple silicon or Intel); Linux x86_64 or SteamOS; Windows 10 or 11, 64-bit.
 
 ## Playing
