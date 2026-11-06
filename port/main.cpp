@@ -2378,7 +2378,7 @@ void Usage() {
             "  --hash-picture         ... of the picture only (to compare runs whose timing is not the same)\n"
             "  --hash-no-picture      ... of all but the picture (--rollback-test then draws only the frames shown)\n"
             "  --stage-check          other games' stages: their camera checked against where it is wanted, each frame\n"
-            "                         they are shown (fight/guest_stages.h)\n"
+            "                         they are shown, and their picture not blank (fight/guest_stages.h)\n"
             "  --hash-no-sound        ... and without the sound side, as online play's (to compare a match's --record)\n"
             "  --hash-game            ... without the Z80 and its own memory (to compare --sound driver and z80)\n"
 "  --renderer sdl|gpu     how the picture gets to the window: SDL's GPU API unless said (or not there)\n"
