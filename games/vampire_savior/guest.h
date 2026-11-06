@@ -64,7 +64,7 @@ inline cps2recomp::guest_stages::Guest Description() {
     d.loopGoesOn = 0x004E8E;
     d.build = {0x016C4E, 0x00A4BA, 0x01C256, 0x01C2B0, 0x01C336, 0, 0x017144, 0x004D60, 0x01C140, 0x02207E, 0x01DA3C};
     // (005AE4: the three scroll screens' records put to work, the camera's among them; 005AF6: the round's words)
-    d.buildStep = [](cps2recomp::M68K &c) {
+    d.buildStep = [](cps2recomp::M68K &c, int) {
         c.bus.Write8(0xFF8200, 1);
         c.bus.Write8(0xFF8280, 1);
         c.bus.Write8(0xFF8300, 1);

@@ -226,6 +226,11 @@ namespace {
             constexpr int kMostFrames = 3000; // (a board's start-up takes a few hundred at most)
             for (int n = 0; n < kMostFrames && !g_reached; n++) {
                 memset(m.players, 0, sizeof(m.players));
+                const Guest &guest = Guests()[index];
+                if (guest.beginAfter >= 0 && n >= guest.beginAfter) {
+                    SetG8(m, guest.credits, 2);
+                    m.players[0] = (n / 8) % 2 ? kStart : 0;
+                }
                 m.RunFrame();
                 m.audio.clear();
             }
@@ -259,12 +264,14 @@ namespace {
                 g.built = 1;
                 // (the stage put in place before each routine: the first may clear the words it is kept in, as Vampire
                 // Savior's does, 016C4E)
+                int gap = 0;
                 for (const uint32_t at : guest.build) {
                     guest.setStage(c, g.stage - 1);
                     if (!at) {
                         if (guest.buildStep) {
-                            guest.buildStep(c);
+                            guest.buildStep(c, gap);
                         }
+                        gap++;
                         continue;
                     }
                     c.d[0] = 0;
@@ -287,7 +294,9 @@ namespace {
             bool placed = false;
             if (g.built == 2) {
                 g.built = 1;
-                guest.roundStart(c);
+                if (guest.roundStart) {
+                    guest.roundStart(c);
+                }
                 placed = true;
             }
             for (const uint32_t at : guest.frame) {
@@ -483,6 +492,10 @@ namespace {
         // Its camera where the game's is (as far between its ends as the game's is between its own), while its stage
         // is shown; its clock held
         const bool shown = Shown();
+        // (its stage just come into the picture, built before it was: its camera brought there at once, as after a jump)
+        if (shown && !g.follow && guest.StageAlone() && g.built == 1 && guest.placing) {
+            g.built = 2;
+        }
         g.follow = shown;
         const int x = std::clamp<int>(Ram16(h.cameraX), h.cameraLeft, h.cameraRight);
         const int16_t wasX = g.cameraX;
@@ -491,8 +504,8 @@ namespace {
         // The game's camera put somewhere else at once (a round begun: back to the middle): the guest's own round's
         // start (Guest::roundStart: its camera put at the round's place and the stage painted there), rather than its
         // camera going there at its own pace across the picture
-        constexpr int kJump = 64;
-        if (guest.StageAlone() && g.built == 1 && guest.roundStart && std::abs(g.cameraX - wasX) > kJump) {
+        constexpr int kJump = 24; // (more than a camera goes in a frame: the game's goes 16 at most)
+        if (guest.StageAlone() && g.built == 1 && (guest.roundStart || guest.placing) && std::abs(g.cameraX - wasX) > kJump) {
             g.built = 2; // (at the board's next frame: Guest::roundStart)
         }
         g.cameraY = static_cast<int16_t>(static_cast<int16_t>(Ram16(h.cameraY)) - guest.lower);
