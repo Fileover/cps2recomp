@@ -141,7 +141,8 @@ stage's code writes (by the CPS-A's bases at the time).
 | X-Men vs. Street Fighter (`games/xmvsf/guest.h`), alone | Marvel Super Heroes' at its own places | as Marvel Super Heroes' | colour sets 13 and up | `Place` (07025A, 0704D0) | a character's theme each (its stages have none) |
 | Marvel Super Heroes vs. Street Fighter (`games/mshvsf/guest.h`), alone | X-Men vs. Street Fighter's at its own places | as X-Men vs. Street Fighter's | colour sets 1A and up | `Place` (0A1C94, 0A1F52), on the copy its step keeps (+76, +78; ends +68-6E) | a character's theme each |
 | Marvel vs. Capcom (`games/mvsc/guest.h`), alone | Marvel Super Heroes vs. Street Fighter's at its own places | as theirs | colour sets 16-1D | `Place` (0CB2E2, 0CB560), on the copy | a character's theme each |
-| Every other fighting game (sfz2al, the other Vampire games, X-Men: Children of the Atom, pocket_fighter, xmcota) | to find | to find | its port's `notTheStage` where it has one | its port's camera facts (the widescreen and zoom features found them) | its port's `stageTunes` |
+| X-Men: Children of the Atom (`games/xmcota/guest.h`), alone | its stage's own, 06EB00 | its own (003082, 003312) | colour sets 14 and up | `Place` (06EB84, 06ECAC), ends +70-76 | the stage's character's theme |
+| Every other fighting game (sfz2al, the other Vampire games, pocket_fighter, xmcota) | to find | to find | its port's `notTheStage` where it has one | its port's camera facts (the widescreen and zoom features found them) | its port's `stageTunes` |
 
 **A stage alone** (`Guest::StageAlone`, first Vampire Savior's): rather than a match played to a round on the guest's
 board, the guest's board is started once and kept at the top of its main loop, and only its stage's code runs there:
@@ -272,6 +273,15 @@ thing a stage reads that only a round runs: the canyon turns to dusk and to nigh
 below 60 and 30 (0CDD26), and with nothing running it, it read 0, night from the start; it is set full after the build.
 (A guest's clock could follow the game's round's, the canyon darkening with it: not done.) Checked: all ten beside its
 own viewer, every one passing the check, a training session on two (rollback the same), the music.
+
+X-Men: Children of the Atom's stages go alone too (`games/xmcota/guest.h`), the engine's first game, read beside
+Marvel Super Heroes'. Its stages wait for a round in more ways: Avalon's camera stays at the top until a round begins,
+then comes down (07399A: sent to the floor at once, as when that opening is passed over); the Danger Room shows a
+simulation chosen by a piece that goes by the players' states (062686), so with none it was the bare room (its first,
+the jungle, is given at once: 070E82). The sunset's sun glows with a round's fighters and is left without. 000D66, a
+round's first step's clearing, waits for its sound program and is left out. Checked: all twelve beside its own viewer
+(the same but for their animations' moments: the Savage Land's sky, the frozen sea's voyage, and the sunset's glow),
+every one passing the check, a training session on two (rollback the same), the music.
 
 What this asks of the interface: **a frame holds layers from more than one producer** (the game and a guest). Each
 producer has its own palettes, its own tile graphics, its own priorities, and its own scroll and row scroll. The

@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- **X-Men: Children of the Atom's stages in Vampire Savior Definitive**: all twelve, each run from its own stage code
+  alone, after Marvel vs. Capcom's in the lists (its ROM set needed). The sunset is without its sun's glow, which comes
+  with a round's fighters.
 - **Marvel vs. Capcom's stages in Vampire Savior Definitive**: all ten, each run from its own stage code alone, after
   Marvel Super Heroes vs. Street Fighter's in the lists (its ROM set needed).
 - **Marvel Super Heroes vs. Street Fighter's stages in Vampire Savior Definitive**: all twelve, each run from its own
