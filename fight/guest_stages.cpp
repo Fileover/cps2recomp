@@ -9,6 +9,7 @@
 #include "../runtime/guest.h"
 #include "../runtime/lift.h"
 #include "../runtime/state.h"
+#include "alternative.h"
 
 #include <algorithm>
 #include <atomic>
@@ -36,6 +37,7 @@ namespace {
         int8_t follow = 0; // its camera goes where the game's is (while its stage is shown)
         int8_t built = 0;  // (a stage alone, Guest::StageAlone: its stage has been built on its board; 2: its round to start)
         int16_t cameraX = 0, cameraY = 0; // where its camera is to be (the game's, as its last frame left it)
+        int16_t hostX = 0;                // (the game's camera's place across, between its ends)
     } g;
     std::vector<uint8_t> g_guestState; // (the guest's machine, for a save state: kept so a peer without the set can read past it)
     size_t g_soundBefore = 0;
@@ -69,6 +71,15 @@ namespace {
         x = guest.cameraAtX;
         y = guest.cameraAtY;
     }
+    // A camera's place between one pair of ends put between another: as far from the middle as it is (a stage wider than
+    // the other goes no faster than it; its ends beyond the other's are not reached), or, between ends closer together,
+    // as far between them as it is between its own
+    int Across(int x, int fromLeft, int fromRight, int toLeft, int toRight) {
+        const int from = std::max(1, fromRight - fromLeft), to = toRight - toLeft;
+        const int off = x - (fromLeft + fromRight) / 2;
+        const int at = (toLeft + toRight) / 2 + (to >= from ? off : off * to / from);
+        return std::clamp(at, std::min(toLeft, toRight), std::max(toLeft, toRight));
+    }
     // Where its camera is wanted (between its ends): the game's camera's place, put between the guest's ends; a Place
     // camera's by its record's own ends
     void WantedAt(const Guest &guest, const uint8_t *ram, int &x, int &y) {
@@ -82,7 +93,7 @@ namespace {
         const int right = static_cast<int16_t>(R16(ram, record + guest.endRight));
         const int top = static_cast<int16_t>(R16(ram, record + guest.endTop));
         const int bottom = static_cast<int16_t>(R16(ram, record + guest.endBottom));
-        x = left + (x - guest.cameraLeft) * (right - left) / std::max(1, guest.cameraRight - guest.cameraLeft);
+        x = Across(g.hostX, h.cameraLeft, h.cameraRight, left, right);
         y = guest.placeDown ? std::clamp<int>(bottom - g.cameraY, std::min(top, bottom), bottom) : std::clamp<int>(g.cameraY, top, bottom);
     }
     void SetC16(M68K &c, uint32_t address, uint16_t value) {
@@ -277,6 +288,31 @@ namespace {
         Load(*cps2recomp::Guest(Guests()[index].id), BootedState(index));
         g.built = 0;
     }
+    // The object list's entries put in after the fighters' would be (Guest::fightersDrawn, where the routine making it had
+    // got to then): marked in front of them, bit 12 of the entry's first word (Video::markFront), to the list's end
+    uint32_t g_fightersDrawn = 0;
+    bool FightersDrawn(M68K &c) {
+        bool ahead = false;
+        const int index = GuestOf(c, ahead);
+        if (index >= 0) {
+            g_fightersDrawn = c.a[Guests()[index].listRegister & 7] & 0xFFFFFF;
+        }
+        return false;
+    }
+    void MarkFront(M68K &c) {
+        if (!g_fightersDrawn) {
+            return;
+        }
+        const uint32_t end = (g_fightersDrawn & ~0x1FFFu) + 0x2000; // (a bank of the object memory: 1,024 entries)
+        for (uint32_t at = g_fightersDrawn; at < end; at += 8) {
+            if (c.bus.Read16(at + 2) >= 0x8000 || c.bus.Read16(at + 6) >= 0xFF00) {
+                break;
+            }
+            c.bus.Write16(at, static_cast<uint16_t>(c.bus.Read16(at) | 0x1000));
+        }
+        g_fightersDrawn = 0;
+    }
+
     // The main loop's top: the stage's frame in place of the game's modes (its build first, once), then on to the loop's
     // wait for the frame
     bool StageAlone(M68K &c) {
@@ -333,9 +369,14 @@ namespace {
                 }
                 placed = true;
             }
+            g_fightersDrawn = 0;
+            if (guest.frameCounter) {
+                SetC8(c, guest.frameCounter, static_cast<uint8_t>(c.ram[guest.frameCounter & 0xFFFF] + 1));
+            }
             for (const uint32_t at : guest.frame) {
                 Call(c, at);
             }
+            MarkFront(c);
             // (a stage just made, or its round just started: its camera brought to the place wanted at once)
             uint32_t atX = 0, atY = 0;
             CameraAt(guest, c.ram, atX, atY);
@@ -507,6 +548,7 @@ namespace {
             machine.video.hideObject = nullptr;
             machine.video.markObjects = false;
             machine.video.markLayers = 0;
+            machine.video.panelObject = nullptr;
         }
         if (g_before) {
             g_before(machine);
@@ -537,6 +579,7 @@ namespace {
             machine.video.hideObject = [](uint32_t tile, uint16_t attributes) { return !h.notTheStage(tile, attributes); };
             machine.video.markObjects = true;
             machine.video.markLayers = h.panelLayers;
+            machine.video.panelObject = h.panel;
         }
     }
 
@@ -581,8 +624,8 @@ namespace {
         g.follow = shown;
         const int x = std::clamp<int>(Ram16(h.cameraX), h.cameraLeft, h.cameraRight);
         const int16_t wasX = g.cameraX;
-        g.cameraX = static_cast<int16_t>(guest.cameraLeft + (x - h.cameraLeft) * (guest.cameraRight - guest.cameraLeft) /
-                                                                 std::max(1, h.cameraRight - h.cameraLeft));
+        g.hostX = static_cast<int16_t>(x);
+        g.cameraX = static_cast<int16_t>(Across(x, h.cameraLeft, h.cameraRight, guest.cameraLeft, guest.cameraRight));
         // The game's camera put somewhere else at once (a round begun: back to the middle): the guest's own round's
         // start (Guest::roundStart: its camera put at the round's place and the stage painted there), rather than its
         // camera going there at its own pace across the picture
@@ -598,17 +641,22 @@ namespace {
         board.drawing = machine.drawing;
         board.video.hideObject = guest.notTheStage;
         board.video.layerMask = guest.layers;
+        board.video.markFront = !guest.fightersDrawn.empty() || guest.frontLevel;
+        board.video.frontLevel = guest.frontLevel;
         board.video.wide.side = machine.video.wide.side;
         board.RunFrame();
         CheckFrame(guest, board, shown);
-        // The picture: the guest's, under the game's marked pixels
+        // The picture: the guest's, under the game's marked pixels; but its pixels in front of the fighters over them (and
+        // under the game's panel)
         if (shown && machine.drawing && board.PictureWidth() == machine.PictureWidth()) {
             machine.guestBehind = true;
             uint32_t *picture = machine.Picture();
             const uint32_t *behind = board.Picture();
             const size_t pixels = static_cast<size_t>(machine.PictureWidth()) * Video::kHeight;
             for (size_t i = 0; i < pixels; i++) {
-                picture[i] = picture[i] & 0xFF000000 ? picture[i] & 0xFFFFFF : behind[i];
+                const uint32_t mine = picture[i], theirs = behind[i];
+                const bool over = (mine & 0x80000000u) && ((mine & 0x40000000u) || !(theirs & 0x40000000u));
+                picture[i] = over ? mine & 0xFFFFFF : theirs & 0xFFFFFF;
             }
         }
         // The sound: the guest's music, as loud as the game's would be (its fades), while the game's stage tune is what
@@ -741,6 +789,46 @@ namespace {
     }
 } // namespace
 
+namespace {
+    FILE *g_look = nullptr;
+}
+void Look(const char *file) {
+    g_look = fopen(file, "wb");
+    if (!g_look) {
+        fprintf(stderr, "--stage-look: cannot write %s\n", file);
+    }
+}
+void LookFrame(Machine &machine) {
+    if (!g_look || !modes::StageViewerShowing() || !machine.drawing) {
+        return;
+    }
+    // (another game's stage: its board's picture, as it was before the game's laid over it, with its marks; its board's
+    // registers)
+    const Machine *board = Shown() ? cps2recomp::Guest(Guests()[g.guest - 1].id) : nullptr;
+    const Machine &from = board && board->PictureWidth() == machine.PictureWidth() ? *board : machine;
+    const int width = from.PictureWidth() / 2, height = Video::kHeight / 2;
+    std::vector<uint8_t> record(4 + 4 + 4 + 12 + static_cast<size_t>(width) * height * 4);
+    uint8_t *p = record.data();
+    memcpy(p, "SLK1", 4);
+    const uint32_t frame = static_cast<uint32_t>(machine.frame);
+    memcpy(p + 4, &frame, 4);
+    const uint16_t size[2] = {static_cast<uint16_t>(width), static_cast<uint16_t>(height)};
+    memcpy(p + 8, size, 4);
+    memcpy(p + 12, &from.cpsA[6], 12); // (scroll screens 1-3, across and down)
+    uint8_t *rgb = p + 24, *front = rgb + static_cast<size_t>(width) * height * 3;
+    const uint32_t *picture = from.Picture();
+    for (int y = 0; y < height; y++) {
+        for (int x = 0; x < width; x++) {
+            const uint32_t pixel = picture[static_cast<size_t>(y) * 2 * from.PictureWidth() + x * 2];
+            *rgb++ = static_cast<uint8_t>(pixel);
+            *rgb++ = static_cast<uint8_t>(pixel >> 8);
+            *rgb++ = static_cast<uint8_t>(pixel >> 16);
+            *front++ = (pixel & 0x40000000u) ? 1 : 0;
+        }
+    }
+    fwrite(record.data(), 1, record.size(), g_look);
+}
+
 int Stages() {
     int stages = 0;
     for (const Guest &guest : Guests()) {
@@ -792,6 +880,9 @@ void Register(const Host &host, std::vector<Guest> guests) {
             AddGuestHook(guest.id, guest.mainLoop, StageAlone);
             for (const auto &[at, fn] : guest.hooks) {
                 AddGuestHook(guest.id, at, fn);
+            }
+            for (const uint32_t at : guest.fightersDrawn) {
+                AddGuestHook(guest.id, at, FightersDrawn);
             }
         } else {
             AddGuestHook(guest.id, guest.stageAt, StageSet);

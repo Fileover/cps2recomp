@@ -13,6 +13,9 @@ namespace cps2recomp {
 
 namespace native_video {
 
+    // A pixel's marks (PictureOptions: markObjects with panelObject, markFront): the panel's, in front of the fighters
+    constexpr uint8_t kPanelPixel = 1, kFrontPixel = 2;
+
     // The palette has six pages of 512 colours: objects, scroll screens 1-3, and two for stars
     constexpr int kPages = 6, kPageColours = 0x200;
 
@@ -68,6 +71,9 @@ namespace native_video {
         bool markObjects = false;
         unsigned markLayers = 0;
         unsigned layerMask = 0xF;
+        bool (*panelObject)(uint32_t tile, uint16_t attributes) = nullptr;
+        bool markFront = false;
+        unsigned frontLevel = 0;
     };
 
     // The board's side: the upload the palette chip makes now, from its registers and video RAM

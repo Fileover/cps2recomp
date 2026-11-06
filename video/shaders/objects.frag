@@ -31,6 +31,6 @@ void main() {
     if (value == 15u) {
         discard;
     }
-    // (the pen, the level above it, and the top bit: an object's)
-    result = ((looks & 0xFFFFu) + value) | (((looks >> 20) & 7u) << 16) | 0x80000000u;
+    // (the pen, the level above it, the panel's (bit 19) and in front of the fighters (20), and the top bit: an object's)
+    result = ((looks & 0xFFFFu) + value) | (((looks >> 20) & 7u) << 16) | (((looks >> 23) & 3u) << 19) | 0x80000000u;
 }

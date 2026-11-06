@@ -190,7 +190,7 @@ void Video::DrawScroll(int which, int rasterLine, uint16_t *pens, uint8_t *prior
 // later entries of the list are in front. Drawn back to front here would need the scroll screens' marks
 // kept apart, so (as MAME does) they are drawn front to back and a pixel once claimed stays claimed.
 template <bool kWide>
-void Video::DrawObjects(int rasterLine, uint16_t *pens, uint8_t *priority, const uint32_t *masks) {
+void Video::DrawObjects(int rasterLine, uint16_t *pens, uint8_t *priority, const uint32_t *masks, uint8_t *marks) {
     const int xOffset = 64 - m_src.objectRegs[kObjXOffset];
     const int yOffset = 16 - m_src.objectRegs[kObjYOffset];
     const int width = kWide ? Width() : +kWidth;
@@ -211,6 +211,9 @@ void Video::DrawObjects(int rasterLine, uint16_t *pens, uint8_t *priority, const
         const bool flipX = attr & 0x20, flipY = attr & 0x40;
         const uint16_t colour = static_cast<uint16_t>((attr & 0x1F) * 16);
         const uint32_t mask = masks[level] | 0x80000000u;
+        // (what its pixels are marked as, where it is the front object: the panel's, or in front of the fighters)
+        const uint8_t mark = !marks ? 0 : static_cast<uint8_t>((panelObject && panelObject(code, attr) ? kPanelPixel : 0) |
+                                                               (markFront && (m_objects[i] & 0x1000) ? kFrontPixel : 0));
         // (an object of the extra set's: its tiles are in its graphics)
         const bool extra = m_extraGraphics && m_objectsFromExtra[i / 4];
         const uint8_t *graphics = extra ? m_extraGraphics : m_src.graphics;
@@ -251,8 +254,12 @@ void Video::DrawObjects(int rasterLine, uint16_t *pens, uint8_t *priority, const
                     }
                     const uint8_t pen = pixels[flipX ? 15 - k : k];
                     if (pen != 15) {
-                        if (!((mask >> (priority[px] & 0x1F)) & 1)) {
+                        const bool shown = !((mask >> (priority[px] & 0x1F)) & 1);
+                        if (shown) {
                             pens[px] = static_cast<uint16_t>(colour + pen);
+                        }
+                        if (marks && priority[px] != 31) {
+                            marks[px] = static_cast<uint8_t>(mark & (shown ? 0xFF : ~kFrontPixel));
                         }
                         priority[px] = 31;
                     }
@@ -544,11 +551,25 @@ void Video::RenderLineAs(int line, uint32_t *out) {
     if (kWide && wide.fillHoles && wide.side > 0) {
         FillHoles(pens, width);
     }
+    // (the marks of the objects' pixels: the panel's, those in front of the fighters)
+    uint8_t marks[kMaxWidth];
+    const bool marking = (markObjects && panelObject) || markFront;
+    if (marking) {
+        memset(marks, 0, sizeof(marks));
+    }
     if (layerMask & 1) {
-        DrawObjects<kWide>(rasterLine, pens, priority, masks);
+        DrawObjects<kWide>(rasterLine, pens, priority, masks, marking ? marks : nullptr);
     }
     for (int x = 0; x < width; x++) {
         out[x] = m_palette[pens[x]];
+    }
+    if (markFront) {
+        // (in front: an object marked so, or a scroll screen's pixel an object of the fighters' level is behind)
+        const uint32_t behind = frontLevel ? masks[frontLevel & 7] : 0;
+        for (int x = 0; x < width; x++) {
+            const bool front = priority[x] == 31 ? (marks[x] & kFrontPixel) != 0 : ((behind >> (priority[x] & 7)) & 1) != 0;
+            out[x] |= front ? 0x40000000u : 0;
+        }
     }
     if (markObjects) {
         // (the marks of the scroll screens marked too, by where they are in the order)
@@ -559,8 +580,10 @@ void Video::RenderLineAs(int line, uint32_t *out) {
             }
         }
         for (int x = 0; x < width; x++) {
-            const bool mark = priority[x] == 31 || (priority[x] & marked) != 0;
-            out[x] |= mark ? 0x80000000u | (static_cast<uint32_t>(pens[x] >> 4) & 0x1F) << 24 : 0;
+            const bool layer = priority[x] != 31 && (priority[x] & marked) != 0;
+            const bool mark = priority[x] == 31 || layer;
+            const bool panel = layer || (priority[x] == 31 && marking && (marks[x] & kPanelPixel));
+            out[x] |= mark ? 0x80000000u | (static_cast<uint32_t>(pens[x] >> 4) & 0x1F) << 24 | (panel && panelObject ? 0x40000000u : 0) : 0;
         }
     }
 }

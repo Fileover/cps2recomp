@@ -129,6 +129,8 @@ void Raster::Objects(const ObjectList &list, const PictureOptions &options) {
                 t.shift = static_cast<int16_t>(options.object ? options.object(code, attr, i / 4) : 0);
                 t.hidden = options.hideObject && options.hideObject(code, attr);
                 t.extra = list.fromExtra[i / 4] != 0;
+                t.marks = static_cast<uint8_t>((options.panelObject && options.panelObject(code, attr) ? kPanelPixel : 0) |
+                                               (options.markFront && (x & 0x1000) ? kFrontPixel : 0));
                 m_tiles.push_back(t);
             }
         }
@@ -256,7 +258,7 @@ void Raster::Overrides(int line, const Layers &layers, const uint8_t *videoRam, 
 // The objects' tiles, front to back: a pixel once an object's stays the front one's; whether it shows over the scroll
 // screens' pens there is by its level (masks)
 void Raster::DrawObjects(int rasterLine, const Layers &layers, const PictureOptions &options, int width, uint16_t *pens, uint8_t *priority,
-                         const uint32_t *masks) const {
+                         const uint32_t *masks, uint8_t *marks) const {
     const int xOffset = 64 - layers.xOffset, yOffset = 16 - layers.yOffset;
     for (const ObjectTile &t : m_tiles) {
         if (options.hideObject && options.hideObject(t.entryTile, t.attributes)) {
@@ -295,8 +297,12 @@ void Raster::DrawObjects(int rasterLine, const Layers &layers, const PictureOpti
             }
             const uint8_t pen = pixels[t.flipX ? 15 - k : k];
             if (pen != 15) {
-                if (!((mask >> (priority[px] & 0x1F)) & 1)) {
+                const bool shown = !((mask >> (priority[px] & 0x1F)) & 1);
+                if (shown) {
                     pens[px] = static_cast<uint16_t>(t.colour + pen);
+                }
+                if (marks && priority[px] != 31) {
+                    marks[px] = static_cast<uint8_t>(t.marks & (shown ? 0xFF : ~kFrontPixel));
                 }
                 priority[px] = 31;
             }
@@ -506,11 +512,25 @@ void Raster::Line(int line, const Layers &layers, const uint8_t *videoRam, const
     if (options.fillHoles && options.side > 0) {
         FillHoles(pens, width, options.side);
     }
+    // (the marks of the objects' pixels: the panel's, those in front of the fighters)
+    uint8_t marks[kMaxWidth];
+    const bool marking = (options.markObjects && options.panelObject) || options.markFront;
+    if (marking) {
+        memset(marks, 0, sizeof(marks));
+    }
     if (options.layerMask & 1) {
-        DrawObjects(rasterLine, layers, options, width, pens, priority, masks);
+        DrawObjects(rasterLine, layers, options, width, pens, priority, masks, marking ? marks : nullptr);
     }
     for (int x = 0; x < width; x++) {
         out[x] = m_colours[pens[x]];
+    }
+    if (options.markFront) {
+        // (in front: an object marked so, or a scroll screen's pixel an object of the fighters' level is behind)
+        const uint32_t behind = options.frontLevel ? masks[options.frontLevel & 7] : 0;
+        for (int x = 0; x < width; x++) {
+            const bool front = priority[x] == 31 ? (marks[x] & kFrontPixel) != 0 : ((behind >> (priority[x] & 7)) & 1) != 0;
+            out[x] |= front ? 0x40000000u : 0;
+        }
     }
     if (options.markObjects) {
         // (an object's pixels, and those of the scroll screens marked, have the top byte set: 0x80 and the colour set)
@@ -521,8 +541,10 @@ void Raster::Line(int line, const Layers &layers, const uint8_t *videoRam, const
             }
         }
         for (int x = 0; x < width; x++) {
-            const bool mark = priority[x] == 31 || (priority[x] & marked) != 0;
-            out[x] |= mark ? 0x80000000u | (static_cast<uint32_t>(pens[x] >> 4) & 0x1F) << 24 : 0;
+            const bool layer = priority[x] != 31 && (priority[x] & marked) != 0;
+            const bool mark = priority[x] == 31 || layer;
+            const bool panel = layer || (priority[x] == 31 && marking && (marks[x] & kPanelPixel));
+            out[x] |= mark ? 0x80000000u | (static_cast<uint32_t>(pens[x] >> 4) & 0x1F) << 24 | (panel && options.panelObject ? 0x40000000u : 0) : 0;
         }
     }
 }

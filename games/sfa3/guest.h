@@ -89,8 +89,13 @@ inline cps2recomp::guest_stages::Guest Description() {
         c.bus.Write8(0xFF8280, 1);
         c.bus.Write8(0xFF8300, 1);
     };
-    d.frame = {0x02040A, 0x00B718, 0x00B220, 0x00B34E, 0x017462};
+    d.frame = {0x02040A, 0x033696, 0x00B718, 0x00B220, 0x00B34E, 0x017462, 0x033522, 0x0336D6, 0x0335E0, 0x020C4A};
     d.placing = 0x017462;
+    // (its object list, 020C4A, in two forms by 83(A5): its draw lists in turn, the fighters' at 020CA2 or 020D4E; the
+    // stage's pieces put in after them are in front of them)
+    // (the fight's frame counter, B4(A5), a step a frame as at 00953A: the stage's pieces go by it)
+    d.frameCounter = 0xFF80B4;
+    d.fightersDrawn = {0x020CA6, 0x020D52};
     d.soundQueue = 0xFFDE80;
     d.soundQueueEnd = 0xFFEE80;
     d.stageTunes = {0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F, 0x10, 0x11, 0x12, 0x20, 0x14, 0x15,

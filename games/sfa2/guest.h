@@ -117,6 +117,11 @@ inline cps2recomp::guest_stages::Guest Description() {
         {0x01B6F4, [](cps2recomp::M68K &c) { return Most(c, 0x01B6FC); }},
         {0x01B712, [](cps2recomp::M68K &c) { return Most(c, 0x01B71A); }},
     };
+    // (its object list, 0127A4: its draw lists in turn, the fighters' at 0127F2 (as many as there are, 138(A5)); the
+    // stage's pieces put in after them are in front of them)
+    // (the fight's frame counter, B4(A5), a step a frame as at 006554: the stage's pieces go by it)
+    d.frameCounter = 0xFF80B4;
+    d.fightersDrawn = {0x0127F6};
     d.soundQueue = 0xFFCF60;
     d.soundQueueEnd = 0xFFDF60;
     d.stageTunes = {0x01, 0x02, 0x0B, 0x09, 0x03, 0x06, 0x05, 0x08, 0x07, 0x0A, 0x0C, 0x04, 0x0D, 0x12, 0x11, 0x0E, 0x0F, 0x10};

@@ -94,6 +94,7 @@ void RegisterStages() {
     // (in a match of this game's, not its versus screen; or the stage viewer)
     host.shown = [] { return StageViewer() || (Ram16(kMode) == 2 && Ram16(kGameStep) == kGameMatch && Ram16(kMatchStep) != kMatchVersus); };
     host.viewer = StageViewer;
+    host.panel = ThePanel;
     host.notTheStage = NotTheStage;
     host.stageTunes.assign(std::begin(family::kStageTunes), std::end(family::kStageTunes));
     host.wanted = Wanted;

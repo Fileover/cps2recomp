@@ -67,6 +67,10 @@ inline cps2recomp::guest_stages::Guest Description() {
     };
     d.frame = {0x0E8796, 0x0FF5BC, 0x0C2B18, 0x0CE3D6, 0x100B28, 0x0E7D8E, 0x0E2AD4, 0x001C46};
     d.placing = 0x0FF5BC;
+    // (its object list, 001C46: its draw lists in turn, the fighters' at 001DE6; the stage's pieces put in after them are
+    // in front of them)
+    d.fightersDrawn = {0x001DEA};
+    d.listRegister = 0;
     d.soundQueue = 0xFF0AA0;
     d.soundQueueEnd = 0xFF8026;
     d.soundQueueMask = 0x3F0;

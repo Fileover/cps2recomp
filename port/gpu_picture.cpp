@@ -80,6 +80,7 @@ namespace {
         out[23] = o.layerMask;
         // (the objects alone over another picture: GpuPicture::Over)
         out[28] = (o.layerMask & ~1u) == 0 && !o.markLayers && (o.markObjects || o.layerMask == 0) ? 1 : 0;
+        out[29] = (o.markObjects && o.panelObject ? 1u : 0u) | (o.markFront ? 2u : 0u) | ((o.frontLevel & 7u) << 4);
         if (raster.Cps1()) {
             out[21] = 1;
             out[22] = raster.Enable()[0] | (static_cast<uint32_t>(raster.Enable()[1]) << 8) | (static_cast<uint32_t>(raster.Enable()[2]) << 16);
@@ -246,7 +247,9 @@ bool GpuPicture::MakePipelines(std::string &error) {
                                         k_colours_frag_msl, 4, 0);
     SDL_GPUShader *shown = MakeShader(m_device, SDL_GPU_SHADERSTAGE_FRAGMENT, k_shown_frag_spirv, sizeof(k_shown_frag_spirv),
                                       k_shown_frag_msl, 2, 0);
-    bool ok = fill && layers && holes && objectsVert && objectsFrag && colours && shown;
+    SDL_GPUShader *over = MakeShader(m_device, SDL_GPU_SHADERSTAGE_FRAGMENT, k_over_frag_spirv, sizeof(k_over_frag_spirv),
+                                     k_over_frag_msl, 2, 0);
+    bool ok = fill && layers && holes && objectsVert && objectsFrag && colours && shown && over;
     if (ok) {
         SDL_GPUGraphicsPipelineCreateInfo info = {};
         info.primitive_type = SDL_GPU_PRIMITIVETYPE_TRIANGLELIST;
@@ -279,12 +282,14 @@ bool GpuPicture::MakePipelines(std::string &error) {
         m_coloursPipeline = SDL_CreateGPUGraphicsPipeline(m_device, &info);
         info.fragment_shader = shown;
         m_shownPipeline = SDL_CreateGPUGraphicsPipeline(m_device, &info);
-        ok = m_layersPipeline && m_holesPipeline && m_objectsPipeline && m_coloursPipeline && m_shownPipeline;
+        info.fragment_shader = over;
+        m_overPipeline = SDL_CreateGPUGraphicsPipeline(m_device, &info);
+        ok = m_layersPipeline && m_holesPipeline && m_objectsPipeline && m_coloursPipeline && m_shownPipeline && m_overPipeline;
     }
     if (!ok) {
         error = std::string("the picture's shaders: ") + SDL_GetError();
     }
-    for (SDL_GPUShader *shader : {fill, layers, holes, objectsVert, objectsFrag, colours, shown}) {
+    for (SDL_GPUShader *shader : {fill, layers, holes, objectsVert, objectsFrag, colours, shown, over}) {
         if (shader) {
             SDL_ReleaseGPUShader(m_device, shader);
         }
@@ -307,7 +312,7 @@ void GpuPicture::Close() {
             SDL_ReleaseGPUTexture(m_device, texture);
         }
     }
-    for (SDL_GPUGraphicsPipeline *pipeline : {m_layersPipeline, m_holesPipeline, m_objectsPipeline, m_coloursPipeline, m_shownPipeline}) {
+    for (SDL_GPUGraphicsPipeline *pipeline : {m_layersPipeline, m_holesPipeline, m_objectsPipeline, m_coloursPipeline, m_shownPipeline, m_overPipeline}) {
         if (pipeline) {
             SDL_ReleaseGPUGraphicsPipeline(m_device, pipeline);
         }
@@ -332,7 +337,7 @@ void GpuPicture::Close() {
     m_composite = nullptr;
     m_shownWidth = 0;
     m_sampler = nullptr;
-    m_layersPipeline = m_holesPipeline = m_objectsPipeline = m_coloursPipeline = m_shownPipeline = nullptr;
+    m_layersPipeline = m_holesPipeline = m_objectsPipeline = m_coloursPipeline = m_shownPipeline = m_overPipeline = nullptr;
     m_upload = m_download = m_readoutsUpload = nullptr;
     m_uploadSize = 0;
 }
@@ -432,7 +437,8 @@ void GpuPicture::Draw(SDL_GPUCommandBuffer *commands, const NativeVideo::FrameDa
         tileWords[n * 4 + 1] = static_cast<uint16_t>(t.shift); // (where the game's sources move it: PictureOptions::object)
         tileWords[n * 4 + 2] = t.tile;
         tileWords[n * 4 + 3] = t.colour | (t.flipX ? 1u << 16 : 0) | (t.flipY ? 1u << 17 : 0) | (t.extra ? 1u << 18 : 0) |
-                               (t.relative ? 1u << 19 : 0) | (static_cast<uint32_t>(t.level) << 20);
+                               (t.relative ? 1u << 19 : 0) | (static_cast<uint32_t>(t.level) << 20) |
+                               (static_cast<uint32_t>(t.marks & 3u) << 23); // (the panel's, in front of the fighters)
     }
     at += tilesBytes;
     const size_t frameAt = at;
@@ -725,8 +731,8 @@ SDL_GPUTexture *GpuPicture::DrawKept(SDL_GPUCommandBuffer *commands, const uint3
         SDL_UploadToGPUTexture(copy, &from, &to, true);
         SDL_EndGPUCopyPass(copy);
     }
-    // (over a guest's stage: the stage, and this game's objects over it, the colours times their alpha: shown.frag's
-    // blend, with the objects as what goes over)
+    // (over a guest's stage: the stage, and this game's objects over it, but under the stage's pixels in front of the
+    // fighters: over.frag, from the guest's picture as drawn, its marks in its alpha)
     SDL_GPUTexture *base = m_picture;
     if (stage) {
         SDL_GPUColorTargetInfo composite = {};
@@ -734,10 +740,10 @@ SDL_GPUTexture *GpuPicture::DrawKept(SDL_GPUCommandBuffer *commands, const uint3
         composite.load_op = SDL_GPU_LOADOP_DONT_CARE;
         composite.store_op = SDL_GPU_STOREOP_STORE;
         SDL_GPURenderPass *pass = SDL_BeginGPURenderPass(commands, &composite, 1, nullptr);
-        SDL_BindGPUGraphicsPipeline(pass, m_shownPipeline);
+        SDL_BindGPUGraphicsPipeline(pass, m_overPipeline);
         const SDL_GPUViewport viewport = {0, 0, static_cast<float>(width), static_cast<float>(kHeight), 0, 1};
         SDL_SetGPUViewport(pass, &viewport);
-        SDL_GPUTextureSamplerBinding bindings[2] = {{stage, m_sampler}, {m_picture, m_sampler}};
+        SDL_GPUTextureSamplerBinding bindings[2] = {{guest->m_picture, m_sampler}, {m_picture, m_sampler}};
         SDL_BindGPUFragmentSamplers(pass, 0, bindings, 2);
         SDL_DrawGPUPrimitives(pass, 3, 1, 0, 0);
         SDL_EndGPURenderPass(pass);
@@ -802,10 +808,17 @@ void GpuPicture::Check(const NativeVideo::FrameData &frame) {
         const uint32_t *row = &frame.board[static_cast<size_t>(line) * Raster::kMaxWidth];
         for (int x = 0; x < width; x++) {
             // (red, green, blue, alpha bytes: the board's red, green, blue in the low three; the objects alone, to go
-            // over a guest's stage: the board's marked pixels, and clear where it marked none)
+            // over a guest's stage: the board's marked pixels, and clear where it marked none, half there where it is not
+            // the panel's when the panel is told; a stage's pixels in front of the fighters half there: colours.frag)
             const uint32_t gpu = pixels[line * width + x];
-            const bool same = over ? ((row[x] & 0x80000000u) ? gpu == ((row[x] & 0xFFFFFF) | 0xFF000000u) : (gpu >> 24) == 0)
-                                   : (gpu & 0xFFFFFF) == row[x];
+            const bool half = (gpu >> 24) < 0xC0;
+            const bool panels = frame.options.markObjects && frame.options.panelObject;
+            const bool same =
+                over ? ((row[x] & 0x80000000u) ? (gpu & 0xFFFFFF) == (row[x] & 0xFFFFFF) && (gpu >> 24) != 0 &&
+                                                     half == (panels && !(row[x] & 0x40000000u))
+                                               : (gpu >> 24) == 0)
+                     : (gpu & 0xFFFFFF) == (row[x] & 0xFFFFFF) && (frame.options.markFront ? half == ((row[x] & 0x40000000u) != 0)
+                                                                                          : (row[x] >> 24) == 0);
             if (!same) {
                 if (firstLine < 0) {
                     firstLine = line;

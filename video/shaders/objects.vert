@@ -10,7 +10,7 @@ layout(std430, set = 0, binding = 1) readonly buffer Frame { uint frame[]; };   
 layout(location = 0) out vec2 within;       // (the pixel of the tile, 0-16 across and down)
 layout(location = 1) flat out uint tile;
 layout(location = 3) flat out uint graphicsSize; // (of the graphics it is drawn from: another set's, marked so)
-layout(location = 2) flat out uint looks;   // the pen of its colour set's first (bits 0-15), flips (16, 17), marked (19), level (20-22)
+layout(location = 2) flat out uint looks;   // the pen of its colour set's first (bits 0-15), flips (16, 17), marked (19), level (20-22), the panel's (23), in front of the fighters (24)
 
 void main() {
     const uint i = uint(gl_InstanceIndex), corner = uint(gl_VertexIndex);

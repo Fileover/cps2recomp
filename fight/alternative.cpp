@@ -456,6 +456,9 @@ bool AttractMode() {
 bool StageViewer() {
     return g.mode == Mode::Viewer;
 }
+bool StageViewerShowing() {
+    return g.mode == Mode::Viewer && !g.starting;
+}
 int StageViewerStage() {
     return g.mode == Mode::Viewer ? g_wanted.stage : 0;
 }

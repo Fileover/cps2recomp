@@ -103,6 +103,11 @@ inline cps2recomp::guest_stages::Guest Description() {
                     c.bus.Write8(0xFF8103, 1);
                     return false;
                 }}};
+    // (its object list, 01ABC8: its draw lists in turn, the fighters' at 01AC20 (FF8400 and FF8800); the stage's pieces
+    // put in after them, Fetus of God's bulbs, are in front of them)
+    // (the fight's frame counter, B4(A5), a step a frame as at 009408: the stage's pieces go by it)
+    d.frameCounter = 0xFF80B4;
+    d.fightersDrawn = {0x01AC24};
     d.soundQueue = 0xFF0E0E;
     d.soundQueueEnd = 0xFF1E0E;
     d.stageTunes = {0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F, 0x10, 0x11, 0x12, 0x13, 0x14};

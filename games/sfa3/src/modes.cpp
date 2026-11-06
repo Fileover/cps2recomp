@@ -139,7 +139,7 @@ void RegisterModes() {
     d.cameraLeft = kCameraLeft;
     d.cameraRight = kCameraRight;
     d.notTheStage = NotTheStage;
-    d.viewerLayers = 0xF & ~1u; // (the panel is objects: all the scroll screens are the stage's)
+    // (the stage's pieces are objects too: the castle, the grass, the trees)
     d.wideSide = WideSide;
     d.wideMargin = WideMargin;
     d.wideForSpare = WideForSpare;

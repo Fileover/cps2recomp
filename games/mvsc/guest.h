@@ -72,6 +72,10 @@ inline cps2recomp::guest_stages::Guest Description() {
     d.afterBuild = [](cps2recomp::M68K &c) { c.bus.Write8(0xFF4008, 0x99); };
     d.frame = {0x025FFE, 0x0260A4, 0x02623E, 0x0CB168, 0x0263F4, 0x026578, 0x024970};
     d.placing = 0x0CB168;
+    // (its object list, made at the frame's end: the pieces on its four draw lists by layer, and those sorted by depth,
+    // the fighters among them, done at 024BF2; what is put in after them is in front of them)
+    d.fightersDrawn = {0x024BF2};
+    d.listRegister = 4;
     d.soundQueue = 0xFF27D8;
     d.soundQueueEnd = 0xFF27D2;
     d.soundQueueMask = 0x3F0;

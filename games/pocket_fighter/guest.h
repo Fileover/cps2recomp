@@ -62,6 +62,9 @@ inline cps2recomp::guest_stages::Guest Description() {
     };
     d.frame = {0x01E890, 0x01C100, 0x01C13C, 0x01C302, 0x01C0BC, 0x01C448, 0x01C3D0, 0x01D362};
     d.placing = 0x01E890;
+    // (its object list, 01D362: its draw lists in turn, the fighters' at 01D3B6 (FF8400 and FF8800); the stage's pieces
+    // put in after them are in front of them)
+    d.fightersDrawn = {0x01D3BA};
     d.soundQueue = 0xFFE230;
     d.soundQueueEnd = 0xFFF230;
     // (stage n's tune is n + 1)
