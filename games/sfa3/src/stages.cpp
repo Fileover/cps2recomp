@@ -78,6 +78,7 @@ void RegisterStages() {
     host.shown = InMatch;
     host.viewer = modes::StageViewer;
     // (what is laid over another game's stage: the fighters and the panel; not this game's own stage's pieces)
+    host.panel = ThePanel;
     host.notTheStage = [](uint32_t tile, uint16_t attributes) {
         return ThePanel(tile, attributes) || (!IsStagePiece(attributes) && (attributes & 0x1F) < 0x14);
     };

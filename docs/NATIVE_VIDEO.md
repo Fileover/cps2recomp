@@ -304,6 +304,40 @@ scroll screen, not objects: a host says which of its scroll screens are its pane
 over the borrowed stage as its objects are. Every host's ladder plays as main's with the feature off, runs again the
 same (`--rollback-test`) and passes the check.
 
+Played, the borrowed stages showed what the checks had let through, plain to a person: the fighters drawn over pieces
+that are in front of them in their own game (Fetus of God's bulbs), Alpha 3's stages without any of their objects (the
+castle, the trees, the grass: its frame called neither the pools of objects nor the object list, 020C4A; and its own
+viewer left objects out altogether, so the comparison had missed it), pieces standing still that go by the fight's
+frame counter (Vampire Savior's searchlights at the Tower of Arrogance), and the Marvel stages' wide cameras racing
+across the middle. Now:
+
+- **In front of the fighters.** Each game's object list routine puts its draw lists in turn, and the fighters' among
+  them (`Guest::fightersDrawn`: where they are in, the next entry's place in an address register). The stage's objects
+  put in after them are marked (bit 12 of the entry's first word, which the board does not read), and the picture's
+  pixels they show at have 0x40 in the top byte (`Video::markFront`; with `frontLevel`, a scroll screen's pixels an
+  object of the fighters' level is behind too). The game's objects are marked as before, and its panel's 0x40 too
+  (`Video::panelObject`, the host's `panel`): put together, the stage's front pixels go over the fighters and under the
+  panel. Both pictures do it, the CPU's and the GPU's (the marks in the alpha: `over.frag`).
+- **The fight's frame counter** a step a frame (`Guest::frameCounter`, B4(A5) in Vampire Savior's and the Alphas').
+- **The camera** goes as far as the game's from the middle (`Across`): a stage wider than the game's goes no faster,
+  its ends beyond the game's not reached; one narrower goes as far between its ends as the game's between its own. A
+  Marvel stage's place by its record's own ends is taken from the game's camera the same way. The old way spread the
+  game's camera over the guest's whole width, three times as fast on the skull canyon, and its steps past 24 pixels
+  started the guest's round over each frame (its pieces running fast with it).
+- **Alpha 3** runs its pools of objects (033696, 033522, 0336D6, 0335E0) and its object list each frame, and its own
+  stage viewer shows the stage's objects (the panel and fighters left out as in a match's).
+
+And a check that looks at the picture as a person does (`--stage-look FILE`, `tools/stage_look.py`): the stage viewer of
+the game showing another's stage and of that stage's own game each record their stage's picture, the camera held still
+in the middle and at each end with the stick; where both held it at the same place, every pixel of the shown stage is to
+be a colour the own game has there at some moment, its picture is to change about as much from frame to frame, and its
+camera is to go no faster. `tools/stage_look.py sweep` does it for every stage of the guests named (the first sweep:
+most alike; it found Super Turbo's breakable crate and barrel at Guile's and Ken's ends missing, as
+Night Warriors' lamp post at Jon Talbain's (what makes them not yet found: not the frame's routines, which the guests
+all run); a stage edge column
+not painted at Blanka's right end; and own viewers that are wrong themselves, Darkstalkers' and Marvel Super Heroes'
+showing the fighters at a round's start, X-Men: Children of the Atom's sunset moving on with its clock).
+
 What this asks of the interface: **a frame holds layers from more than one producer** (the game and a guest). Each
 producer has its own palettes, its own tile graphics, its own priorities, and its own scroll and row scroll. The
 frame's layer order says how one producer's layers go between the other's: the guest's stage behind the game's

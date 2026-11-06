@@ -44,6 +44,7 @@ struct ObjectTile {
     int16_t shift = 0;
     bool hidden = false;
     bool extra = false; // (drawn from another set's graphics: ObjectList::fromExtra)
+    uint8_t marks = 0;  // (its pixels' marks: the panel's, in front of the fighters; Video::kPanelPixel, kFrontPixel)
 };
 
 // A tile of a scroll screen beyond the board's own columns that the game's sources give in the map's place
@@ -122,7 +123,7 @@ private:
     // (a CPS-1's line: Video::RenderLineCps1)
     void LineCps1(int line, const Layers &layers, const uint8_t *videoRam, const PictureOptions &options, uint32_t *out) const;
     void DrawObjects(int rasterLine, const Layers &layers, const PictureOptions &options, int width, uint16_t *pens, uint8_t *priority,
-                     const uint32_t *masks) const;
+                     const uint32_t *masks, uint8_t *marks = nullptr) const;
 
     const uint8_t *m_graphics = nullptr, *m_extraGraphics = nullptr;
     size_t m_graphicsSize = 0, m_extraGraphicsSize = 0;

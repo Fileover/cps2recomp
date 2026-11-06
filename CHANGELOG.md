@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- **Other games' stages look as in their own games**: what is in front of the fighters in a stage's own game is in front
+  of them in another's too (Fetus of God's bulbs, Alpha 3's trees), under the panel; Alpha 3's stages have their objects
+  (the castle, the trees, the grass, the pieces that move); pieces that go by the fight's frame counter move (the Tower
+  of Arrogance's searchlights); and a wide stage's camera goes no faster than the game's (the skull canyon, the harbour,
+  whose pieces ran fast with it). Alpha 3's stage viewer shows its stages' objects too. For checking:
+  `tools/stage_look.py`, each other game's stage against the same in its own game's viewer (`--stage-look`).
 - **Other games' stages in the Alpha games and every Vampire Savior game**: Street Fighter Alpha and Alpha 3 show them
   now too, and Alpha 2, Zero 2 Alpha, Vampire Savior, Vampire Savior 2 and Vampire Hunter 2 show every other fighting
   game's (not only Darkstalkers' and one more): in training, the stage viewer, the endless and team battles, and with

@@ -10,11 +10,30 @@ layout(set = 2, binding = 1) uniform usampler2D objects;  // the second's: pen, 
 layout(set = 2, binding = 2) uniform usampler2D lines;    // a line's record a row (common.glsl)
 layout(set = 2, binding = 3) uniform usampler2D palette;  // 64 x 48 colours: red, green, blue in the low three bytes
 
+// The combinations of the screens' marks (bit 0 the back one) behind which an object of `level` is not drawn
+uint Behind(uint level, uint p0, uint p1, uint p2) {
+    if (level == 0u) {
+        return 0xFFu;
+    }
+    if (level <= p0 && level <= p1 && level <= p2) {
+        return 0xFEu;
+    }
+    uint mask0 = 0xAAu, mask1 = 0xCCu, mask = 0u;
+    if (p0 > p1) mask0 &= ~0x88u;
+    if (p0 > p2) mask0 &= ~0xA0u;
+    if (p1 > p2) mask1 &= ~0xC0u;
+    if (level <= p0) mask |= mask0;
+    if (level <= p1) mask |= mask1;
+    if (level <= p2) mask |= 0xF0u;
+    return mask;
+}
+
 void main() {
     const ivec2 at = ivec2(gl_FragCoord.xy);
     const uint s = texelFetch(screens, at, 0).r;
     const uint o = texelFetch(objects, at, 0).r;
     uint pen = s & 0xFFFFu;
+    bool front = false; // (in front of the fighters: L_MARKS)
     if (texelFetch(lines, ivec2(21, at.y), 0).r != 0u) {
         // (a CPS-1's: a screen in front of the objects, if one drew; else the front object, but where the screen just
         // behind them has a high pen; else the screens behind: layers.frag, Cps1)
@@ -25,7 +44,7 @@ void main() {
         } else {
             pen = s & 0xFFFu;
         }
-    } else if ((o & 0x80000000u) != 0u) {
+    } else {
         const uint control = texelFetch(lines, ivec2(12, at.y), 0).r, priority = texelFetch(lines, ivec2(13, at.y), 0).r;  // (L_LAYER_CONTROL, L_PRIORITY)
         uint l0 = (control >> 6) & 3u, l1 = (control >> 8) & 3u, l2 = (control >> 10) & 3u, l3 = (control >> 12) & 3u;
         uint p0 = (priority >> (4u * l0)) & 0xFu, p1 = (priority >> (4u * l1)) & 0xFu;
@@ -33,30 +52,25 @@ void main() {
         if (l0 == 0u) { l0 = l1; l1 = 0u; p0 = p1; }
         if (l1 == 0u) { l1 = l2; l2 = 0u; p1 = p2; }
         if (l2 == 0u) { l2 = l3; l3 = 0u; p2 = p3; }
-        const uint level = (o >> 16) & 7u;
-        uint mask = 0u;
-        if (level == 0u) {
-            mask = 0xFFu;
-        } else if (level <= p0 && level <= p1 && level <= p2) {
-            mask = 0xFEu;
-        } else {
-            uint mask0 = 0xAAu, mask1 = 0xCCu;
-            if (p0 > p1) mask0 &= ~0x88u;
-            if (p0 > p2) mask0 &= ~0xA0u;
-            if (p1 > p2) mask1 &= ~0xC0u;
-            if (level <= p0) mask |= mask0;
-            if (level <= p1) mask |= mask1;
-            if (level <= p2) mask |= 0xF0u;
-        }
         const uint marks = (s >> 16) & 7u;
-        if (((mask >> marks) & 1u) == 0u) {
-            pen = o & 0xFFFFu;
+        const uint markWord = texelFetch(lines, ivec2(29, at.y), 0).r;  // (L_MARKS)
+        if ((o & 0x80000000u) != 0u) {
+            if (((Behind(((o >> 16) & 7u), p0, p1, p2) >> marks) & 1u) == 0u) {
+                pen = o & 0xFFFFu;
+                front = (o & 0x100000u) != 0u;
+            }
+        } else if ((markWord & 2u) != 0u && ((markWord >> 4) & 7u) != 0u) {
+            front = ((Behind((markWord >> 4) & 7u, p0, p1, p2) >> marks) & 1u) != 0u;
         }
     }
     const uint rgb = texelFetch(palette, ivec2(pen & 63u, pen >> 6), 0).r;
     colour = vec4(float(rgb & 0xFFu), float((rgb >> 8) & 0xFFu), float((rgb >> 16) & 0xFFu), 255.0) / 255.0;
     if (texelFetch(lines, ivec2(28, at.y), 0).r != 0u) {
-        // (the objects alone, to go over another picture: their pixels, and clear elsewhere, the colour times its alpha)
-        colour = (o & 0x80000000u) != 0u ? colour : vec4(0.0);
+        // (the objects alone, to go over another picture: their pixels, and clear elsewhere, the colour times its alpha;
+        // with the panel's told from the rest, the rest half there (over.frag: under another picture's front pixels))
+        const bool panels = (texelFetch(lines, ivec2(29, at.y), 0).r & 1u) != 0u;
+        colour = (o & 0x80000000u) != 0u ? vec4(colour.rgb, panels && (o & 0x80000u) == 0u ? 0.5 : 1.0) : vec4(0.0);
+    } else if (front) {
+        colour.a = 0.5; // (a pixel in front of the fighters: over.frag)
     }
 }

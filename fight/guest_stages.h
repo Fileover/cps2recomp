@@ -114,6 +114,16 @@ struct Guest {
     // (a 0 in `build`: what the game's own build does there in its own lines, not in a routine of its own; `step`
     // the 0's number, from 0)
     void (*buildStep)(M68K &c, int step) = nullptr;
+    // The fight's frame counter (a byte its stage's pieces go by: a searchlight's sweep, colours that cycle), a step each
+    // frame as the fight's frame steps it (0: none)
+    uint32_t frameCounter = 0;
+    // What of its stage is in front of the fighters: the objects whose entries its object list's routine puts in after
+    // the fighters' (`fightersDrawn`, the places in that routine where the fighters' are in: the next entry's place in the
+    // address register `listRegister`), and, with `frontLevel`, the scroll screens' pixels an object of that level (the
+    // fighters') is behind (0: none). They are drawn over the game's fighters, and under its panel (Host::panel).
+    std::vector<uint32_t> fightersDrawn;
+    int listRegister = 2;
+    unsigned frontLevel = 0;
     uint32_t soundQueue = 0, soundQueueEnd = 0;
     uint16_t soundQueueMask = 0xFFF;
     std::vector<uint16_t> stageTunes;
@@ -128,6 +138,7 @@ struct Host {
     bool (*shown)() = nullptr;  // a frame in which the stage is shown (a match's, not its versus screen; the viewer's)
     bool (*viewer)() = nullptr; // the stage viewer: nothing of the game's own is drawn
     bool (*notTheStage)(uint32_t tile, uint16_t attributes) = nullptr; // the game's objects that are not its stage's
+    bool (*panel)(uint32_t tile, uint16_t attributes) = nullptr;       // ... and of those, its panel's: over the stage's front
     unsigned panelLayers = 0; // its scroll screens that are its panel, not its stage's (layerMask's bits): laid over too
     std::vector<uint16_t> stageTunes; // its stages' tunes: the guest's music plays in their place
     // The stage wanted now: 1 the first guest's first, on through each guest's in turn (0: the game's own)
@@ -135,6 +146,15 @@ struct Host {
     // A feature with which the guests' stages are made ready from the start (else from the first wanted)
     const char *feature = nullptr;
 };
+
+// --stage-look FILE: each frame of the stage viewer that shows its stage (another game's or the game's own), the stage's
+// picture written to FILE for tools/stage_look.py, which compares a guest's stage in another game with the same stage in
+// its own game's viewer: a record a frame of "SLK1", the frame's number, the picture's width and height (every other
+// column and line of the picture's), the six words of the stage's scroll screens' places (where its camera is, as the
+// stage's own code put them), the picture's pixels (red, green, blue) and a byte for each, 1 where it is in front of the
+// fighters (Guest::fightersDrawn)
+void Look(const char *file);
+void LookFrame(Machine &machine);
 
 // The stages of all the guests, in turn (whether their sets are there or not), and whether one can be shown
 int Stages();

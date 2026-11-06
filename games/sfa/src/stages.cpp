@@ -77,6 +77,7 @@ void RegisterStages() {
     host.viewer = modes::StageViewer;
     // (what is laid over another game's stage: the fighters, their shadows and the panel, everything but this game's own
     // stage's pieces; and the panel's scroll screen, the first: sfa.h)
+    host.panel = ThePanel;
     host.notTheStage = [](uint32_t, uint16_t attributes) { return !IsStagePiece(attributes); };
     host.panelLayers = 0xF & ~kLayersWithoutPanel;
     // (its stages' tunes, sfa.h)

@@ -92,7 +92,7 @@ private:
                    *m_picture = nullptr;
     SDL_GPUSampler *m_sampler = nullptr;
     SDL_GPUGraphicsPipeline *m_layersPipeline = nullptr, *m_holesPipeline = nullptr, *m_objectsPipeline = nullptr,
-                            *m_coloursPipeline = nullptr;
+                            *m_coloursPipeline = nullptr, *m_overPipeline = nullptr;
     SDL_GPUTransferBuffer *m_upload = nullptr, *m_download = nullptr;
     size_t m_uploadSize = 0;
     std::vector<uint8_t> m_videoNow; // (video RAM as the frame's bands have it, put in as they go)

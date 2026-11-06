@@ -85,6 +85,7 @@ void RegisterOtherStages() {
     host.cameraRight = kCameraRight;
     host.shown = [] { return StageViewer() || InMatch(); };
     host.viewer = StageViewer;
+    host.panel = ThePanel;
     host.notTheStage = NotTheStage;
     host.stageTunes.assign(std::begin(family::kStageTunes), std::end(family::kStageTunes));
     host.wanted = Wanted;

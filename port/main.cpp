@@ -2235,6 +2235,7 @@ void Port::RunFrame() {
         memcpy(machine->players, pressed, sizeof(pressed));
         RunAhead();
     }
+    guest_stages::LookFrame(*machine);
     if (opt.shotEvery && frame % opt.shotEvery == 0) {
         char shot[512];
         snprintf(shot, sizeof(shot), "%s%06llu.png", opt.shotPrefix.c_str(), static_cast<unsigned long long>(frame));
@@ -2379,6 +2380,7 @@ void Usage() {
             "  --hash-no-picture      ... of all but the picture (--rollback-test then draws only the frames shown)\n"
             "  --stage-check          other games' stages: their camera checked against where it is wanted, each frame\n"
             "                         they are shown, and their picture not blank (fight/guest_stages.h)\n"
+            "  --stage-look FILE      the stage viewer's pictures of its stage, for tools/stage_look.py\n"
             "  --hash-no-sound        ... and without the sound side, as online play's (to compare a match's --record)\n"
             "  --hash-game            ... without the Z80 and its own memory (to compare --sound driver and z80)\n"
 "  --renderer sdl|gpu     how the picture gets to the window: SDL's GPU API unless said (or not there)\n"
@@ -2505,6 +2507,8 @@ bool ParseArgs(int argc, char **argv, port::Options &o) {
             o.hashNoPicture = true;
         } else if (a == "--stage-check") {
             guest_stages::Check(true);
+        } else if (a == "--stage-look") {
+            guest_stages::Look(next());
         } else if (a == "--hash-game") {
             o.hashGame = true;
         } else if (a == "--hash-picture") {

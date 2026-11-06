@@ -153,6 +153,7 @@ std::vector<const char *> StageChoices(std::initializer_list<const char *> befor
 // Whether a mode is on, the stage the viewer's machine that is running is to fight on (0: none), and ending them
 bool AttractMode();
 bool StageViewer();
+bool StageViewerShowing(); // (its stage in the picture: on its way there no longer)
 int StageViewerStage();
 void End();
 

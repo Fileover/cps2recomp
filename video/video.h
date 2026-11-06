@@ -86,6 +86,16 @@ public:
     // ... and the pixels of these scroll screens too (layerMask's bits; 0: none): a game whose panel is a scroll
     // screen, not objects, has it laid over the other picture with its fighters
     unsigned markLayers = 0;
+    // ... and of those, the panel's (objects this says so of, and the marked scroll screens') have 0x40 in the top byte
+    // too: what stays over another picture's pixels marked to be in front (below)
+    bool (*panelObject)(uint32_t tile, uint16_t attributes) = nullptr;
+    // For a picture another is put together over (another game's stage under a game's fighters, fight/guest_stages.h):
+    // the pixels in front of where its own fighters would be have 0x40 in the top byte. Those of the objects whose
+    // entries the game's sources marked so (bit 12 of the entry's first word, which the board does not read), and,
+    // with frontLevel (1-7), the scroll screens' pixels that an object of that level would be behind.
+    bool markFront = false;
+    unsigned frontLevel = 0;
+    static constexpr uint8_t kPanelPixel = native_video::kPanelPixel, kFrontPixel = native_video::kFrontPixel;
 
     // For a game's own sources that draw something the game's list has not got (a thing the game stopped
     // drawing because the board's picture would not show it): called when the board has taken the object
@@ -141,6 +151,9 @@ public:
         o.markObjects = markObjects;
         o.markLayers = markLayers;
         o.layerMask = layerMask;
+        o.panelObject = panelObject;
+        o.markFront = markFront;
+        o.frontLevel = frontLevel;
         return o;
     }
     // The picture --video check's picture drawn from the records is compared with: every one now (a CPS-2's or a
@@ -167,7 +180,7 @@ private:
     template <bool kWide> void DrawScroll(int which, int rasterLine, uint16_t *pens, uint8_t *priority, uint8_t mark, uint8_t *high = nullptr);
     void RenderLineCps1(int line, uint32_t *out);
     void DrawObjectsCps1(int rasterLine, uint16_t *pens, const uint8_t *high, uint16_t *drawn = nullptr);
-    template <bool kWide> void DrawObjects(int rasterLine, uint16_t *pens, uint8_t *priority, const uint32_t *masks);
+    template <bool kWide> void DrawObjects(int rasterLine, uint16_t *pens, uint8_t *priority, const uint32_t *masks, uint8_t *marks = nullptr);
 };
 
 } // namespace cps2recomp

@@ -77,6 +77,10 @@ inline cps2recomp::guest_stages::Guest Description() {
     d.frame = {0x0D8C90, 0x0ED9EC, 0x0B925C, 0x0C05C8, 0x0EEECA, 0x0D8290, 0x0D310C, 0x0017F4};
     d.placing = 0x0ED9EC;
     // (its sound ring: Night Warriors' FF0AA0 and FF8026, here at FF0A9E: family.h)
+    // (its object list, 0017F4: its draw lists in turn, the fighters' at 001988 (their records at FF8388 and FF8788);
+    // the stage's pieces put in after them are in front of them)
+    d.fightersDrawn = {0x00198C};
+    d.listRegister = 0;
     d.soundQueue = 0xFF0A9E;
     d.soundQueueEnd = 0xFF8026;
     d.soundQueueMask = 0x3F0;

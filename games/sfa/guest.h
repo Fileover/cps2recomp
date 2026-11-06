@@ -99,6 +99,9 @@ inline cps2recomp::guest_stages::Guest Description() {
                     c.bus.Write16(0xFF8814, 0x28);
                     return false;
                 }}};
+    // (its object list, 011B3A: its draw lists in turn, the fighters' at 011B7A (FF8400 and FF8800); the stage's pieces
+    // put in after them are in front of them)
+    d.fightersDrawn = {0x011B7E};
     d.soundQueue = 0xFF263E;
     d.soundQueueEnd = 0xFF363E;
     d.soundQueueMask = 0xFF0;
