@@ -137,7 +137,8 @@ stage's code writes (by the CPS-A's bases at the time).
 | Super Turbo (`games/ssf2t/guest.h`), alone | its stage's own, 0CC3EE | the stage's, faded in at once (00120A) | colour sets 0B and 1A-1F | an object stepped across and up (`Steps`, 0CC4E4, 0CC630); ends 0x100-0x280 | by stage |
 | Alpha (`games/sfa/guest.h`), alone | its stage's own, 01A376 (not the first scroll screen: the panel's bars) | the stage's (011324, 011368, 0113A0) | colour sets 18 and 19 | asks where the players are (`Extents`, 01A9A8, 01AA2A) | by stage |
 | Night Warriors (`games/nwarr/guest.h`), alone | Darkstalkers' at its own places | as Darkstalkers' | colour sets 14 and up | as Darkstalkers' (`Steps`, 0FF6C4, 0FF7EA) | by stage |
-| Every other fighting game (sfz2al, the other Vampire games, the Marvel games, pocket_fighter, xmcota) | to find | to find | its port's `notTheStage` where it has one | its port's camera facts (the widescreen and zoom features found them) | its port's `stageTunes` |
+| Marvel Super Heroes (`games/msh/guest.h`), alone | its stage's own, 082346 | its own (007A1A) | colour sets 13 and up | its record set where its routines move it (`Place`, 082440, 0826AA), between the record's own ends | by stage |
+| Every other fighting game (sfz2al, the other Vampire games, the other Marvel games, pocket_fighter, xmcota) | to find | to find | its port's `notTheStage` where it has one | its port's camera facts (the widescreen and zoom features found them) | its port's `stageTunes` |
 
 **A stage alone** (`Guest::StageAlone`, first Vampire Savior's): rather than a match played to a round on the guest's
 board, the guest's board is started once and kept at the top of its main loop, and only its stage's code runs there:
@@ -231,6 +232,22 @@ the description is Darkstalkers' at Night Warriors' places, found by setting the
 (the instructions around each place, with their numbers left out, matched where they are alike only once) and from
 games/dstlk/family.h (its memory: the stage's block 0x600 lower). Checked: all fourteen beside its own viewer, every one
 passing the check, a training session on two of them (rollback the same), the music.
+
+Marvel Super Heroes' stages go alone too (`games/msh/guest.h`), with a third way of putting a guest's camera
+(`Guest::Camera::Place`): its camera is a record whose place differs by stage (FF4980, FF4A00, FF4B00) and whose ends
+are the record's own, so the routines that move it are hooked where they move it (082440 across, 0826AA up and down,
+after their checks), the place set there and the routine returned from, the place wanted put as far between the
+record's ends as the game's camera is between its own (`cameraRecord`, `endLeft` and the others; its place up and
+down counts down the picture, `placeDown`). Its game is a task, its loop (007EB0) there once a game is begun, as
+Darkstalkers'. The build: the lists of objects emptied (0035BE), the pools set out (003844, 003656), the round's words
+(00C7E4), its colours (007A1A), the stage (082192), 004A3A, the colours brought up (007890). Each frame: the lists of
+objects (01AEC8, 01AF96, 01B0A4: its pieces, the city street's people, the lake's posts), its scroll screens and
+camera (082346), the object list (01B34E) and the frame's end (019B02: the lists of objects to be drawn, which each
+piece puts itself on, made empty; left full they grew down over the lists of objects in 500 frames and the board
+went astray). Stark Enterprises opens each round with its camera sliding down from the sky and its machinery coming
+in: played through at once when its stage is built. Checked: all twelve beside its own viewer (the same but for their
+animations' moments: the lift's buildings and the neon city's skyline go by, the gem chamber's colours turn), every
+one passing the check, a training session on two (rollback the same), the music.
 
 What this asks of the interface: **a frame holds layers from more than one producer** (the game and a guest). Each
 producer has its own palettes, its own tile graphics, its own priorities, and its own scroll and row scroll. The

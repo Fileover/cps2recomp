@@ -54,6 +54,37 @@ namespace {
         const uint8_t *p = &c.ram[address & 0xFFFF];
         return static_cast<uint16_t>((p[0] << 8) | p[1]);
     }
+    uint16_t R16(const uint8_t *ram, uint32_t address) {
+        const uint8_t *p = &ram[address & 0xFFFF];
+        return static_cast<uint16_t>((p[0] << 8) | p[1]);
+    }
+    // Where a guest's camera's place is kept, across and up (0: not known)
+    void CameraAt(const Guest &guest, const uint8_t *ram, uint32_t &x, uint32_t &y) {
+        if (guest.cameraRecord) {
+            const uint32_t record = guest.cameraRecord(ram);
+            x = record + guest.placeX;
+            y = record + guest.placeY;
+            return;
+        }
+        x = guest.cameraAtX;
+        y = guest.cameraAtY;
+    }
+    // Where its camera is wanted (between its ends): the game's camera's place, put between the guest's ends; a Place
+    // camera's by its record's own ends
+    void WantedAt(const Guest &guest, const uint8_t *ram, int &x, int &y) {
+        x = std::clamp<int>(g.cameraX, guest.cameraLeft, guest.cameraRight);
+        y = g.cameraY;
+        if (guest.camera != Guest::Camera::Place || !guest.endLeft) {
+            return;
+        }
+        const uint32_t record = guest.cameraRecord ? guest.cameraRecord(ram) : guest.cameraAtX - guest.placeX;
+        const int left = static_cast<int16_t>(R16(ram, record + guest.endLeft));
+        const int right = static_cast<int16_t>(R16(ram, record + guest.endRight));
+        const int top = static_cast<int16_t>(R16(ram, record + guest.endTop));
+        const int bottom = static_cast<int16_t>(R16(ram, record + guest.endBottom));
+        x = left + (x - guest.cameraLeft) * (right - left) / std::max(1, guest.cameraRight - guest.cameraLeft);
+        y = guest.placeDown ? std::clamp<int>(bottom - g.cameraY, std::min(top, bottom), bottom) : std::clamp<int>(g.cameraY, top, bottom);
+    }
     void SetC16(M68K &c, uint32_t address, uint16_t value) {
         uint8_t *p = &c.ram[address & 0xFFFF];
         p[0] = static_cast<uint8_t>(value >> 8);
@@ -306,12 +337,16 @@ namespace {
                 Call(c, at);
             }
             // (a stage just made, or its round just started: its camera brought to the place wanted at once)
-            if ((placed || justBuilt) && guest.placing && guest.cameraAtX) {
+            uint32_t atX = 0, atY = 0;
+            CameraAt(guest, c.ram, atX, atY);
+            if ((placed || justBuilt) && guest.placing && atX) {
                 constexpr int kMostCalls = 128;
                 for (int n = 0; n < kMostCalls; n++) {
-                    const int x = static_cast<int16_t>(C16(c, guest.cameraAtX));
-                    const int y = guest.cameraAtY ? static_cast<int16_t>(C16(c, guest.cameraAtY)) : g.cameraY;
-                    if (std::abs(x - std::clamp<int>(g.cameraX, guest.cameraLeft, guest.cameraRight)) <= 1 && std::abs(y - g.cameraY) <= 1) {
+                    int wantedX, wantedY;
+                    WantedAt(guest, c.ram, wantedX, wantedY);
+                    const int x = static_cast<int16_t>(C16(c, atX));
+                    const int y = atY ? static_cast<int16_t>(C16(c, atY)) : wantedY;
+                    if (std::abs(x - wantedX) <= 1 && std::abs(y - wantedY) <= 1) {
                         break;
                     }
                     Call(c, guest.placing);
@@ -377,6 +412,37 @@ namespace {
         if (step) {
             SetC8(c, camera + guest.wayY, step > 0 ? guest.wayUp : guest.wayDown);
         }
+        ReturnGuest(c);
+        return true;
+    }
+    // Place: the camera's record (A6) given the place wanted, as far as it goes in a frame (kMostPlace: as far as the
+    // game's camera goes), and its routine returned from
+    constexpr int kMostPlace = 16;
+    bool PlaceAcross(M68K &c) {
+        int index;
+        if (!Following(c, index)) {
+            return false;
+        }
+        const Guest &guest = Guests()[index];
+        const uint32_t camera = c.a[6] & 0xFFFFFF;
+        int x, y;
+        WantedAt(guest, c.ram, x, y);
+        const int was = static_cast<int16_t>(C16(c, camera + guest.placeX));
+        SetC16(c, camera + guest.placeX, static_cast<uint16_t>(was + std::clamp(x - was, -kMostPlace, kMostPlace)));
+        ReturnGuest(c);
+        return true;
+    }
+    bool PlaceUp(M68K &c) {
+        int index;
+        if (!Following(c, index)) {
+            return false;
+        }
+        const Guest &guest = Guests()[index];
+        const uint32_t camera = c.a[6] & 0xFFFFFF;
+        int x, y;
+        WantedAt(guest, c.ram, x, y);
+        const int was = static_cast<int16_t>(C16(c, camera + guest.placeY));
+        SetC16(c, camera + guest.placeY, static_cast<uint16_t>(was + std::clamp(y - was, -kMostPlace, kMostPlace)));
         ReturnGuest(c);
         return true;
     }
@@ -596,7 +662,9 @@ namespace {
             g_check.settling = kSettle; // (a stage just made: its camera comes to the place at its own pace)
         }
         g_check.frames++;
-        if (!guest.cameraAtX) {
+        uint32_t atX = 0, atY = 0;
+        CameraAt(guest, board.ram.data(), atX, atY);
+        if (!atX) {
             g_check.unknown++;
             return;
         }
@@ -611,10 +679,10 @@ namespace {
         } else {
             g_check.blankRun = 0;
         }
-        const int x = static_cast<int16_t>(G16(board, guest.cameraAtX)), y = static_cast<int16_t>(G16(board, guest.cameraAtY));
-        int wantedX = g.cameraX, wantedY = g.cameraY;
-        wantedX = std::clamp(wantedX, guest.cameraLeft, guest.cameraRight);
-        const int distance = std::max(std::abs(x - wantedX), guest.cameraAtY ? std::abs(y - wantedY) : 0);
+        const int x = static_cast<int16_t>(G16(board, atX)), y = static_cast<int16_t>(G16(board, atY));
+        int wantedX, wantedY;
+        WantedAt(guest, board.ram.data(), wantedX, wantedY);
+        const int distance = std::max(std::abs(x - wantedX), atY ? std::abs(y - wantedY) : 0);
         if (distance <= kNear) {
             g_check.followed++;
             g_check.run = 0;
@@ -709,9 +777,9 @@ void Register(const Host &host, std::vector<Guest> guests) {
         } else {
             AddGuestHook(guest.id, guest.stageAt, StageSet);
         }
-        const bool steps = guest.camera == Guest::Camera::Steps;
-        AddGuestHook(guest.id, guest.across, steps ? StepAcross : ExtentsAcross);
-        AddGuestHook(guest.id, guest.up, steps ? StepUp : ExtentsUp);
+        const bool steps = guest.camera == Guest::Camera::Steps, place = guest.camera == Guest::Camera::Place;
+        AddGuestHook(guest.id, guest.across, place ? PlaceAcross : steps ? StepAcross : ExtentsAcross);
+        AddGuestHook(guest.id, guest.up, place ? PlaceUp : steps ? StepUp : ExtentsUp);
     }
     if (Guests().size() > kMostGuests) {
         Guests().resize(kMostGuests);
