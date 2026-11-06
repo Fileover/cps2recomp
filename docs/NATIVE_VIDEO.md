@@ -133,7 +133,8 @@ stage's code writes (by the CPS-A's bases at the time).
 | Alpha 2 (`games/sfa2/guest.h`) | all three drawn today (`layers` 0xF); which carry the stage: to find | the scroll pages, and the object page's sets 27 and up | objects in colour sets 27 and up that are not the panel's tiles | asks where the players are (`Extents`, 01BFE0, 01C1D0); ends 256-640 | the stage's tune by number |
 | Darkstalkers (`games/dstlk/guest.h`; Night Warriors at its own places) | all three today; to find | the scroll pages, the object page's sets 14 and up | colour sets 14 and up | an object stepped across and up (`Steps`, 0EDAF4, 0EDC1A); ends 256-640 | by number |
 | Vampire Savior (`games/vampire_savior/guest.h`) | all three today; to find | the scroll pages, the object page's sets 22 and up | colour sets 22 and up but the players' shadows | asks where the players are (`Extents`, 01E8F4, 01E962); ends 256-640 | by number |
-| Every other fighting game (sfa, sfz2al, sfa3, the other Vampire games, the Marvel games, ssf2t, hsf2, pocket_fighter, xmcota) | to find | to find | its port's `notTheStage` where it has one | its port's camera facts (the widescreen and zoom features found them) | its port's `stageTunes` |
+| Alpha 3 (`games/sfa3/guest.h`), alone | its stage's own, 017462 | the stage's (B718 and its objects) | colour sets 10-13 | asks where the players are (`Extents`, 018654, 01877C) | by stage (the character's theme) |
+| Every other fighting game (sfa, sfz2al, the other Vampire games, the Marvel games, ssf2t, hsf2, pocket_fighter, xmcota) | to find | to find | its port's `notTheStage` where it has one | its port's camera facts (the widescreen and zoom features found them) | its port's `stageTunes` |
 
 **A stage alone** (`Guest::StageAlone`, first Vampire Savior's): rather than a match played to a round on the guest's
 board, the guest's board is started once and kept at the top of its main loop, and only its stage's code runs there:

@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- **Street Fighter Alpha 3's stages in Vampire Savior Definitive**: all twenty-six, each run from Alpha 3's own stage
+  code alone, in training's and the stage viewer's lists after Alpha 2's (Alpha 3's ROM set needed).
 - **Other games' stages in Vampire Savior, Vampire Savior 2 and Vampire Hunter 2**: the first Darkstalkers' and Street
   Fighter Alpha 2's stages, each run from its own stage code, in training's, versus's and the stage viewer's lists after
   the game's own, and with Display's **Other games' stages** in arcade matches.
