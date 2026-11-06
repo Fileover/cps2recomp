@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- **Favourite stages**: in the in-game menu, Enter or A on a list of stages (training's, the stage viewer's, the endless
+  and team battles') marks the stage shown a favourite (a `*` after it), and a **Favourites** row under the list goes
+  through the favourites alone. The same favourites in every list, kept in settings.ini.
+- **Holding the d-pad (or an arrow key) in the in-game menu** goes on through the rows and the choices, faster after a
+  second (recomp-common's `MenuRepeat`).
+- **Alpha 2's and Zero 2 Alpha's fighters' shadows** are behind another game's pieces in front of the fighters, as the
+  fighters are (they were taken for the panel's, which goes over them).
 - **Other games' stages look as in their own games**: what is in front of the fighters in a stage's own game is in front
   of them in another's too (Fetus of God's bulbs, Alpha 3's trees), under the panel; Alpha 3's stages have their objects
   (the castle, the trees, the grass, the pieces that move); pieces that go by the fight's frame counter move (the Tower

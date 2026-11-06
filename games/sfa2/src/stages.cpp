@@ -82,7 +82,9 @@ void RegisterStages() {
     host.viewer = StageViewer;
     // (what is laid over another game's stage: the fighters, in colour sets 11-26, and the panel; not this game's own
     // stage's pieces, its people and its doors, which are in the sets below and above: battle.cpp's NotTheFighters)
-    host.panel = ThePanel;
+    // (its panel, over another game's pieces in front of the fighters: not the fighters' shadows, on the floor's line,
+    // tiles 26A00-26AFF, which ThePanel takes in for the modes that lay the fighters over another stage)
+    host.panel = [](uint32_t tile, uint16_t attributes) { return ThePanel(tile, attributes) && !(tile >= 0x26A00 && tile < 0x26B00); };
     host.notTheStage = [](uint32_t tile, uint16_t attributes) {
         const unsigned set = attributes & 0x1F;
         return ThePanel(tile, attributes) || (set >= 11 && set < 27);

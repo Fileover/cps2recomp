@@ -2113,7 +2113,7 @@ void battle::Register(const Description &description) {
     game.features.push_back({"endless_stage", kEndless, "Stage",
                              "Where they fight. Shuffle: a stage that fades into another every so often. Scroll: the stages "
                              "go by, one after another, and the fighters are carried along. Or one stage.",
-                             0, d.stageChoices});
+                             kFeatureFavourites, d.stageChoices});
     game.features.push_back({"endless_shuffle", kEndless, "Shuffle every",
                              "Shuffle: how long they fight on a stage before it fades into another.", 0,
                              {"1 minute", "2 minutes", "3 minutes", "5 minutes", "10 minutes"}});
@@ -2154,7 +2154,7 @@ void battle::Register(const Description &description) {
         // (the stages: the choices after the endless battle's two ways of changing them)
         static std::vector<const char *> stages = {"Random"};
         stages.insert(stages.end(), d.stageChoices.begin() + std::min<size_t>(2, d.stageChoices.size()), d.stageChoices.end());
-        game.features.push_back({"team_stage", kTeam, "Stage", "Where the teams fight, from the first fight to the last.", 0, stages});
+        game.features.push_back({"team_stage", kTeam, "Stage", "Where the teams fight, from the first fight to the last.", kFeatureFavourites, stages});
     }
     static const char *const kOrder[kTeamMost] = {"first", "second", "third"};
     static std::string titles[2][kTeamMost], helps[2][kTeamMost];
