@@ -255,6 +255,9 @@ namespace {
             return false;
         }
         const Guest &guest = Guests()[index];
+        // (what is called here is the port's doing, not the program's own loop: it takes none of the board's frame, or a
+        // heavy frame, a stage's build, would leave the program's loop short of time, its next frame missed)
+        const uint64_t cycles = c.cycles;
         if (g_booting == index) {
             g_reached = true;
         } else if (g.guest == index + 1 && g.stage > 0) {
@@ -315,6 +318,7 @@ namespace {
                 }
             }
         }
+        c.cycles = cycles;
         c.pc = guest.loopGoesOn;
         return true;
     }

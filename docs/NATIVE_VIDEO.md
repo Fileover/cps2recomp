@@ -172,6 +172,27 @@ their animations' and the lightning's moments; `--stage-check` passes on all twe
 (widescreen too) and Definitive's ladder with them (a stage built before it is shown is brought to the camera when it
 comes into the picture); rollback the same.
 
+Alpha 2's stages go alone too (`games/sfa2/guest.h`). Its start-up and attract mode keep a loop of their own (0017F6,
+the modes called at 0017FE; a game has another, 004AC0), which is where its stage runs. Its stage is built a step a
+frame before the versus screen (by A5+10, 0051B8): the scroll screens switched on, 01A88C, 01B1DE, 01C31E and 01B7FC,
+its colours (012608 with its registers, 012510 to 0125D8), 0188B8, then 019774 and 01EB00 (its objects); and, as a
+round's start does in its own lines (002446), its scroll screens' records put to work. Each frame: its objects (01E308,
+01E582, 01E640), its scroll screens and camera (01A7F6), its object list (01E6AE), its colours given over (0127A4). The
+routines were found with the call log run on the game's own code (`--no-rewrites`: Alpha 2's port has many rewrites,
+whose calls the interpreter does not see). Checked: all eighteen beside the match-played ones in Definitive's viewer
+(the same but for their animations' moments), every one passing `--stage-check`, and a training session on Ken's stage
+with both players walked to each end (no frame off); rollback the same; Definitive's hashes main's with the feature off.
+
+Hosts: Vampire Savior, Vampire Savior 2 and Vampire Hunter 2 show Darkstalkers' and Alpha 2's stages too
+(`games/vampire_savior/src/stages.cpp`, called from their family.h's `RegisterOwnSources`; Definitive keeps its own).
+Their check found three more things: Alpha 2's camera goes 5 pixels a frame across and 1 up as constants in its code
+(01B6A0 on: hooked, as Vampire Savior's is raised); what the port calls in a guest's loop took the guest's frame, so a
+heavy frame (a stage's build) left Darkstalkers' loop a frame short and its camera a frame late (the calls now take none
+of it); and the host's own stage under a borrowed one still moves the host's camera: the train's arrival and Fetus of
+God's shake took it 32 pixels below where any other stage goes. So a stage chosen by name puts Feast of the Damned under
+it, and the arcade's choice passes over those two. Every host's ladder passes `--stage-check`, plays as main's with the
+feature off, and runs again the same (`--rollback-test`).
+
 What this asks of the interface: **a frame holds layers from more than one producer** (the game and a guest). Each
 producer has its own palettes, its own tile graphics, its own priorities, and its own scroll and row scroll. The
 frame's layer order says how one producer's layers go between the other's: the guest's stage behind the game's

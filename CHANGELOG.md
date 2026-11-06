@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- **Other games' stages in Vampire Savior, Vampire Savior 2 and Vampire Hunter 2**: the first Darkstalkers' and Street
+  Fighter Alpha 2's stages, each run from its own stage code, in training's, versus's and the stage viewer's lists after
+  the game's own, and with Display's **Other games' stages** in arcade matches.
+- **Alpha 2's stages from its stage code alone**: the Street Fighter Alpha 2 stages Vampire Savior Definitive shows are
+  run by Alpha 2's own stage code and nothing else of it, as Vampire Savior's and Darkstalkers' are: all eighteen,
+  their pieces and colours as before, with the fight's camera.
 - **Darkstalkers' stages from its stage code alone**: in Alpha 2, Zero 2 Alpha and Vampire Savior Definitive, the first
   Darkstalkers' stages are run by its own stage code and nothing else of it, as Vampire Savior's are: no match is
   played behind them. They look and sound as before (Victor's lightning, Anakaris's sarcophagi and fountain) and go

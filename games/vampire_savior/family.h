@@ -5,7 +5,11 @@
 // The places its sources name are its own, so there is no list of them (src/places.h).
 #pragma once
 
+#include "../dstlk/guest.h"
+#include "../sfa2/guest.h"
+
 #include <array>
+#include <cstddef>
 #include <cstdint>
 
 namespace vsav::family {
@@ -43,9 +47,22 @@ inline constexpr const char *kStageNames[] = {
     "Vanity Paradise", "War Agony", "Forever Torment", "Green Scream", "Iron Horse, Iron Terror", "Fetus of God",
 };
 
-// Stages of another game shown after these (Vampire Savior Definitive's, Darkstalkers': its src/stages.cpp), in the lists
-// a stage is chosen from by name (training's, the stage viewer's): none here
-inline constexpr std::array<const char *, 0> kMoreStageNames{};
+
+// Other games' stages, shown after these (fight/guest_stages.h; src/stages.cpp: each run from its own stage code), in the
+// lists a stage is chosen from by name (training's, versus's, the stage viewer's): the first Darkstalkers' (each
+// character's, in that game's order), then Street Fighter Alpha 2's (game.cfg's guests, in the same order)
+template <size_t A, size_t B>
+constexpr std::array<const char *, A + B> Joined(const std::array<const char *, A> &a, const std::array<const char *, B> &b) {
+    std::array<const char *, A + B> out{};
+    for (size_t i = 0; i < A; i++) {
+        out[i] = a[i];
+    }
+    for (size_t i = 0; i < B; i++) {
+        out[A + i] = b[i];
+    }
+    return out;
+}
+inline constexpr auto kMoreStageNames = Joined(dstlk_guest::kStageNames, sfa2_guest::kStageNames);
 
 // The frame's lists of objects to draw that the objects of kind 12 have, one for each depth (src/picture.cpp)
 inline constexpr int kTwelveLists = 7;
@@ -193,7 +210,11 @@ inline constexpr uint32_t kFirstLineOnly = 0xEF92EF96;
 inline constexpr const char *kColoursFile = "vm3j.10b", *kColoursFileWhose = "the Japanese set's, 970519";
 
 // What this game's own sources add (none: Vampire Savior's sources are all it has)
-inline void RegisterOwnSources() {}
+// Other games' stages (src/stages.cpp), as a game of these sources' own does last
+void RegisterOtherStages();
+inline void RegisterOwnSources() {
+    RegisterOtherStages();
+}
 
 // What a character put in by a mode in place of the one chosen needs besides its number (src/training.cpp)
 inline void CharacterPut(uint32_t, int) {}
