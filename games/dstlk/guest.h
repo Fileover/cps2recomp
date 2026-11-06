@@ -62,8 +62,9 @@ inline cps2recomp::guest_stages::Guest Description() {
     // (first: the colour set every load of colours takes, 1390(A5), is the character choice's, 0C, where its start-up
     // was left; a match's is 0. Then every object put away, 00521A, as the match's step before its stage's does
     // (02E2FE): the character choice's would go on painting into the stage's maps. Not 56B2 alone, which takes an object for the round's own announcing, 02E350, and
-    // leaves it half made)
-    d.build = {0, 0x00521A, 0x0059C6, 0x007734, 0x005C2C, 0x003EEE, 0, 0x005E90, 0x0080CC, 0x0076D8, 0x056516};
+    // leaves it half made. Not 7734 either: it asks the sound program to stop everything (FF00), and the frame interrupt,
+    // sending that, empties the whole ring, the stage's tune asked for after it too; the tune puts the music in its place)
+    d.build = {0, 0x00521A, 0x0059C6, 0x005C2C, 0x003EEE, 0, 0x005E90, 0x0080CC, 0x0076D8, 0x056516};
     d.buildStep = [](cps2recomp::M68K &c, int step) {
         if (step == 0) {
             c.bus.Write16(0xFF9390, 0);

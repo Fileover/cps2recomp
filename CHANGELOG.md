@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- **Super Street Fighter II Turbo's stages in Vampire Savior Definitive**: all sixteen, each run from Super Turbo's own
+  stage code alone, in training's and the stage viewer's lists after Alpha 3's (Super Turbo's ROM set needed).
+- **Darkstalkers' stages have their music** wherever another game shows them (it was silent).
 - **Street Fighter Alpha 3's stages in Vampire Savior Definitive**: all twenty-six, each run from Alpha 3's own stage
   code alone, in training's and the stage viewer's lists after Alpha 2's (Alpha 3's ROM set needed).
 - **Other games' stages in Vampire Savior, Vampire Savior 2 and Vampire Hunter 2**: the first Darkstalkers' and Street

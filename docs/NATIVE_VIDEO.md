@@ -134,7 +134,8 @@ stage's code writes (by the CPS-A's bases at the time).
 | Darkstalkers (`games/dstlk/guest.h`; Night Warriors at its own places) | all three today; to find | the scroll pages, the object page's sets 14 and up | colour sets 14 and up | an object stepped across and up (`Steps`, 0EDAF4, 0EDC1A); ends 256-640 | by number |
 | Vampire Savior (`games/vampire_savior/guest.h`) | all three today; to find | the scroll pages, the object page's sets 22 and up | colour sets 22 and up but the players' shadows | asks where the players are (`Extents`, 01E8F4, 01E962); ends 256-640 | by number |
 | Alpha 3 (`games/sfa3/guest.h`), alone | its stage's own, 017462 | the stage's (B718 and its objects) | colour sets 10-13 | asks where the players are (`Extents`, 018654, 01877C) | by stage (the character's theme) |
-| Every other fighting game (sfa, sfz2al, the other Vampire games, the Marvel games, ssf2t, hsf2, pocket_fighter, xmcota) | to find | to find | its port's `notTheStage` where it has one | its port's camera facts (the widescreen and zoom features found them) | its port's `stageTunes` |
+| Super Turbo (`games/ssf2t/guest.h`), alone | its stage's own, 0CC3EE | the stage's, faded in at once (00120A) | colour sets 0B and 1A-1F | an object stepped across and up (`Steps`, 0CC4E4, 0CC630); ends 0x100-0x280 | by stage |
+| Every other fighting game (sfa, sfz2al, the other Vampire games, the Marvel games, hsf2, pocket_fighter, xmcota) | to find | to find | its port's `notTheStage` where it has one | its port's camera facts (the widescreen and zoom features found them) | its port's `stageTunes` |
 
 **A stage alone** (`Guest::StageAlone`, first Vampire Savior's): rather than a match played to a round on the guest's
 board, the guest's board is started once and kept at the top of its main loop, and only its stage's code runs there:
@@ -193,6 +194,22 @@ of it); and the host's own stage under a borrowed one still moves the host's cam
 God's shake took it 32 pixels below where any other stage goes. So a stage chosen by name puts Feast of the Damned under
 it, and the arcade's choice passes over those two. Every host's ladder passes `--stage-check`, plays as main's with the
 feature off, and runs again the same (`--rollback-test`).
+
+Super Turbo's stages go alone too (`games/ssf2t/guest.h`), in Definitive. Its start-up and attract mode keep a loop
+(008FA0, the modes called at 008FA8). Its stage is built as a match's steps before a round build it (00D758 on: 003440,
+003AAE, its colours 00258C, 0026FC, 002886, its pieces 068E96, 0C84AC, its scroll screens 0CC3EE); then, as a round's
+fade-in does, its scroll screens switched on (bits 1-3 of 4E(A5), the word the frame interrupt gives the layer control)
+and its colours, written dark, brought to full (00120A with D2 0x1000, fifteen times). Each frame: the object pool
+(02822A, its stage's pieces among them), 0C8E1C, the scroll screens and camera (0CC3EE), 0BE518 and the sprite list
+(0C66CA). The first build drew nothing at all and passed the check, which looked only at the camera: `--stage-check`
+now also fails a run whose borrowed stage's picture is one colour for more than half a second. (`CPS2RECOMP_GUEST_DUMP=
+FRAME:FILE` writes the guest's memory and video memory, to set beside a match's `--dump-ram`.) Checked: all sixteen
+beside Super Turbo's own viewer (the same but for their animations' moments and the camera's place), every one passing
+the check, a training session on two of them with both players walked to each end, and the music.
+
+Darkstalkers' stages had no music: their build asked the sound program to stop everything (7734), and the frame
+interrupt, sending that, empties the sound ring, the stage's tune asked for after it too. The build leaves it out now;
+the tune is the first stage's, as in Darkstalkers' own viewer.
 
 What this asks of the interface: **a frame holds layers from more than one producer** (the game and a guest). Each
 producer has its own palettes, its own tile graphics, its own priorities, and its own scroll and row scroll. The

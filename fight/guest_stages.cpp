@@ -551,14 +551,39 @@ namespace {
 
     struct Checked {
         bool on = false;
-        uint64_t frames = 0, followed = 0, off = 0, unknown = 0;
-        int run = 0, longestRun = 0, worst = 0, settling = 0;
+        uint64_t frames = 0, followed = 0, off = 0, unknown = 0, blank = 0;
+        int run = 0, longestRun = 0, worst = 0, settling = 0, blankRun = 0, longestBlank = 0;
         int lastGuest = 0, lastStage = 0;
     } g_check;
     constexpr int kNear = 8, kLongestOff = 4, kSettle = 60;
+    // (a picture of one colour, or nearly: the stage not drawn at all. Longer than a fade's)
+    constexpr int kLongestBlank = 30;
+    bool Blank(const Machine &board) {
+        const uint32_t *picture = board.Picture();
+        const size_t pixels = static_cast<size_t>(board.PictureWidth()) * Video::kHeight;
+        size_t other = 0;
+        for (size_t i = 0; i < pixels; i += 7) {
+            other += (picture[i] & 0xFFFFFF) != (picture[0] & 0xFFFFFF);
+        }
+        return other * 7 < pixels / 100;
+    }
     void CheckFrame(const Guest &guest, Machine &board, bool shown) {
+        // (for finding things out: CPS2RECOMP_GUEST_DUMP=FRAME:FILE writes the guest's work RAM (and FILE.video) after its frame FRAME)
+        static const char *dump = getenv("CPS2RECOMP_GUEST_DUMP");
+        static uint64_t guestFrames = 0;
+        if (dump && strchr(dump, ':') && ++guestFrames == strtoull(dump, nullptr, 10)) {
+            if (FILE *f = fopen(strchr(dump, ':') + 1, "wb")) {
+                fwrite(board.ram.data(), 1, board.ram.size(), f);
+                fclose(f);
+            }
+            if (FILE *f = fopen((std::string(strchr(dump, ':') + 1) + ".video").c_str(), "wb")) {
+                fwrite(board.videoRam.data(), 1, board.videoRam.size(), f);
+                fclose(f);
+            }
+        }
         if (!g_check.on || !shown) {
             g_check.run = 0;
+            g_check.blankRun = 0;
             return;
         }
         if (g.guest != g_check.lastGuest || g.stage != g_check.lastStage) {
@@ -574,6 +599,13 @@ namespace {
         if (g_check.settling > 0) {
             g_check.settling--;
             return;
+        }
+        if (board.drawing && Blank(board)) {
+            g_check.blank++;
+            g_check.blankRun++;
+            g_check.longestBlank = std::max(g_check.longestBlank, g_check.blankRun);
+        } else {
+            g_check.blankRun = 0;
         }
         const int x = static_cast<int16_t>(G16(board, guest.cameraAtX)), y = static_cast<int16_t>(G16(board, guest.cameraAtY));
         int wantedX = g.cameraX, wantedY = g.cameraY;
@@ -642,12 +674,13 @@ bool Report(FILE *out) {
         return true;
     }
     // (a run that showed none has checked nothing: not passed)
-    const bool ok = g_check.frames > 0 && g_check.longestRun <= kLongestOff && g_check.unknown == 0;
+    const bool ok = g_check.frames > 0 && g_check.longestRun <= kLongestOff && g_check.unknown == 0 &&
+                    g_check.longestBlank <= kLongestBlank;
     fprintf(out, "stage check: %llu frames of other games' stages shown; the camera within %d of where wanted in %llu, off in %llu "
-                 "(longest %d frames, at most %d off)%s; %s\n",
+                 "(longest %d frames, at most %d off); the picture blank in %llu (longest %d)%s; %s\n",
             static_cast<unsigned long long>(g_check.frames), kNear, static_cast<unsigned long long>(g_check.followed),
             static_cast<unsigned long long>(g_check.off), g_check.longestRun, g_check.worst,
-            g_check.unknown ? " (a guest's camera not known: not checked)" : "", ok ? "ok" : "FAILED");
+            static_cast<unsigned long long>(g_check.blank), g_check.longestBlank, g_check.unknown ? " (a guest's camera not known: not checked)" : "", ok ? "ok" : "FAILED");
     return ok;
 }
 

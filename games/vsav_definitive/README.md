@@ -58,12 +58,13 @@ Not yet: Donovan's stage and Vampire Savior 2's music (Vampire Savior's twelve s
 
 ## Other games' stages
 
-With *Darkstalkers: The Night Warriors*' ROM set (`dstlk`) as well, the first game's twelve stages are here too, and
-with *Street Fighter Alpha 2*'s (`sfa2u`) its eighteen, each with its own music, as those games show them. The
+With other games' ROM sets as well, their stages are here too, each with its own music, as those games show them: the
+first *Darkstalkers*' twelve (`dstlk`), *Street Fighter Alpha 2*'s eighteen (`sfa2u`), *Street Fighter Alpha 3*'s
+twenty-six (`sfa3u`) and *Super Street Fighter II Turbo*'s sixteen (`ssf2xjr1`). The
 **Darkstalkers' stages** option (Display) puts each match on the opponent's stage in Darkstalkers, where it has one:
 twelve of the eighteen characters have (not Lilith, Q-Bee, B.B. Hood, Jedah, Lei-Lei or Donovan, who keep Vampire
-Savior's). Training's stage and the stage viewer have all of them by name. Each game's board runs unseen beside this
-one, on that stage, with its camera where this game's is, and the fighters and the panel are drawn over its picture.
+Savior's). Training's stage and the stage viewer have all of them by name. Each is run from that game's own stage code alone,
+with its camera where this game's is, and the fighters and the panel are drawn over it.
 Nothing of the game's play changes, so online each player sees the stages they chose.
 
 ## What you need
@@ -71,8 +72,9 @@ Nothing of the game's play changes, so online each player sees the stages they c
 - Both ROM sets: `vsavj` (*Vampire Savior: The Lord of Vampire*, Japan 970519) and `vsav2` (*Vampire Savior 2: The
   Lord of Vampire*, Japan 970913), each as a zip or a folder of its files, with its key file. In the launcher,
   choose `vsavj` on this game's page and `vsav2` on Vampire Savior 2's: this game takes it from there.
-- For other games' stages (not needed to play): `dstlk` (*Darkstalkers: The Night Warriors*, Europe 940705) and
-  `sfa2u` (*Street Fighter Alpha 2*, USA 960430), each chosen on its own game's page.
+- For other games' stages (not needed to play): `dstlk` (*Darkstalkers: The Night Warriors*, Europe 940705),
+  `sfa2u` (*Street Fighter Alpha 2*, USA 960430), `sfa3u` (*Street Fighter Alpha 3*, USA 980904) and `ssf2xjr1`
+  (*Super Street Fighter II Turbo*), each chosen on its own game's page.
 - One of: macOS 13 or later (Apple silicon or Intel); Linux x86_64 or SteamOS; Windows 10 or 11, 64-bit.
 
 ## Playing

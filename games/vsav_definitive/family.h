@@ -12,6 +12,7 @@
 #include "../dstlk/guest.h"
 #include "../sfa2/guest.h"
 #include "../sfa3/guest.h"
+#include "../ssf2t/guest.h"
 #include <cstdint>
 
 #include "game.h"
@@ -67,7 +68,7 @@ constexpr std::array<const char *, A + B> Joined(const std::array<const char *, 
     }
     return out;
 }
-inline constexpr auto kMoreStageNames = Joined(Joined(dstlk_guest::kStageNames, sfa2_guest::kStageNames), sfa3_guest::kStageNames);
+inline constexpr auto kMoreStageNames = Joined(Joined(Joined(dstlk_guest::kStageNames, sfa2_guest::kStageNames), sfa3_guest::kStageNames), ssf2t_guest::kStageNames);
 
 // The frame's lists of objects to draw that the objects of kind 12 have, one for each depth (src/picture.cpp)
 inline constexpr int kTwelveLists = 7;

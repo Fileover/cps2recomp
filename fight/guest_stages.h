@@ -134,8 +134,9 @@ bool Available(int stage);
 // frame's callbacks and the state's)
 void Register(const Host &host, std::vector<Guest> guests);
 // The check (--stage-check): each frame another game's stage is shown, its camera against the place wanted for it (the
-// game's camera's, between the guest's ends); at the end, Report says how often and how far it was off, and false when
-// it stayed off longer than the camera takes to catch up (half a second)
+// game's camera's, between the guest's ends), and whether its picture is blank (one colour: the stage not drawn); at the
+// end, Report says how often and how far it was off, and false when it stayed off longer than the camera takes to catch
+// up, or blank for more than half a second
 void Check(bool on);
 bool Report(FILE *out);
 
