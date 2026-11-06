@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- **Super Gem Fighter's stages in Vampire Savior Definitive**: all eight, each run from its own stage code alone,
+  after X-Men: Children of the Atom's in the lists (its ROM set needed).
 - **X-Men: Children of the Atom's stages in Vampire Savior Definitive**: all twelve, each run from its own stage code
   alone, after Marvel vs. Capcom's in the lists (its ROM set needed). The sunset is without its sun's glow, which comes
   with a round's fighters.

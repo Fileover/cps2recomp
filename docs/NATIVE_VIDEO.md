@@ -142,7 +142,8 @@ stage's code writes (by the CPS-A's bases at the time).
 | Marvel Super Heroes vs. Street Fighter (`games/mshvsf/guest.h`), alone | X-Men vs. Street Fighter's at its own places | as X-Men vs. Street Fighter's | colour sets 1A and up | `Place` (0A1C94, 0A1F52), on the copy its step keeps (+76, +78; ends +68-6E) | a character's theme each |
 | Marvel vs. Capcom (`games/mvsc/guest.h`), alone | Marvel Super Heroes vs. Street Fighter's at its own places | as theirs | colour sets 16-1D | `Place` (0CB2E2, 0CB560), on the copy | a character's theme each |
 | X-Men: Children of the Atom (`games/xmcota/guest.h`), alone | its stage's own, 06EB00 | its own (003082, 003312) | colour sets 14 and up | `Place` (06EB84, 06ECAC), ends +70-76 | the stage's character's theme |
-| Every other fighting game (sfz2al, the other Vampire games, pocket_fighter, xmcota) | to find | to find | its port's `notTheStage` where it has one | its port's camera facts (the widescreen and zoom features found them) | its port's `stageTunes` |
+| Super Gem Fighter (`games/pocket_fighter/guest.h`), alone | its stage's own, 01E890 | its own (02790A on) | colour sets 1A and up but the shadows | asks where the players are (`Extents`, 01FAF0, 01FB66); ends 0-0x100 | by stage |
+| Every other fighting game (sfz2al and the other Vampire games, whose stages are those above, pocket_fighter, xmcota) | to find | to find | its port's `notTheStage` where it has one | its port's camera facts (the widescreen and zoom features found them) | its port's `stageTunes` |
 
 **A stage alone** (`Guest::StageAlone`, first Vampire Savior's): rather than a match played to a round on the guest's
 board, the guest's board is started once and kept at the top of its main loop, and only its stage's code runs there:
@@ -282,6 +283,13 @@ the jungle, is given at once: 070E82). The sunset's sun glows with a round's fig
 round's first step's clearing, waits for its sound program and is left out. Checked: all twelve beside its own viewer
 (the same but for their animations' moments: the Savage Land's sky, the frozen sea's voyage, and the sunset's glow),
 every one passing the check, a training session on two (rollback the same), the music.
+
+Super Gem Fighter's stages go alone as Vampire Savior's do (`games/pocket_fighter/guest.h`): the same engine, read
+beside it, its build a round's first two steps (005A0E on) and its frame a fight's (007DDE on), the pools of objects
+but the players'. Checked: all eight beside its own viewer, every one passing the check, a training session on two
+(rollback the same), the music. With it, every fighting game in the collection with stages of its own is a guest
+(Hyper Street Fighter II's are Super Turbo's, Zero 2 Alpha's Alpha 2's, Vampire Savior 2's and Vampire Hunter 2's
+Vampire Savior's).
 
 What this asks of the interface: **a frame holds layers from more than one producer** (the game and a guest). Each
 producer has its own palettes, its own tile graphics, its own priorities, and its own scroll and row scroll. The
