@@ -2,11 +2,11 @@
 // Copyright (C) 2026 Tommy McLeroy
 //
 // Other games' stages behind Vampire Savior's fighters (and Vampire Savior 2's, Vampire Hunter 2's), as those games show
-// them (fight/guest_stages.h; game.cfg's guests): the first Darkstalkers' and Street Fighter Alpha 2's, each run from its
-// own stage code alone. Their facts are in their games' folders (games/dstlk/guest.h, games/sfa2/guest.h); here is what
-// is this game's: its camera, when a stage is shown, its objects that are not its stage's, its stage tunes, and which
-// stage is wanted. Vampire Savior Definitive, built from these sources too, has its own (games/vsav_definitive/src/
-// stages.cpp: its Darkstalkers' stages by the opponent); family.h says which game calls this.
+// them (fight/guest_stages.h; game.cfg's guests): every other fighting game's in the collection, each run from its own
+// stage code alone, in games/guests.h's order (each one's facts in its own folder's guest.h). Here is what is this
+// game's: its camera, when a stage is shown, its objects that are not its stage's, its stage tunes, and which stage is
+// wanted. Vampire Savior Definitive, built from these sources too, has its own (games/vsav_definitive/src/stages.cpp:
+// its Darkstalkers' stages by the opponent); family.h says which game calls this.
 //
 // Which: a stage chosen by name (training's, versus's, the stage viewer's: the guests' after this game's twelve), or,
 // with the "Other games' stages" feature, an arcade match's stage is one of theirs, the same one for the same match.
@@ -15,8 +15,7 @@
 #include "session.h"
 #include "vsav.h"
 
-#include "../../dstlk/guest.h"
-#include "../../sfa2/guest.h"
+#include "../../guests.h"
 
 namespace cps2recomp {
 
@@ -75,8 +74,8 @@ void RegisterOtherStages() {
     // (Display: it changes nothing of the game's play; online, each player sees the stage of their own choice)
     game.features.push_back({"other_stages", "Display", "Other games' stages",
                              "An arcade match is fought on a stage of another game's, as that game shows it, its music too: "
-                             "the first Darkstalkers' and Street Fighter Alpha 2's, those whose ROM sets are there (beside "
-                             "this game's, or chosen on their pages in the launcher). Training's, versus's and the stage "
+                             "the other fighting games in the collection, those whose ROM sets are there (beside this "
+                             "game's, or chosen on their pages in the launcher). Training's, versus's and the stage "
                              "viewer's lists have them all after this game's own.",
                              0});
     guest_stages::Host host;
@@ -90,7 +89,7 @@ void RegisterOtherStages() {
     host.stageTunes.assign(std::begin(family::kStageTunes), std::end(family::kStageTunes));
     host.wanted = Wanted;
     host.feature = "other_stages";
-    guest_stages::Register(host, {dstlk_guest::Description(), sfa2_guest::Description()});
+    guest_stages::Register(host, guests::AllBut("vampire_savior")); // (games/guests.h: family.h's kMoreStageNames the same)
 }
 
 } // namespace cps2recomp

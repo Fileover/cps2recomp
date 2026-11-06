@@ -6,8 +6,7 @@
 #include "battle.h"
 #include "modes.h"
 
-#include "../../dstlk/guest.h"
-#include "../../vampire_savior/guest.h"
+#include "../../guests.h"
 
 #include <iterator>
 
@@ -76,8 +75,8 @@ void RegisterBattle() {
     d.stageChoices = {"Shuffle", "Scroll"};
     d.stageChoices.insert(d.stageChoices.end(), std::begin(kStageNames), std::end(kStageNames));
     // (other games' stages after its own, as training's: BattleStage, stages.cpp)
-    d.stageChoices.insert(d.stageChoices.end(), dstlk_guest::kStageNames.begin(), dstlk_guest::kStageNames.end());
-    d.stageChoices.insert(d.stageChoices.end(), vampire_savior_guest::kStageNames.begin(), vampire_savior_guest::kStageNames.end());
+    const std::vector<const char *> others = guests::NamesBut("sfa2"); // (games/guests.h)
+    d.stageChoices.insert(d.stageChoices.end(), others.begin(), others.end());
     d.tuneOff = kTuneOff;
     d.inGame = [] { return Ram16(kMode) == 2; };
     d.choosing = [] { return Ram16(kMode) == 2 && Ram16(kGameStep) == kGameChoosing && Ram8(kPlayersIn) == 3; };

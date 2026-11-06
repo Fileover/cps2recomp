@@ -95,6 +95,9 @@ each other.
 ## Everything else
 
 - **Widescreen** in the fighting games: 16:9, with more of the stage on each side ([more](docs/PICTURE.md#widescreen)).
+- **Other games' stages**: Vampire Savior Definitive, the other Vampire Savior games and the Alpha games can fight on
+  every other fighting game's stages in the collection, as those games show them, their music too: in training, the
+  stage viewer, the endless and team battles, and (an option) arcade matches. Each needs that game's ROM set.
 - **Alternative modes** in the fighting games: survival, ring out, an endless battle the game plays itself, and in
   most a tag team battle; plus a stage viewer and a model viewer ([more](docs/MODES.md)).
 - **Shoot-'em-up practice** in Giga Wing: any stage or straight at its boss, back to the start with one button, the

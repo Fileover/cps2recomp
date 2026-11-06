@@ -23,6 +23,17 @@ inline constexpr std::array<const char *, 13> kStageNames{
     "Alpha: Rose's (the ruins)",          "Alpha: M. Bison's (the rail yard at dusk)", "Alpha: Sagat's (the Buddha)",
     "Alpha: Dan's (the Buddha at sunset)"};
 
+// A step of its camera (D2, a word) no more than another game's camera goes in a frame, then on to `next` (its own most
+// is 5 across and 1 up and down: 01A5B8, 01A5D6, 01A60C, 01A62A)
+inline bool Most(cps2recomp::M68K &c, uint32_t next) {
+    constexpr uint16_t kMost = 16;
+    if ((c.d[2] & 0xFFFF) > kMost) {
+        c.d[2] = (c.d[2] & 0xFFFF0000) | kMost;
+    }
+    c.pc = next;
+    return true;
+}
+
 inline cps2recomp::guest_stages::Guest Description() {
     using namespace cps2recomp::guest_stages;
     Guest d;
@@ -75,7 +86,11 @@ inline cps2recomp::guest_stages::Guest Description() {
     // (before the objects each frame: the fight's frame counter, 1B4(A5), a step as at 004900; and two players standing
     // either side of the picture's middle, their records' places, +10 across and +14 up: its cats walk about by where
     // they are, and with none, to the stage's left end and away)
-    d.hooks = {{0x01BBD6, [](cps2recomp::M68K &c) {
+    d.hooks = {{0x01A5B8, [](cps2recomp::M68K &c) { return Most(c, 0x01A5C0); }},
+               {0x01A5D6, [](cps2recomp::M68K &c) { return Most(c, 0x01A5DE); }},
+               {0x01A60C, [](cps2recomp::M68K &c) { return Most(c, 0x01A614); }},
+               {0x01A62A, [](cps2recomp::M68K &c) { return Most(c, 0x01A632); }},
+               {0x01BBD6, [](cps2recomp::M68K &c) {
                     c.bus.Write8(0xFF81B4, static_cast<uint8_t>(c.bus.Read8(0xFF81B4) + 1));
                     const uint16_t camera = c.bus.Read16(0xFF8290);
                     c.bus.Write16(0xFF8410, static_cast<uint16_t>(camera + 0xC0 - 0x60));

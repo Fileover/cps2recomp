@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- **Other games' stages in the Alpha games and every Vampire Savior game**: Street Fighter Alpha and Alpha 3 show them
+  now too, and Alpha 2, Zero 2 Alpha, Vampire Savior, Vampire Savior 2 and Vampire Hunter 2 show every other fighting
+  game's (not only Darkstalkers' and one more): in training, the stage viewer, the endless and team battles, and with
+  Display's **Other games' stages** in arcade matches. Alpha's panel is drawn over them too.
 - **Super Gem Fighter's stages in Vampire Savior Definitive**: all eight, each run from its own stage code alone,
   after X-Men: Children of the Atom's in the lists (its ROM set needed).
 - **X-Men: Children of the Atom's stages in Vampire Savior Definitive**: all twelve, each run from its own stage code
