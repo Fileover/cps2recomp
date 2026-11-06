@@ -136,6 +136,7 @@ stage's code writes (by the CPS-A's bases at the time).
 | Alpha 3 (`games/sfa3/guest.h`), alone | its stage's own, 017462 | the stage's (B718 and its objects) | colour sets 10-13 | asks where the players are (`Extents`, 018654, 01877C) | by stage (the character's theme) |
 | Super Turbo (`games/ssf2t/guest.h`), alone | its stage's own, 0CC3EE | the stage's, faded in at once (00120A) | colour sets 0B and 1A-1F | an object stepped across and up (`Steps`, 0CC4E4, 0CC630); ends 0x100-0x280 | by stage |
 | Alpha (`games/sfa/guest.h`), alone | its stage's own, 01A376 (not the first scroll screen: the panel's bars) | the stage's (011324, 011368, 0113A0) | colour sets 18 and 19 | asks where the players are (`Extents`, 01A9A8, 01AA2A) | by stage |
+| Night Warriors (`games/nwarr/guest.h`), alone | Darkstalkers' at its own places | as Darkstalkers' | colour sets 14 and up | as Darkstalkers' (`Steps`, 0FF6C4, 0FF7EA) | by stage |
 | Every other fighting game (sfz2al, the other Vampire games, the Marvel games, pocket_fighter, xmcota) | to find | to find | its port's `notTheStage` where it has one | its port's camera facts (the widescreen and zoom features found them) | its port's `stageTunes` |
 
 **A stage alone** (`Guest::StageAlone`, first Vampire Savior's): rather than a match played to a round on the guest's
@@ -224,6 +225,12 @@ middle: its cats walk about by where the players are, and with none walked to th
 ring is at A5-59C2, FF263E (the port had FFA63E, which made the stage viewer's **Music** choice write into an object
 pool and play nothing new; fixed). Checked: all thirteen beside Alpha's own viewer, every one passing the check, a
 training session on two of them (rollback the same), the music.
+
+Night Warriors' stages go alone as Darkstalkers' do (`games/nwarr/guest.h`): its program is Darkstalkers' grown, so
+the description is Darkstalkers' at Night Warriors' places, found by setting the two programs' listings side by side
+(the instructions around each place, with their numbers left out, matched where they are alike only once) and from
+games/dstlk/family.h (its memory: the stage's block 0x600 lower). Checked: all fourteen beside its own viewer, every one
+passing the check, a training session on two of them (rollback the same), the music.
 
 What this asks of the interface: **a frame holds layers from more than one producer** (the game and a guest). Each
 producer has its own palettes, its own tile graphics, its own priorities, and its own scroll and row scroll. The

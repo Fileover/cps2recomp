@@ -93,7 +93,7 @@ void RegisterStages() {
     host.stageTunes.assign(std::begin(family::kStageTunes), std::end(family::kStageTunes));
     host.wanted = Wanted;
     host.feature = "dstlk_stages";
-    guest_stages::Register(host, {dstlk_guest::Description(), sfa2_guest::Description(), sfa3_guest::Description(), ssf2t_guest::Description(), sfa_guest::Description()});
+    guest_stages::Register(host, {dstlk_guest::Description(), sfa2_guest::Description(), sfa3_guest::Description(), ssf2t_guest::Description(), sfa_guest::Description(), nwarr_guest::Description()});
 }
 
 } // namespace definitive
