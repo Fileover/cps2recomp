@@ -568,7 +568,7 @@ namespace {
         return other * 7 < pixels / 100;
     }
     void CheckFrame(const Guest &guest, Machine &board, bool shown) {
-        // (for finding things out: CPS2RECOMP_GUEST_DUMP=FRAME:FILE writes the guest's work RAM (and FILE.video) after its frame FRAME)
+        // (for finding things out: CPS2RECOMP_GUEST_DUMP=FRAME:FILE writes the guest's work RAM (and FILE.video, FILE.sound: the memory it shares with its sound CPU) after its frame FRAME)
         static const char *dump = getenv("CPS2RECOMP_GUEST_DUMP");
         static uint64_t guestFrames = 0;
         if (dump && strchr(dump, ':') && ++guestFrames == strtoull(dump, nullptr, 10)) {
@@ -578,6 +578,10 @@ namespace {
             }
             if (FILE *f = fopen((std::string(strchr(dump, ':') + 1) + ".video").c_str(), "wb")) {
                 fwrite(board.videoRam.data(), 1, board.videoRam.size(), f);
+                fclose(f);
+            }
+            if (FILE *f = fopen((std::string(strchr(dump, ':') + 1) + ".sound").c_str(), "wb")) {
+                fwrite(board.soundRam, 1, sizeof(board.soundRam), f);
                 fclose(f);
             }
         }
