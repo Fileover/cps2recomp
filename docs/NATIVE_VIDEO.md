@@ -135,7 +135,8 @@ stage's code writes (by the CPS-A's bases at the time).
 | Vampire Savior (`games/vampire_savior/guest.h`) | all three today; to find | the scroll pages, the object page's sets 22 and up | colour sets 22 and up but the players' shadows | asks where the players are (`Extents`, 01E8F4, 01E962); ends 256-640 | by number |
 | Alpha 3 (`games/sfa3/guest.h`), alone | its stage's own, 017462 | the stage's (B718 and its objects) | colour sets 10-13 | asks where the players are (`Extents`, 018654, 01877C) | by stage (the character's theme) |
 | Super Turbo (`games/ssf2t/guest.h`), alone | its stage's own, 0CC3EE | the stage's, faded in at once (00120A) | colour sets 0B and 1A-1F | an object stepped across and up (`Steps`, 0CC4E4, 0CC630); ends 0x100-0x280 | by stage |
-| Every other fighting game (sfa, sfz2al, the other Vampire games, the Marvel games, hsf2, pocket_fighter, xmcota) | to find | to find | its port's `notTheStage` where it has one | its port's camera facts (the widescreen and zoom features found them) | its port's `stageTunes` |
+| Alpha (`games/sfa/guest.h`), alone | its stage's own, 01A376 (not the first scroll screen: the panel's bars) | the stage's (011324, 011368, 0113A0) | colour sets 18 and 19 | asks where the players are (`Extents`, 01A9A8, 01AA2A) | by stage |
+| Every other fighting game (sfz2al, the other Vampire games, the Marvel games, pocket_fighter, xmcota) | to find | to find | its port's `notTheStage` where it has one | its port's camera facts (the widescreen and zoom features found them) | its port's `stageTunes` |
 
 **A stage alone** (`Guest::StageAlone`, first Vampire Savior's): rather than a match played to a round on the guest's
 board, the guest's board is started once and kept at the top of its main loop, and only its stage's code runs there:
@@ -215,6 +216,19 @@ The endless battle (its one stage) and the team battle take other games' stages 
 them after the game's own, and a match on one is fought on the game's first stage, the other drawn behind it, as
 training's are (`BattleStage`, read by the host's `wanted`). The endless battle's Shuffle and Scroll go on through the
 game's own stages: each shows two stages at once, made on the game's spare boards.
+
+Alpha's stages go alone too (`games/sfa/guest.h`). Its start-up and attract mode keep a loop (001996, the modes called
+at 00199E). A match builds its stage by a task that wipes the picture over before the versus screen (009CC6 with D1
+0x0C, a step a frame); the build does its steps at once: the memory of objects set out again (016170, as a match does
+before its character choice: attract mode leaves the three pools' free lists used up, so the stage could make none of
+its objects), the scroll screens' records put to work, the scroll screens (01A37C), 01A754, 011302, 0112D4, 019A6A,
+019AE6, its colours (011324, 011368, 0113A0), its objects (01BC9A, a table by stage) and the layer words a round sets
+(004874). Each frame: the three pools (01BBD6, 01BA48, 01BC08), the scroll screens and camera (01A376) and the sprite
+list (011B3A), with the fight's frame counter stepped (004900) and two players standing either side of the picture's
+middle: its cats walk about by where the players are, and with none walked to the stage's left end and away. Its sound
+ring is at A5-59C2, FF263E (the port had FFA63E, which made the stage viewer's **Music** choice write into an object
+pool and play nothing new; fixed). Checked: all thirteen beside Alpha's own viewer, every one passing the check, a
+training session on two of them (rollback the same), the music.
 
 What this asks of the interface: **a frame holds layers from more than one producer** (the game and a guest). Each
 producer has its own palettes, its own tile graphics, its own priorities, and its own scroll and row scroll. The
