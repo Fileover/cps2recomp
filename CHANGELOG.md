@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- **Other games' stages in the endless and team battles**: in Vampire Savior Definitive, Vampire Savior, Vampire Savior
+  2, Vampire Hunter 2, Alpha 2 and Zero 2 Alpha, the endless battle's **Stage** and the team battle's list have them
+  after the game's own (the endless battle's Shuffle and Scroll still go through the game's own).
 - **Super Street Fighter II Turbo's stages in Vampire Savior Definitive**: all sixteen, each run from Super Turbo's own
   stage code alone, in training's and the stage viewer's lists after Alpha 3's (Super Turbo's ROM set needed).
 - **Darkstalkers' stages have their music** wherever another game shows them (it was silent).

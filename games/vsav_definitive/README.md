@@ -63,7 +63,7 @@ first *Darkstalkers*' twelve (`dstlk`), *Street Fighter Alpha 2*'s eighteen (`sf
 twenty-six (`sfa3u`) and *Super Street Fighter II Turbo*'s sixteen (`ssf2xjr1`). The
 **Darkstalkers' stages** option (Display) puts each match on the opponent's stage in Darkstalkers, where it has one:
 twelve of the eighteen characters have (not Lilith, Q-Bee, B.B. Hood, Jedah, Lei-Lei or Donovan, who keep Vampire
-Savior's). Training's stage and the stage viewer have all of them by name. Each is run from that game's own stage code alone,
+Savior's). Training's stage, the stage viewer and the endless and team battles have all of them by name. Each is run from that game's own stage code alone,
 with its camera where this game's is, and the fighters and the panel are drawn over it.
 Nothing of the game's play changes, so online each player sees the stages they chose.
 

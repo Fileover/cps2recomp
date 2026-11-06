@@ -211,6 +211,11 @@ Darkstalkers' stages had no music: their build asked the sound program to stop e
 interrupt, sending that, empties the sound ring, the stage's tune asked for after it too. The build leaves it out now;
 the tune is the first stage's, as in Darkstalkers' own viewer.
 
+The endless battle (its one stage) and the team battle take other games' stages too: their lists (`stageChoices`) have
+them after the game's own, and a match on one is fought on the game's first stage, the other drawn behind it, as
+training's are (`BattleStage`, read by the host's `wanted`). The endless battle's Shuffle and Scroll go on through the
+game's own stages: each shows two stages at once, made on the game's spare boards.
+
 What this asks of the interface: **a frame holds layers from more than one producer** (the game and a guest). Each
 producer has its own palettes, its own tile graphics, its own priorities, and its own scroll and row scroll. The
 frame's layer order says how one producer's layers go between the other's: the guest's stage behind the game's

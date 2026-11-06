@@ -246,6 +246,11 @@ void RegisterTeamTag(float labelY);
 
 // Whether one of these modes is on, and ending it
 bool BattleMode();
+// The stage chosen for the endless battle (one stage) or the team battle when it is another game's, after the game's
+// own in the lists (`stageChoices`, the game's `stages` first): its number in them, from 1 (0: none, or the game's own).
+// Such a match is fought on the game's first stage, and the other drawn behind it (fight/guest_stages.h, the game's
+// Host::wanted)
+int BattleStage();
 void EndBattle();
 bool BattleNoClock();    // the round's clock stands still
 bool BattleNoKnockOut(); // nobody's health goes below nothing
