@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- **Marvel Super Heroes vs. Street Fighter's stages in Vampire Savior Definitive**: all twelve, each run from its own
+  stage code alone, after X-Men vs. Street Fighter's in the lists (its ROM set needed).
 - **X-Men vs. Street Fighter's stages in Vampire Savior Definitive**: all eleven, each run from its own stage code
   alone, after Marvel Super Heroes' in the lists (its ROM set needed).
 - **Marvel Super Heroes' stages in Vampire Savior Definitive**: all twelve, each run from Marvel Super Heroes' own

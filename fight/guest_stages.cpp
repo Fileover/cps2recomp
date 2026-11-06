@@ -28,7 +28,7 @@ namespace {
         static auto &guests = *new std::vector<Guest>; // (never freed: the threads read them)
         return guests;
     }
-    constexpr int kMostGuests = 8;
+    constexpr int kMostGuests = 16; // (Definitive shows nine games' stages)
 
     struct State {
         int8_t guest = 0;  // the guest whose stage is shown, 1 the first (0: the game's own); its board is in its round
