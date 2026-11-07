@@ -86,6 +86,11 @@ void Raster::Objects(const ObjectList &list, const PictureOptions &options) {
                     t.y = static_cast<int16_t>((y + ty * 16) & 0x1FF);
                     const int cx = flipX ? across - 1 - tx : tx, cy = flipY ? down - 1 - ty : ty;
                     t.tile = (code & ~0xFu) + ((code + cx) & 0xF) + 0x10 * cy;
+                    if (m_gfx) {
+                        // (through the graphics mapper, in 8-pixel units as the scroll screens': Video::DrawObjectsCps1)
+                        const int64_t mapped = m_gfx->Map(0, t.tile << 1);
+                        t.tile = mapped < 0 ? kNoTile : static_cast<uint32_t>(mapped >> 1);
+                    }
                     t.colour = static_cast<uint16_t>((attr & 0x1F) * 16);
                     t.flipX = flipX;
                     t.flipY = flipY;
@@ -185,6 +190,15 @@ void Raster::DrawScroll(int which, int rasterLine, const Layers &layers, const u
         case 0: at = tiles + code * 64 + ((column & 1) ? 4 : 0); rowBytes = 8; break; // (odd columns: a strip's right half)
         case 1: at = tiles + code * 128; rowBytes = 8; break;
         default: code &= 0x3FFF; at = tiles + code * 512; rowBytes = 16; break;
+        }
+        if (m_gfx) {
+            // (a CPS-1 whose mapper does not keep the tiles in order: in 8-pixel units, a 16-pixel tile two, a 32-pixel
+            // tile eight; one it has nowhere is not drawn: Video::DrawScroll)
+            const int64_t mapped = m_gfx->Map(which + 1, code << (which == 0 ? 0 : which == 1 ? 1 : 3));
+            if (mapped < 0) {
+                continue;
+            }
+            at = static_cast<uint32_t>(mapped) * 64 + (which == 0 && (column & 1) ? 4 : 0);
         }
         const int line = static_cast<int>(y & (size - 1));
         const bool flipX = attr & 0x20, flipY = attr & 0x40;

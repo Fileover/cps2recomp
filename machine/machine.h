@@ -216,6 +216,7 @@ public:
     }
 
 private:
+    GfxTable m_gfxTable; // (Board::gfxMap as a table: MakeGfxTable)
     const RomSet &m_roms;
     const RomSet *m_extra = nullptr;
     uint32_t m_extraBase = 0;

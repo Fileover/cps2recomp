@@ -267,6 +267,40 @@ namespace {
     }
 } // namespace
 
+bool MakeGfxTable(const Board &board, GfxTable &table) {
+    table.on = false;
+    if (board.gfxMap.empty()) {
+        return true;
+    }
+    for (const GfxRange &range : board.gfxMap) {
+        if (range.start % GfxTable::kStep || (range.end + 1) % GfxTable::kStep || range.end / GfxTable::kStep >= GfxTable::kEntries) {
+            return false;
+        }
+    }
+    static const uint8_t kKinds[4] = {GfxRange::kObjects, GfxRange::kScroll1, GfxRange::kScroll2, GfxRange::kScroll3};
+    for (int kind = 0; kind < 4; kind++) {
+        for (uint32_t entry = 0; entry < GfxTable::kEntries; entry++) {
+            table.base[kind][entry] = -1;
+            table.mask[kind][entry] = 0;
+            const uint32_t unit = entry * GfxTable::kStep;
+            // (the first range that has it, as the board model's MapTile takes it)
+            for (const GfxRange &range : board.gfxMap) {
+                if ((range.kinds & kKinds[kind]) && unit >= range.start && unit <= range.end) {
+                    uint32_t base = 0;
+                    for (unsigned b = 0; b < range.bank; b++) {
+                        base += board.gfxBanks[b];
+                    }
+                    table.base[kind][entry] = static_cast<int32_t>(base);
+                    table.mask[kind][entry] = board.gfxBanks[range.bank] - 1;
+                    break;
+                }
+            }
+        }
+    }
+    table.on = true;
+    return true;
+}
+
 bool ParseGfxMap(const char *text, Board &board) {
     board.gfxMap.clear();
     std::fill(std::begin(board.gfxBanks), std::end(board.gfxBanks), 0u);

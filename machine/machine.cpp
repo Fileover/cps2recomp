@@ -73,6 +73,12 @@ Machine::Machine(const RomSet &roms)
     nativeVideo.cps1Masks = m_cps1 ? m_roms.board.priority : nullptr;
     if (m_cps1) {
         nativeVideo.SetCps1(m_roms.board.enable);
+        // (its graphics mapper as a table, for the picture from the records and the GPU's)
+        if (!MakeGfxTable(m_roms.board, m_gfxTable)) {
+            fprintf(stderr, "game.cfg's gfx_map: a range that is not whole steps of %X: the picture from the records has no map\n",
+                    GfxTable::kStep);
+        }
+        nativeVideo.SetGfx(&m_gfxTable);
     }
     nativeVideo.SetGraphics(roms.graphics.data(), roms.graphics.size());
     cpu.nativeVideo = &nativeVideo;

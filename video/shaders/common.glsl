@@ -28,6 +28,12 @@
 // (after the 224 lines' records: the graphics ROMs' size, in bytes; then another set's graphics' size, 0 if none)
 #define L_GRAPHICS_SIZE (224u * L_WORDS)
 #define L_EXTRA_SIZE (224u * L_WORDS + 1u)
+// (a CPS-1 whose graphics mapper does not keep the tiles in order: whether it has one, then its table, machine/romset.h's
+// GfxTable: for each kind (0 the objects, 1-3 the scroll screens) and each 0x100 units, the base (-1: not drawn), then
+// the masks)
+#define L_GFX_ON (224u * L_WORDS + 2u)
+#define L_GFX_BASE (224u * L_WORDS + 3u)
+#define L_GFX_MASK (224u * L_WORDS + 3u + 4u * 0x400u)
 // (video RAM's size, 900000-92FFFF: the maps' and row scroll's addresses can be set up to 0x3FFFF, and nothing is read
 // beyond a buffer, which Metal does not check)
 #define VIDEO_BYTES 0x30000u

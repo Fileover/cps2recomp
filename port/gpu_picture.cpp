@@ -18,6 +18,8 @@ using cps2recomp::native_video::Raster;
 namespace {
     constexpr int kWidth = Raster::kWidth, kMaxWidth = Raster::kMaxWidth, kHeight = 224;
     constexpr uint32_t kLineWords = 32;               // (video/shaders/common.glsl, L_WORDS)
+    // (the lines' records, the two graphics' sizes, whether there is a graphics mapper and its table: L_GFX_ON on)
+    constexpr size_t kLinesBytes = (kHeight * kLineWords + 3 + 8 * cps2recomp::GfxTable::kEntries) * 4;
     constexpr uint32_t kOverrides = 32;               // (... OVERRIDES: a line's tiles given beyond the board's columns)
     constexpr uint32_t kVideoBytes = 0x30000;
     constexpr uint32_t kPaletteWidth = 64, kPaletteHeight = 48;
@@ -133,7 +135,7 @@ bool GpuPicture::Open(SDL_GPUDevice *device, const uint8_t *graphics, size_t siz
     m_graphicsSize = size;
     m_graphics = MakeBuffer(m_device, size);
     m_video = MakeBuffer(m_device, kVideoBytes);
-    m_lines = MakeBuffer(m_device, (kHeight * kLineWords + 2) * 4); // (the lines' records, the two sizes: common.glsl)
+    m_lines = MakeBuffer(m_device, kLinesBytes); // (the lines' records, the two sizes, the graphics mapper's table: common.glsl)
     m_frame = MakeBuffer(m_device, 8 * 4);
     m_overrides = MakeBuffer(m_device, kHeight * kOverrides * 2 * 4);
     m_extraGraphics = MakeBuffer(m_device, 4); // (none: SetExtraGraphics puts a set's there)
@@ -386,7 +388,7 @@ void GpuPicture::Draw(SDL_GPUCommandBuffer *commands, const NativeVideo::FrameDa
     starts.push_back(kHeight);
     // What goes up, laid out in one transfer buffer: video RAM; the lines' records (for the first pass, and as a texture
     // for the third); the tiles; the frame's numbers; and for each band its palette and its part of video RAM
-    const size_t linesBytes = (kHeight * kLineWords + 2) * 4, tilesBytes = std::max<size_t>(tiles.size(), 1) * 16;
+    const size_t linesBytes = kLinesBytes, tilesBytes = std::max<size_t>(tiles.size(), 1) * 16;
     const size_t paletteBytes = kPaletteWidth * kPaletteHeight * 4;
     const size_t overridesBytes = kHeight * kOverrides * 2 * 4;
     const size_t need = kVideoBytes + linesBytes + tilesBytes + 32 + overridesBytes + kVideoBytes / 4 +
@@ -423,6 +425,13 @@ void GpuPicture::Draw(SDL_GPUCommandBuffer *commands, const NativeVideo::FrameDa
     }
     lineWords[kHeight * kLineWords] = static_cast<uint32_t>(m_graphicsSize);
     lineWords[kHeight * kLineWords + 1] = frame.scrollExtra ? static_cast<uint32_t>(m_extraGraphicsSize) : 0;
+    // (a CPS-1's graphics mapper: L_GFX_ON, then its table)
+    const cps2recomp::GfxTable *gfx = raster.Gfx();
+    lineWords[kHeight * kLineWords + 2] = gfx ? 1 : 0;
+    if (gfx) {
+        memcpy(&lineWords[kHeight * kLineWords + 3], gfx->base, sizeof(gfx->base));
+        memcpy(&lineWords[kHeight * kLineWords + 3 + 4 * cps2recomp::GfxTable::kEntries], gfx->mask, sizeof(gfx->mask));
+    }
     at += linesBytes;
     const size_t tilesAt = at;
     auto *tileWords = reinterpret_cast<uint32_t *>(up + at);

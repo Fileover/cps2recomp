@@ -52,6 +52,25 @@ struct Board {
     int cpuClock = 12;
     uint8_t dip[3] = {0xFF, 0xFF, 0xFF};
 };
+// The graphics mapper as a table, for drawing a tile at a time (the picture from the records, video/native_render.cpp,
+// and the GPU's, video/shaders/layers.frag; video.cpp reads Board::gfxMap itself): for each kind (0 the objects, 1-3
+// the scroll screens) and each kStep of its units, where the graphics have them: unit = base + (unit & mask), base -1
+// not drawn. A map whose ranges are not whole steps makes none (`on` false; Gfx's ranges are 0x1000s and more).
+struct GfxTable {
+    static constexpr uint32_t kStep = 0x100, kEntries = 0x400; // (units 0-3FFFF)
+    bool on = false;
+    int32_t base[4][kEntries] = {};
+    uint32_t mask[4][kEntries] = {};
+    int64_t Map(int kind, uint32_t unit) const {
+        const uint32_t entry = unit / kStep;
+        if (entry >= kEntries || base[kind][entry] < 0) {
+            return -1;
+        }
+        return static_cast<int64_t>(base[kind][entry]) + (unit & mask[kind][entry]);
+    }
+};
+bool MakeGfxTable(const Board &board, GfxTable &table);
+
 // game.cfg's `gfx_map`: the banks' sizes (hex, up to four), "|", then kind:start-end:bank for each range, the kind
 // one of objects, scroll1, scroll2, scroll3 (hex). "": none. False if it cannot be read.
 bool ParseGfxMap(const char *text, Board &board);
