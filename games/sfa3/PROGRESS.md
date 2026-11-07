@@ -197,6 +197,40 @@ instructions in 28 characters'; `--character NAME`). Game data: nothing decoded 
     it.
 - Only headless: nobody has played against it yet.
 
+## HSFA's address index (2026-11-03, issue #244)
+
+[HSFA](https://github.com/Rickow/HSFA) (MIT, no game data), which translates the PS2 *Street Fighter Alpha
+Anthology*'s games back to 68000, keeps an index of about 9,200 Alpha 3 addresses (`re/connaissances/sfa3_arcade.tsv`,
+in French: each one's role and whether it was measured, deduced or assumed). `tools/hsfa_index.py` makes it into
+`work/sfa3/hsfa_index.tsv` (not committed: a list made from the program), at our addresses and checked against our
+listing.
+
+- **Nothing moves.** Their set, `sfa3ud`, is USA 980904 too, the Phoenix Edition's deciphered copy: every word of its
+  program is ours, deciphered (code, and what is read through the pc) or raw (other data), but for 3,608 bytes of
+  Phoenix changes in 16 places (the vectors, words of the start and the settings code from 000922 to 0019E1, three
+  in 01094C-010B63, and its own code from 0FF000). So the index's addresses are ours; one entry is a Phoenix change and
+  41 are their translation's or emulator's own.
+- **Their routines against our listing**: 9,045 entries at an instruction of ours (or data); 97 in code our
+  translation has never reached (the IRQ4 handler, test menu pages, 079300-07AE00); 12 inside one of our
+  instructions, most where their MIPS translation was cut up, three "measured" ones a few bytes off (003130, 01F7E4,
+  07CB98: the instruction is at 00312A, 01F7E2, 07CB96).
+- **Agreements** (every fact they also have): the random number (FF80AE, 01BDA6), the stage (A5+100, A5+174), coin mode
+  and free play (A5+97, A5+9C), time release (A5+EE), the full health set at 027BAE, the animation lists (+2B0-+2BC,
+  02A708/02A758, frames of 0x14 with their time at +32, 02A770 and 02A7EA), the reelings' table by +54 (0292A0), the
+  boxes (+90-+A0), the opponent (+38), the character (+102), the facing (+0B, +2C9), the script's place (+230, +220),
+  the wait at 030E68, the game speed's values (A5+A3; ours also has free select).
+- **Ours made more exact by theirs**, each seen in the game: the fourth animation list's routine is 02A710 (the attacks':
+  it takes the attack's +23E and +293 from the character's table first), not its tail 02A74E; the players' records
+  run in an order drawn by the random number each step (0277EE); A5+90 is the region (doubled), picking the factory
+  settings at 00235A (USA's: coin mode 9, difficulty 4, game speed 2, regulation 1, what our runs' variables hold).
+- **New names, checked**: regulation A5+BB (1 here; held at 0, palette 25's blood colours go from FFFF/FCCC to
+  FF00/FC00), the round-end pose bits A5+10B (029E10), the ending A5+1C6 (from A5+132 at 00A92C: 18, E. Honda's, at the
+  ladder's end).
+- **Where theirs is loose**: the tables at 0DCB12 are not all code entry points: the first table's are the characters'
+  attack tables (data at the end of each one's code, read by 02A710); 027B98 is not a routine's start (the player's
+  set-up is 027B66, case 0 of 027B3E); FF851C is the controls' copy made once a step (count its writes for game steps,
+  as they do), not a count.
+
 ## Widescreen
 
 - The rewrites above, with the margin in them; with invisible walls the margin is 0 (the game's memory the board's at

@@ -20,7 +20,9 @@
 //                                              +16 event       A5  0 off, 1 one match (which clears continue: 0019B6)
 //                                              +17 join-in     A4  0 off, 1 on: a second player may join in (on)
 // (the values and their names from the test menu's pages, each stepped through with the variable read after each
-// step; in brackets the value the test menu shows as the board's own on a new board)
+// step; in brackets the value the test menu shows as the board's own on a new board). Not offered: +06 regulation, BB
+// (System configuration's; 0 red blood, 1 white: kRegulation, from HSFA's index). The factory settings are a record of
+// this layout for each region (00235A, by kRegion).
 #include "sfa3.h"
 
 #include "machine.h"
