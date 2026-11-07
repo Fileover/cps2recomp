@@ -10,6 +10,7 @@
 #include "../runtime/native_z80.h"
 #include "../runtime/state.h"
 #include "hud.h"
+#include "i18n.h"
 #include "../runtime/board.h"
 #include "../fight/battle.h"
 #include "../fight/guest_stages.h"
@@ -748,7 +749,7 @@ void Port::MenuAct(Menu::Action action) {
             menu.Close();
             return;
         }
-        error = "Nothing is kept in slot " + std::to_string(menu.Slot()) + ".";
+        error = recomp::i18n::TrFormat("Nothing is kept in slot {}.", {std::to_string(menu.Slot())});
         break;
     }
     menu.Note(error);
@@ -863,7 +864,7 @@ bool Port::Tick() {
     tick++;
     if (opt.online && !net && !rejoin.empty()) {
         // (joining again: a moment between tries)
-        SetHud({{0.5f, 0.36f, 0, rejoin}, {0.5f, 0.48f, 0, "Joining again in a moment"}, {0.5f, 0.6f, 0, "Esc: quit"}});
+        SetHud({{0.5f, 0.36f, 0, recomp::Tr(rejoin)}, {0.5f, 0.48f, 0, "Joining again in a moment"}, {0.5f, 0.6f, 0, "Esc: quit"}});
         if (tick >= againAt) {
             Again(rejoin);
         }
@@ -884,7 +885,7 @@ bool Port::Tick() {
             if (hostedFromMenu) {
                 SetHud({});
                 BackToSolo(false);
-                hostNote = "Stopped hosting: " + error;
+                hostNote = recomp::i18n::TrFormat("Stopped hosting: {}", {recomp::Tr(error)});
                 hostNoteUntil = tick + 300;
                 return false;
             }
@@ -916,11 +917,11 @@ bool Port::Tick() {
             static const char *const kDots[] = {"   ", ".  ", ".. ", "..."};
             std::vector<HudLine> lines;
             if (!rejoin.empty()) {
-                lines.push_back({0.5f, 0, 0, rejoin});
+                lines.push_back({0.5f, 0, 0, recomp::Tr(rejoin)});
             }
-            lines.push_back({0.5f, 0, 0, net->waiting + kDots[(tick / 30) % 4]});
+            lines.push_back({0.5f, 0, 0, recomp::Tr(net->waiting) + kDots[(tick / 30) % 4]});
             if (!net->code.empty()) {
-                lines.push_back({0.5f, 0, 0, "Match code " + net->code, 96, 230, 120});
+                lines.push_back({0.5f, 0, 0, recomp::i18n::TrFormat("Match code {}", {net->code}), 96, 230, 120});
                 if (net->Listed()) {
                     lines.push_back({0.5f, 0, 0, "Listed in the lobby"});
                 }
@@ -2322,6 +2323,61 @@ void Port::Finish() {
 }
 
 // The list --list-features writes (on Android the launcher asks the game's library for it: port/android.cpp)
+// The language of the menu and the readouts (port/i18n.h): RECOMP_LANGUAGE, which the launcher sets to the one chosen
+// there, else the system's
+void UseLanguage() {
+    AddTranslations();
+    std::vector<std::string> preferred = recomp::i18n::FromEnvironment();
+    int count = 0;
+    if (SDL_Locale **locales = SDL_GetPreferredLocales(&count)) {
+        for (int i = 0; i < count; i++) {
+            preferred.push_back(std::string(locales[i]->language ? locales[i]->language : "") +
+                                (locales[i]->country ? std::string("-") + locales[i]->country : std::string()));
+        }
+        SDL_free(locales);
+    }
+    recomp::i18n::SetLanguage(recomp::i18n::Resolve("", preferred));
+}
+
+// Every text the menu can show of this game (--list-text), a line each (a line break as \n): what a language's table is
+// to have (port/i18n.h)
+std::string MenuTextList() {
+    RegisterGame();
+    RegisterPortFeatures();
+    std::vector<std::string> texts;
+    auto add = [&](const char *text) {
+        if (text && *text && std::find(texts.begin(), texts.end(), text) == texts.end()) {
+            texts.push_back(text);
+        }
+    };
+    const Game &game = TheGame();
+    for (const Feature &f : game.features) {
+        add(f.category);
+        add(f.title);
+        add(f.description);
+        for (const char *choice : f.choices) {
+            add(choice);
+        }
+    }
+    for (const Command &c : game.commands) {
+        add(c.category);
+        add(c.title);
+        add(c.description);
+    }
+    for (const Page &p : game.pages) {
+        add(p.name);
+        add(p.description);
+    }
+    std::string out;
+    for (const std::string &text : texts) {
+        for (const char c : text) {
+            out += c == '\n' ? std::string("\\n") : std::string(1, c);
+        }
+        out += '\n';
+    }
+    return out;
+}
+
 std::string LauncherFeatureList() {
     RegisterGame();
     RegisterPortFeatures();
@@ -2599,6 +2655,10 @@ bool ParseArgs(int argc, char **argv, port::Options &o) {
             // session, switched in the game's menu only, are not in it)
             fputs(port::LauncherFeatureList().c_str(), stdout);
             exit(0);
+        } else if (a == "--list-text") {
+            // Every text of the menu's for this game (port/i18n.h): what a language's table is to have
+            fputs(port::MenuTextList().c_str(), stdout);
+            exit(0);
         } else if (a == "--list-songs") {
             // The songs a custom soundtrack's files are named for (the game's own names; no ROM wanted)
             RegisterGame();
@@ -2721,6 +2781,7 @@ int main(int argc, char **argv) {
     }
     recomp::UseSystemProxy();  // (Windows' proxy, for the curl that asks the online service: recomp-common/proxy.h)
 #endif
+    port::UseLanguage();
 #ifdef __ANDROID__
     port::StartOnAndroid();
 #else

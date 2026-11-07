@@ -5,6 +5,7 @@
 #include "hud.h"
 
 #include "../runtime/game.h"
+#include "../recomp-common/i18n.h"
 #include "../recomp-common/text.h"
 
 #include <algorithm>
@@ -21,8 +22,10 @@ std::vector<HudPanel> HudPanels(int width, int height) {
         if (line.text.empty()) {
             continue;
         }
+        // (a whole line in the player's language, where a table has it: port/i18n.h)
+        const char *text = recomp::Tr(line.text.c_str());
         HudPanel panel;
-        panel.width = static_cast<int>(TextWidth(line.text.c_str(), d)) + 2 * pad;
+        panel.width = static_cast<int>(TextWidth(text, d)) + 2 * pad;
         panel.height = static_cast<int>(8 * d) + 2 * pad;
         const int at = static_cast<int>(line.x * static_cast<float>(width));
         panel.x = line.align < 0 ? at : line.align > 0 ? at - panel.width : at - panel.width / 2;
@@ -34,7 +37,7 @@ std::vector<HudPanel> HudPanels(int width, int height) {
         }
         panel.pixels.assign(static_cast<size_t>(panel.width) * panel.height, 0xFF000000u | (30 << 16) | (22 << 8) | 20);
         const Canvas canvas{panel.pixels.data(), panel.width, panel.height};
-        canvas.Text(static_cast<float>(pad), static_cast<float>(pad), d, 0, {line.r, line.g, line.b, 255}, line.text.c_str());
+        canvas.Text(static_cast<float>(pad), static_cast<float>(pad), d, 0, {line.r, line.g, line.b, 255}, text);
         panels.push_back(std::move(panel));
     }
     return panels;

@@ -11,6 +11,7 @@
 
 #include "../../machine/romset.h"
 #include "../../port/bindings.h"
+#include "../../port/i18n.h"
 #include "../../port/netplay.h"
 
 #include <algorithm>
@@ -184,6 +185,7 @@ std::vector<FeatureSwitch> feature_switches(const std::string& all) {
 
 // What a launcher is told about one game
 launcher::Description describe_game(const GameInfo& game) {
+    port::AddTranslations();  // (the toolkit's words in the player's language, beside recomp-common's)
     launcher::Description d;
     const std::string set = sets_named(game);
     d.original = "in the arcade";
