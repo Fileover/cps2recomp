@@ -62,6 +62,15 @@ bool Screen(uint which, uint x, uint line, uint l, out uint pen, out uint penVal
     if (which == 0u) { at = tiles + code * 64u + ((column & 1u) != 0u ? 4u : 0u); rowBytes = 8u; }
     else if (which == 1u) { at = tiles + code * 128u; rowBytes = 8u; }
     else { code &= 0x3FFFu; at = tiles + code * 512u; rowBytes = 16u; }
+    if (lines[L_GFX_ON] != 0u) {
+        // (through the graphics mapper, in 8-pixel units: native_render.cpp's DrawScroll)
+        const uint unit = code << (which == 0u ? 0u : which == 1u ? 1u : 3u), entry = unit >> 8;
+        if (entry >= 0x400u || int(lines[L_GFX_BASE + (which + 1u) * 0x400u + entry]) < 0) {
+            return false;
+        }
+        at = (lines[L_GFX_BASE + (which + 1u) * 0x400u + entry] + (unit & lines[L_GFX_MASK + (which + 1u) * 0x400u + entry])) * 64u +
+             (which == 0u && (column & 1u) != 0u ? 4u : 0u);
+    }
     const uint tileLine = y & (size - 1u);
     const bool flipX = (attr & 0x20u) != 0u, flipY = (attr & 0x40u) != 0u;
     at += (flipY ? size - 1u - tileLine : tileLine) * rowBytes;

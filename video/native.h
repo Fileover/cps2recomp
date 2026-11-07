@@ -87,6 +87,9 @@ public:
     // (a CPS-1: its layers' enable bits, Board::enable)
     void SetCps1(const uint8_t *enable) {
         m_raster.SetCps1(enable);
+    }
+    void SetGfx(const GfxTable *gfx) {
+        m_raster.SetGfx(gfx);
     } // (a CPS-1's: where its priority masks are, Board::priority; a CPS-2's draw without them)
 
     // The board starts, and the game's side with it: the registers are the board's until the game says otherwise

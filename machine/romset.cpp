@@ -38,18 +38,36 @@ namespace {
 #endif
     }
 
+    RomFile ParseFile(const std::string &item) {
+        const size_t colon = item.find(':');
+        RomFile file;
+        file.name = item.substr(0, colon);
+        if (colon != std::string::npos) {
+            char *end;
+            file.crc = static_cast<uint32_t>(strtoul(item.c_str() + colon + 1, &end, 16));
+            file.highFirst = strcmp(end, "/be") == 0;
+        }
+        return file;
+    }
+
+    // "name:crc name:crc ...", where a word may join several files with '+' (RomFile::parts)
     std::vector<RomFile> ParseFiles(const char *text) {
         std::vector<RomFile> files;
         std::istringstream in(text);
         std::string item;
         while (in >> item) {
-            const size_t colon = item.find(':');
-            RomFile file;
-            file.name = item.substr(0, colon);
-            if (colon != std::string::npos) {
-                file.crc = static_cast<uint32_t>(strtoul(item.c_str() + colon + 1, nullptr, 16));
+            if (item.find('+') == std::string::npos) {
+                files.push_back(ParseFile(item));
+                continue;
             }
-            files.push_back(file);
+            RomFile joined;
+            for (size_t at = 0; at <= item.size();) {
+                const size_t plus = std::min(item.find('+', at), item.size());
+                joined.parts.push_back(ParseFile(item.substr(at, plus - at)));
+                at = plus + 1;
+            }
+            joined.name = joined.parts[0].name;
+            files.push_back(joined);
         }
         return files;
     }
@@ -192,7 +210,10 @@ namespace {
             }
         }
         if (places.folder.empty()) {
-            error = "the set has no " + file.name + " (it may be in the parent set's zip, which should be beside this one)";
+            char crc[16];
+            snprintf(crc, sizeof(crc), "%08x", file.crc);
+            error = "the set has no " + file.name + (file.crc ? std::string(" (CRC32 ") + crc + ")" : std::string()) +
+                    " (it may be in the parent set's zip, which should be beside this one)";
             return false;
         }
         const std::string path = places.folder + "/" + file.name;
@@ -246,15 +267,86 @@ namespace {
     }
 } // namespace
 
+bool MakeGfxTable(const Board &board, GfxTable &table) {
+    table.on = false;
+    if (board.gfxMap.empty()) {
+        return true;
+    }
+    for (const GfxRange &range : board.gfxMap) {
+        if (range.start % GfxTable::kStep || (range.end + 1) % GfxTable::kStep || range.end / GfxTable::kStep >= GfxTable::kEntries) {
+            return false;
+        }
+    }
+    static const uint8_t kKinds[4] = {GfxRange::kObjects, GfxRange::kScroll1, GfxRange::kScroll2, GfxRange::kScroll3};
+    for (int kind = 0; kind < 4; kind++) {
+        for (uint32_t entry = 0; entry < GfxTable::kEntries; entry++) {
+            table.base[kind][entry] = -1;
+            table.mask[kind][entry] = 0;
+            const uint32_t unit = entry * GfxTable::kStep;
+            // (the first range that has it, as the board model's MapTile takes it)
+            for (const GfxRange &range : board.gfxMap) {
+                if ((range.kinds & kKinds[kind]) && unit >= range.start && unit <= range.end) {
+                    uint32_t base = 0;
+                    for (unsigned b = 0; b < range.bank; b++) {
+                        base += board.gfxBanks[b];
+                    }
+                    table.base[kind][entry] = static_cast<int32_t>(base);
+                    table.mask[kind][entry] = board.gfxBanks[range.bank] - 1;
+                    break;
+                }
+            }
+        }
+    }
+    table.on = true;
+    return true;
+}
+
+bool ParseGfxMap(const char *text, Board &board) {
+    board.gfxMap.clear();
+    std::fill(std::begin(board.gfxBanks), std::end(board.gfxBanks), 0u);
+    std::istringstream words(text);
+    std::string word;
+    unsigned banks = 0;
+    while (words >> word && word != "|") {
+        if (banks == 4) {
+            return false;
+        }
+        board.gfxBanks[banks++] = static_cast<uint32_t>(strtoul(word.c_str(), nullptr, 16));
+    }
+    while (words >> word) {
+        GfxRange range;
+        unsigned long start, end, bank;
+        char kind[16];
+        if (sscanf(word.c_str(), "%15[a-z0-9]:%lx-%lx:%lu", kind, &start, &end, &bank) != 4 || bank >= banks || end < start) {
+            return false;
+        }
+        const std::string name = kind;
+        range.kinds = name == "objects" ? GfxRange::kObjects
+                      : name == "scroll1" ? GfxRange::kScroll1
+                      : name == "scroll2" ? GfxRange::kScroll2
+                      : name == "scroll3" ? GfxRange::kScroll3
+                                          : 0;
+        if (!range.kinds) {
+            return false;
+        }
+        range.start = static_cast<uint32_t>(start);
+        range.end = static_cast<uint32_t>(end);
+        range.bank = static_cast<unsigned>(bank);
+        board.gfxMap.push_back(range);
+    }
+    return true;
+}
+
 RomList ParseRomList(const char *program, const char *graphics, const char *soundProgram, const char *samples,
                      const char *key, const char *set, const char *parent, const char *board, const char *cpsB, const char *others) {
     RomList list;
     {
-        // ("cps1", and "pairs=N" after it: Board::programPairs)
+        // ("cps1", or "cps1-classic": a CPS-1 with no QSound; and "pairs=N" after it: Board::programPairs)
         std::istringstream words(board);
         std::string word;
         words >> word;
-        list.board.cps1 = word == "cps1";
+        list.board.cps1 = word == "cps1" || word == "cps1-classic";
+        list.board.qsound = word != "cps1-classic";
         while (words >> word) {
             if (word.rfind("pairs=", 0) == 0) {
                 list.board.programPairs = atoi(word.c_str() + 6);
@@ -368,6 +460,10 @@ bool LoadRomSet(const std::string &path, const RomList &list, RomSet &set, std::
     auto readProgram = [&](const std::vector<RomFile> &program, const std::vector<RomFile> &key, std::string &why) {
         set.program.clear();
         for (size_t n = 0; n < program.size(); n++) {
+            if (!program[n].parts.empty()) {
+                why = "game.cfg: the program's files are not joined with '+' (a pair of byte-wide files: board's pairs=N)";
+                return false;
+            }
             if (!ReadFile(folder, program[n], data, why)) {
                 return false;
             }
@@ -385,10 +481,11 @@ bool LoadRomSet(const std::string &path, const RomList &list, RomSet &set, std::
                 continue;
             }
             for (size_t i = 0; i + 1 < data.size(); i += 2) {
-                set.program.push_back(data[i + 1]);
-                set.program.push_back(data[i]);
+                set.program.push_back(data[program[n].highFirst ? i : i + 1]);
+                set.program.push_back(data[program[n].highFirst ? i + 1 : i]);
             }
         }
+
         if (list.board.cps1) {
             return true;
         }
@@ -455,9 +552,45 @@ bool LoadRomSet(const std::string &path, const RomList &list, RomSet &set, std::
         }
     }
 
-    // Graphics: four files side by side make 64-bit words, two bytes from each
+    // Graphics: four files side by side make 64-bit words, two bytes from each; or eight joined files, one byte from
+    // each
     set.graphics.assign(list.graphicsBase, 0);
-    for (size_t group = 0; group + 3 < list.graphics.size(); group += 4) {
+    for (size_t group = 0; group < list.graphics.size();) {
+        if (!list.graphics[group].parts.empty()) {
+            const std::vector<RomFile> &parts = list.graphics[group].parts;
+            if (parts.size() != 8) {
+                error = "game.cfg: the graphics join files only in eights";
+                return false;
+            }
+            std::vector<uint8_t> files[8];
+            for (int n = 0; n < 8; n++) {
+                if (!ReadFile(folder, parts[n], files[n], error)) {
+                    return false;
+                }
+                if (files[n].size() != files[0].size()) {
+                    error = "graphics files of different sizes";
+                    return false;
+                }
+            }
+            const size_t base = set.graphics.size();
+            set.graphics.resize(base + files[0].size() * 8);
+            for (size_t i = 0; i < files[0].size(); i++) {
+                for (int n = 0; n < 8; n++) {
+                    set.graphics[base + i * 8 + n] = files[n][i];
+                }
+            }
+            group++;
+            continue;
+        }
+        if (group + 3 >= list.graphics.size()) {
+            break; // (as before: a group of four not finished is left out)
+        }
+        for (size_t n = 1; n < 4; n++) {
+            if (!list.graphics[group + n].parts.empty()) {
+                error = "game.cfg: eight joined graphics files in the middle of a group of four";
+                return false;
+            }
+        }
         std::vector<uint8_t> files[4];
         for (int n = 0; n < 4; n++) {
             if (!ReadFile(folder, list.graphics[group + n], files[n], error)) {
@@ -476,6 +609,7 @@ bool LoadRomSet(const std::string &path, const RomList &list, RomSet &set, std::
                 set.graphics[base + i * 4 + n * 2 + 1] = files[n][i + 1];
             }
         }
+        group += 4;
     }
     if (!list.board.cps1) { // (a CPS-2's graphics ROMs have their tiles in another order)
         const size_t bank = 0x200000;
@@ -495,9 +629,10 @@ bool LoadRomSet(const std::string &path, const RomList &list, RomSet &set, std::
         set.soundProgram.insert(set.soundProgram.end(), data.begin(), data.end());
     }
 
-    // A CPS-1's sound program is enciphered (Kabuki): its key is worked out from the program itself (kabuki.h)
+    // A CPS-1's sound program is enciphered (Kabuki): its key is worked out from the program itself (kabuki.h). The
+    // classic CPS-1's is not
     set.soundOpcodes.clear();
-    if (list.board.cps1) {
+    if (list.board.cps1 && list.board.qsound) {
         KabukiKey kabuki;
         if (set.soundProgram.size() < 0x8000 || !FindKabukiKey(set.soundProgram.data(), set.soundProgram.size(), kabuki)) {
             error = "the sound program's cipher could not be worked out (is it the right ROM set?)";

@@ -628,6 +628,7 @@ namespace native {
     void CheckWrite(M68K &c, uint32_t address, unsigned size, uint32_t value) {
         address &= size == 0 ? 0xFFFFFF : 0xFFFFFE;
         g_nativeWrites.push_back({address, static_cast<uint8_t>(size), value & M68K::kMask[size]});
+        c.bus.CheckWrite(address, size, value);
     }
 } // namespace native
 
@@ -702,9 +703,11 @@ void M68K::RunChecked(uint64_t until) {
             // The translated block on the side: its writes go to a list, nothing else changes
             g_nativeWrites.clear();
             depth = 0;
+            bus.BeginCheck();
             check::side = true;
             fn(*this);
             check::side = false;
+            bus.EndCheck();
             native = save();
             load(before);
         }

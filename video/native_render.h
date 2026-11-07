@@ -74,6 +74,15 @@ public:
     bool Cps1() const {
         return m_cps1;
     }
+    // (a CPS-1 whose graphics mapper does not keep the tiles in order, Street Fighter II's: machine/romset.h, GfxTable)
+    void SetGfx(const GfxTable *gfx) {
+        m_gfx = gfx && gfx->on ? gfx : nullptr;
+    }
+    const GfxTable *Gfx() const {
+        return m_gfx;
+    }
+    // (an object's tile the mapper has nowhere: past every graphics' end, so not drawn)
+    static constexpr uint32_t kNoTile = 0x00FFFFFF;
     const uint8_t *Enable() const {
         return m_enable;
     }
@@ -131,6 +140,7 @@ private:
     std::vector<ObjectTile> m_tiles; // (the frame's, front to back)
     uint16_t m_priority = 0;         // (the object registers' priority control, as the list was taken)
     bool m_cps1 = false;
+    const GfxTable *m_gfx = nullptr;
     uint8_t m_enable[3] = {2, 4, 8};
 };
 

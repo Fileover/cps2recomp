@@ -35,6 +35,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <ctime>
+#include <deque>
 #include <filesystem>
 #include <set>
 #include <thread>
@@ -92,8 +93,9 @@ namespace {
 } // namespace
 
 namespace {
-    constexpr uint32_t kStateVersion = 9; // (5: the 68000's wait kept; 6: the custom soundtrack's place; 7: the board timing's palette copy;
-                                          // 8: widescreen's camera a frame ago; 9: a guest board's, runtime/guest.h)
+    constexpr uint32_t kStateVersion = 10; // (5: the 68000's wait kept; 6: the custom soundtrack's place; 7: the board timing's palette copy;
+                                          // 8: widescreen's camera a frame ago; 9: a guest board's, runtime/guest.h;
+                                          // 10: classic CPS-1 sound, machine/cps1_sound.h)
 
     // (a path is UTF-8 text: by its wide name on Windows, where a folder with an accent is not in the system's code page)
     FILE *OpenFile(const std::string &path, const wchar_t *wideMode, const char *mode) {
@@ -143,9 +145,376 @@ namespace {
     }
 } // namespace
 
+// The board's settings that game.cfg declares (board_option_1 to board_option_12): choices of the board's DIP switches,
+// on a "Board" page of the menu and the launcher. Each line is
+//   name | title | bank:low-high | description | choice=value | choice=value ...
+// (the bank A, B or C, the bits low to high, each choice's value as the bits hold it). "As the board is set", the
+// first choice, leaves the bits as game.cfg's dip has them.
+namespace {
+    struct BoardOption {
+        std::string name, title, description;
+        int bank = 0, low = 0, high = 0;
+        std::vector<std::string> names;
+        std::vector<uint8_t> values;
+        std::vector<const char *> choices; // ("As the board is set", then the names)
+    };
+    // (a deque: Feature keeps pointers into these strings, which must not move)
+    std::deque<BoardOption> g_boardOptions;
+
+    std::string Trimmed(const std::string &s) {
+        const size_t a = s.find_first_not_of(" \t"), b = s.find_last_not_of(" \t");
+        return a == std::string::npos ? "" : s.substr(a, b - a + 1);
+    }
+
+    bool ParseBoardOption(const char *text, BoardOption &option, std::string &error) {
+        std::vector<std::string> fields;
+        std::string line = text;
+        for (size_t at = 0; at <= line.size();) {
+            const size_t bar = std::min(line.find('|', at), line.size());
+            fields.push_back(Trimmed(line.substr(at, bar - at)));
+            at = bar + 1;
+        }
+        option.name = fields[0];
+        const std::string what = "game.cfg's board option " + (option.name.empty() ? std::string("\"") + text + "\"" : option.name);
+        if (fields.size() < 5 || option.name.empty()) {
+            error = what + ": name | title | bank:low-high | description | at least one choice=value";
+            return false;
+        }
+        option.title = fields[1];
+        option.description = fields[3];
+        char bank = 0;
+        int consumed = 0;
+        const int got = sscanf(fields[2].c_str(), "%c:%d-%d%n", &bank, &option.low, &option.high, &consumed);
+        if (got != 3) {
+            consumed = 0;
+            if (sscanf(fields[2].c_str(), "%c:%d%n", &bank, &option.low, &consumed) != 2) consumed = 0;
+            option.high = option.low;
+        }
+        if (consumed != static_cast<int>(fields[2].size()) || bank < 'A' || bank > 'C' ||
+            option.low < 0 || option.high > 7 || option.low > option.high) {
+            error = what + ": bits must be A:0-2 or A:6, with no trailing characters";
+            return false;
+        }
+        option.bank = bank - 'A';
+        const unsigned limit = 1u << (option.high - option.low + 1);
+        for (size_t n = 4; n < fields.size(); n++) {
+            const size_t eq = fields[n].rfind('=');
+            char *end = nullptr;
+            const unsigned long value = eq == std::string::npos ? 0 : strtoul(fields[n].c_str() + eq + 1, &end, 0);
+            if (eq == std::string::npos || eq == 0 || end == fields[n].c_str() + eq + 1 || *end || value >= limit) {
+                error = what + ": the choice \"" + fields[n] + "\" is not name=value, with a value its bits can hold";
+                return false;
+            }
+            option.names.push_back(Trimmed(fields[n].substr(0, eq)));
+            option.values.push_back(static_cast<uint8_t>(value));
+        }
+        return true;
+    }
+} // namespace
+
+// Reads game.cfg's board options (none: no Board page); false, with what is wrong, if one cannot be read
+bool ReadBoardOptions(std::string &error) {
+    static const char *const kTexts[] = {
+#ifdef GAME_BOARD_OPTION_1
+        GAME_BOARD_OPTION_1,
+#endif
+#ifdef GAME_BOARD_OPTION_2
+        GAME_BOARD_OPTION_2,
+#endif
+#ifdef GAME_BOARD_OPTION_3
+        GAME_BOARD_OPTION_3,
+#endif
+#ifdef GAME_BOARD_OPTION_4
+        GAME_BOARD_OPTION_4,
+#endif
+#ifdef GAME_BOARD_OPTION_5
+        GAME_BOARD_OPTION_5,
+#endif
+#ifdef GAME_BOARD_OPTION_6
+        GAME_BOARD_OPTION_6,
+#endif
+#ifdef GAME_BOARD_OPTION_7
+        GAME_BOARD_OPTION_7,
+#endif
+#ifdef GAME_BOARD_OPTION_8
+        GAME_BOARD_OPTION_8,
+#endif
+#ifdef GAME_BOARD_OPTION_9
+        GAME_BOARD_OPTION_9,
+#endif
+#ifdef GAME_BOARD_OPTION_10
+        GAME_BOARD_OPTION_10,
+#endif
+#ifdef GAME_BOARD_OPTION_11
+        GAME_BOARD_OPTION_11,
+#endif
+#ifdef GAME_BOARD_OPTION_12
+        GAME_BOARD_OPTION_12,
+#endif
+        nullptr};
+    g_boardOptions.clear();
+    for (const char *const *text = kTexts; *text; text++) {
+        BoardOption &option = g_boardOptions.emplace_back();
+        if (!ParseBoardOption(*text, option, error)) {
+            g_boardOptions.clear();
+            return false;
+        }
+        option.choices.push_back("As the board is set");
+        for (const std::string &name : option.names) {
+            option.choices.push_back(name.c_str());
+        }
+    }
+    return true;
+}
+
+// The DIP switches as the Board page's choices have them: the board's, with each chosen option's bits put in
+void ApplyBoardOptions(Machine &machine) {
+    uint8_t dip[3];
+    std::copy(machine.DipAsSet(), machine.DipAsSet() + 3, dip);
+    for (const BoardOption &option : g_boardOptions) {
+        const int choice = FeatureValue(option.name.c_str());
+        if (choice <= 0 || choice > static_cast<int>(option.values.size())) {
+            continue;
+        }
+        const uint8_t mask = static_cast<uint8_t>(((1u << (option.high - option.low + 1)) - 1) << option.low);
+        dip[option.bank] = static_cast<uint8_t>((dip[option.bank] & ~mask) | ((option.values[choice - 1] << option.low) & mask));
+    }
+    std::copy(dip, dip + 3, machine.dip);
+}
+
+// The cheats that game.cfg declares (cheat_1 to cheat_16): writes to the work RAM, made before every frame while the
+// cheat is on, on a "Cheats" page of the menu and the launcher. Each line is
+//   name | title | description | [when ADDR.s=VAL | ] choice: ADDR.s=VAL ADDR.s=VAL ... | choice: ...
+// (hex; s is b, w or l; "when ADDR.s!=VAL" too). A cheat with one choice (On) is switched on and off.
+namespace {
+    struct RamWrite {
+        uint32_t address = 0;
+        char size = 'b';
+        uint32_t value = 0;
+    };
+    struct Cheat {
+        std::string name, title, description;
+        bool when = false, whenNot = false;
+        RamWrite condition;
+        std::vector<std::string> names;
+        std::vector<std::vector<RamWrite>> writes;
+        std::vector<const char *> choices; // ("Off", then the names)
+    };
+    std::deque<Cheat> g_cheats; // (a deque: Feature keeps pointers into these strings)
+
+    // "ADDR.s=VAL" (or "!=" when `notEqual` may be given); false if it is not that, or not in the work RAM
+    bool ParseRamWrite(const std::string &text, RamWrite &write, bool *notEqual = nullptr) {
+        char *end;
+        write.address = static_cast<uint32_t>(strtoul(text.c_str(), &end, 16));
+        if (end == text.c_str() || end[0] != '.' || (end[1] != 'b' && end[1] != 'w' && end[1] != 'l')) {
+            return false;
+        }
+        write.size = end[1];
+        const char *rest = end + 2;
+        if (notEqual) {
+            *notEqual = rest[0] == '!';
+            if (*notEqual) {
+                rest++;
+            }
+        }
+        if (rest[0] != '=' || !rest[1]) {
+            return false;
+        }
+        const unsigned long long value = strtoull(rest + 1, &end, 16);
+        const unsigned long long limit = write.size == 'b' ? 0xFF : write.size == 'w' ? 0xFFFF : 0xFFFFFFFFull;
+        const int bytes = write.size == 'b' ? 1 : write.size == 'w' ? 2 : 4;
+        if (*end || value > limit || write.address < 0xFF0000 || write.address + bytes - 1 > 0xFFFFFF ||
+            (bytes > 1 && (write.address & 1))) {
+            return false;
+        }
+        write.value = static_cast<uint32_t>(value);
+        return true;
+    }
+
+    bool ParseCheat(const char *text, Cheat &cheat, std::string &error) {
+        std::vector<std::string> fields;
+        const std::string line = text;
+        for (size_t at = 0; at <= line.size();) {
+            const size_t bar = std::min(line.find('|', at), line.size());
+            fields.push_back(Trimmed(line.substr(at, bar - at)));
+            at = bar + 1;
+        }
+        cheat.name = fields[0];
+        const std::string what = "game.cfg's cheat " + (cheat.name.empty() ? std::string("\"") + text + "\"" : cheat.name);
+        if (fields.size() < 4 || cheat.name.empty()) {
+            error = what + ": name | title | description | [when ADDR.s=VAL |] choice: ADDR.s=VAL ...";
+            return false;
+        }
+        cheat.title = fields[1];
+        cheat.description = fields[2];
+        size_t n = 3;
+        if (fields[n].rfind("when ", 0) == 0) {
+            cheat.when = true;
+            if (!ParseRamWrite(Trimmed(fields[n].substr(5)), cheat.condition, &cheat.whenNot)) {
+                error = what + ": the condition \"" + fields[n] + "\" is not when ADDR.s=VAL (or !=) in the work RAM, FF0000-FFFFFF";
+                return false;
+            }
+            n++;
+        }
+        if (n >= fields.size()) {
+            error = what + ": it has no choice (choice: ADDR.s=VAL ...)";
+            return false;
+        }
+        for (; n < fields.size(); n++) {
+            const size_t colon = fields[n].find(':');
+            std::vector<RamWrite> writes;
+            std::istringstream words(colon == std::string::npos ? std::string() : fields[n].substr(colon + 1));
+            std::string word;
+            while (words >> word) {
+                RamWrite write;
+                if (!ParseRamWrite(word, write)) {
+                    error = what + ": \"" + word + "\" is not ADDR.s=VAL (s: b, w or l; a word or long at an even address) in the work RAM, FF0000-FFFFFF";
+                    return false;
+                }
+                writes.push_back(write);
+            }
+            if (colon == std::string::npos || colon == 0 || writes.empty()) {
+                error = what + ": the choice \"" + fields[n] + "\" is not name: ADDR.s=VAL ...";
+                return false;
+            }
+            cheat.names.push_back(Trimmed(fields[n].substr(0, colon)));
+            cheat.writes.push_back(writes);
+        }
+        return true;
+    }
+
+    uint32_t RamValue(const RamWrite &at) {
+        return at.size == 'b' ? Ram8(at.address) : at.size == 'w' ? Ram16(at.address) : Ram32(at.address);
+    }
+} // namespace
+
+// Reads game.cfg's cheats (none: no Cheats page); false, with what is wrong, if one cannot be read
+bool ReadCheats(std::string &error) {
+    static const char *const kTexts[] = {
+#ifdef GAME_CHEAT_1
+        GAME_CHEAT_1,
+#endif
+#ifdef GAME_CHEAT_2
+        GAME_CHEAT_2,
+#endif
+#ifdef GAME_CHEAT_3
+        GAME_CHEAT_3,
+#endif
+#ifdef GAME_CHEAT_4
+        GAME_CHEAT_4,
+#endif
+#ifdef GAME_CHEAT_5
+        GAME_CHEAT_5,
+#endif
+#ifdef GAME_CHEAT_6
+        GAME_CHEAT_6,
+#endif
+#ifdef GAME_CHEAT_7
+        GAME_CHEAT_7,
+#endif
+#ifdef GAME_CHEAT_8
+        GAME_CHEAT_8,
+#endif
+#ifdef GAME_CHEAT_9
+        GAME_CHEAT_9,
+#endif
+#ifdef GAME_CHEAT_10
+        GAME_CHEAT_10,
+#endif
+#ifdef GAME_CHEAT_11
+        GAME_CHEAT_11,
+#endif
+#ifdef GAME_CHEAT_12
+        GAME_CHEAT_12,
+#endif
+#ifdef GAME_CHEAT_13
+        GAME_CHEAT_13,
+#endif
+#ifdef GAME_CHEAT_14
+        GAME_CHEAT_14,
+#endif
+#ifdef GAME_CHEAT_15
+        GAME_CHEAT_15,
+#endif
+#ifdef GAME_CHEAT_16
+        GAME_CHEAT_16,
+#endif
+        nullptr};
+    g_cheats.clear();
+    for (const char *const *text = kTexts; *text; text++) {
+        Cheat &cheat = g_cheats.emplace_back();
+        if (!ParseCheat(*text, cheat, error)) {
+            g_cheats.clear();
+            return false;
+        }
+        cheat.choices.push_back("Off");
+        for (const std::string &name : cheat.names) {
+            cheat.choices.push_back(name.c_str());
+        }
+    }
+    return true;
+}
+
+// The cheats that are on, their writes made (while their condition holds): before every frame the game runs, run-ahead's
+// too
+void ApplyCheats() {
+    for (const Cheat &cheat : g_cheats) {
+        const int choice = FeatureValue(cheat.name.c_str());
+        if (choice <= 0 || choice > static_cast<int>(cheat.writes.size())) {
+            continue;
+        }
+        if (cheat.when && (RamValue(cheat.condition) == cheat.condition.value) == cheat.whenNot) {
+            continue;
+        }
+        for (const RamWrite &write : cheat.writes[choice - 1]) {
+            if (write.size == 'b') {
+                SetRam8(write.address, static_cast<uint8_t>(write.value));
+            } else if (write.size == 'w') {
+                SetRam16(write.address, static_cast<uint16_t>(write.value));
+            } else {
+                SetRam32(write.address, write.value);
+            }
+        }
+    }
+}
+
+// Configuration declarations use the existing feature registry; duplicate names are errors, not a second mechanism.
+bool ReadDeclaredFeatures(std::string& error) {
+    if (!ReadBoardOptions(error) || !ReadCheats(error)) return false;
+    std::set<std::string> names;
+    for (const auto& feature : TheGame().features) names.insert(feature.name);
+    for (const auto& option : g_boardOptions) {
+        if (!names.insert(option.name).second) { error = "duplicate game.cfg feature: " + option.name; return false; }
+    }
+    for (const auto& cheat : g_cheats) {
+        if (!names.insert(cheat.name).second) { error = "duplicate game.cfg feature: " + cheat.name; return false; }
+    }
+    return true;
+}
+
 // Every game's features that come from the port itself (after the game's own: RegisterGame), for the game and
 // for the list the launcher asks for (--list-features)
 void RegisterPortFeatures() {
+    // (the board's settings from game.cfg: ReadBoardOptions)
+    if (!g_boardOptions.empty()) {
+        if (std::none_of(TheGame().pages.begin(), TheGame().pages.end(), [](const Page &page) { return !strcmp(page.name, "Board"); })) {
+            TheGame().pages.push_back({"Board", "", "The board's own settings, its DIP switches: each as the board is set unless chosen here."});
+        }
+        for (const BoardOption &option : g_boardOptions) {
+            TheGame().features.push_back({option.name.c_str(), "Board", option.title.c_str(), option.description.c_str(), kFeatureOwn, option.choices});
+        }
+    }
+    // (the cheats from game.cfg: ReadCheats; on the game's own Cheats page, if its sources have one)
+    if (!g_cheats.empty()) {
+        Game &game = TheGame();
+        if (std::none_of(game.pages.begin(), game.pages.end(), [](const Page &page) { return !strcmp(page.name, "Cheats"); })) {
+            game.pages.push_back({"Cheats", "", "Changes to the game's memory, for trying things out: each off unless chosen, and they can be switched any time."});
+        }
+        for (const Cheat &cheat : g_cheats) {
+            game.features.push_back({cheat.name.c_str(), "Cheats", cheat.title.c_str(), cheat.description.c_str(), kFeatureOwn, cheat.choices});
+        }
+    }
+
     // (run_ahead: Port::RunAhead)
     TheGame().features.push_back({"run_ahead", "Game", "Run-ahead",
                                   "Shows the game a frame or two further on than it is, so that what you press is seen sooner than "
@@ -296,8 +665,35 @@ bool Port::Init(std::string &error) {
 #ifndef GAME_OTHER_SET
 #define GAME_OTHER_SET ""
 #endif
-    const RomList list = ParseRomList(GAME_PROGRAM, GAME_GRAPHICS, GAME_SOUND_PROGRAM, GAME_SAMPLES, GAME_KEY, GAME_ROM_SET, GAME_ROM_PARENT,
-                                      GAME_BOARD, GAME_CPS_B, GAME_OTHER_SET);
+#ifndef GAME_GFX_MAP
+#define GAME_GFX_MAP ""
+#endif
+    RomList list = ParseRomList(GAME_PROGRAM, GAME_GRAPHICS, GAME_SOUND_PROGRAM, GAME_SAMPLES, GAME_KEY, GAME_ROM_SET, GAME_ROM_PARENT,
+                                GAME_BOARD, GAME_CPS_B, GAME_OTHER_SET);
+    if (!ParseGfxMap(GAME_GFX_MAP, list.board)) {
+        error = "game.cfg's gfx_map cannot be read";
+        return false;
+    }
+#ifdef GAME_CPU_CLOCK
+    char* clockEnd = nullptr;
+    list.board.cpuClock = static_cast<int>(strtol(GAME_CPU_CLOCK, &clockEnd, 10));
+    if (!*GAME_CPU_CLOCK || *clockEnd || (list.board.cpuClock != 10 && list.board.cpuClock != 12)) {
+        error = "game.cfg's cpu_clock is 10 or 12 (MHz)";
+        return false;
+    }
+#endif
+#ifdef GAME_DIP
+    {
+        unsigned a, b, c;
+        if (sscanf(GAME_DIP, "%x %x %x", &a, &b, &c) != 3 || a > 0xFF || b > 0xFF || c > 0xFF) {
+            error = "game.cfg's dip is three hex bytes (banks A, B and C)";
+            return false;
+        }
+        list.board.dip[0] = static_cast<uint8_t>(a);
+        list.board.dip[1] = static_cast<uint8_t>(b);
+        list.board.dip[2] = static_cast<uint8_t>(c);
+    }
+#endif
     if (!LoadRomSet(opt.romPath, list, roms, error)) {
         return false;
     }
@@ -385,6 +781,12 @@ bool Port::Init(std::string &error) {
 #endif
     machine->cpu.pointerFrom = PointerLoads(machine->cpu.extraLow, machine->cpu.extraHigh);
     machine->cpu.keepHistory = getenv("CPS2RECOMP_PC_HISTORY") != nullptr;
+    std::string definitionError;
+    if (!ReadDeclaredFeatures(definitionError)) {
+        fprintf(stderr, "%s\n", definitionError.c_str());
+        error = definitionError;
+        return false;
+    }
     RegisterPortFeatures();
     LoadFeatures(opt.settingsPath, opt.features);
     // The 68000 and the Z80 are run the same way; each falls back to its interpreter if the build has no
@@ -1532,6 +1934,8 @@ void Port::PutBackState(const std::vector<uint8_t> &data) {
 
 void Port::Step(const uint16_t *players) {
     memcpy(machine->players, players, sizeof(machine->players));
+    ApplyBoardOptions(*machine);
+    ApplyCheats();
     if (TheGame().beforeFrame) {
         TheGame().beforeFrame(*machine);
     }
@@ -2324,6 +2728,11 @@ void Port::Finish() {
 // The list --list-features writes (on Android the launcher asks the game's library for it: port/android.cpp)
 std::string LauncherFeatureList() {
     RegisterGame();
+    std::string definitionError;
+    if (!ReadDeclaredFeatures(definitionError)) {
+        fprintf(stderr, "%s\n", definitionError.c_str());
+        std::exit(EXIT_FAILURE);
+    }
     RegisterPortFeatures();
     std::vector<recomp::FeatureInfo> list = FeatureList();
     // (nor are the ones whose switch is on the launcher's first page: game.h, kFeatureFirstPage)
