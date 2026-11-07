@@ -65,7 +65,7 @@ every frame while a cheat is on, while a round is fought. Infinite energy for ea
 knockouts (player 2). The bosses can be chosen in this game, so there is no cheat for them. Each can be switched any
 time; off, the game goes on as it was.
 
-**Next.** The DIP switches by name (free play, difficulty), and the features the other fighting games have.
+**Next.** The features the other fighting games have (training mode, widescreen, the modes).
 
 ## Reproducible checks
 

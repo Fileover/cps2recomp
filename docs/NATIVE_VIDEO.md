@@ -70,6 +70,7 @@ were only compared by shape.
 | **AvsP** | avsp | 000E0E, 001214, 0012EC | inline (000EC4) | main loop | none | avsp (attract only) |
 | **Giga Wing** | gigawing | 000A7C, 000AD8, 0038AE, 00393C | inline (000B30), the pages after it | main loop | none seen (it sets the raster counters) | gigawing |
 | **CPS-1** | dino, punisher | another board: objects in video RAM, latched by the CPS-A's base (`LatchObjectsCps1`), no object bank | a constant (9140) | | | not run |
+| **Classic CPS-1** | sf2ce, sf2hf, ghouls | as the CPS-1's, its tiles through the graphics mapper (`gfx_map`) | as the CPS-1's | | | sf2ce, sf2hf, ghouls (their smoke movies) |
 
 Code of a game's own (or a family's) will be needed for: **SSF2T and HSF2**'s object list (two writers, read back),
 **Darkstalkers'** bank swapped from the main loop, **Marvel**'s mid-frame changes, and the **CPS-1** games (another
@@ -553,6 +554,18 @@ Over attract mode (4,000 frames each), and The Punisher's ladder (25,000 frames,
 both sides (The Punisher's ladder: 24,940 uploads, 24,999 lists, 5.6 million lines). The frame hashes were the same as
 the `widescreen-stage-ends` builds' (without the lifts). The picture drawn from the records (check b) is the CPS-2's
 only so far.
+
+The classic CPS-1 games (sf2ce, sf2hf, ghouls: `board = cps1-classic`, #163) are drawn the same way, with one thing
+more: their graphics mapper (a PAL) does not keep each kind of tile where its number says, and `game.cfg`'s `gfx_map`
+gives its banks and ranges (machine/romset.h). video.cpp reads the ranges as it draws; the picture from the records and
+the GPU's take them as a table (`GfxTable`: for each kind, objects and the three scroll screens, and each 0x100 of its
+8-pixel units, a base and a mask; a range that is not whole steps makes none, and says so). An object's tiles are put
+through it as the frame's list is taken (one it has nowhere gets a tile past the graphics' end, so not drawn); a scroll
+screen's tile as it is drawn, on the GPU from the table after the lines' records (`L_GFX_ON`). Their `video_writes` are
+the CPS-A's registers and the CPS-B's video ones (layer control, priority masks, palette control; not the CPS-B-21's
+multiplier at 800140, which the game also writes): every `move` or `clr` to one in the listing, with what a census of
+the smoke movie saw. Over each game's smoke movie (40,000 frames), every upload, list, line and picture line was the
+same from both sides, and the GPU's first 6,000 frames the same as the board's.
 
 ## Check (b): the picture from the records
 

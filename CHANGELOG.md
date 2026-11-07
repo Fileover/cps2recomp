@@ -148,8 +148,9 @@
   second named exception of rule 4) and an OKI MSM6295, all of it in the save state (version 10). The CPS-1 games
   with QSound and the CPS-2 games play as before.
 - **Street Fighter II: Champion Edition, Street Fighter II: Hyper Fighting and Ghouls'n Ghosts** (#163): the first
-  classic CPS-1 games, with their music and voices, the Board page and cheats from their `game.cfg`, and input
-  movies for the checks. Ghouls'n Ghosts is the collection's first platformer.
+  classic CPS-1 games, with their music (and the Street Fighter IIs' voices), the Board page and cheats from their `game.cfg`, and input
+  movies for the checks. Ghouls'n Ghosts is the collection's first platformer. Their picture is drawn from the native
+  records and on the GPU too, the graphics mapper through a table (`GfxTable`), each checked the same as the board's.
 - **Giga Wing** (`gigawing`, USA 990222; the Asia, Hispanic and Brazil sets of the same date play too), the
   collection's first shoot-'em-up, with a shooter's modes in a new part of the toolkit (`shmup/`): **practice** at any
   stage or straight at its boss, with the fighter, ships, bombs and power chosen, put back as it began with one button

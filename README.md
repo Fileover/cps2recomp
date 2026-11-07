@@ -61,8 +61,7 @@ Each game's page has all it does, with pictures.
 
 ## Training mode
 
-The established fighting-game ports have a full training mode, from the in-game menu. The new classic CPS-1 ports
-have Board/Cheats options but no training mode yet:
+Every fighting game has a full training mode, from the in-game menu (not yet the two classic Street Fighter II games):
 
 - **Hit boxes** (and throw boxes in Alpha 2 and 3), **frame data** and a **frame meter**, an **input display**, and a
   combo and damage readout (and stun, in the Street Fighter games and Pocket Fighter).
