@@ -145,6 +145,8 @@
   five minutes and a **boss rush**, each keeping its best score; a stage viewer and attract mode. Also free play, start
   at stage, the board's settings, cheats (infinite ships, infinite bombs, invincibility), the music's names and online
   play.
+- **Street Fighter Alpha 3's Regulation on the Board page**: the board's blood setting, red (off, as in Japan) or
+  white (on, the other regions' boards); found from notes the HSFA project shared.
 - **Hyper Street Fighter II: The Anniversary Edition** (`hsf2`, USA 040202; the Asia and Japan sets of the same date
   play too): every character as they were in World Warrior, Champion Edition, Hyper Fighting, Super and Super Turbo,
   against each other, with everything the other fighting games have: training mode, the alternative modes (attract
