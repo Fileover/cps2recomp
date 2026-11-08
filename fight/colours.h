@@ -51,6 +51,9 @@ struct Description {
     // The sets each has, by the names the files and the editor give them (the game's own order)
     std::vector<const char *> setNames;
     int palettesInSet = 4;
+    // ... or, for a game whose characters' sets have different counts of palettes (Super Street Fighter II: one, three
+    // or eight), the count for a character, up to palettesInSet (nullptr: palettesInSet for all)
+    int (*palettesOf)(int number) = nullptr;
     // The editor's names for a set's palettes ("Body", "Effect 1"... when not given)
     std::vector<const char *> lineNames;
     // Where a character's set is in the ROM (the data view, Program)

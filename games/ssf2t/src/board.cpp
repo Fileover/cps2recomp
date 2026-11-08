@@ -36,8 +36,8 @@ namespace {
         int first; // the value of the first choice after "As the board is set"
     };
     constexpr Setting kSettings[] = {
-        {"board_difficulty", kVars + 0x2D3, 0}, {"board_speed", kVars + 0x3A9, 0}, {"board_continue", kVars + 0x2DA, 0},
-        {"board_demo_sound", kVars + 0x2DD, 0},
+        {"board_difficulty", ssf2t::At(kVars + 0x2D3), 0}, {"board_speed", ssf2t::At(kVars + 0x3A9), 0}, {"board_continue", ssf2t::At(kVars + 0x2DA), 0},
+        {"board_demo_sound", ssf2t::At(kVars + 0x2DD), 0},
     };
 
     // The board's own values of what was chosen, to put back for its test menu. (All three are kept with the game's
@@ -51,9 +51,12 @@ namespace {
     void PutChoices() {
         g_chosen = false;
         for (size_t n = 0; n < std::size(kSettings); n++) {
-            g_board[n] = Ram8(kSettings[n].variable);
+            g_board[n] = kSettings[n].variable ? Ram8(kSettings[n].variable) : 0;
         }
         for (const Setting &setting : kSettings) {
+            if (!setting.variable) {
+                continue; // (a setting this game has not: Super Street Fighter II's speed)
+            }
             const int choice = FeatureValue(setting.name);
             if (choice > 0) {
                 SetRam8(setting.variable, static_cast<uint8_t>(setting.first + choice - 1));
@@ -85,7 +88,9 @@ namespace {
 void BoardBeforeFrame(Machine &machine) {
     if (g_chosen && machine.testSwitch) {
         for (size_t n = 0; n < std::size(kSettings); n++) {
-            SetRam8(kSettings[n].variable, g_board[n]);
+            if (kSettings[n].variable) {
+                SetRam8(kSettings[n].variable, g_board[n]);
+            }
         }
         g_chosen = false;
         g_again = true;
@@ -106,13 +111,13 @@ void RegisterBoard() {
     constexpr const char *kAsSet = "As the board is set";
     game.features.push_back({"board_difficulty", kPage, "Difficulty", "How well the computer fights.", 0,
                              {kAsSet, "1 (easiest)", "2", "3", "4 (medium)", "5", "6", "7", "8 (hardest)"}});
-    game.features.push_back({"board_speed", kPage, "Game speed",
+    if (ssf2t::family::kTurbo) game.features.push_back({"board_speed", kPage, "Game speed",
                              "The game's speed: one of the four turbo speeds, or a free choice of speed for the players.", 0,
                              {kAsSet, "Turbo 1", "Turbo 2", "Turbo 3", "Turbo 4", "Free select"}});
     game.features.push_back({"board_continue", kPage, "Continue", "Whether a game over can be continued.", 0, {kAsSet, "Off", "On"}});
     game.features.push_back({"board_demo_sound", kPage, "Demo sound", "Whether the attract mode plays sound.", 0, {kAsSet, "Off", "On"}});
-    AddHook(HookAt(0x008FFC), "SettingsRead", SettingsRead);
-    AddHook(HookAt(0x00D69C), "GameBegins", GameBegins);
+    AddHook(HookAt(ssf2t::At(0x008FFC)), "SettingsRead", SettingsRead);
+    AddHook(HookAt(ssf2t::At(0x00D69C)), "GameBegins", GameBegins);
 }
 
 } // namespace cps2recomp

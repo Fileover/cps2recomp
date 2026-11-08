@@ -28,9 +28,9 @@ bool ModelViewer();
 namespace {
     using namespace ssf2t;
 
-    constexpr uint32_t kColourTable = 0x0BFAF2;
-    constexpr int kSets = 10, kPalettesInSet = 5;
-    constexpr uint32_t kColoursFrom = 0x0BFB2C, kColoursTo = 0x0C6320; // (every set, Akuma's last)
+    constexpr uint32_t kColourTable = At(0x0BFAF2);
+    
+    constexpr uint32_t kColoursFrom = At(0x0BFB2C), kColoursTo = At(0x0C6320); // (every set, Akuma's last)
     constexpr uint32_t kPaletteBuffer = 0x900000; // (the objects' palettes, 0x20 bytes a colour set)
     constexpr int kFirstPalette = 1;              // player 1's
 
@@ -50,7 +50,7 @@ namespace {
     // Player 1 in the set: its choice as the game keeps it; its palettes are in its own colour sets of the buffer
     uint32_t ShowSet(Machine &, int, int set, int &lines) {
         SetRam8(Player(0) + kColourChoice, static_cast<uint8_t>(set));
-        lines = kPalettesInSet;
+        lines = family::kPalettesOf ? family::kPalettesOf(Ram8(Player(0) + kCharacter)) : family::kPalettesInSet;
         return kPaletteBuffer + kFirstPalette * 0x20u;
     }
 
@@ -72,25 +72,20 @@ void RegisterColours() {
         // (the names the game has in Japan, for files called by them: the boxer, the claw and the dictator go round)
         d.characters.push_back({n, kCharacterNames[n], n == 10 ? "M. Bison (Japan)" : n == 11 ? "Balrog (Japan)" : n == 8 ? "Vega (Japan)" : nullptr});
     }
-    d.setNames = {"LP", "MP", "HP", "LK", "MK", "HK", "Start", "Held", "OldP", "OldK"};
-    d.palettesInSet = kPalettesInSet;
+    d.setNames.assign(std::begin(family::kColourSetNames), std::end(family::kColourSetNames));
+    d.palettesInSet = family::kPalettesInSet;
+    d.palettesOf = family::kPalettesOf;
     d.setAddress = SetAddress;
     d.ranges = Ranges;
     // The second of the set's program files has every character's colours; PalMod never changes its first part, which is
     // the game's code
-    d.romFile = "sfxj.04a";
-    d.romFileAt = 0x080000;
-    d.romFileSize = 0x80000;
-    d.same = {0x080000, 0x090000};
-    d.romFileWhose = "Super Street Fighter II X's, 940223";
-    d.featureDescription = "Characters in the colours of the files in the \"palettes\" folder in the game's data folder: a "
-                           "sfxj.04a changed with PalMod, and text files, one a character (Cammy.txt), which go before it. "
-                           "With no files the game's own colours. They are taken when a player is coloured: at the next round.";
-    d.originalHelp = "# To change them, copy this file to the palettes folder and change the colours there. Each set is\n"
-                     "# chosen by the button that chose the character ([LP] to [HK]), Start, a button held ([Held]) or the\n"
-                     "# old version's code ([OldP], [OldK]), and has five lines of 16 colours; the character is drawn in\n"
-                     "# them. The 16th colour of a line is never seen. A colour is #RRGGBB or #RGB, rounded to the board's\n"
-                     "# 16 levels of each; - keeps the game's. Sets and lines that are left out keep the game's colours.\n";
+    d.romFile = family::kColourFile;
+    d.romFileAt = family::kColourFileAt;
+    d.romFileSize = family::kColourFileSize;
+    d.same = {family::kColourFileSameFrom, family::kColourFileSameTo};
+    d.romFileWhose = family::kColourFileWhose;
+    d.featureDescription = family::kColourFeatureWords;
+    d.originalHelp = family::kColourHelp;
     d.showSet = ShowSet;
     d.startViewer = StartModelViewer;
     d.viewerOn = ModelViewer;

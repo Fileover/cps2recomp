@@ -41,7 +41,7 @@ namespace {
 
     // The characters in the menu's order, by their numbers in the game
     constexpr int kCharacterNumbers[] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15};
-    constexpr uint32_t kAnimationRoutines = 0x100000; // a long a character: where its routine begins
+    constexpr uint32_t kAnimationRoutines = At(0x100000); // a long a character: where its routine begins
     constexpr uint32_t kListInRoutine = 0x34;
     constexpr int kMostAnimations = 64;
     constexpr uint32_t kFrameBytes = 0x18, kFramePicture = 0x04, kFrameJump = 0x18, kFrameFollows = 0x02;

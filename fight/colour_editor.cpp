@@ -59,8 +59,12 @@ namespace {
     int Sets() {
         return static_cast<int>(TheDescription().setNames.size());
     }
-    int Lines() {
-        return TheDescription().palettesInSet;
+    int Lines() { // (the character shown's)
+        const Description &d = TheDescription();
+        if (d.palettesOf && d.viewerCharacter) {
+            return std::clamp(d.palettesOf(d.viewerCharacter()), 1, d.palettesInSet);
+        }
+        return d.palettesInSet;
     }
     std::string LineName(int line) {
         const auto &names = TheDescription().lineNames;
@@ -522,6 +526,7 @@ void EditorBeforeFrame(Machine &machine) {
         Save();
         g.character = character;
         g.canUndo = false;
+        g.line = std::min(g.line, Lines() - 1); // (a character with fewer lines than the last)
         g.lineWanted = g.line ? g.line : -1; // (the new character's animation for the line chosen)
     }
     const uint16_t now = machine.players[0];
