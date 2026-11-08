@@ -92,7 +92,7 @@ private:
                    *m_picture = nullptr;
     SDL_GPUSampler *m_sampler = nullptr;
     SDL_GPUGraphicsPipeline *m_layersPipeline = nullptr, *m_holesPipeline = nullptr, *m_objectsPipeline = nullptr,
-                            *m_coloursPipeline = nullptr, *m_overPipeline = nullptr;
+                            *m_coloursPipeline = nullptr;
     SDL_GPUTransferBuffer *m_upload = nullptr, *m_download = nullptr;
     size_t m_uploadSize = 0;
     std::vector<uint8_t> m_videoNow; // (video RAM as the frame's bands have it, put in as they go)
@@ -111,7 +111,10 @@ private:
     bool m_hasKept = false;
     uint64_t m_keptSerial = 0; // (when it was kept, among all GpuPictures: the guest's last frame is the one kept latest)
     std::vector<GpuPicture *> m_guests;
-    SDL_GPUTexture *m_composite = nullptr; // (the guest's frame with this one's objects over it)
+    // (the frame being drawn is this game's objects alone over a guest's stage, this picture of it: the last pass puts the
+    // two together; and the kept frame drawn into m_picture, no readouts)
+    SDL_GPUTexture *m_stage = nullptr;
+    bool DrawKeptPicture(SDL_GPUCommandBuffer *commands);
     static bool Over(const cps2recomp::native_video::PictureOptions &o) {
         return (o.layerMask & ~1u) == 0 && !o.markLayers && (o.markObjects || o.layerMask == 0);
     }

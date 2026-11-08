@@ -318,7 +318,7 @@ across the middle. Now:
   pixels they show at have 0x40 in the top byte (`Video::markFront`; with `frontLevel`, a scroll screen's pixels an
   object of the fighters' level is behind too). The game's objects are marked as before, and its panel's 0x40 too
   (`Video::panelObject`, the host's `panel`): put together, the stage's front pixels go over the fighters and under the
-  panel. Both pictures do it, the CPU's and the GPU's (the marks in the alpha: `over.frag`).
+  panel. Both pictures do it, the CPU's and the GPU's (the marks in the alpha, put together in the frame's last pass: colours.frag's `stage`).
 - **The fight's frame counter** a step a frame (`Guest::frameCounter`, B4(A5) in Vampire Savior's and the Alphas').
 - **The camera** goes as far as the game's from the middle (`Across`): a stage wider than the game's goes no faster,
   its ends beyond the game's not reached; one narrower goes as far between its ends as the game's between its own. A
@@ -867,7 +867,7 @@ Sizes: S a session, M a few, L a week or more. Done:
 - **The SDL_GPU renderer**, every game, checked frame by frame against the board (`--video gpu-check`); in the
   window, the readouts over it, the game's side in the save state for online play's rollback; guest boards' stages under
   the game's fighters, each drawn from its own board's records on the same device and put together in one pass
-  (`over.frag`: the stage's pieces in front of the fighters, the game's panel over all).
+  (in the game's frame's last pass, colours.frag reading the stage's picture: its pieces in front of the fighters, the game's panel over all).
 - **The GPU picture by default** (the Display page's **Picture drawn by**, the GPU unless the CPU is chosen; `--video
   gpu`, or `native`/`cpu` and `board` for the CPU's), after it was looked at in the window. Frames it cannot draw are the
   CPU's: those put together on the CPU (`MarkPictureMade`: the spares, the endless battle, the colour editor), a shader
@@ -900,7 +900,9 @@ Left:
    (`Machine::ownPicture`), and the game's renderer draws the guest's stage from them and lays the game's fighters and
    panel over it, the stage's front pieces over those: on the CPU (`NativeVideo::LastFrame`, `DrawFrame`: the frame at
    once, as the GPU's bands draw it; the frame hashes the same as when the guest's board drew its own) and on the GPU
-   (the guest's records drawn beside the game's, put together in one pass). Left: the two producers' layers interleaved
-   in a single pass by their priorities, rather than the guest's stage drawn and the game's objects laid over it (the
-   same picture either way); and hosts for the fighting games that are not yet (Super Turbo, Hyper Street Fighter II,
+   (the guest's stage drawn from its records, then the game's frame, whose last pass reads that stage and writes the
+   picture: no pass or picture of its own for putting the two together). Left: the guest's screens and objects resolved
+   with the game's in that same last pass, its palette beside the game's (each game's frame is drawn in bands where its
+   own palette or maps change, and the two games' bands are not the same lines: the stage's finished picture is what
+   lets the game's bands read it; the same picture either way); and hosts for the fighting games that are not yet (Super Turbo, Hyper Street Fighter II,
    the Marvel games, Gem Fighter, Darkstalkers and Night Warriors). M.
