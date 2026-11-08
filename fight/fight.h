@@ -170,6 +170,9 @@ enum : uint16_t {
 // 2 down...; `facingLeft` turns it so that 6 is always towards the way the player faces), then the buttons
 // (LP MP HP LK MK HK)
 std::string Notation(uint16_t held, bool facingLeft = false);
+// The buttons' short names Notation writes, first to sixth (a game whose buttons are not punches and kicks gives its own;
+// nullptr: LP MP HP LK MK HK). Set once, as the game registers.
+void SetButtonNames(const char *const *names);
 
 // The last few things a player held, and for how many frames each
 class InputHistory {
