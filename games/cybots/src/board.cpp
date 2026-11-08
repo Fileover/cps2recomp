@@ -4,8 +4,8 @@
 // Cyberbots: the board's settings (the operator's, in its test menu: Configuration, System and Game) as features on
 // the launcher's Board page, as in the other games. Each is "As the board is set" unless chosen, and a choice is what
 // the test menu would have set: the game reads its settings from the settings memory as the board starts and copies
-// them into the variables below (091256 on); the hook at 0912F4, where that copy ends, puts the choices in those
-// variables. The board's settings memory itself is not changed, nor what the test menu shows and saves.
+// them into the variables below (008EE4 on, and again as its test menu is left: 091256 on); the hooks where those
+// copies end (0090A2, 0912F4) put the choices in those variables. The board's settings memory itself is not changed, nor what the test menu shows and saves.
 //
 // The settings record (A5-4600, as the settings memory holds it) and the variable each goes to (from A5), found by
 // stepping each option in the test menu and dumping memory after each step; the values' names read from the test
@@ -14,7 +14,7 @@
 //   +10 damage level 100 0-7: 1 minimum to 8 maximum (3: 4 medium)    +0A demo sound  A7  0 off, 1 on (on)
 //   +11 timer speed  101 0-7: 1 slow to 8 fast (3: 4 normal)
 //   +12 event        102 0 off, 1 on (off)
-//   +13 join in      103 0 off, 1 on (on)
+//   +13 join in      103 0 on, 1 off (on; an event sets it off, 00909C)
 #include "cybots.h"
 
 #include "machine.h"
@@ -109,10 +109,11 @@ void RegisterBoard() {
                              {kAsSet, "1 Slow", "2", "3", "4 Normal", "5", "6", "7", "8 Fast"}});
     game.features.push_back({"board_event", kPage, "Event", "One match only, for tournaments.", 0, {kAsSet, "Off", "On"}});
     game.features.push_back({"board_join_in", kPage, "Join in", "Whether a second player can join a game against the computer.", 0,
-                             {kAsSet, "Off", "On"}});
+                             {kAsSet, "On", "Off"}});
     game.features.push_back({"board_continue", kPage, "Continue", "Whether a game over can be continued.", 0, {kAsSet, "Off", "On"}});
     game.features.push_back({"board_demo_sound", kPage, "Demo sound", "Whether the attract mode plays sound.", 0, {kAsSet, "Off", "On"}});
     AddHook(HookAt(cybots::kSettingsCopied), "SettingsRead", SettingsRead);
+    AddHook(HookAt(cybots::kSettingsCopiedAgain), "SettingsRead", SettingsRead);
     AddHook(HookAt(cybots::kGameBegins), "GameBegins", GameBegins);
 }
 

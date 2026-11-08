@@ -235,10 +235,11 @@ inline bool NotTheFighters(uint32_t tile, uint16_t attributes) {
 
 // --- the board's settings ---
 
-// The settings record as the settings memory holds it, at A5-4600 (FF3A00): the test menu changes it. The board's
-// start copies it to the variables (091256 on) and goes on at 0912F4. Each variable found by stepping the option in
-// the test menu and dumping memory after each step.
-constexpr uint32_t kSettingsCopied = 0x0912F4;
+// The settings record, at A5-4600 (FF3A00) as the test menu changes it. The board's start copies the settings memory's
+// record into the variables (008EE4, called at 00A9BA, from A5-5BB8: an event sets join in, 00909A) and goes on at
+// 0090A2; leaving the test menu copies them again (091256 on) and goes on at 0912F4. Each variable found by stepping
+// the option in the test menu and dumping memory after each step, and the two copies read in the listing.
+constexpr uint32_t kSettingsCopied = 0x0090A2, kSettingsCopiedAgain = 0x0912F4;
 // The difficulty as the board's start left it (0-7: board.cpp)
 constexpr uint32_t kDifficulty = 0xFF80A8;
 // A game begins: Start was pressed (the game's own routine)

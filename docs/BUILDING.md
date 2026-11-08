@@ -17,6 +17,7 @@ the build tells you which one is missing or different.
 | [Street Fighter Alpha 3](../games/sfa3/README.md) | `sfa3` | `sfa3u` (USA 980904) |
 | [Darkstalkers](../games/dstlk/README.md) | `dstlk` | `dstlk` (Europe 940705) |
 | [Night Warriors](../games/nwarr/README.md) | `nwarr` | `nwarr` (Europe 950316) |
+| [Cyberbots](../games/cybots/README.md) | `cybots` | `cybots` (Europe 950424) |
 | [Vampire Savior](../games/vampire_savior/README.md) | `vampire_savior` | `vsavj` (Japan 970519) |
 | [Super Gem Fighter Mini Mix](../games/pocket_fighter/README.md) | `pocket_fighter` | `sgemf` (USA 970904) |
 | [X-Men: Children of the Atom](../games/xmcota/README.md) | `xmcota` | `xmcota` (Euro 950331) |

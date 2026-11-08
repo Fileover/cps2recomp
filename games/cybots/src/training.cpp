@@ -6,6 +6,7 @@
 // or guarded, and the boxes as the FBNeo training script reads them. As Night Warriors'.
 #include "fight.h"
 #include "alternative.h"
+#include "battle.h"
 #include "cybots.h"
 #include "session.h"
 
@@ -114,9 +115,10 @@ namespace {
     // 0197AE: the computer's play of a player (A6) runs this frame. A player handed to the computer in the middle of a
     // fight (the modes do: battle.h) has no script yet, which the game gives only as a round is set up; with none, the
     // computer does nothing. It is given one, as the game would have.
+    // (only in those modes: the game's own show has players of its own with none, which it plays by other means)
     bool ComputerPlays(M68K &c) {
         const uint32_t player = c.a[6] & 0xFFFFFF;
-        if (PlayerOf(player) >= 0 && Ram8(player + kComputer) && !Ram32(player + kComputerScript)) {
+        if (BattleMode() && PlayerOf(player) >= 0 && Ram8(player + kComputer) && !Ram32(player + kComputerScript)) {
             Call(c, kComputerStarts);
         }
         return false;
