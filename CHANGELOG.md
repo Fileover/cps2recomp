@@ -11,6 +11,10 @@ or Spanish, chosen once on the Games page. Vampire Savior Definitive, the Alpha 
 on the other fighting games' stages, which now look as in their own games, and the launcher sorts the games by kind.
 Also favourite stages in the menu, held arrows that repeat, and the picture drawn from the game's level by default.
 
+**Known issue:** in Vampire Savior 2 and Vampire Hunter 2, widescreen shows a blank strip at one end of nine of the other
+games' stages (Darkstalkers' and Night Warriors' Demitri's, Night Warriors' Donovan's, Alpha 2's Dan's, Alpha 3's Ken's,
+Sodom's, Guy's and Dhalsim's, and Super Turbo's Dee Jay's). Their own stages, and every other game, are not affected.
+
 - **The launcher and the in-game menus in Brazilian Portuguese and Spanish** (issue #274): the launcher's Games page
   has a **Language** choice (the system's, English, Português (Brasil) or Español), and every game the launcher starts
   has its menu in it: the rows, the features, commands and pages and their descriptions, the hint, the online wait's
