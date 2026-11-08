@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- **Zoom by distance** (issue #272): the Zoom row (Display page) and the launcher's Multi game page have **By
+  distance**, a camera made for playing: a little closer than the whole picture as a round starts, a quarter closer as
+  the fighters come together, out to the whole picture as they part, both fighters always in it. The health bars, clock
+  and the rest of the game's panel stay where they are and at their size. `--zoom 1:4` starts with it.
 - **Cyberbots: Fullmetal Madness** (#135), set `cybots` (Europe 950424, the set FBNeo and Fightcade play): Capcom's
   giant-robot fighter, with everything the other fighting games have: free play (the game's own), straight to the
   title, the Board page, the cheats, a custom soundtrack with its music named, a training mode (hit boxes, frame data

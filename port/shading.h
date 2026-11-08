@@ -65,6 +65,9 @@ private:
     uint32_t m_overlay = 0, m_overlayProgram = 0, m_overlayArray = 0;
     int m_overlayWidth = 0, m_overlayHeight = 0;
     void DrawOverlay(int windowWidth, int windowHeight);
+    // A texture whose colours are premultiplied by its alpha blended over the window's rectangle at (x, y), w x h of
+    // its pixels, counted from its foot (the overlay over all of it; zoomed, the game's panel over the picture)
+    void Lay(uint32_t texture, int x, int y, int w, int h);
 };
 
 } // namespace port

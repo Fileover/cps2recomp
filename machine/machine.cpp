@@ -185,9 +185,28 @@ void Machine::RunFrame() {
     }
     video.wide.side = std::clamp(video.wide.side, 0, static_cast<int>(Video::kMaxSide));
     m_pictureWidth = video.Width();
+    // (the panel drawn apart for the zoom: Unpanelled; not over a picture the game's sources put together with marks of
+    // their own, nor while the records are checked against the board's lines)
+    // (the panel's objects told from the rest when the object list is taken, at the end of the frame before, which is when
+    // the records' renderer notes each object's marks: native_render.h; unless the game's sources tell them themselves)
+    if (panel.object && !video.panelObject) {
+        video.panelObject = m_panelMarks = panel.object;
+    } else if (!panel.object && m_panelMarks) {
+        if (video.panelObject == m_panelMarks) {
+            video.panelObject = nullptr;
+        }
+        m_panelMarks = nullptr;
+    }
+    m_panelDrawing = panel.object && drawing && !video.markObjects && !video.markLayers && !video.markFront && !video.layerProbe &&
+                     !nativeVideo.checking;
+    if (m_panelDrawing && m_unpanelled.size() != m_picture.size()) {
+        m_unpanelled.assign(m_picture.size(), 0);
+        m_panelPixels.assign(m_picture.size(), 0);
+    }
     do {
         RunLine();
     } while (m_line != kBlankingLine);
+    m_panelDrawn = m_panelDrawing;
     soundtrack.Frame();
     frame++;
     // (CPS2RECOMP_BUS_LOG=FILE: each frame's bus waits and DMA clocks, with the board's timing; docs/TIMING.md)
@@ -264,14 +283,50 @@ void Machine::RunLine() {
         uint32_t *out = &m_picture[static_cast<size_t>(row) * m_pictureWidth];
         // (--video native: the line drawn from the game's side's records, with no model of the board's video chips; but
         // before the game's first object list, and for a tool that probes the layers: video.cpp)
-        if (!(nativeVideo.drawsPicture && !video.layerProbe && nativeVideo.DrawLine(row, out, video.Options()))) {
-            video.RenderLine(row, out);
+        auto draw = [&](uint32_t *to) {
+            if (!(nativeVideo.drawsPicture && !video.layerProbe && nativeVideo.DrawLine(row, to, video.Options()))) {
+                video.RenderLine(row, to);
+            }
+        };
+        if (m_panelDrawing) {
+            DrawPanelApart(row, out, draw);
+        } else {
+            draw(out);
         }
         if (nativeVideo.Active()) {
             nativeVideo.BoardLine(row, &m_picture[static_cast<size_t>(row) * m_pictureWidth], video.Options(), video.ComparablePicture());
         }
     }
     m_line = (m_line + 1) % kLines;
+}
+
+// A line for the zoom that leaves the panel where it is (Unpanelled): drawn with the panel's pixels marked, which are
+// noted and the marks taken off (the line as it would have been); and drawn again without the panel's objects and
+// scroll screens
+void Machine::DrawPanelApart(int row, uint32_t *out, const std::function<void(uint32_t *)> &draw) {
+    const size_t at = static_cast<size_t>(row) * m_pictureWidth;
+    video.markObjects = true;
+    video.markLayers = panel.layers;
+    draw(out);
+    video.markObjects = false;
+    video.markLayers = 0;
+    for (int x = 0; x < m_pictureWidth; x++) {
+        m_panelPixels[at + x] = (out[x] & 0x40000000u) ? 1 : 0;
+        out[x] &= 0x00FFFFFFu;
+    }
+    // (the game's own objects hidden stay hidden: theirs or the panel's)
+    static thread_local bool (*gameHides)(uint32_t, uint16_t) = nullptr;
+    static thread_local bool (*panelObject)(uint32_t, uint16_t) = nullptr;
+    gameHides = video.hideObject;
+    panelObject = panel.object;
+    const unsigned layers = video.layerMask;
+    video.hideObject = [](uint32_t tile, uint16_t attributes) {
+        return (gameHides && gameHides(tile, attributes)) || panelObject(tile, attributes);
+    };
+    video.layerMask = layers & ~panel.layers;
+    draw(&m_unpanelled[at]);
+    video.hideObject = gameHides;
+    video.layerMask = layers;
 }
 
 // The Z80 and the QSound chip for a stretch of time. The Z80's cycle count is the sound side's clock: it

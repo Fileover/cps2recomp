@@ -28,10 +28,36 @@ namespace {
     // its shadow, and across, as a part of its height, for its arms and what it wears
     constexpr float kRoomTop = 8.0f, kRoomFeet = 14.0f, kAcrossOfTall = 0.62f;
     bool forbidden = false; // (online play: Forbid)
+
+    // The zoom by distance (issue #272): its sizes as a round starts, with the fighters together, and apart (the whole
+    // picture: past its edges would be black); and how far apart their places are for each, in the picture's pixels:
+    // together, as a round starts (the CPS-2 fighting games start their fighters 176 to 192 pixels apart), and the
+    // ends of the picture's width, short of this much room at each (where the game stops them)
+    constexpr float kStartSize = 1.0f / 0.9f, kTogetherSize = 1.25f / 0.9f;
+    constexpr float kTogetherGap = 56.0f, kStartGap = 180.0f, kEndRoom = 40.0f;
+    // ... the whole picture from this part of the way from the start's distance to the furthest on
+    constexpr float kOutFrom = 0.8f;
+    float ByDistance(float gap, int width) {
+        const float apart = kStartGap + (std::max(width - 2 * kEndRoom, kStartGap + 1) - kStartGap) * kOutFrom;
+        if (gap <= kTogetherGap) {
+            return kTogetherSize;
+        }
+        if (gap <= kStartGap) {
+            return kTogetherSize + (kStartSize - kTogetherSize) * (gap - kTogetherGap) / (kStartGap - kTogetherGap);
+        }
+        if (gap >= apart) {
+            return 1.0f;
+        }
+        return kStartSize + (1.0f - kStartSize) * (gap - kStartGap) / (apart - kStartGap);
+    }
 } // namespace
 
 bool Zoom::Possible() {
     return !forbidden && cps2recomp::TheGame().focus != nullptr;
+}
+
+bool Zoom::KeepsPanel() const {
+    return m_size > 0 && m_player == kDistance && Possible() && cps2recomp::TheGame().panel;
 }
 
 void Zoom::Forbid(bool forbid) {
@@ -48,6 +74,8 @@ void Zoom::Said() {
         snprintf(m_label, sizeof(m_label), "ZOOM OFF");
     } else if (m_player == kBoth) {
         snprintf(m_label, sizeof(m_label), "ZOOM  BOTH FIGHTERS");
+    } else if (m_player == kDistance) {
+        snprintf(m_label, sizeof(m_label), "ZOOM  BY DISTANCE");
     } else {
         snprintf(m_label, sizeof(m_label), "ZOOM %gx  PLAYER %d", static_cast<double>(kSizes[m_size]), m_player + 1);
     }
@@ -58,7 +86,7 @@ void Zoom::Press(int player) {
     if (!Possible()) {
         return;
     }
-    if (m_player == kBoth) {
+    if (m_player >= kBoth) {
         // (from both to one: that one at the size it was last looked at, the first if none)
         m_size = std::max(m_size, 1);
     } else if (m_size == 0 || player == m_player) {
@@ -98,8 +126,11 @@ void Zoom::Choose(int choice) {
     if (choice <= 0) {
         m_size = 0;
         m_player = 0;
+    } else if (choice == 4) {
+        m_size = std::max(m_size, 1);
+        m_player = kDistance;
     } else {
-        if (m_size == 0 || m_player == kBoth) {
+        if (m_size == 0 || m_player >= kBoth) {
             m_size = 2; // (1.5x)
         }
         m_player = choice - 1;
@@ -120,7 +151,7 @@ void Zoom::Set(int size, int player) {
     if (forbidden) {
         return;
     }
-    m_size = player == kBoth ? std::max(size, 1) : std::clamp(size, 0, kSizeCount - 1);
+    m_size = player >= kBoth ? std::max(size, 1) : std::clamp(size, 0, kSizeCount - 1);
     m_player = player;
     m_jump = true;
     Said();
@@ -133,8 +164,9 @@ void Zoom::Follow(int width, int height) {
     int x = 0, y = 0;
     float wanted = 1.0f, wantedX = width / 2.0f, wantedY = height / 2.0f;
     bool seen = false;
-    if (m_size > 0 && Possible() && m_player == kBoth) {
-        // Both: the rectangle they are in, and as close as shows all of it
+    if (m_size > 0 && Possible() && m_player >= kBoth) {
+        // Both: the rectangle they are in, and as close as shows all of it (by distance: as close as their distance
+        // says, if that shows all of it)
         int x2 = 0, y2 = 0;
         seen = cps2recomp::TheGame().focus(0, x, y) && cps2recomp::TheGame().focus(1, x2, y2);
         if (seen) {
@@ -146,10 +178,14 @@ void Zoom::Follow(int width, int height) {
             const float left = std::min(x, x2) - across, right = std::max(x, x2) + across;
             const float top = std::min(y, y2) - above, bottom = std::max(y, y2) + below;
             const float fits = std::clamp(std::min(width / (right - left), height / (bottom - top)), 1.0f, kSizes[kSizeCount - 1]);
-            if (fits < m_bothSize || fits > m_bothSize + kBothCloser || fits == kSizes[kSizeCount - 1]) {
-                m_bothSize = fits;
+            if (m_player == kDistance) {
+                wanted = std::min(ByDistance(static_cast<float>(std::abs(x2 - x)), width), fits);
+            } else {
+                if (fits < m_bothSize || fits > m_bothSize + kBothCloser || fits == kSizes[kSizeCount - 1]) {
+                    m_bothSize = fits;
+                }
+                wanted = m_bothSize;
             }
-            wanted = m_bothSize;
             wantedX = (left + right) / 2 + m_panX;
             wantedY = (top + bottom) / 2 + m_panY;
         }
@@ -188,7 +224,7 @@ void Zoom::Follow(int width, int height) {
     m_followed = m_player;
     m_offX *= 1 - kPlaceEase;
     m_offY *= 1 - kPlaceEase;
-    if (m_player == kBoth && seen) {
+    if (m_player >= kBoth && seen) {
         m_x += (wantedX + m_offX - m_x) * kBothPlaceEase;
         m_y += (wantedY + m_offY - m_y) * kBothPlaceEase;
     } else {
@@ -210,7 +246,7 @@ bool Zoom::View(int width, int height, SDL_FRect &view) const {
     view.h = height / m_shown;
     view.x = m_x - view.w / 2;
     view.y = m_y - view.h / 2;
-    if (m_player == kBoth) {
+    if (m_player >= kBoth) {
         view.x = std::clamp(view.x, 0.0f, width - view.w);
         view.y = std::clamp(view.y, 0.0f, height - view.h);
     }
