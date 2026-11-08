@@ -63,8 +63,8 @@ first *Darkstalkers*' twelve (`dstlk`), *Street Fighter Alpha*'s thirteen (`sfa`
 (`sfa2u`), *Street Fighter Alpha 3*'s twenty-six (`sfa3u`), *Super Street Fighter II Turbo*'s sixteen
 (`ssf2xjr1`), *Night Warriors*' fourteen (`nwarr`), *Marvel Super Heroes*' twelve (`msh`), *X-Men vs. Street
 Fighter*'s eleven (`xmvsf`), *Marvel Super Heroes vs. Street Fighter*'s twelve (`mshvsf`), *Marvel vs.
-Capcom*'s ten (`mvsc`), *X-Men: Children of the Atom*'s twelve (`xmcota`) and *Super Gem Fighter*'s eight
-(`sgemf`). The
+Capcom*'s ten (`mvsc`), *X-Men: Children of the Atom*'s twelve (`xmcota`), *Super Gem Fighter*'s eight
+(`sgemf`) and *Cyberbots*' fourteen (`cybots`). The
 **Darkstalkers' stages** option (Display) puts each match on the opponent's stage in Darkstalkers, where it has one:
 twelve of the eighteen characters have (not Lilith, Q-Bee, B.B. Hood, Jedah, Lei-Lei or Donovan, who keep Vampire
 Savior's). Training's stage, the stage viewer and the endless and team battles have all of them by name. Each is run from that game's own stage code alone,
@@ -81,7 +81,7 @@ Nothing of the game's play changes, so online each player sees the stages they c
   Fighter Alpha 3*, USA 980904), `ssf2xjr1` (*Super Street Fighter II Turbo*), `nwarr` (*Night Warriors:
   Darkstalkers' Revenge*), `msh` (*Marvel Super Heroes*), `xmvsf` (*X-Men vs. Street Fighter*), `mshvsf`
   (*Marvel Super Heroes vs. Street Fighter*), `mvsc` (*Marvel vs. Capcom*) and `xmcota` (*X-Men: Children of the
-  Atom*) and `sgemf` (*Super Gem Fighter*), each chosen on its own game's page.
+  Atom*), `sgemf` (*Super Gem Fighter*) and `cybots` (*Cyberbots*), each chosen on its own game's page.
 - One of: macOS 13 or later (Apple silicon or Intel); Linux x86_64 or SteamOS; Windows 10 or 11, 64-bit.
 
 ## Playing

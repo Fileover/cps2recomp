@@ -45,7 +45,7 @@ file). Only the versions named below work for each game, and this project cannot
 | [**Vampire Savior**](games/vampire_savior/README.md) (1997) | `vsavj` (Japan 970519) | Tag team battle |
 | [**Vampire Savior 2**](games/vsav2/README.md) (1997) | `vsav2` (Japan 970913) | Donovan, Phobos and Pyron back |
 | [**Vampire Hunter 2**](games/vhunt2/README.md) (1997) | `vhunt2` (Japan 970929) | Night Warriors' cast on Vampire Savior's engine |
-| [**Vampire Savior Definitive**](games/vsav_definitive/README.md) (beta) | `vsavj` and `vsav2` (and `dstlk`, `nwarr`, `sfa`, `sfa2u`, `sfa3u`, `ssf2xjr1`, `msh`, `xmvsf`, `mshvsf`, `mvsc`, `xmcota`, `sgemf` for their stages) | Vampire Savior with all eighteen characters, and other games' stages |
+| [**Vampire Savior Definitive**](games/vsav_definitive/README.md) (beta) | `vsavj` and `vsav2` (and `dstlk`, `nwarr`, `sfa`, `sfa2u`, `sfa3u`, `ssf2xjr1`, `msh`, `xmvsf`, `mshvsf`, `mvsc`, `xmcota`, `sgemf`, `cybots` for their stages) | Vampire Savior with all eighteen characters, and other games' stages |
 | [**Alien vs. Predator**](games/avsp/README.md) (1994) | `avspu` (USA 940520) | Beat-'em-up: three players, a stage to start at, score attack |
 | [**Street Fighter II: Champion Edition**](games/sf2ce/README.md) (1992, CPS-1) | `sf2ce` (World 920513) | Classic CPS-1 with YM2151 and OKI sound |
 | [**Street Fighter II: Hyper Fighting**](games/sf2hf/README.md) (1992, CPS-1) | `sf2hf` (World 921209) | Classic CPS-1 with YM2151 and OKI sound |
@@ -168,9 +168,9 @@ place. Back, or the screen's **Menu**, opens the in-game menu.
   the Marvel games', Super Gem Fighter's (*Pocket Fighter* in Japan), Puzzle Fighter's, Alpha's, Alpha 3's, Super
   Turbo's, Alien vs. Predator's and Giga Wing's; each game's page names them. Other revisions don't work: each port is made from
   one version's program. Vampire Savior Definitive needs both `vsavj` and `vsav2`, and shows the first
-  Darkstalkers', Night Warriors', Alpha's, Alpha 2's, Alpha 3's, Super Turbo's, Super Gem Fighter's and five Marvel games' stages
-  with `dstlk`, `nwarr`, `sfa`, `sfa2u`, `sfa3u`, `ssf2xjr1`, `msh`, `xmvsf`, `mshvsf`, `mvsc`, `xmcota` and
-  `sgemf` too.
+  Darkstalkers', Night Warriors', Alpha's, Alpha 2's, Alpha 3's, Super Turbo's, Super Gem Fighter's, Cyberbots' and five Marvel
+  games' stages with `dstlk`, `nwarr`, `sfa`, `sfa2u`, `sfa3u`, `ssf2xjr1`, `msh`, `xmvsf`, `mshvsf`, `mvsc`, `xmcota`,
+  `sgemf` and `cybots` too.
 - macOS 13 or later (Apple silicon or Intel), Linux x86_64 or ARM64 (SteamOS included), Windows 10 or 11, 64-bit, or
   Android 9 or later on 64-bit ARM, with Vulkan.
 - A gamepad or stick is recommended (six buttons for the fighting games, four for Cyberbots).

@@ -130,3 +130,14 @@ Nobody has played it in a window, heard its sound or music, or tried it with a g
 in training only (Super-8). The model viewer's animation groups are the game's lists, not checked one by one (52 shown:
 one machine has 56). The menu's words new with this game are in English only (not yet in the Portuguese and Spanish
 tables).
+
+## Its stages in the other games (guest.h)
+
+Each stage from its own stage code alone (fight/guest_stages.h): the game's own loop (00C3A6, begun by a credit and
+Start) with its step (00C3EE) passed over; a stage built by 001B9A, the stage's flags (A5+6A24 cleared, bit 0 of
+A5+6B9B set), 001FBA, 014586, 0142B8, 015610 (ready at its first call) and 04D6A6; each frame 015610 and 04E01E. Its
+camera is stepped there (017F3A across, 0181A6 up and down: the step at +50 and +52, the way at +44 and +45, which the
+far planes follow). After the build the palettes' base (A5+28) is put at 9000 as a fought round has it (the character
+choice leaves it at 9040, which drew nothing) and the palettes at full brightness (the round's fade is not run).
+Checked with `--stage-check` in Alpha 2 (all fourteen stages, 4:3 and widescreen), Alpha, Vampire Savior and Vampire
+Savior Definitive (three each): the camera where wanted, never a blank picture.

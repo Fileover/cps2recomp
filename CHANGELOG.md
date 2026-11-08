@@ -8,6 +8,9 @@
   and the meter, the input display with the game's four buttons, the dummy), attract mode, the stage viewer, the model
   viewer, survival, endless battle, ring out, widescreen and invisible walls, the camera's zoom, custom colours and the
   colour editor, and the four hidden machines (Super-8, Gaits, Warlock, Killer Bee) at a switch.
+- **Cyberbots' stages in the other games**: its fourteen stages, each run from its own stage code alone with its own
+  music, in Vampire Savior Definitive, the Alpha games and the Vampire Savior games, after the other guests' in the
+  lists (Cyberbots' ROM set needed).
 - The toolkit: `fight::SetButtonNames` (a game's own names for its buttons in the input display and the frame data
   log) and `colours::Description::lineAddress` (a game whose colour set's palettes are each in a table of their own).
 

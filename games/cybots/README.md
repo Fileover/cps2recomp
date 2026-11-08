@@ -76,6 +76,13 @@ Also: save states, free play, and the cheats (no damage for either player, one-h
 | Ring out | No health: knock your opponent over the end of the stage, then jump down to the next |
 | Colour editor | Change a machine's colours while you watch: custom colours, below |
 
+## Its stages in the other games
+
+With this game's ROM set beside theirs, its fourteen stages are in the stage lists of the games that show other
+games' stages (Vampire Savior Definitive, the Alpha games, the Vampire Savior games): training, the stage viewer, the
+endless and team battles. Each is run from Cyberbots' own stage code alone, its music too, with the other game's
+fighters on it.
+
 ## Widescreen
 
 A switch on the launcher's first page, under "Full screen" (and on the in-game menu's Display page). Fights are shown
