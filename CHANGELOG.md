@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- **Zoom by distance** (issue #272): the Zoom row (Display page) and the launcher's Multi game page have **By
+  distance**, a camera made for playing: a little closer than the whole picture as a round starts, a quarter closer as
+  the fighters come together, out to the whole picture as they part, both fighters always in it. The health bars, clock
+  and the rest of the game's panel stay where they are and at their size. `--zoom 1:4` starts with it.
+
 ## 1.4.0
 
 **Six more games, and every menu in Portuguese and Spanish**: Street Fighter II: Champion Edition, Street Fighter II:

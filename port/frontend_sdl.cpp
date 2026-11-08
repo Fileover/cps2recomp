@@ -870,8 +870,9 @@ int RunWindowed(Port &port) {
                     port.gpuWanted = false;
                 }
             }
+            // (not with the panel drawn apart, which the GPU's picture does not do: zoom.h, by distance)
             if (port.gpuWanted && port.gpuPicture.CanDrawKept() && port.gpuPicture.KeptWidth() == port.ShownWidth() &&
-                !cps2recomp::PictureMade()) {
+                !cps2recomp::PictureMade() && !port.zoom.KeepsPanel()) {
                 static std::vector<uint32_t> readouts;
                 const bool isZoomed = port.Windowed(readouts, zoomed, true);
                 drawn = presenter.ShowDrawn(

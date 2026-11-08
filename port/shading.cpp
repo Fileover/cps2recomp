@@ -382,7 +382,7 @@ void Shading::Show(const uint32_t *pixels, int width, int height, const SDL_FRec
     gl.PixelStorei(GL_UNPACK_ROW_LENGTH, width);
     gl.BindTexture(GL_TEXTURE_2D, m_picture);
     gl.TexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
-    if (zoomed && !zoomed->keep.empty()) {
+    if (zoomed && (!zoomed->keep.empty() || zoomed->panel)) {
         gl.BindTexture(GL_TEXTURE_2D, m_readout);
         gl.TexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, pixels + static_cast<size_t>(width) * height);
     }
@@ -443,6 +443,11 @@ void Shading::Show(const uint32_t *pixels, int width, int height, const SDL_FRec
                                        windowHeight - static_cast<int>(std::lround(where.y + (y0 - view.y) * down)),
                                        static_cast<int>(std::lround(where.x + (x1 - view.x) * across)),
                                        windowHeight - static_cast<int>(std::lround(where.y + (y1 - view.y) * down)), GL_COLOR_BUFFER_BIT, GL_LINEAR);
+                }
+                // (the game's panel where it is and at its size, not through the preset either: zoom.h, by distance;
+                // its pixels opaque, the rest clear, as premultiplied colours are)
+                if (zoomed->panel) {
+                    Lay(m_readout, left, foot, right - left, top - foot);
                 }
                 // (the readout's panels where they are and at their size, not through the preset)
                 gl.BindFramebuffer(GL_READ_FRAMEBUFFER, m_readoutFrame);
@@ -508,6 +513,10 @@ void Shading::DrawOverlay(int windowWidth, int windowHeight) {
     if (!m_overlay) {
         return;
     }
+    Lay(m_overlay, 0, 0, windowWidth, windowHeight);
+}
+
+void Shading::Lay(uint32_t texture, int x, int y, int w, int h) {
     if (!m_overlayProgram) {
         // The whole window from three corners, the texture's first row at its top
 #ifdef __ANDROID__
@@ -541,11 +550,11 @@ void Shading::DrawOverlay(int windowWidth, int windowHeight) {
     }
     // (premultiplied: present.h, SetOverlay)
     gl.BindFramebuffer(GL_FRAMEBUFFER, 0);
-    gl.Viewport(0, 0, windowWidth, windowHeight);
+    gl.Viewport(x, y, w, h);
     gl.UseProgram(m_overlayProgram);
     gl.BindVertexArray(m_overlayArray);
     gl.ActiveTexture(GL_TEXTURE0);
-    gl.BindTexture(GL_TEXTURE_2D, m_overlay);
+    gl.BindTexture(GL_TEXTURE_2D, texture);
     gl.Uniform1i(gl.GetUniformLocation(m_overlayProgram, "overlay"), 0);
     gl.Enable(GL_BLEND);
     gl.BlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
