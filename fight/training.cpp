@@ -68,15 +68,24 @@ void InputHistory::Hud(int player, std::vector<HudLine> &lines, float y, float s
     const float x = player == 0 ? 0.03f : 0.97f;
     const int align = player == 0 ? -1 : 1;
     const Held *history = m_held[player];
+    int row = 0;
     for (int i = 0; i < kLines && history[i].frames; i++) {
         char text[48];
-        const std::string what = Notation(history[i].buttons, history[i].facingLeft);
+        // (the stick at rest, 5, is not shown: nothing held, no line; a button with the stick in the middle, the button
+        // alone. As sf3comp's)
+        if (!(history[i].buttons & (kSticks | kButtons))) {
+            continue;
+        }
+        std::string what = Notation(history[i].buttons, history[i].facingLeft);
+        if (what.compare(0, 2, "5 ") == 0) {
+            what.erase(0, 2);
+        }
         if (player == 0) {
             snprintf(text, sizeof(text), "%3u  %s", history[i].frames, what.c_str());
         } else {
             snprintf(text, sizeof(text), "%s  %3u", what.c_str(), history[i].frames);
         }
-        lines.push_back({x, y + spacing * static_cast<float>(i), align, text});
+        lines.push_back({x, y + spacing * static_cast<float>(row++), align, text});
     }
 }
 
