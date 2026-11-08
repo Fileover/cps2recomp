@@ -896,9 +896,11 @@ Left:
    writes and the bank swap. M per family.
 4. **Every fighting game's stages in every other's** through two producers (a guest's facts are written once per
    game, `games/<id>/guest.h`). Every fighting game with stages of its own is a guest, each run from its own stage code
-   alone (no game played to a round), and on the GPU the guest's records are drawn beside the game's and put together
-   in one pass. Left: the CPU's picture still lays the game's marked pixels over the guest board's picture a pixel at a
-   time (fight/guest_stages.cpp, the CPU picture's merge: what the frame hashes see); the guest's layers into the game's
-   own frame, one producer's records beside another's in a single frame (the interface's "a frame holds layers from
-   more than one producer"); and hosts for the fighting games that are not yet (Super Turbo, Hyper Street Fighter II,
-   the Marvel games, Gem Fighter, Darkstalkers and Night Warriors). M-L.
+   alone (no game played to a round). Its board draws no picture of its own: it keeps the records of each frame
+   (`Machine::ownPicture`), and the game's renderer draws the guest's stage from them and lays the game's fighters and
+   panel over it, the stage's front pieces over those: on the CPU (`NativeVideo::LastFrame`, `DrawFrame`: the frame at
+   once, as the GPU's bands draw it; the frame hashes the same as when the guest's board drew its own) and on the GPU
+   (the guest's records drawn beside the game's, put together in one pass). Left: the two producers' layers interleaved
+   in a single pass by their priorities, rather than the guest's stage drawn and the game's objects laid over it (the
+   same picture either way); and hosts for the fighting games that are not yet (Super Turbo, Hyper Street Fighter II,
+   the Marvel games, Gem Fighter, Darkstalkers and Night Warriors). M.
