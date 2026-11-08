@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- **Windows** (from Fileover, #208): a parent set's zip is found beside a game's zip when the path is written with
+  backslashes, and the launcher opens without a console window beside it (recomp-common #62).
 - **The input display** (training mode, every fighting game) no longer shows the stick at rest as 5: a line shows the
   direction held, if any, and the buttons, and nothing held is not a line (as in sf3comp).
 
