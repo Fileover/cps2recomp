@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- **Windows** (from Fileover, #208): a parent set's zip is found beside a game's zip when the path is written with
+  backslashes, and the launcher opens without a console window beside it (recomp-common #62).
+  
 - **Online: the settings the match decides stay put** (#195): during an online match, the in-game menu no longer changes
   the host's board settings (game speed, difficulty, timer...), the other features that change play, or the cheats.
   A change there reached only one player's game, so the two drifted apart and the match stopped. The rows say the host
