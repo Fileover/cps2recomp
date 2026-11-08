@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- **Online: the settings the match decides stay put** (#195): during an online match, the in-game menu no longer changes
+  the host's board settings (game speed, difficulty, timer...), the other features that change play, or the cheats.
+  A change there reached only one player's game, so the two drifted apart and the match stopped. The rows say the host
+  sets them before hosting.
+
 - **The input display** (training mode, every fighting game) no longer shows the stick at rest as 5: a line shows the
   direction held, if any, and the buttons, and nothing held is not a line (as in sf3comp).
 
