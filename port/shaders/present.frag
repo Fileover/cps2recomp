@@ -13,6 +13,7 @@ layout(set = 3, binding = 0) uniform Sizes {
     vec2 scale; // screen pixels to one of the picture's, across and down
     vec4 view;  // the part of the picture shown: its corner, then its size, as parts of the whole
     vec2 shown; // the picture's own pixels, from the corner (past them: black)
+    vec2 laid;  // x: 1 for a picture laid over the one drawn, seen only where its alpha is set (zoomed: the game's panel)
 };
 void main() {
     vec2 at = (view.xy + uv * view.zw) * size;
@@ -21,5 +22,9 @@ void main() {
     vec2 flat_part = 0.5 - 0.5 / max(scale, vec2(1.0));
     vec2 blend = (within - clamp(within, -flat_part, flat_part)) * max(scale, vec2(1.0));
     bool inside = all(greaterThanEqual(at, vec2(0.0))) && all(lessThan(at, shown));
-    colour = inside ? vec4(texture(picture, (pixel + 0.5 + blend) / size).rgb, 1.0) : vec4(0.0, 0.0, 0.0, 1.0);
+    vec4 texel = texture(picture, (pixel + 0.5 + blend) / size);
+    if (laid.x > 0.5 && (!inside || texel.a < 0.5)) {
+        discard;
+    }
+    colour = inside ? vec4(texel.rgb, 1.0) : vec4(0.0, 0.0, 0.0, 1.0);
 }

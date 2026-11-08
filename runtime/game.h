@@ -103,6 +103,12 @@ struct Game {
     // ... how far above the feet that place is, and how tall a fighter stands from its feet, so that the camera keeping
     // both in the picture shows them whole
     int focusLift = 44, focusTall = 120;
+    // ... and the game's panel (its health bars, clock and names), which the zoom that follows the fight's distance leaves
+    // where it is: its objects (true for an object of the panel, by its tile's number and attributes, as
+    // Video::hideObject has them), and the scroll screens it is drawn on (Video::layerMask's bits). Not given: that
+    // zoom has the panel zoomed with the rest.
+    bool (*panel)(uint32_t tile, uint16_t attributes) = nullptr;
+    unsigned panelLayers = 0;
     // Not to run ahead now (the port's run-ahead): a mode whose own workings a save state does not wholly hold,
     // so that frames run and taken back would change it. Not given: run-ahead whenever it is on.
     bool (*noRunAhead)() = nullptr;

@@ -97,7 +97,8 @@ or **Scroll**, going by in order at the speed you choose), the **Screen** (every
 window, or as each game is set), the **Picture** (every game widescreen, every game 4:3, or as each game is set) and
 the rest of the Display page every game has (**Invisible walls**, **Scaling**, **Picture shape**, **Window size**,
 **Shader**, each also as each game is set) and the **Zoom** (**Both fighters**: in every game the camera follows the
-two fighters, as close as they allow), then **Start**. These are for that run only: each game's own settings stay as they
+two fighters, as close as they allow; **By distance**: closer as they come together, out as they part, the health bars
+left as they are), then **Start**. These are for that run only: each game's own settings stay as they
 were. In a window, each game opens where the one before it was and as large, wherever you moved it. Touch
 the controls to take a fighter over. While it plays, **N** (or a gamepad's left shoulder) fades out to the next game
 and **F** (or the left trigger) held fast-forwards at four times the speed; the page lists them under **While it

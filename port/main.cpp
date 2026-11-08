@@ -564,9 +564,11 @@ void RegisterPortFeatures() {
         TheGame().features.push_back({"zoom", "Display", "Zoom",
                                       "The picture shown larger about a fighter, following it: player 1's or player 2's (1.5x; the "
                                       "zoom's buttons change the size), or both fighters', as close as keeps them both in the "
-                                      "picture. Also the left stick's click held with a shoulder (with the right stick's: both), "
-                                      "Left Shift with Q, E or W, or a touch screen's Zoom button (both).",
-                                      kFeatureSession, {"Off", "Player 1", "Player 2", "Both fighters"}});
+                                      "picture. Or by distance: a little closer as the fighters come together, out to all of the "
+                                      "picture as they part, with the health bars and clock left as they are. Also the left "
+                                      "stick's click held with a shoulder (with the right stick's: both), Left Shift with Q, E or "
+                                      "W, or a touch screen's Zoom button (both).",
+                                      kFeatureSession, {"Off", "Player 1", "Player 2", "Both fighters", "By distance"}});
     }
     // (online play's readout, each player's own: Port::Shown)
     TheGame().features.push_back({"online_ping", "Online", "Ping",
@@ -1192,8 +1194,10 @@ void Port::Key(char key, unsigned n) {
             LeaveOnline();
         }
         break;
-    case 'z': // (tests: the zoom pressed for player n + 1; 2: for both)
-        if (n == Zoom::kBoth) {
+    case 'z': // (tests: the zoom pressed for player n + 1; 2: for both; 3: by distance, the menu's choice)
+        if (n == Zoom::kDistance) {
+            zoom.Choose(4);
+        } else if (n == Zoom::kBoth) {
             zoom.Both();
         } else {
             zoom.Press(static_cast<int>(n));
@@ -1616,6 +1620,7 @@ bool Port::Windowed(std::vector<uint32_t> &pixels, Zoomed &zoomed, bool readouts
         shotTicks--;
     }
     zoomed.keep.clear();
+    zoomed.panel = false;
     if (!zoom.View(across, Video::kHeight, zoomed.view)) {
         if (readouts) {
             Readouts(pixels);
@@ -1630,7 +1635,27 @@ bool Port::Windowed(std::vector<uint32_t> &pixels, Zoomed &zoomed, bool readouts
     }
     // (the game's own picture above, the one with the readout below)
     Shown(pixels, &zoomed.keep);
-    pixels.insert(pixels.begin(), machine->Picture(), machine->Picture() + across * Video::kHeight);
+    const uint32_t *above = machine->Picture();
+    // (not where the game's sources put the picture together from other frames: the last frame run is not the one shown)
+    if (zoom.KeepsPanel() && machine->Unpanelled() && machine->PictureWidth() == across && !cps2recomp::PictureMade()) {
+        // The panel left where it is (zoom.h, by distance): above, the game's picture without it; below, of the one with
+        // the readout, only the panel's pixels and the readout's panels, the rest clear
+        above = machine->Unpanelled();
+        const uint8_t *panel = machine->PanelPixels();
+        std::vector<uint8_t> kept(pixels.size(), 0);
+        for (const SDL_Rect &keep : zoomed.keep) {
+            for (int y = std::max(keep.y, 0); y < std::min(keep.y + keep.h, +Video::kHeight); y++) {
+                for (int x = std::max(keep.x, 0); x < std::min(keep.x + keep.w, across); x++) {
+                    kept[static_cast<size_t>(y) * across + x] = 1;
+                }
+            }
+        }
+        for (size_t n = 0; n < pixels.size(); n++) {
+            pixels[n] = panel[n] || kept[n] ? pixels[n] | 0xFF000000u : 0;
+        }
+        zoomed.panel = true;
+    }
+    pixels.insert(pixels.begin(), above, above + across * Video::kHeight);
     return true;
 }
 
@@ -1940,6 +1965,8 @@ void Port::Step(const uint16_t *players) {
     if (TheGame().beforeFrame) {
         TheGame().beforeFrame(*machine);
     }
+    // (the zoom by distance leaves the game's panel where it is: the frame drawn with it apart, zoom.h)
+    machine->panel = zoom.KeepsPanel() ? Machine::Panel{TheGame().panel, TheGame().panelLayers} : Machine::Panel{};
     machine->RunFrame();
     if (opt.musicTest) {
         MusicTest();
@@ -2835,7 +2862,8 @@ void Usage() {
             "  --sound-test SEED[:N]  every N frames (30) a command to the sound side: each song in turn, placed\n"
             "                         some made-up way, and the other commands (with --sound check)\n"
             "  --scale N              window size, times 224 lines (else the Display page's)\n"
-            "  --zoom SIZE:PLAYER     the camera zoomed from the start: SIZE 1-4 (1.25x-2x), PLAYER 1 or 2 (3: both)\n"
+            "  --zoom SIZE:PLAYER     the camera zoomed from the start: SIZE 1-4 (1.25x-2x), PLAYER 1 or 2 (3: both,\n"
+            "                         4: both by their distance, the panel left as it is)\n"
             "  --fullscreen  --window (a window, after --fullscreen)  --mute  --unthrottled\n"
             "  --headless             no window, no sound, as fast as it goes\n"
             "  --frames N             stop after N frames\n"
@@ -3250,7 +3278,7 @@ int main(int argc, char **argv) {
         return 1;
     }
     if (p.opt.zoom > 0) {
-        p.zoom.Set(p.opt.zoom, std::clamp(p.opt.zoomPlayer, 0, +port::Zoom::kBoth));
+        p.zoom.Set(p.opt.zoom, std::clamp(p.opt.zoomPlayer, 0, +port::Zoom::kDistance));
     }
     int result = 0;
     const auto begin = std::chrono::steady_clock::now();

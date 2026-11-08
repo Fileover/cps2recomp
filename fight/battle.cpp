@@ -2069,6 +2069,9 @@ void battle::Register(const Description &description) {
     d = description;
     g_described = true;
     Game &game = TheGame();
+    // (the zoom that keeps the panel where it is: port/zoom.h)
+    game.panel = d.thePanel;
+    game.panelLayers = d.panelLayers;
     game.pages.push_back({kSurvival, kModes, "One opponent after another on the health you have left. How many can you beat?"});
     game.pages.push_back({kEndless, kModes, "Two fighters the game plays, for as long as you like. Touch the controls to take one over."});
     game.commands.push_back({"survival_start", kSurvival, "Start",
