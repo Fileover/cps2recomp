@@ -7,6 +7,7 @@
 // guests line), so that their sets are found.
 #pragma once
 
+#include "../games/cybots/guest.h"
 #include "../games/dstlk/guest.h"
 #include "../games/msh/guest.h"
 #include "../games/mshvsf/guest.h"
@@ -52,6 +53,7 @@ inline const std::vector<Entry> &All() {
         Make("mvsc", mvsc_guest::Description, mvsc_guest::kStageNames),
         Make("xmcota", xmcota_guest::Description, xmcota_guest::kStageNames),
         Make("pocket_fighter", pocket_fighter_guest::Description, pocket_fighter_guest::kStageNames),
+        Make("cybots", cybots_guest::Description, cybots_guest::kStageNames),
     };
     return all;
 }
