@@ -9,6 +9,7 @@ the build tells you which one is missing or different.
 
 | Game | `GAME=` | ROM set |
 | --- | --- | --- |
+| [Super Street Fighter II](../games/ssf2/README.md) | `ssf2` | `ssf2` (World 931005) |
 | [Super Street Fighter II Turbo](../games/ssf2t/README.md) | `ssf2t` | `ssf2xjr1` (Japan 940223) |
 | [Hyper Street Fighter II](../games/hsf2/README.md) | `hsf2` | `hsf2` (USA 040202) |
 | [Street Fighter Alpha](../games/sfa/README.md) | `sfa` | `sfa` (Europe 950727) |
