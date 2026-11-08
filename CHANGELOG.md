@@ -3,7 +3,7 @@
 ## Unreleased
 
 - **The input display** (training mode, every fighting game) no longer shows the stick at rest as 5: a line shows the
-  direction held, if any, and the buttons; a line of nothing held keeps its frame count.
+  direction held, if any, and the buttons, and nothing held is not a line (as in sf3comp).
 
 - **Zoom by distance** (issue #272): the Zoom row (Display page) and the launcher's Multi game page have **By
   distance**, a camera made for playing: a little closer than the whole picture as a round starts, a quarter closer as
