@@ -13,6 +13,8 @@
 
 namespace cps2recomp {
 
+bool RingOutStep(M68K &c); // battle.cpp
+
 namespace {
     using namespace cybots;
 
@@ -81,6 +83,10 @@ namespace {
     // own states go back to 019D70 by jmp, which is not another step); seen as it starts, the record is as the last
     // step left it, which is what the picture showed
     bool PlayerStep(M68K &c) {
+        if (RingOutStep(c)) { // (the ring out's own movements: battle.cpp)
+            Return(c);
+            return true;
+        }
         const uint32_t back = c.Read(c.a[7], 2) & 0xFFFFFF;
         if (back < 0x019D28 || back > 0x019D58) {
             return false;
@@ -102,6 +108,17 @@ namespace {
         view.jumping = Ram16(player + kY) != kGround;
         view.attackOut = Ram8(player + kBoxIds) != 0;
         session::Step(n, view);
+        return false;
+    }
+
+    // 0197AE: the computer's play of a player (A6) runs this frame. A player handed to the computer in the middle of a
+    // fight (the modes do: battle.h) has no script yet, which the game gives only as a round is set up; with none, the
+    // computer does nothing. It is given one, as the game would have.
+    bool ComputerPlays(M68K &c) {
+        const uint32_t player = c.a[6] & 0xFFFFFF;
+        if (PlayerOf(player) >= 0 && Ram8(player + kComputer) && !Ram32(player + kComputerScript)) {
+            Call(c, kComputerStarts);
+        }
         return false;
     }
 
@@ -173,6 +190,7 @@ void RegisterTraining() {
     session::Register(d);
     AddHook(HookAt(kPlayerStep), "PlayerStep", PlayerStep);
     AddHook(HookAt(kHitTaken), "HitTaken", HitTaken);
+    AddHook(HookAt(kComputerPlays), "ComputerPlays", ComputerPlays);
 }
 
 } // namespace cps2recomp

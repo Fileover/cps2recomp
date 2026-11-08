@@ -99,7 +99,8 @@ void RegisterModes() {
     d.cameraRight = kCameraRight;
     d.notTheStage = NotTheStage;
     d.attractBegun = [](int frames) { return frames > 500 && Ram16(kMode) >= kLoopStart; };
-    d.attractOver = [] { return Ram8(kPlayersIn) != 0 || Ram8(kCredits) != 0; };
+    // (over with a credit in or a game begun: the show's own fights have players in too)
+    d.attractOver = [] { return Ram8(kInGame) != 0 || Ram8(kCredits) != 0; };
     d.attractStep = AttractStep;
     d.attractWords = "The game's own show on a loop, with no coin in: the machines, the introduction, the title, fights and the "
                      "ranking.";

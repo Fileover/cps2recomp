@@ -135,6 +135,14 @@ enum : uint8_t { kSubStand = 0, kSubCrouch = 4, kSubAir = 8, kSubLanding = 0x0C 
 enum : uint8_t { kSubAttack = 0, kSubSpecial = 4, kSubDown = 8, kSubThrown = 0x0C, kSubReel = 0x10 };
 constexpr uint32_t kFacesRight = 0x09; // byte: 1 facing right (a box's offset across is kept as if facing left)
 constexpr uint32_t kX = 0x1A, kY = 0x1E; // words (each the high word of a long with 16 bits of fraction)
+constexpr uint32_t kLastX = 0x22, kLastY = 0x26; // the same, as the last frame left them (a trace through a jump)
+// Bytes: 1 while the game plays the player. +380 says it for the match (1 for player 2 in a one-player game, 0 in a
+// two-player one); 0196E6 copies it to +253 as a round is set up, and the computer's play goes by +253 (0196E6, 046264).
+// +10C is the side, 0 or 1.
+constexpr uint32_t kComputerMatch = 0x380, kComputer = 0x253;
+// The computer's play of a player (A6): 0197AE runs it each frame (020506) while +253 is set; 020484 starts it (the
+// script for the machine at +200 and the rest), which the game does only as a round is set up (019720)
+constexpr uint32_t kComputerPlays = 0x0197AE, kComputerStarts = 0x020484, kComputerScript = 0x200;
 constexpr uint16_t kGround = 0x30;
 constexpr uint32_t kPilot = 0x370, kMachine = 0x371, kArm = 0x372, kWeapon = 0x373;
 // Choosing: +381 is 1 while the player chooses, +383 its step (0 the pilot, 4 on the machine), +382 1 once it has
@@ -157,6 +165,12 @@ constexpr uint32_t kThrown = 0xFF9360, kThrownSize = 0xC0;
 constexpr int kThrownRecords = 16;
 // The whole picture frozen while a hit lands (the FBNeo training script)
 constexpr uint32_t kHitFreeze = 0xFFEBA4;
+
+// 003782: a player (A6) kept inside the picture: X no less than the camera's plus half its width (+118, a word) and no
+// more than the picture's right edge less it (0037FC returns); +116 says which edge held it (1 left, 2 right). Found by
+// --watch on player 1's X pressed against the left end (0037B6). Its stage ends are the camera's.
+constexpr uint32_t kKeptInPicture = 0x003782;
+constexpr uint32_t kHalfWidth = 0x118;
 
 // The player's step of a fight (A6): 019CF8 runs it for both players each frame (in an order of chance, and a second
 // time for one with +1AA set); it goes on by kState (019D7C)
@@ -193,6 +207,8 @@ inline bool NotTheFighters(uint32_t tile, uint16_t attributes) {
 // start copies it to the variables (091256 on) and goes on at 0912F4. Each variable found by stepping the option in
 // the test menu and dumping memory after each step.
 constexpr uint32_t kSettingsCopied = 0x0912F4;
+// The difficulty as the board's start left it (0-7: board.cpp)
+constexpr uint32_t kDifficulty = 0xFF80A8;
 // A game begins: Start was pressed (the game's own routine)
 constexpr uint32_t kGameBegins = 0x00C3A6;
 
