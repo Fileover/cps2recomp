@@ -124,6 +124,14 @@ how far above them to look, `tall` how tall a fighter stands; it is on only whil
 model viewer. Vampire Savior's
 is in `src/camera.cpp`: where the fighter stands, 44 lines up from its feet. `--zoom SIZE:PLAYER` starts zoomed.
 
+The menu's **By distance** (`--zoom 1:4`, issue #272) sizes the camera by how far apart the fighters are (1.11x as a
+round starts, 1.39x together, the whole picture from four fifths of the way to the ends) and leaves the game's panel
+unzoomed. For that the frame is drawn twice, a line at a time (`Machine::panel`): once as it is, with the panel's pixels
+marked, and once without the panel; the window zooms the second and lays the panel's pixels over it at their size. The
+panel is `Game::panel` (its objects, by tile and attributes, as `Video::hideObject` has them) and `Game::panelLayers`
+(its scroll screens), which `battle::Register` fills from the description's `thePanel` and `panelLayers`; a game
+without them has its panel zoomed with the rest.
+
 ## Where a feature does its work
 
 - **After every frame** (`TheGame().frame`), on the game's memory: `Ram8/16/32`, `SetRam8/16/32`

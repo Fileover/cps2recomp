@@ -40,9 +40,12 @@ float PictureShape(int columns, int rows, Shape shape, float window);
 // the rectangle the whole picture would; and `keep`, rectangles of the one below (in the pixels of its own size,
 // not counting the one above) are shown where they are and at their size all the same: the readout's panels,
 // which are not part of the game's picture.
+// With `panel`, the one below is laid over all of what is shown where its alpha is set, at its own size, and is clear
+// elsewhere: the game's panel, which is not zoomed either (zoom.h, by distance), with the readout's panels.
 struct Zoomed {
     SDL_FRect view;
     std::vector<SDL_Rect> keep;
+    bool panel = false;
 };
 
 class Presenter {

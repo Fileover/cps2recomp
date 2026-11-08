@@ -107,8 +107,8 @@ each other.
   ships' true hit boxes and the enemies' shots shown ([more](docs/PRACTICE.md)); and a score attack, a caravan and a
   boss rush ([more](docs/MODES.md#the-shoot-em-ups)).
 - **The picture your way**: sharp or smooth scaling, 4:3 or square pixels, and RetroArch shaders (CRT, scanlines,
-  xBRZ and more, or your own preset). A camera zoom follows either fighter or keeps both in view
-  ([more](docs/PICTURE.md)).
+  xBRZ and more, or your own preset). A camera zoom follows either fighter, keeps both in view, or closes in
+  and out with the fighters' distance while the health bars stay put ([more](docs/PICTURE.md)).
 - **Controls**: keyboard, gamepad or arcade stick, every button changeable per player and per game.
 - **An in-game menu**: save states, speed and pause, frame advance, cheats and every option.
 - **English, Brazilian Portuguese or Spanish** in the launcher and every game's menu: chosen once in the launcher (or

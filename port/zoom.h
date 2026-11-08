@@ -12,6 +12,11 @@
 //
 // Or both fighters at once: the camera is as close as keeps both in the picture (2x at most, the whole picture at
 // least), between them, and inside the picture's edges: tight when they are close, wide when they are apart.
+//
+// Or by the fighters' distance, as some other fighting games' cameras do (issue #272): a little closer than the whole
+// picture as a round starts (1.11x), closer still as the fighters come together (1.39x: a quarter more), and out to the
+// whole picture as they part (from four fifths of the way to the picture's ends), always with both in it; and the
+// game's panel (its health bars and clock: Game::panel) left where it is and at its size, not zoomed.
 #pragma once
 
 #include "present.h"
@@ -27,21 +32,25 @@ public:
     // Online play (issue #196): no zoom while it lasts, for either player; the whole picture shown again at once
     void Forbid(bool forbid = true);
 
-    static constexpr int kBoth = 2; // (the "player" the camera follows when it keeps both in the picture)
+    static constexpr int kBoth = 2;     // (the "player" the camera follows when it keeps both in the picture)
+    static constexpr int kDistance = 3; // (... and when its size goes by how far apart they are)
     // A press for player `player` (0 or 1)
     void Press(int player);
     // A press for both fighters at once: on, or off when it is on
     void Both();
     // The in-game menu's Zoom row (the session feature zoom, main.cpp): 0 off, 1 or 2 that player's fighter (at the size
-    // it was at, 1.5x if none), 3 both; and what is chosen now, by the same numbers
+    // it was at, 1.5x if none), 3 both, 4 by their distance; and what is chosen now, by the same numbers
     void Choose(int choice);
     int Choice() const {
-        return m_size == 0 ? 0 : m_player == kBoth ? 3 : m_player + 1;
+        return m_size == 0 ? 0 : m_player == kDistance ? 4 : m_player == kBoth ? 3 : m_player + 1;
     }
+    // The game's panel is to be drawn apart, to be left as it is (the zoom by distance, where the game says what its
+    // panel is): Machine::panel
+    bool KeepsPanel() const;
     // The camera moved off its fighter by so many steps across and down (the d-pad or the arrows, while zooming), to
     // frame it as the player wants; kept until the zoom is off or looks at the other fighter
     void Pan(int across, int down);
-    // Straight to a size (0: none) about a player (kBoth: both, whatever the size), with no easing (--zoom)
+    // Straight to a size (0: none) about a player (kBoth, kDistance: both, whatever the size), with no easing (--zoom)
     void Set(int size, int player);
     // Each picture shown, `width` x `height`: the size and the place looked at a step nearer what is wanted
     void Follow(int width, int height);

@@ -33,7 +33,7 @@ namespace {
     }
 
     struct Sizes {
-        float size[2], scale[2], view[4], shown[2], spare[2];
+        float size[2], scale[2], view[4], shown[2], laid[2];
     };
 
     // Zoomed (present.h, Zoomed: `pixels` two pictures, one above the other), what the camera shows, at the
@@ -63,6 +63,14 @@ namespace {
                 const float right = across - column;
                 out[static_cast<size_t>(y) * width + x] = mix(mix(at(column, row), at(column + 1, row), right),
                                                               mix(at(column, row + 1), at(column + 1, row + 1), right), below);
+            }
+        }
+        if (zoomed.panel) {
+            for (size_t n = 0; n < out.size(); n++) {
+                const uint32_t laid = pixels[static_cast<size_t>(width) * height + n];
+                if (laid >> 24) {
+                    out[n] = laid & 0xFFFFFFu;
+                }
             }
         }
         for (const SDL_Rect &keep : zoomed.keep) {
@@ -428,8 +436,9 @@ void Presenter::Draw(SDL_GPUCommandBuffer *commands, SDL_GPUTexture *target, con
     // (zoomed, the texture is two pictures, one above the other: present.h, Zoomed)
     const float width = static_cast<float>(m_width), height = static_cast<float>(zoomed ? m_height / 2 : m_height);
     const float tall = static_cast<float>(m_height);
-    // The part `view` of the texture (its pixels) over the whole of `where`, drawn only inside `clip` (the window's pixels)
-    auto part = [&](const SDL_FRect &view, const SDL_Rect &clip) {
+    // The part `view` of the texture (its pixels) over the whole of `where`, drawn only inside `clip` (the window's pixels);
+    // `laid`, only where its alpha is set
+    auto part = [&](const SDL_FRect &view, const SDL_Rect &clip, bool laid = false) {
         SDL_SetGPUScissor(pass, &clip);
         // (blended all over: as if each of the picture's pixels took one of the screen's, which the shader blends
         // from edge to edge)
@@ -437,7 +446,7 @@ void Presenter::Draw(SDL_GPUCommandBuffer *commands, SDL_GPUTexture *target, con
         const Sizes sizes = {{width, tall},
                              {smooth ? 1.0f : std::floor(where.w / view.w + 0.999f), smooth ? 1.0f : std::floor(where.h / view.h + 0.999f)},
                              {view.x / width, view.y / tall, view.w / width, view.h / tall},
-                             {width, view.y >= height ? tall : height}, {0, 0}};
+                             {width, view.y >= height ? tall : height}, {laid ? 1.0f : 0.0f, 0}};
         SDL_PushGPUFragmentUniformData(commands, 0, &sizes, sizeof(sizes));
         SDL_DrawGPUPrimitives(pass, 3, 1, 0, 0);
     };
@@ -449,6 +458,9 @@ void Presenter::Draw(SDL_GPUCommandBuffer *commands, SDL_GPUTexture *target, con
                         static_cast<int>(std::lround(where.y + (y + h) * where.h / height)) - top};
     };
     part(zoomed ? zoomed->view : SDL_FRect{0, 0, width, height}, inWindow(0, 0, width, height));
+    if (zoomed && zoomed->panel) {
+        part({0, height, width, height}, inWindow(0, 0, width, height), true);
+    }
     if (zoomed) {
         for (const SDL_Rect &keep : zoomed->keep) {
             part({0, height, width, height}, inWindow(static_cast<float>(keep.x), static_cast<float>(keep.y), static_cast<float>(keep.w), static_cast<float>(keep.h)));
@@ -530,6 +542,12 @@ void Presenter::Show(const uint32_t *pixels, int width, int height, const SDL_FR
         }
         SDL_SubmitGPUCommandBuffer(commands);
         return;
+    }
+    if (zoomed && zoomed->panel) {
+        // (SDL's renderer: with the panel laid over, what the camera shows is put together at the picture's size first)
+        Compose(pixels, width, height, *zoomed, m_composed);
+        pixels = m_composed.data();
+        zoomed = nullptr;
     }
     // (zoomed, the texture is two pictures, one above the other: present.h, Zoomed)
     const int tall = zoomed ? 2 * height : height;
