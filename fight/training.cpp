@@ -61,7 +61,12 @@ void InputHistory::Hud(int player, std::vector<HudLine> &lines, float y, float s
     const Held *history = m_held[player];
     for (int i = 0; i < kLines && history[i].frames; i++) {
         char text[48];
-        const std::string what = Notation(history[i].buttons, history[i].facingLeft);
+        // (the stick at rest, 5, is not shown: only a direction held, and the buttons; a line of nothing held keeps its
+        // count, so that the time between presses is still seen)
+        std::string what = Notation(history[i].buttons, history[i].facingLeft);
+        if (!(history[i].buttons & kSticks)) {
+            what.erase(0, what.size() > 1 ? 2 : 1);
+        }
         if (player == 0) {
             snprintf(text, sizeof(text), "%3u  %s", history[i].frames, what.c_str());
         } else {
