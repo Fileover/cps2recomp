@@ -99,20 +99,11 @@ void RingOutState(Archive &ar) {
     ar.Pod(g_speedY);
 }
 
-// 003782: a player kept inside the picture; one knocked over an end of the stage in the ring out is let go
-bool KeptInPicture(M68K &c) {
-    if (RingOutLetsOut(c.a[6] & 0xFFFFFF)) {
-        Return(c);
-        return true;
-    }
-    return false;
-}
-
 void RegisterBattle() {
     battle::Description d;
     d.resultNow = ResultNow;
-    d.cameraX = kCameraX;
-    d.cameraY = kCameraY;
+    d.cameraXAt = CameraXAt;
+    d.cameraYAt = CameraYAt;
     d.cameraLeft = kCameraLeft;
     d.cameraRight = kCameraRight;
     d.player1 = kPlayer1;
@@ -153,6 +144,7 @@ void RegisterBattle() {
     d.stageViewer = modes::StageViewer;
     d.wideSide = WideSide;
     d.wideMargin = WideMargin;
+    d.wideEnds = WideEnds;
     d.notTheStage = NotTheStage;
     d.thePanel = ThePanel;
     d.notTheFighters = NotTheFighters;
@@ -168,7 +160,6 @@ void RegisterBattle() {
     };
     d.difficultyNow = [] { return static_cast<int>(Ram8(kDifficulty) & 7); };
     battle::Register(d);
-    AddHook(HookAt(kKeptInPicture), "KeptInPicture", KeptInPicture);
 }
 
 } // namespace cps2recomp

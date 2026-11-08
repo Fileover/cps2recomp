@@ -98,13 +98,27 @@ constexpr uint32_t kControls[2] = {0xFF806E, 0xFF8072};
 constexpr uint32_t kSoundQueue = 0xFF9438, kSoundQueueEnd = 0xFF9434;
 constexpr uint16_t kSoundQueueMask = 0xFF0;
 
-// The camera: an object at FFECDA, its X (the picture's left edge in the stage: 0 to 280 across, the stages are 1024
-// wide) at +1A and its Y at +1E; 017256 copies them to scroll 2's words at FF802E and FF8030 each frame (the Y with 200
-// more on stages drawn from the second half of the scroll's map). A second object at FFEC1A is a far plane's camera
-// (FF802A), slower. Found from RAM dumps as the players walked to each end, and the fighters' objects against their X.
-// The players stop at 1C and 3E4; they start a round at 1A8 and 258.
-constexpr uint32_t kCameraX = 0xFFECF4, kCameraY = 0xFFECF8;
-inline constexpr uint32_t kCameraCopies[] = {0xFFECF4, 0xFF802E};
+// The camera: an object whose X (the picture's left edge in the stage: 0 to 280 across, the stages are 1024 wide) is at
+// +1A and its Y at +1E; which object it is goes by the stage (FFEC1A, FFECDA, FFED9A...): the word at A5+6B1C points to
+// it, and the objects of the other planes follow its steps (01803E on: some as fast, some slower). 017F3A steps it
+// each frame towards the players. Found from RAM dumps as the players walked to each end on several stages, and the
+// fighters' objects against their X. The players stop at 1C and 3E4; they start a round at 1A8 and 258.
+constexpr uint32_t kCameraPointer = 0xFFEB1C;
+inline uint32_t CameraObject() {
+    return 0xFF0000 | cps2recomp::Ram16(kCameraPointer);
+}
+inline uint32_t CameraXAt() {
+    return CameraObject() + 0x1A;
+}
+inline uint32_t CameraYAt() {
+    return CameraObject() + 0x1E;
+}
+inline int CameraX() {
+    return static_cast<int16_t>(cps2recomp::Ram16(CameraXAt()));
+}
+inline int CameraY() {
+    return static_cast<int16_t>(cps2recomp::Ram16(CameraYAt()));
+}
 constexpr int kCameraLeft = 0, kCameraRight = 0x280;
 constexpr int kStageLeft = 0x1C, kStageRight = 0x3E4;
 constexpr uint16_t kStartX[2] = {0x1A8, 0x258};
@@ -180,10 +194,28 @@ constexpr uint32_t kPlayerStep = 0x019D70;
 constexpr uint32_t kHitTaken = 0x0463B8;
 constexpr uint32_t kGuarded = 0x130;
 
+// --- the machines' colours ---
+
+// A machine's colours (015152 puts them in a player's seven palettes, 900000 for player 1 and 900200 for player 2, as
+// a round is set up): the table at 0153CE has a word for each machine, how far on from the table its colours are; there
+// two sets of eight bytes (the player's +38B, bit 0, says which), each the number of a palette in one of seven tables,
+// one table for each of the player's palettes (32 bytes a palette). A stage of ice (06 and 0D) has a table of its own,
+// 0154EE, with the machines' colours as that stage's light shows them. Found from the routine, and each palette
+// compared with the palette memory a fight showed (the same but for the brightness, which the game keeps).
+constexpr uint32_t kColourTable = 0x0153CE, kColourTableIce = 0x0154EE;
+inline constexpr uint32_t kColourBanks[] = {0x0CFB48, 0x0D03C8, 0x0D0BC8, 0x0D13C8, 0x0D1988, 0x0D1B08, 0x0D2308};
+constexpr uint32_t kColoursEnd = 0x0D2A88; // (the last table's last palette any machine names, and on)
+constexpr int kColourSetsEach = 2, kPalettesInSet = 7, kPaletteBytes = 0x20;
+constexpr uint32_t kPalettes = 0x900000, kPalettes2 = 0x900200;
+
 // Objects by their colour set (attributes' low five bits) and tile, from the object lists of fights: 00-07 player 1's
 // (the palette loader 015152 writes its seven at 900000) and 10-17 player 2's (900200), with what they throw and the
 // sparks; 18-1A the stage's pieces; 1B-1F the panel (clock, bars, names); the faces under the bars are in sets 09, 0F
 // and 1C, tiles 12300-123FF
+// The players' shadows: both in set 04, tiles 2A200-2A21F (on the floor's line, under each player)
+inline bool IsShadow(uint32_t tile) {
+    return tile >= 0x2A200 && tile < 0x2A220;
+}
 inline bool TheFaces(uint32_t tile) {
     return tile >= 0x12300 && tile < 0x12400;
 }
@@ -232,4 +264,5 @@ int WideStage();
 int WideMargin();
 void WideForSpare(Machine &machine);
 void WideForPort(Machine &machine);
+void WideEnds(int &left, int &right);
 } // namespace cps2recomp

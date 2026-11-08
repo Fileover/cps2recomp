@@ -12,6 +12,8 @@
 
 namespace cps2recomp {
 
+void HiddenMachine(int n); // choosing.cpp
+
 namespace {
     using namespace cybots;
 
@@ -57,6 +59,7 @@ namespace {
         if (n < 0) {
             return false;
         }
+        HiddenMachine(n);
         const MatchWanted &wanted = modes::Wanted();
         for (int k = 0; k < 2; k++) {
             const int machine = wanted.characters[k];
@@ -95,9 +98,17 @@ void RegisterModes() {
     d.playerSize = kPlayerSize;
     d.x = kX;
     d.stageNames.assign(std::begin(kStageNames), std::end(kStageNames));
+    // (each stage's tune, as a two-player fight on it plays it: music.cpp)
+    d.stageTunes = {0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18, 0x1A, 0x1B, 0x1C, 0x13, 0x13, 0x1A, 0x12};
+    d.otherTuneNames = {"Pilot and machine select", "The last fight"};
+    d.otherTunes = {0x02, 0x32};
     d.cameraLeft = kCameraLeft;
     d.cameraRight = kCameraRight;
     d.notTheStage = NotTheStage;
+    d.wideSide = WideSide;
+    d.wideMargin = WideMargin;
+    d.wideForSpare = WideForSpare;
+    d.wideForPort = WideForPort;
     d.attractBegun = [](int frames) { return frames > 500 && Ram16(kMode) >= kLoopStart; };
     // (over with a credit in or a game begun: the show's own fights have players in too)
     d.attractOver = [] { return Ram8(kInGame) != 0 || Ram8(kCredits) != 0; };

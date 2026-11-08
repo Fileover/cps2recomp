@@ -168,9 +168,8 @@ void RegisterTraining() {
     d.fighting = [] {
         return Ram8(kInGame) != 0 && Ram16(kMode) == kGameRunning && Ram16(kStep) == kGameMatch && Ram16(kStep2) == kRoundFought;
     };
-    d.cameraX = kCameraX;
-    d.cameraY = kCameraY;
-    d.cameraCopies.assign(std::begin(kCameraCopies), std::end(kCameraCopies));
+    d.cameraXAt = CameraXAt;
+    d.cameraYAt = CameraYAt;
     d.startX[0] = kStartX[0];
     d.startX[1] = kStartX[1];
     d.stageLeft = kStageLeft;
@@ -182,6 +181,10 @@ void RegisterTraining() {
     d.facingLeft = [](int n) { return Ram8(Player(n) + kFacesRight) == 0; };
     d.moveStart = MoveStart;
     d.boxes = Boxes;
+    d.wideStage = WideStage;
+    d.wideSide = WideSide;
+    d.wideMargin = WideMargin;
+    d.wideEnds = WideEnds;
     d.pictureFloor = 192; // (the players' feet with the camera at its lowest: 224 - 30 + 16)
     d.stageChoices = modes::StageChoices({"The game's choice"});
     d.inputWords = "What each player presses and for how many frames: the stick as a keypad number from the player's side (6 "

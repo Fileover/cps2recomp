@@ -6,6 +6,7 @@
 #include "cybots.h"
 #include "alternative.h"
 #include "battle.h"
+#include "colours.h"
 #include "session.h"
 #include "state.h"
 
@@ -25,11 +26,28 @@ void RegisterModes(); // modes.cpp
 void RegisterTraining(); // training.cpp
 void RegisterBattle(); // battle.cpp
 void RingOutState(Archive &ar);
+void RegisterWidescreen(); // widescreen.cpp
+void WidescreenBeforeFrame(Machine &machine);
+void WidescreenState(Archive &ar);
+bool WidePlay();
+void RegisterModel(); // model.cpp
+void ModelBeforeFrame(Machine &machine);
+void ModelFrame(Machine &machine);
+void ModelState(Archive &ar);
+bool ModelViewer();
+void RegisterColours(); // colours.cpp
+void RegisterChoosing(); // choosing.cpp
+void ChoosingBeforeFrame(Machine &machine);
+void ChoosingState(Archive &ar);
 
 void RegisterGame() {
     RegisterModes();
     RegisterTraining();
     RegisterBattle();
+    RegisterWidescreen();
+    RegisterModel();
+    RegisterColours();
+    RegisterChoosing();
     RegisterCoins();
     RegisterCheats();
     RegisterTitle();
@@ -37,14 +55,19 @@ void RegisterGame() {
     RegisterMusic();
     TheGame().beforeFrame = [](Machine &machine) {
         BoardBeforeFrame(machine);
+        ChoosingBeforeFrame(machine);
+        WidescreenBeforeFrame(machine);
         session::BeforeFrame(machine);
         modes::BeforeFrame(machine);
         BattleBeforeFrame(machine);
+        colours::BeforeFrame(machine);
+        ModelBeforeFrame(machine);
     };
     TheGame().frame = [](Machine &machine) {
         session::Frame(machine);
         modes::Frame(machine);
         BattleFrame(machine);
+        ModelFrame(machine);
         TitleFrame(machine);
         CoinsFrame(machine);
     };
@@ -56,13 +79,19 @@ void RegisterGame() {
         modes::State(ar);
         BattleState(ar);
         RingOutState(ar);
+        WidescreenState(ar);
+        ModelState(ar);
+        ChoosingState(ar);
     };
     // (run-ahead: not in the modes, whose workings a save state does not wholly hold)
-    TheGame().noRunAhead = [] { return modes::AttractMode() || modes::StageViewer() || BattleMode(); };
+    TheGame().noRunAhead = [] { return modes::AttractMode() || modes::StageViewer() || BattleMode() || ModelViewer(); };
     // With the arcade timing, the game's own code runs in place of the rewrites but where they carry what the port adds
-    TheGame().rewritesNeeded = [] { return session::InSession() || modes::AttractMode() || modes::StageViewer() || BattleMode(); };
+    TheGame().rewritesNeeded = [] { return session::InSession() || modes::AttractMode() || modes::StageViewer() || BattleMode() || ModelViewer() || WidePlay() ||
+               FeatureOn("widescreen");
+    };
     // Its own: the names and choices are this board's, never set for the other games by the collection's launcher
-    OwnFeatures({"board_difficulty", "board_damage", "board_timer"});
+    OwnFeatures({"board_difficulty", "board_damage", "board_timer", "survival_best", "ringout_best", "model_animation",
+                 "colours_animation"});
 }
 
 } // namespace cps2recomp
