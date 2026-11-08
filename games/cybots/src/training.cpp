@@ -106,7 +106,7 @@ namespace {
         view.frozen = Ram8(kHitFreeze) != 0;
         view.canAct = CanAct(player);
         view.attacking = busy && (sub == kSubAttack || sub == kSubSpecial);
-        view.jumping = Ram16(player + kY) != kGround;
+        view.jumping = InAir(player);
         view.attackOut = Ram8(player + kBoxIds) != 0;
         session::Step(n, view);
         return false;
@@ -148,7 +148,7 @@ namespace {
         fight::MoveLog::Start start;
         start.character = who < kMachines ? kMachineNames[who] : "?";
         start.input = fight::Notation(PanelHeld(n), Ram8(player + kFacesRight) == 0);
-        start.air = Ram16(player + kY) != kGround;
+        start.air = InAir(player);
         start.id = Ram32(player + 0x1C);
         return start;
     }

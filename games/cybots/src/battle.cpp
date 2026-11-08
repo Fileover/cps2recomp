@@ -72,7 +72,7 @@ bool RingOutStep(M68K &c) {
     }
     if (ringOut.move == RingOut::kFalling) {
         // Through the air and the floor
-        if (static_cast<int16_t>(Ram16(player + kY)) > static_cast<int16_t>(kGround) - kGoneBelow) {
+        if (static_cast<int16_t>(Ram16(player + kY)) > static_cast<int16_t>(Ram16(kFloor)) - kGoneBelow) {
             SetRam32(player + kX, Ram32(player + kX) + static_cast<uint32_t>(g_speedX[n]));
             SetRam32(player + kY, Ram32(player + kY) + static_cast<uint32_t>(g_speedY[n]));
             g_speedY[n] -= kPull;
@@ -117,10 +117,13 @@ void RegisterBattle() {
     d.y = kY;
     d.character = kMachine;
     d.computer = kComputer;
-    // (who is in charge: the player itself while free, attacking or in a move of its own)
+    // (who is in charge: the player itself while free, attacking or in a move of its own, and while it reels from a hit
+    // on its feet: a hit's push back moves it a few pixels, which at a wall (half its width from the stage's end, 3E4)
+    // is past the picture's edge, and would count as a ring out. Only a knock-down (+04 8) or a throw (0C) sends a
+    // player over an end: the ring out's "knocked about", as in the other games)
     d.ownMaster = [](uint32_t player) {
         const uint8_t sub = Ram8(player + kSub);
-        return Ram8(player + kState) == kFree || sub == kSubAttack || sub == kSubSpecial;
+        return Ram8(player + kState) == kFree || sub == kSubAttack || sub == kSubSpecial || sub == kSubReel;
     };
     d.halfWidth = kHalfWidth;
     d.health = kHealth;
@@ -149,9 +152,9 @@ void RegisterBattle() {
     d.thePanel = ThePanel;
     d.notTheFighters = NotTheFighters;
     d.playerSets = [](int n) { return 0xFFu << (n * 0x10); };
-    d.inAir = [](uint32_t player) { return Ram16(player + kY) != kGround; };
+    d.inAir = InAir;
     d.atJumpTop = [](uint32_t player) {
-        return Ram16(player + kY) != kGround && static_cast<int32_t>(Ram32(player + kY)) <= static_cast<int32_t>(Ram32(player + kLastY));
+        return InAir(player) && static_cast<int32_t>(Ram32(player + kY)) <= static_cast<int32_t>(Ram32(player + kLastY));
     };
     d.canAct = [](int side) {
         const uint32_t player = Player(side);

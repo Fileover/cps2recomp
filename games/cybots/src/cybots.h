@@ -157,7 +157,14 @@ constexpr uint32_t kComputerMatch = 0x380, kComputer = 0x253;
 // The computer's play of a player (A6): 0197AE runs it each frame (020506) while +253 is set; 020484 starts it (the
 // script for the machine at +200 and the rest), which the game does only as a round is set up (019720)
 constexpr uint32_t kComputerPlays = 0x0197AE, kComputerStarts = 0x020484, kComputerScript = 0x200;
+// The floor's height: a word, A5+6A20, by the stage (30 on most, 28 on the forest and the fortress: 003908 stands the
+// players on it as a round starts). kGround is the height the picture's line 192 shows with the camera at its lowest
+// (the boxes and the zoom are drawn from it), not the floor.
+constexpr uint32_t kFloor = 0xFFEA20;
 constexpr uint16_t kGround = 0x30;
+inline bool InAir(uint32_t player) {
+    return static_cast<int16_t>(cps2recomp::Ram16(player + kY)) > static_cast<int16_t>(cps2recomp::Ram16(kFloor));
+}
 constexpr uint32_t kPilot = 0x370, kMachine = 0x371, kArm = 0x372, kWeapon = 0x373;
 // Choosing: +381 is 1 while the player chooses, +383 its step (0 the pilot, 4 on the machine), +382 1 once it has
 // chosen (dumps of player 1's record every 40 frames through the choice, with pictures)
