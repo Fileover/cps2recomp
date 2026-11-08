@@ -865,8 +865,14 @@ Sizes: S a session, M a few, L a week or more. Done:
 - **The picture from the records** on the CPU (check b) and drawn a frame at a time in bands, every game, with the
   games' picture settings (widescreen), another set's graphics, and the CPS-1's rules.
 - **The SDL_GPU renderer**, every game, checked frame by frame against the board (`--video gpu-check`); in the
-  window with `--video gpu` or the Display page's **GPU picture (test)**, the readouts over it, the game's side in the
-  save state for online play's rollback; guest boards' stages under the game's fighters (Vampire Savior Definitive).
+  window, the readouts over it, the game's side in the save state for online play's rollback; guest boards' stages under
+  the game's fighters, each drawn from its own board's records on the same device and put together in one pass
+  (`over.frag`: the stage's pieces in front of the fighters, the game's panel over all).
+- **The GPU picture by default** (the Display page's **Picture drawn by**, the GPU unless the CPU is chosen; `--video
+  gpu`, or `native`/`cpu` and `board` for the CPU's), after it was looked at in the window. Frames it cannot draw are the
+  CPU's: those put together on the CPU (`MarkPictureMade`: the spares, the endless battle, the colour editor), a shader
+  preset's (OpenGL), and every frame where the window is not drawn with SDL_GPU (no usable device: SDL's renderer; a
+  GLES window on Android) or the GPU's picture cannot be made there (it says so and goes on with the CPU's).
 - **The palette commit's moves watched** as well as rewritten: when the board's timing has the rewrite stand aside,
   the game's own code runs it and the watches tell the native interface (`CPS2RECOMP_SKIP_REWRITES=CommitPalette`:
   every upload still the game's side's).
@@ -876,18 +882,23 @@ Sizes: S a session, M a few, L a week or more. Done:
 
 Left:
 
-1. **The GPU picture by default**, once it has been looked at in the window. S.
-2. **The fighting modes' pictures** (`fight/battle.cpp`: endless battle, ring out): the fighters over stages spare
+1. **The fighting modes' pictures** (`fight/battle.cpp`: endless battle, ring out): the fighters over stages spare
    machines of the same game draw, with fades between stages and darkening. Spare machines as producers, as guest
    boards are, and the fades as a pass. M-L. Until then a frame whose picture was put together or changed after the
    machine drew it (a spare ran, `Give`, `Darken`, the infinite stage, the colour editor: `MarkPictureMade`,
    runtime/spare.h) is shown from the CPU's picture: the GPU had kept the last spare's frame (the fighters and HUD
    missing, seen in the window in endless battle). `--video gpu-check` compares only the frames the window shows from
    the GPU.
-3. **Objects' offsets that change down the picture** on the GPU (none seen in any game's runs; such frames are the
+2. **Objects' offsets that change down the picture** on the GPU (none seen in any game's runs; such frames are the
    CPU's). S.
-4. **Deeper lifts:** the records made from the game's own drawing code (the Alpha library's list builder and its
+3. **Deeper lifts:** the records made from the game's own drawing code (the Alpha library's list builder and its
    piece writers, the frame's commit with sfa2's `FrameRegisters` moved to the toolkit) rather than at the register
    writes and the bank swap. M per family.
-5. **Every fighting game's stages in every other's** through two producers (a guest's facts are written once per
-   game, `games/<id>/guest.h`). L.
+4. **Every fighting game's stages in every other's** through two producers (a guest's facts are written once per
+   game, `games/<id>/guest.h`). Every fighting game with stages of its own is a guest, each run from its own stage code
+   alone (no game played to a round), and on the GPU the guest's records are drawn beside the game's and put together
+   in one pass. Left: the CPU's picture still lays the game's marked pixels over the guest board's picture a pixel at a
+   time (fight/guest_stages.cpp, the CPU picture's merge: what the frame hashes see); the guest's layers into the game's
+   own frame, one producer's records beside another's in a single frame (the interface's "a frame holds layers from
+   more than one producer"); and hosts for the fighting games that are not yet (Super Turbo, Hyper Street Fighter II,
+   the Marvel games, Gem Fighter, Darkstalkers and Night Warriors). M-L.
