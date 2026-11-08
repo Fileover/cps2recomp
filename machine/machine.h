@@ -186,6 +186,10 @@ public:
     NativeVideo nativeVideo; // (the picture at the game's level: video/native.h; --video check compares it)
     // (the frame's picture was put together over a guest board's: fight/guest_stages.cpp; the GPU's picture follows it)
     bool guestBehind = false;
+    // Whether the machine draws its own picture's lines (false: only the native records are kept, a frame at a time, for
+    // another machine to draw it from them, NativeVideo::LastFrame and DrawFrame: a guest board's stage, drawn by the
+    // game showing it; still drawn while the records are checked against it)
+    bool ownPicture = true;
     Eeprom eeprom;
 
     // Memory, as bytes in the 68000's order

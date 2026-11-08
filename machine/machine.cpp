@@ -288,7 +288,9 @@ void Machine::RunLine() {
                 video.RenderLine(row, to);
             }
         };
-        if (m_panelDrawing) {
+        // (a machine whose picture another draws from its records keeps only them, but for a check: ownPicture)
+        if (!ownPicture && !nativeVideo.checking) {
+        } else if (m_panelDrawing) {
             DrawPanelApart(row, out, draw);
         } else {
             draw(out);

@@ -66,6 +66,12 @@ public:
         bool whole = true; // (false: a frame the records do not make, before the game's first list, or of another set's
                            // graphics: the CPU's picture is to be shown, and nothing compared)
     };
+    // The last frame recorded whole (FrameEnd: its 224 lines' records, after the game's first list), valid until the next
+    // one starts; false if there is none. And a frame drawn from its records on the CPU, at once, as the GPU draws it
+    // (its lines `pitch` pixels apart; the records not changed): what another machine's picture is made of when this one
+    // does not draw its own (Machine::ownPicture, a guest board's: fight/guest_stages.cpp)
+    bool LastFrame(FrameData &data) const;
+    static void DrawFrame(const FrameData &frame, uint32_t *picture, int pitch);
     // Told each frame drawn at once (the GPU's check, port/gpu_picture.h), before the CPU draws it
     void (*frameDrawn)(const FrameData &frame, void *user) = nullptr;
     void *frameUser = nullptr;
@@ -143,6 +149,8 @@ private:
     // line's layers, and the frame's objects; its lines compared with the board's when the frame is over
     void FrameStart(const native_video::PictureOptions &options);
     void FrameEnd();
+    FrameData FrameRecords() const;
+    bool m_lastWhole = false; // (the last frame was recorded whole: LastFrame)
     bool m_inFrame = false, m_frameComparable = false;
     int m_frameRow = 0; // (the lines drawn so far)
     std::vector<uint8_t> m_frameVideo, m_frameScrollExtra;
