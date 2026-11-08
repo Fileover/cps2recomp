@@ -111,6 +111,8 @@ each other.
   ([more](docs/PICTURE.md)).
 - **Controls**: keyboard, gamepad or arcade stick, every button changeable per player and per game.
 - **An in-game menu**: save states, speed and pause, frame advance, cheats and every option.
+- **English, Brazilian Portuguese or Spanish** in the launcher and every game's menu: chosen once in the launcher (or
+  the system's language). The games' own words are left as they are.
 - **Arcade timing**: the processor slows down where and as much as the real board does, checked frame by frame
   against a cycle-exact model of it ([docs/TIMING.md](docs/TIMING.md)). Off unless you choose it.
 - **Run-ahead**, the board's operator settings, free play, rapid fire, and straight to the title at start-up.

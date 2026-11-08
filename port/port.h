@@ -295,6 +295,9 @@ int RunWindowed(Port &port);
 bool InCollection();
 // The optional features as the launcher lists them (--list-features)
 std::string LauncherFeatureList();
+// The language of the menu and the readouts (port/i18n.h), and every text the menu has (--list-text)
+void UseLanguage();
+std::string MenuTextList();
 // The launcher's own folder (launcher.ini's), the collection's or the game's; empty if there is none
 std::filesystem::path LauncherFolder();
 #ifdef __ANDROID__

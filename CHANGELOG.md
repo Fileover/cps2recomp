@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- **The launcher and the in-game menus in Brazilian Portuguese and Spanish** (issue #274): the launcher's Games page
+  has a **Language** choice (the system's, English, Português (Brasil) or Español), and every game the launcher starts
+  has its menu in it: the rows, the features, commands and pages and their descriptions, the hint, the online wait's
+  lines. The games' own words (on the board's screen) are not changed. recomp-common's `i18n.h` does the looking up;
+  the toolkit's words are in `port/i18n_pt_br.h` and `port/i18n_es.h`, and `--list-text` lists every text a game's
+  menu can show, for a table to have. A text no table has stays in English.
+
 - **Favourite stages**: in the in-game menu, Enter or A on a list of stages (training's, the stage viewer's, the endless
   and team battles') marks the stage shown a favourite (a `*` after it), and a **Favourites** row under the list goes
   through the favourites alone. The same favourites in every list, kept in settings.ini.
