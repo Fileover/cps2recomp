@@ -38,7 +38,7 @@ namespace {
     constexpr int kMachineNumbers[] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15};
     constexpr uint32_t kAnimationTables[kMachines] = {0x31BE2A, 0x3278B4, 0x330134, 0x3403E2, 0x346AC4, 0x35326E, 0x35CE60, 0x367A8A,
                                                       0x373BF4, 0x37CAB8, 0x387730, 0x398E26, 0x3A3F72, 0x3B0650, 0x3BB7EE, 0x3C6848};
-    constexpr int kLists = 64, kPerList = 16;
+    constexpr int kLists = 52, kPerList = 16; // (52: the most the toolkit names, A to AZ; one machine has 56 groups)
     constexpr uint32_t kFrame = 0x3C, kTimer = 0x3A; // a player's: the animation's frame (a long) and its time left
     constexpr int kForGoodShown = 30;
 

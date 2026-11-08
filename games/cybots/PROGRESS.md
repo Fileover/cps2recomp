@@ -100,11 +100,33 @@ the damage (the round over, the game's own pauses).
 - Hidden machines (choosing.cpp): Start held as a machine is chosen.
 - The camera's zoom (`modes::Focus`: lift 40, tall 136, from frames rendered at 2x).
 
-## Checks
+## Checks (2026-11-08, all passed)
 
-(filled in below as they were run)
+- `make GAME=cybots check` with the ladder (40,000 frames, free_play,no_damage,one_hit: the whole one-player game to
+  the staff roll, frame 31,000, and the title again) and versus (12,000 frames, with and without free play): translated
+  code does what the interpreter does, two runs alike. (A first run found the computer's-script hook acting in the
+  game's own show, frame 3,355 of attract mode: it is now only in the modes.)
+- `check-blocks` (the ladder): 392,180,882 translated blocks and 161,451,191 of the sound driver's checked, no difference.
+- `check-release` (40,000 frames): the interpreted build's pictures are the translated build's.
+- `check-rollback`: the same over 3,000 frames with 400 rollbacks, with the game's features and with every play
+  feature on; a frame 0.56 ms, the state 350,583 bytes.
+- `check-online`: the two sides the same over 2,998 frames (pings of about 120 ms, 8 frames run again at most).
+- `check-widescreen`: no unpainted columns at either end of the fourteen stages; invisible walls the board's game
+  (memory compared every 4,000 frames of the ladder); nothing to the interpreter.
+- No interpreter fallback: 36 runs (the movies, made-up ladders and two-player play, 20,000 frames of attract, the test
+  menu with made-up input, sound tests 1-12, training, every mode, the model viewer and colour editor, the hidden
+  machines, widescreen) with their entries recorded (10,292): 0 instructions to the interpreter in each.
+- Features off = no sources: 20,000 frames of `--cpu interp` with and without `src/`, byte-identical hash logs.
+- A save state at frame 3,000 loaded and the same input replayed: frames 3,001-6,000 the same. Run-ahead 1 and 2: the
+  same hash log as 0 (versus, 8,000 frames).
+- The Board page: each choice in its variable at the board's start (first and last choice of each); the settings
+  memory the same with and without choices after the test menu.
+- The launcher drawn with no window: the Game page (the set's name), Features, Controllers (Low attack, High attack,
+  Boost, Weapon).
 
 ## Not checked by a person
 
 Nobody has played it in a window, heard its sound or music, or tried it with a gamepad. The hidden machines were tried
-in training only (Super-8). The model viewer's animation groups are the game's lists, not checked one by one.
+in training only (Super-8). The model viewer's animation groups are the game's lists, not checked one by one (52 shown:
+one machine has 56). The menu's words new with this game are in English only (not yet in the Portuguese and Spanish
+tables).
