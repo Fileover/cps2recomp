@@ -24,6 +24,10 @@
 #include <string>
 #include <vector>
 
+namespace cps2recomp {
+struct Feature;
+}
+
 namespace port {
 
 struct Port;
@@ -110,6 +114,9 @@ public:
     bool Hosting() const {
         return settings.hosting;
     }
+    // Whether the match decides this feature for both players (the host's setting, or off for both: Settle), so that a
+    // player changing it during the match would leave the two games apart; the in-game menu then leaves it as it is
+    static bool MatchDecides(const cps2recomp::Feature &feature);
     bool Listed() const {
         return settings.listed;
     }

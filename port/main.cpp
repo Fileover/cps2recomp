@@ -792,6 +792,10 @@ bool Port::Init(std::string &error) {
     }
     RegisterPortFeatures();
     LoadFeatures(opt.settingsPath, opt.features);
+    // (during an online match, the menu leaves alone what the match decides for both players: Netplay::MatchDecides)
+    menu.matchDecides = [this](size_t feature) {
+        return net && !connecting && feature < TheGame().features.size() && Netplay::MatchDecides(TheGame().features[feature]);
+    };
     // The 68000 and the Z80 are run the same way; each falls back to its interpreter if the build has no
     // translated code for it
     if (opt.cpu.empty()) {

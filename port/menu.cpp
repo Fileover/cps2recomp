@@ -10,6 +10,7 @@
 #include "../runtime/game.h"
 
 #include <algorithm>
+#include <functional>
 #include <iterator>
 #include <memory>
 #include <set>
@@ -75,8 +76,17 @@ void Menu::Open(bool withStates) {
         {recomp::MenuRow::Quit},
         {recomp::MenuRow::Resume},
     });
-    for (const cps2recomp::Feature &feature : game.features) {
-        config.features.push_back({feature.category, feature.title, feature.description, {feature.choices.begin(), feature.choices.end()},
+    // (during an online match, the features the match decides for both players are left as it has them: a change on
+    // one side alone would leave the two games apart; the host sets them before hosting)
+    const std::function<bool(size_t)> decided = matchDecides;
+    for (size_t i = 0; i < game.features.size(); i++) {
+        const cps2recomp::Feature &feature = game.features[i];
+        std::string description = feature.description;
+        if (decided && decided(i)) {
+            description += " During an online match it stays as the match has it (the host's, set before hosting, or off "
+                           "for both), and can't be changed here.";
+        }
+        config.features.push_back({feature.category, feature.title, description, {feature.choices.begin(), feature.choices.end()},
                                    (feature.flags & cps2recomp::kFeatureFavourites) != 0});
     }
     // (the player's favourite stages, by name, the same for every list of them: settings.ini's [favourites] stages, the
@@ -127,7 +137,12 @@ void Menu::Open(bool withStates) {
         config.commands.push_back({command.category, command.title, command.description});
     }
     config.value = [](size_t feature) { return cps2recomp::FeatureSetting(cps2recomp::TheGame().features[feature].name); };
-    config.setValue = [](size_t feature, int value) { cps2recomp::SetFeatureValue(cps2recomp::TheGame().features[feature].name, value); };
+    config.setValue = [decided](size_t feature, int value) {
+        if (decided && decided(feature)) {
+            return;
+        }
+        cps2recomp::SetFeatureValue(cps2recomp::TheGame().features[feature].name, value);
+    };
     // (of a long choice, those the launcher leaves in the menu: settings.ini's [menu], recomp-common/settings.h)
     {
         recomp::Ini settings(cps2recomp::SettingsPath());
