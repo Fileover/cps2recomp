@@ -13,6 +13,14 @@ namespace cps2recomp::fight {
 
 // --- what the players hold ---
 
+namespace {
+    const char *const *g_buttonNames = nullptr;
+} // namespace
+
+void SetButtonNames(const char *const *names) {
+    g_buttonNames = names;
+}
+
 std::string Notation(uint16_t held, bool facingLeft) {
     int column = 1, row = 1;
     bool left = held & kStickLeft, right = held & kStickRight;
@@ -31,10 +39,11 @@ std::string Notation(uint16_t held, bool facingLeft) {
     }
     std::string text(1, static_cast<char>('1' + row * 3 + column));
     static const char *const kNames[] = {"LP", "MP", "HP", "LK", "MK", "HK"};
+    const char *const *names = g_buttonNames ? g_buttonNames : kNames;
     for (int b = 0; b < 6; b++) {
-        if (held & (1u << (4 + b))) {
+        if ((held & (1u << (4 + b))) && names[b]) {
             text += ' ';
-            text += kNames[b];
+            text += names[b];
         }
     }
     return text;

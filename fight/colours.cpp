@@ -122,6 +122,9 @@ namespace {
     }
 
     uint32_t ColourAddress(int number, int set, int line, int n) {
+        if (g_description.lineAddress) {
+            return g_description.lineAddress(number, set, line) + static_cast<uint32_t>(n) * 2;
+        }
         return SetAddress(number, set) + static_cast<uint32_t>(line * kColoursInPalette + n) * 2;
     }
 
@@ -352,7 +355,7 @@ const char *Name(int number) {
 }
 
 uint32_t SetAddress(int number, int set) {
-    return g_description.setAddress(number, set);
+    return g_description.setAddress ? g_description.setAddress(number, set) : g_description.lineAddress(number, set, 0);
 }
 
 uint16_t Colour(int number, int set, int line, int n) {

@@ -41,6 +41,7 @@ file). Only the versions named below work for each game, and this project cannot
 | [**Super Puzzle Fighter II Turbo**](games/puzzle_fighter/README.md) (1996) | `spf2t` (Europe 960529) | A puzzle training mode and CPU battle |
 | [**Darkstalkers: The Night Warriors**](games/dstlk/README.md) (1994) | `dstlk` (Europe 940705) | Huitzil and Pyron at a switch |
 | [**Night Warriors: Darkstalkers' Revenge**](games/nwarr/README.md) (1995) | `nwarr` (Europe 950316) | Huitzil and Pyron at a switch |
+| [**Cyberbots: Fullmetal Madness**](games/cybots/README.md) (1995) | `cybots` (Europe 950424) | Giant robots on four buttons; Super-8, Gaits, Warlock and Killer Bee at a switch |
 | [**Vampire Savior**](games/vampire_savior/README.md) (1997) | `vsavj` (Japan 970519) | Tag team battle |
 | [**Vampire Savior 2**](games/vsav2/README.md) (1997) | `vsav2` (Japan 970913) | Donovan, Phobos and Pyron back |
 | [**Vampire Hunter 2**](games/vhunt2/README.md) (1997) | `vhunt2` (Japan 970929) | Night Warriors' cast on Vampire Savior's engine |
@@ -172,7 +173,7 @@ place. Back, or the screen's **Menu**, opens the in-game menu.
   `sgemf` too.
 - macOS 13 or later (Apple silicon or Intel), Linux x86_64 or ARM64 (SteamOS included), Windows 10 or 11, 64-bit, or
   Android 9 or later on 64-bit ARM, with Vulkan.
-- A gamepad or stick is recommended (six buttons for the fighting games).
+- A gamepad or stick is recommended (six buttons for the fighting games, four for Cyberbots).
 
 ## How it works
 
@@ -223,7 +224,7 @@ The repository holds no game data and nothing derived from it.
 
 This project is not affiliated with, endorsed by, or sponsored by Capcom or Marvel. *Street Fighter*, *Super Puzzle
 Fighter*, *Super Gem Fighter*, *Pocket Fighter*, *Vampire Savior*, *Vampire Hunter*, *Night Warriors*, *Darkstalkers*, *Mega Man*,
-*Ghouls'n Ghosts*, *Strider*, *Captain Commando* and *Giga Wing* are trademarks of Capcom Co., Ltd.; *X-Men*, *Marvel Super Heroes*,
+*Ghouls'n Ghosts*, *Strider*, *Captain Commando*, *Cyberbots* and *Giga Wing* are trademarks of Capcom Co., Ltd.; *X-Men*, *Marvel Super Heroes*,
 *The Punisher* and their characters are trademarks of Marvel Characters, Inc.; *Alien vs. Predator* and *Cadillacs and Dinosaurs* are
 trademarks of their owners; "CPS-1", "CPS-2" and "QSound" are names and trademarks of their owners, used here only to
 say what the programs work with.
