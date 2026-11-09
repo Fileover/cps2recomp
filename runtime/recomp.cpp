@@ -562,9 +562,11 @@ void M68K::Run(uint64_t until, Mode mode) {
             if (keepHistory) {
                 Remember(pc);
             }
+            const bool inRam = pc >= 0x800000;
             ExecuteOne();
             cycles += m_cycles;
             interpreted++;
+            interpretedRam += inRam;
             if (m_jumped) {
                 Record(pc); // (a computed jump, a return, an exception: a place the translator should start from)
             }

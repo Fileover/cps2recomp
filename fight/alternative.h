@@ -53,6 +53,7 @@ struct Description {
     // the next (bytes into the ring); a tune asked for off before another
     uint32_t soundQueue = 0, soundQueueEnd = 0;
     uint16_t soundQueueMask = 0xFF0; // (the ring's size less 0x10)
+    uint16_t soundEntry = 0x10;      // a request's size: sixteen bytes (a long, the code), or 2 (a word: the classic CPS-1's)
     uint16_t tuneOff = 0xFF05;
     // The players' records, and where each stands across (a word, or a long with 16 bits of fraction)
     uint32_t player1 = 0xFF8400, playerSize = 0x400, x = 0x10;

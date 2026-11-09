@@ -11,7 +11,12 @@ namespace cps2recomp {
 void RegisterMusic() {
     TheGame().songTable = ssf2t::family::kSongTable;
     TheGame().songAddresses = ssf2t::family::kSongAddresses;
-    TheGame().songCount = 0x1FF;
+    TheGame().songCount = ssf2t::family::kSongCount;
+    TheGame().songEntry = ssf2t::family::kSongEntry;
+    if (!ssf2t::family::Songs().empty()) {
+        TheGame().songs = ssf2t::family::Songs(); // (a game of its own list: family.h)
+        return;
+    }
     // Found by playing (CPS2RECOMP_SOUNDTRACK_LOG, with pictures where each starts): a fight on each stage, the one-player
     // ladder to its end with Ryu, a two-player game, and attract mode with its sound on. Each stage's tune has a second
     // version, sixteen on, faster, that the game goes to once a fighter's health is down to a third (0x30 of 0x90:

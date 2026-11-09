@@ -66,7 +66,7 @@ PY
 # wide picture shows nothing, played in it or with invisible walls (tools/stage_ends.sh; fight/wide_ends.h)
 # Only with STAGE_ENDS=1 (make GAME=<id> check-widescreen STAGE_ENDS=1): it plays every stage at both ends, a long run.
 [ -z "${STAGE_ENDS:-}" ] || for walls in "" widescreen_walls; do
-    B=${B:-build/$GAME} QUIET=1 REACH=36:2 FEATURES=$walls tools/stage_ends.sh $GAME 16 8ED4 || status=1
+    B=${B:-build/$GAME} QUIET=1 REACH=36:2 FEATURES=$walls tools/stage_ends.sh $GAME 16 8DD4 || status=1
 done
 # Invisible walls: the game as the board plays it
 for run in walls none; do

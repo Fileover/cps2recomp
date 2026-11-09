@@ -18,6 +18,7 @@
 #include "ssf2t.h"
 
 #include <iterator>
+#include <string>
 #include <vector>
 
 namespace cps2recomp {
@@ -28,38 +29,40 @@ bool ModelViewer();
 namespace {
     using namespace ssf2t;
 
-    constexpr uint32_t kColourTable = At(0x0BFAF2);
-    
-    constexpr uint32_t kColoursFrom = At(0x0BFB2C), kColoursTo = At(0x0C6320); // (every set, Akuma's last)
-    constexpr uint32_t kPaletteBuffer = 0x900000; // (the objects' palettes, 0x20 bytes a colour set)
-    constexpr int kFirstPalette = 1;              // player 1's
-
-    uint16_t Word(uint32_t address) {
-        const uint8_t *at = Program(address); // (the data view: 0BFA94 reads it through A0)
-        return static_cast<uint16_t>((at[0] << 8) | at[1]);
-    }
-    // A set's first palette (after its count)
+    // A set's first palette (after its count): family.h
     uint32_t SetAddress(int number, int set) {
-        const uint32_t list = kColourTable + Word(kColourTable + static_cast<uint32_t>(number) * 2);
-        return list + Word(list + static_cast<uint32_t>(set) * 2) + 2;
+        int count = 0;
+        return family::ColourSet(number, set, count);
     }
     std::vector<colours::Range> Ranges() {
-        return {{kColoursFrom, kColoursTo}};
+        std::vector<colours::Range> ranges;
+        for (const auto &range : family::kColourRanges) {
+            ranges.push_back({range[0], range[1]});
+        }
+        return ranges;
     }
 
     // Player 1 in the set: its choice as the game keeps it; its palettes are in its own colour sets of the buffer
     uint32_t ShowSet(Machine &, int, int set, int &lines) {
         SetRam8(Player(0) + kColourChoice, static_cast<uint8_t>(set));
-        lines = family::kPalettesOf ? family::kPalettesOf(Ram8(Player(0) + kCharacter)) : family::kPalettesInSet;
-        return kPaletteBuffer + kFirstPalette * 0x20u;
+        const int who = Ram8(Player(0) + kCharacter);
+        lines = family::kPalettesOf ? family::kPalettesOf(who) : family::kPalettesInSet;
+        return family::ColourShown(0, who, set);
     }
 
     // The stages as short as the panel needs them: whose they are
     std::vector<const char *> Backgrounds() {
-        static const char *const names[kStages] = {"Ryu's",   "E. Honda's", "Blanka's", "Guile's",  "Ken's",    "Chun-Li's",
-                                                   "Zangief's", "Dhalsim's", "M. Bison's", "Sagat's", "Balrog's", "Vega's",
-                                                   "Cammy's", "T. Hawk's",  "Fei Long's", "Dee Jay's"};
-        std::vector<const char *> list(std::begin(names), std::end(names));
+        static std::vector<std::string> names; // (the stage's name to its " (": "Ryu's")
+        if (names.empty()) {
+            for (const char *name : kStageNames) {
+                const std::string whole = name;
+                names.push_back(whole.substr(0, whole.find(" (")));
+            }
+        }
+        std::vector<const char *> list;
+        for (const std::string &name : names) {
+            list.push_back(name.c_str());
+        }
         list.push_back("White");
         list.push_back("Black");
         return list;
@@ -67,6 +70,9 @@ namespace {
 } // namespace
 
 void RegisterColours() {
+    if (!family::kColours) {
+        return;
+    }
     colours::Description d;
     for (int n = 0; n < kCharacters; n++) {
         // (the names the game has in Japan, for files called by them: the boxer, the claw and the dictator go round)

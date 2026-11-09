@@ -56,28 +56,22 @@ constexpr uint32_t kClockTick = At(0x00FE74); // subq.b #1 off the second's fram
 // each number.
 constexpr uint32_t kStage = At(0xFF8C4E);
 constexpr uint32_t kStageMade = At(0x0CCC5C); // move.w 0xC4E(a5),d0: the stage being set up for a match
-constexpr int kStages = 16;
+constexpr int kStages = family::kStages;
 // Who a player is (a player's byte kCharacter): RAM dumps through the ladder (Guile 3, Fei Long 14, Blanka 2 against
-// player 1's Ryu 0), the rest by the stages', which are in the same order
-constexpr int kCharacters = 16;
-inline constexpr const char *kCharacterNames[kCharacters] = {"Ryu",     "E. Honda", "Blanka", "Guile",  "Ken",      "Chun-Li",
-                                                             "Zangief", "Dhalsim",  "M. Bison", "Sagat", "Balrog",  "Vega",
-                                                             "Cammy",   "T. Hawk",  "Fei Long", "Dee Jay"};
-inline constexpr const char *kStageNames[kStages] = {
-    "Ryu's (the castle)",        "E. Honda's (the bathhouse)", "Blanka's (the river)",       "Guile's (the air base)",
-    "Ken's (the harbour)",       "Chun-Li's (the market)",     "Zangief's (the factory)",    "Dhalsim's (the palace)",
-    "M. Bison's (the temple)",   "Sagat's (the Buddha)",       "Balrog's (Las Vegas)",       "Vega's (the cage)",
-    "Cammy's (the castle ruins)", "T. Hawk's (Mexico)",             "Fei Long's (the garden)",    "Dee Jay's (the beach)"};
-// Each stage's tune (CPS2RECOMP_SOUNDTRACK_LOG over a fight on each), and the character choice's and the versus screen's
-inline constexpr uint16_t kStageTunes[kStages] = {0x02, 0x03, 0x05, 0x07, 0x01, 0x04, 0x06, 0x08,
-                                                  0x0C, 0x0B, 0x09, 0x0A, 0x0E, 0x0F, 0x0D, 0x10};
-constexpr uint16_t kTuneChoose = family::kTuneChoose, kTuneVersus = 0x35;
+// player 1's Ryu 0), the rest by the stages', which are in the same order (the names: family.h)
+constexpr int kCharacters = family::kCharacters;
+using family::kCharacterNames;
+using family::kStageNames;
+using family::kStageTunes;
+constexpr uint16_t kTuneChoose = family::kTuneChoose, kTuneVersus = family::kTuneVersus;
 
 // The sound queue: a ring of sixteen-byte requests at A5-7582, the word at A5-7586 the place of the next (007A84 puts
 // one in, a long a code with the code in its low word; 0079E8 sends the oldest to the sound CPU), as in the later
 // games. FF05 asks for the music to stop (007B22).
 constexpr uint32_t kSoundQueue = At(0xFF0A7E), kSoundQueueEnd = At(0xFF0A7A);
-constexpr uint16_t kTuneOff = 0xFF05;
+constexpr uint16_t kTuneOff = family::kTuneOff;
+// (a game whose queue is of words, two bytes each: family.h)
+constexpr uint16_t kSoundEntry = family::kSoundEntry, kSoundQueueMask = family::kSoundQueueMask;
 
 // The camera's record (0CC4A6 steps it; the stage's own scroll screens follow it): its place across (the picture's
 // left edge in the stage) and up are words at +6 and +0A (FF8ED4, FF8ED8: FBNeo's script has the first). Its ends are
@@ -85,7 +79,7 @@ constexpr uint16_t kTuneOff = 0xFF05;
 // the players walked to each end (FF8FEA-FF8FF0, written at 0CDC7E); the game makes the scroll screens' own words from
 // it each frame. 256 to 640 across on every stage seen.
 constexpr uint32_t kCamera = At(0xFF8ECE), kCameraX = At(0xFF8ED4), kCameraY = At(0xFF8ED8);
-inline constexpr uint32_t kCameraCopies[] = {At(0xFF8ED4), At(0xFF8FEA), At(0xFF8FEC), At(0xFF8FEE), At(0xFF8FF0)};
+using family::kCameraCopies; // (family.h)
 constexpr uint32_t kCameraEndLeft = At(0xFF8C54), kCameraEndRight = At(0xFF8C56), kCameraEndBottom = At(0xFF8C58), kCameraEndTop = At(0xFF8C5A);
 constexpr int kCameraLeft = 0x100, kCameraRight = 0x280;
 // Where the players stand at a round's start, and how far they can go (player 1 walked to each end, the camera there)
@@ -96,8 +90,9 @@ constexpr int kStageLeft = 0x128, kStageRight = 0x3D8;
 // the steps between are fades): 2 the introduction and the title (kGameStep 16 on), 4 to 0C the QSound notice and the
 // maker's, 0E a demonstration fight (a game the computer plays for both: its own steps under it as a game's), 10 to 16
 // the rankings; then 0 and on from the start. With no coin in, the board's start ends at frame 805 and the loop begins.
-enum : uint16_t { kIntro = 0x02, kDemo = 0x0E, kLoopEnd = 0x18 };
-constexpr int kBootFrames = 810;
+// (each game's: family.h)
+constexpr uint16_t kIntro = family::kIntro, kDemo = family::kDemo, kLoopEnd = family::kLoopEnd;
+constexpr int kBootFrames = family::kBootFrames;
 
 // The round's result: 1 player 1 has won (player 2's health below nothing), 2 player 2, FF neither (a double knock-out
 // or a draw at time over); 0 while it is fought (00FC88, the round's end, 00FCE6 and on)
@@ -107,7 +102,7 @@ constexpr uint32_t kRoundResult = At(0xFF8DD2);
 
 // Each player's record, 0x400 apart, the first at FF844E (A5+44E: cleared at 003616, 0x380 bytes each, with the
 // second at A5+84E); FBNeo's script has them there too
-constexpr uint32_t kPlayer1 = At(0xFF844E), kPlayerSize = 0x400;
+constexpr uint32_t kPlayer1 = At(0xFF844E), kPlayerSize = family::kPlayerSize;
 inline uint32_t Player(int n) {
     return kPlayer1 + static_cast<uint32_t>(n) * kPlayerSize;
 }
@@ -143,15 +138,29 @@ constexpr uint32_t kGuarded = 0x49; // byte: set when the hit landing on the pla
 constexpr uint32_t kInAir = 0x181;  // byte: not zero while in the air
 constexpr uint32_t kAttacking = 0x18B; // byte: 1 while an attack is out (normal, special or in a jump)
 constexpr uint32_t kSuperGauge = 0x2B4; // byte: the super combo gauge, 0x30 full (FBNeo's script)
-constexpr uint32_t kChosen = 0x284;  // byte: 1 once the player has chosen a character (RAM dumps as each chose; 00E93A)
-constexpr uint32_t kSide = 0x381;    // byte: 0 player 1, 1 player 2
-constexpr uint32_t kPerson = 0x38E;  // byte: 1 for a person, 0 the computer (RAM dumps of a one- and a two-player game)
-constexpr uint32_t kCharacter = 0x391; // byte: who the player is (kCharacterNames; 0 also for Akuma, with kAkuma set)
-constexpr uint32_t kOpponent = 0x39E;  // word: the other player's record (FFxxxx: movea.w)
-constexpr uint32_t kColourChoice = 0x3B1; // byte: the set of colours (00E9B8 on: 0-5 the button that chose, light punch first;
+constexpr uint32_t kChosen = family::kChosen;  // byte: 1 once the player has chosen a character (RAM dumps as each chose; 00E93A)
+constexpr uint32_t kSide = family::kSide;    // byte: 0 player 1, 1 player 2
+constexpr uint32_t kPerson = family::kPerson;  // byte: 1 for a person, 0 the computer (RAM dumps of a one- and a two-player game)
+constexpr uint32_t kCharacter = family::kCharacter; // byte: who the player is (kCharacterNames; 0 also for Akuma, with kAkuma set)
+constexpr uint32_t kOpponent = family::kOpponent;  // word: the other player's record (FFxxxx: movea.w)
+constexpr uint32_t kColourChoice = family::kColourChoice; // byte: the set of colours (00E9B8 on: 0-5 the button that chose, light punch first;
                                           // 6 Start; 7 a button held; 8 and 9 the old characters'; 0A and 0B Akuma's)
 constexpr uint32_t kOld = 0x3B6;   // byte: the character's old version (Super Street Fighter II's): 015788
 constexpr uint32_t kAkuma = 0x3BD; // byte: the player is Akuma (00E96A)
+// (the three above are Super Turbo's own, family::kTurbo: in the games without them they are other bytes, or another
+// player's, so they are read and written only through these)
+inline bool IsAkuma(uint32_t player) {
+    return family::kTurbo && cps2recomp::Ram8(player + kAkuma) != 0;
+}
+inline bool IsOld(uint32_t player) {
+    return family::kTurbo && cps2recomp::Ram8(player + kOld) != 0;
+}
+inline void NotHidden(uint32_t player) { // (Akuma and the old version no more)
+    if (family::kTurbo) {
+        cps2recomp::SetRam8(player + kAkuma, 0);
+        cps2recomp::SetRam8(player + kOld, 0);
+    }
+}
 
 // The records of what the players throw: eight of 0xC0 bytes from FF97A2, +00 1 for one in use (a player's layout:
 // its frame and box tables where a player's are; FBNeo's script), the thrower's record a word at +26 (004968)
@@ -198,26 +207,20 @@ constexpr uint32_t kMatchBegins = At(0x00D714);
 // set of five palettes there), 0A the players' shadows, 0E the sparks of hits, 0B and 1A-1F the stage's own pieces, and
 // the rest the panel (07 and 08 the faces, 0C the bars and names, 0D the score, the clock and the round's words, 19 the
 // super combo gauges). The stage's scroll screens hold no panel.
-inline bool IsFighter(uint16_t attributes) {
-    const unsigned set = attributes & 0x1F;
-    return (set >= 0x01 && set <= 0x05) || (set >= 0x10 && set <= 0x14);
-}
-inline bool IsStagePiece(uint16_t attributes) {
-    const unsigned set = attributes & 0x1F;
-    return set == 0x0B || set >= 0x1A;
-}
+using family::IsFighter;    // (each game's sets: family.h)
+using family::IsStagePiece;
 inline bool IsShadow(uint16_t attributes) {
-    return (attributes & 0x1F) == 0x0A;
+    return (attributes & 0x1F) == family::kShadowSet;
 }
 inline bool ThePanel(uint32_t, uint16_t attributes) {
     const unsigned set = attributes & 0x1F;
-    return !IsFighter(attributes) && !IsStagePiece(attributes) && !IsShadow(attributes) && set != 0x0E;
+    return !IsFighter(attributes) && !IsStagePiece(attributes) && !IsShadow(attributes) && set != family::kSparkSet;
 }
 inline bool NotTheStage(uint32_t, uint16_t attributes) {
     return !IsStagePiece(attributes);
 }
 // A player's own colour sets (its side's), as a mask of bits
-constexpr uint32_t kPlayerSets[2] = {0x3Eu, 0x1Fu << 16};
+using family::kPlayerSets;
 
 // --- for hooks ---
 

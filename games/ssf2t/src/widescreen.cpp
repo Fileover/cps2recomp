@@ -38,8 +38,8 @@ namespace {
     constexpr uint32_t kPlaceX = 0x06, kPlaceY = 0x0A, kMovedX = 0x30, kMovedY = 0x32, kGoingX = 0x24, kGoingY = 0x25;
     // A player's (from 0CC4E4 and 0043F4): its half width, and what moves where it is seen from (while it reaches out:
     // the reach across, by its facing), the other player being where it is seen from (while held), and in a corner
-    constexpr uint32_t kHalfWidth = 0x1C2, kReaching = 0x2A7, kReach = 0x2AA, kSeenAsOther = 0x1F5, kCornered = 0x48;
-    constexpr uint32_t kNotKeptIn = 0x19D, kHolding = 0x63;
+    constexpr uint32_t kHalfWidth = 0x1C2, kReaching = 0x2A7, kReach = 0x2AA, kSeenAsOther = family::kSeenAsOther, kCornered = 0x48;
+    constexpr uint32_t kNotKeptIn = family::kNotKeptIn, kHolding = 0x63; // (kSeenAsOther, kNotKeptIn: 0 in a game without)
     constexpr uint32_t kVarCamera = At(0xFF8ED4); // (A5+ED4, the camera's place across, as 0043F4 reads it)
     constexpr uint32_t kOnLedge = 0x163;      // a player's byte: its height is taken as the floor's (0CC64C)
     // Bytes and a word that hold the camera's place up still (0CC630): a flag of its own, the round's end, a super's flash
@@ -84,7 +84,7 @@ namespace {
     // faces), which goes into `reach` (all of it: moveq)
     void SeenAt(M68K &c, int at, int reach, uint32_t player, uint32_t other) {
         // (the team battle's tag style: a player off the stage is not followed, the other's place taken for it)
-        SetLow16(c.d[at], Ram16((Ram8(player + kSeenAsOther) || TagIsOff(player) ? other : player) + kX));
+        SetLow16(c.d[at], Ram16(((kSeenAsOther && Ram8(player + kSeenAsOther)) || TagIsOff(player) ? other : player) + kX));
         if (!family::kTurbo) {
             return; // (Super Street Fighter II: no reach, and its register left alone)
         }
@@ -253,11 +253,11 @@ namespace {
     // width (its reach, while it reaches out, counted in); one held is moved with it
     void KeepIn(M68K &c) {
         const uint32_t player = c.a[6] & 0xFFFFFF;
-        if (Ram8(player + kNotKeptIn)) {
+        if (kNotKeptIn && Ram8(player + kNotKeptIn)) {
             return;
         }
         SetRam8(player + kCornered, 0);
-        if (Ram8(player + kSeenAsOther)) {
+        if (kSeenAsOther && Ram8(player + kSeenAsOther)) {
             return;
         }
         // (the ring out: a player knocked about at an end of the stage goes over it; the tag style's off the stage)

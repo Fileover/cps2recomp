@@ -47,7 +47,7 @@ namespace {
     constexpr uint32_t kHitKind = 0x4B;        // byte: the kind of the hit coming (07AD10 copies it to +55)
     constexpr uint8_t kKnockDown = 0x0E;       //   a sweep's: thrown up and lying (07932E on)
     constexpr uint8_t kLyingStep = 0x06;
-    constexpr uint32_t kOpponentCharacter = 0x3A2; // byte: the other player's character, kept by each (00386E)
+    constexpr uint32_t kOpponentCharacter = family::kOpponentCharacter; // byte: the other player's character, kept by each (00386E)
     // What a swap clears of the player's record: all of it from +0E to +37F, as a round's start clears it (003616, at
     // every round), but for what only the round's start puts in (004F94, 003EB6), which is the player's as it stands:
     // its facing, its health (and before the last hit), its bar and the facing's copy, the place's copies, its gauge.
@@ -59,7 +59,7 @@ namespace {
         uint32_t from, to;
     };
     constexpr Bytes kKept[] = {{0x012, 0x013}, {0x02A, 0x02E}, {0x1BC, 0x1C0}, {0x1CC, 0x1D4}, {0x2B4, 0x2B5}};
-    constexpr uint32_t kClearedFrom = 0x00E, kClearedTo = 0x380;
+    constexpr uint32_t kClearedFrom = 0x00E, kClearedTo = family::kClearedTo;
     constexpr uint32_t kBar = 0x1BC;               // word: the health as the bar draws it (01006A steps it down to the health)
     constexpr uint32_t kHalfWidth = 0x1C2;         // word: half the player's width, by character (004F94, the table at 00502A)
     constexpr uint32_t kHalfWidths = At(0x00502A);
@@ -104,13 +104,11 @@ namespace {
     // then the palettes), the brightness the game has put in each word kept
     void Colour(M68K &c, int player) {
         const uint32_t record = Player(player);
-        constexpr uint32_t kTable = At(0x0BFAF2);
-        const uint32_t who = Ram8(record + kAkuma) ? 0x10 : Ram8(record + kCharacter);
-        const uint32_t list = kTable + Mem16(c, kTable + who * 2);
-        uint32_t from = list + Mem16(c, list + Ram8(record + kColourChoice) * 2u);
-        const uint32_t count = Mem16(c, from);
-        from += 2;
-        uint32_t to = player ? 0x900200 : 0x900020;
+        const int who = IsAkuma(record) ? 0x10 : Ram8(record + kCharacter);
+        int sets = 0;
+        uint32_t from = family::ColourSet(who, Ram8(record + kColourChoice), sets);
+        const uint32_t count = static_cast<uint32_t>(sets);
+        uint32_t to = family::ColourShown(player, who, Ram8(record + kColourChoice));
         for (uint32_t n = 0; n < count * 0x10; n++, from += 2, to += 2) {
             const uint16_t bright = static_cast<uint16_t>(c.Read(to, 1) & 0xF000);
             c.Write(to, 1, static_cast<uint16_t>((Mem16(c, from) & 0x0FFF) | bright));
@@ -143,15 +141,14 @@ void Swap(int player, int character, int colours) {
     const uint32_t record = Player(player);
     GiveBack(record);
     SetRam8(record + kCharacter, static_cast<uint8_t>(character));
-    SetRam8(record + kAkuma, 0);
-    SetRam8(record + kOld, 0);
+    NotHidden(record);
     const uint32_t other = Player(1 - player);
     if (colours >= 0) {
         SetRam8(record + kColourChoice, static_cast<uint8_t>(colours % 6));
     } else if (Ram8(record + kColourChoice) > 5) {
         SetRam8(record + kColourChoice, 0);
     }
-    if (Ram8(other + kCharacter) == character && !Ram8(other + kAkuma) && !Ram8(other + kOld) &&
+    if (Ram8(other + kCharacter) == character && !IsAkuma(other) && !IsOld(other) &&
         Ram8(other + kColourChoice) == Ram8(record + kColourChoice)) {
         SetRam8(record + kColourChoice, static_cast<uint8_t>((Ram8(record + kColourChoice) + 1) % 6));
     }
@@ -226,10 +223,10 @@ bool TagTimeOver(M68K &c) {
     }
     SetLow16(c.d[0], Ram16(Player(0) + kHealth));
     if (result == 1) {
-        SetRam8(Player(0) + 0x390, 1);
+        SetRam8(Player(0) + family::kTagged, 1);
         c.pc = At(0x00FCE2);
     } else if (result == 2) {
-        SetRam8(Player(1) + 0x390, 1);
+        SetRam8(Player(1) + family::kTagged, 1);
         c.pc = At(0x00FD62);
     } else {
         c.pc = At(0x00FE0C);
@@ -239,7 +236,7 @@ bool TagTimeOver(M68K &c) {
 // 00FCE6 and 00FD66: a side has won the round. In the tag style that is the match (its last fighter knocked out).
 bool TagRoundWon(M68K &c) {
     if (TeamBattle() && TeamTimeOverResult() != 0) {
-        SetRam8(Player(c.pc == At(0x00FCE6) ? 0 : 1) + 0x390, 1);
+        SetRam8(Player(c.pc == At(0x00FCE6) ? 0 : 1) + family::kTagged, 1);
     }
     return false;
 }

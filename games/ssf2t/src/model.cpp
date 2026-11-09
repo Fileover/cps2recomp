@@ -25,6 +25,7 @@
 #include "session.h"
 #include "state.h"
 
+#include <array>
 #include <algorithm>
 #include <iterator>
 
@@ -40,7 +41,13 @@ namespace {
     constexpr int kStartMost = 9000; // frames after which getting to a round is given up
 
     // The characters in the menu's order, by their numbers in the game
-    constexpr int kCharacterNumbers[] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15};
+    constexpr auto kCharacterNumbers = [] { // (0 on: the game's own order, family.h's names)
+        std::array<int, kCharacters> numbers{};
+        for (int n = 0; n < kCharacters; n++) {
+            numbers[static_cast<size_t>(n)] = n;
+        }
+        return numbers;
+    }();
     constexpr uint32_t kAnimationRoutines = At(0x100000); // a long a character: where its routine begins
     constexpr uint32_t kListInRoutine = 0x34;
     constexpr int kMostAnimations = 64;
