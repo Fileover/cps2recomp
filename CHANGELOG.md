@@ -62,6 +62,9 @@
   lists (Cyberbots' ROM set needed).
 - The toolkit: `fight::SetButtonNames` (a game's own names for its buttons in the input display and the frame data
   log) and `colours::Description::lineAddress` (a game whose colour set's palettes are each in a table of their own).
+- **Each game's found code is kept in the repository**: `games/<id>/entries.txt` and `entries.txt.z80` (addresses
+  only), so a fresh checkout translates every game's known code on its first build; `make explore` and `make record`
+  add their finds to them (`tools/audit.sh` checks they hold nothing but addresses).
 
 ## 1.4.0
 

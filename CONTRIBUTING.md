@@ -9,9 +9,10 @@ These aren't negotiable; pull requests that break them are closed.
 
 1. **Never add anything from a game.** No ROM or part of one, no extracted graphics, sounds or text,
    no settings memory, save states, RAM dumps or video, and nothing generated from a game: generated
-   C++ (`gen/`), entry lists (`entries.txt`), disassembly listings. What a game's folder may hold is its
-   own code, its `game.cfg` (the ROM set's file names and checksums), notes found by playing and
-   watching memory, and input movies (text: which buttons were held on which frame). The README's
+   C++ (`gen/`), disassembly listings. What a game's folder may hold is its own code, its `game.cfg` (the
+   ROM set's file names and checksums), notes found by playing and watching memory, input movies (text:
+   which buttons were held on which frame), and its entries files (`entries.txt`, `entries.txt.z80`: the
+   addresses where its code was seen to start, one a line, which `make explore` adds to). The README's
    pictures of the games are made by the programs and kept few. The same goes for issues: attach
    logs, not game files.
 2. **Never add a key**, a key file, key values, or a tool that writes key files; and never point to

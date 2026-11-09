@@ -190,7 +190,7 @@ With your own ROM sets in `rom/<id>/` (ignored by Git), CMake, Ninja, SDL 3 and 
 
 ```sh
 make GAME=sfa2              # twice the first time
-make GAME=sfa2 explore      # once, about ten minutes: finds the game's code and translates it
+make GAME=sfa2 explore      # optional, about ten minutes: finds more of the game's code (games/<id>/entries.txt)
 make collection             # every game whose ROM set is here, and the launcher
 ```
 

@@ -12,8 +12,9 @@ This page is for people making or working on ports. To play, see the [main page]
 
 - **Translation ahead of time.** `tools/recomp.py` turns the game's 68000 program into C++, and
   `tools/recompz80.py` does the same for the sound CPU's. The code is found by reading the program
-  and by made-up play (`tools/explore.sh`). Code it has not found yet runs in an interpreter, and is
-  counted, so that the count can be driven to zero.
+  and by made-up play (`tools/explore.sh`); the addresses play found are kept with the game, in
+  `games/<id>/entries.txt` (and `entries.txt.z80`), so every checkout starts from them. Code it has not found
+  yet runs in an interpreter, and is counted, so that the count can be driven to zero.
 - **A machine of its own, not an emulator.** The 68000, the bus, interrupts and timing, the settings
   EEPROM, the ROM set and its cipher (`machine/`), the picture (`video/`), and the Z80 and QSound
   (`sound/`). Capcom's sound driver, version 2.01b, is also there as ordinary C++ (`sound/driver.cpp`),
