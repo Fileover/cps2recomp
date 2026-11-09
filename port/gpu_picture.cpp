@@ -67,7 +67,7 @@ namespace {
 
     // A line's record (video/shaders/common.glsl)
     void LineRecord(int line, const Layers &l, uint16_t priority, const cps2recomp::native_video::PictureOptions &o, uint32_t overrides,
-                    const Raster &raster, uint32_t *out, bool overStage = false) {
+                    const Raster &raster, uint32_t *out, bool overStage = false, int stageShift = 0) {
         memset(out, 0, kLineWords * 4);
         out[14] = static_cast<uint32_t>(o.side);
         out[15] = static_cast<uint32_t>(kWidth + 2 * o.side);
@@ -83,6 +83,8 @@ namespace {
         // (the objects alone over another picture: GpuPicture::Over)
         out[28] = (o.layerMask & ~1u) == 0 && !o.markLayers && (o.markObjects || o.layerMask == 0) ? 1 : 0;
         out[29] = (o.markObjects && o.panelObject ? 1u : 0u) | (o.markFront ? 2u : 0u) | (overStage ? 8u : 0u) | ((o.frontLevel & 7u) << 4);
+        // (bits 16-23: the stage's line under this one, Machine::guestShift)
+        out[29] |= static_cast<uint32_t>(std::clamp(line - stageShift, 0, kHeight - 1)) << 16;
         if (raster.Cps1()) {
             out[21] = 1;
             out[22] = raster.Enable()[0] | (static_cast<uint32_t>(raster.Enable()[1]) << 8) | (static_cast<uint32_t>(raster.Enable()[2]) << 16);
@@ -416,7 +418,7 @@ void GpuPicture::Draw(SDL_GPUCommandBuffer *commands, const NativeVideo::FrameDa
     for (int line = 0; line < kHeight; line++) {
         const uint32_t overrides = frame.overrides ? static_cast<uint32_t>(frame.overrides[line].size()) : 0;
         LineRecord(line, frame.layers[line], raster.Priority(), frame.options, overrides, raster, &lineWords[line * kLineWords],
-                   m_stage != nullptr);
+                   m_stage != nullptr, m_stage && guestShift ? *guestShift : 0);
     }
     lineWords[kHeight * kLineWords] = static_cast<uint32_t>(m_graphicsSize);
     lineWords[kHeight * kLineWords + 1] = frame.scrollExtra ? static_cast<uint32_t>(m_extraGraphicsSize) : 0;

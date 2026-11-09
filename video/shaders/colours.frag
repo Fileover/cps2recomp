@@ -75,7 +75,8 @@ void main() {
         colour = (o & 0x80000000u) != 0u ? vec4(colour.rgb, panels && (o & 0x80000u) == 0u ? 0.5 : 1.0) : vec4(0.0);
         if ((texelFetch(lines, ivec2(29, at.y), 0).r & 8u) != 0u) {
             // (over the stage: the objects' pixels, but the stage's in front of the fighters over those not the panel's)
-            const vec4 s = texelFetch(stage, at, 0);
+            const uint stageLine = (texelFetch(lines, ivec2(29, at.y), 0).r >> 16) & 255u; // (L_MARKS: Machine::guestShift)
+            const vec4 s = texelFetch(stage, ivec2(at.x, int(stageLine)), 0);
             const bool mine = colour.a > 0.25, panel = colour.a > 0.75, front = s.a < 0.75;
             colour = vec4(mine && (panel || !front) ? colour.rgb : s.rgb, 1.0);
         }

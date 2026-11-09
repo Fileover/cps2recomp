@@ -21,7 +21,8 @@
 #define L_OVER 28u       // (the objects alone over another picture: a guest's stage; out, their pixels and nothing else)
 #define L_MARKS 29u      // (bit 0: the panel's objects told from the rest, PictureOptions::panelObject; bit 1: the pixels in
                          // front of the fighters marked, markFront; bit 3: the objects alone drawn over another game's
-                         // stage in the same pass, colours.frag's `stage`; bits 4-6 frontLevel)
+                         // stage in the same pass, colours.frag's `stage`; bits 4-6 frontLevel;
+                         // bits 16-23 the stage's line under the line, Machine::guestShift)
 #define L_MASKS 24u      // (a CPS-1's: 4 words, its priority masks: the pens of a screen in front of the objects)
 #define L_WORDS 32u
 // (each line's tiles given beyond the board's columns: kOverrides of them, two words each)

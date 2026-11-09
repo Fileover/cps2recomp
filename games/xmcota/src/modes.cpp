@@ -9,6 +9,7 @@
 #include "session.h"
 #include "state.h"
 #include "xmcota.h"
+#include "marvel_stages.h"
 
 #include <iterator>
 
@@ -45,6 +46,8 @@ namespace {
         const int stage = session::WantedStage();
         if (stage >= 1 && stage <= kStages) {
             SetRam8(kStage, static_cast<uint8_t>(stage - 1));
+        } else if (stage > kStages) {
+            SetRam8(kStage, 0); // (another game's: fought on the first, its stage drawn behind: stages.cpp)
         }
         const MatchWanted &wanted = modes::Wanted();
         for (int n = 0; n < 2; n++) {
@@ -102,7 +105,9 @@ void RegisterModes() {
     d.startTraining = session::StartSession;
     d.modesWords = "Other ways to run the game: training, attract mode, viewers for the stages and the characters, and the "
                    "colour editor.";
+    // (its stages, then the other games': stages.cpp, fight/marvel_stages.h)
     d.stageNames.assign(std::begin(kStageNames), std::end(kStageNames));
+    marvel_stages::AddStages(d, "xmcota", kStages);
     d.cameraEnds = [](int stage, int &left, int &right) { CameraEnds(stage - 1, left, right); };
     d.apart = 0x100; // (the players either side of the picture's middle: the camera's word + 0x40 + 0xC0)
     d.notTheStage = NotTheStage;

@@ -39,6 +39,8 @@ static void RandomNumberAsTheBoardDoes() {
     AddHook(HookAt(0x00135E), "AfterRandomDivide", [](M68K &) { return false; });
 }
 
+void RegisterStages(); // stages.cpp
+
 void RegisterGame() {
     DescribeEngine();
     RandomNumberAsTheBoardDoes();
@@ -98,6 +100,8 @@ void RegisterGame() {
     // the best scores and the animations are this game's
     OwnFeatures({"board_difficulty", "board_damage", "board_timer", "board_rounds", "board_mode", "survival_best", "ringout_best",
                  "model_animation", "colours_animation"});
+    // Other games' stages: last, as it goes around the frame's callbacks and the state's (stages.cpp)
+    RegisterStages();
 }
 
 } // namespace cps2recomp
