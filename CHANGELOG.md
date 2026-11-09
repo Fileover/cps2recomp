@@ -12,6 +12,10 @@
   A change there reached only one player's game, so the two drifted apart and the match stopped. The rows say the host
   sets them before hosting.
 
+- **The picture is drawn on the GPU by default**: the Display page's **Picture drawn by** (it was "GPU picture (test)",
+  off) is the GPU unless you choose the CPU. The same picture, pixel for pixel; frames the GPU cannot draw yet (with a
+  shader preset, in the modes that put two pictures together) and machines whose graphics card cannot be used get the
+  CPU's, as before. `--video cpu` (or `native`) for the CPU's.
 - **The input display** (training mode, every fighting game) no longer shows the stick at rest as 5: a line shows the
   direction held, if any, and the buttons, and nothing held is not a line (as in sf3comp).
 
