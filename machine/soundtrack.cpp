@@ -12,7 +12,7 @@
 
 namespace cps2recomp {
 
-void Soundtrack::FindMusic(const std::vector<uint8_t> &program, uint32_t table, uint32_t count, uint32_t musicBelow) {
+void Soundtrack::FindMusic(const std::vector<uint8_t> &program, uint32_t table, uint32_t count, uint32_t musicBelow, uint32_t addresses) {
     m_music.assign(count, false);
     m_songs.clear();
     for (uint32_t song = 0; song < count; song++) {
@@ -20,7 +20,10 @@ void Soundtrack::FindMusic(const std::vector<uint8_t> &program, uint32_t table, 
         if (entry + 3 > program.size()) {
             break;
         }
-        const uint32_t at = (program[entry] << 16) | (program[entry + 1] << 8) | program[entry + 2];
+        uint32_t at = (program[entry] << 16) | (program[entry + 1] << 8) | program[entry + 2];
+        if (addresses) {
+            at &= addresses; // (the bank above the ROM's size: the board's banks go round)
+        }
         // (below musicBelow, a song is music even with no entry here: driver 1.71 finds some of its music elsewhere)
         if (musicBelow ? song < musicBelow : at != 0 && at < program.size() && program[at] == 0) {
             m_music[song] = true;

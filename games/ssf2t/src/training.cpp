@@ -24,7 +24,7 @@ namespace {
     // The stun: a word of what has built up (each hit adds to it: 07F1EE), and the frames until it goes away (+5C, the
     // word before it, counted down at 077EE2); the player is stunned when it reaches a word of the table at 07F1C6, by a
     // byte that steps by two each time the player has been stunned (30, then 34, then 35)
-    constexpr uint32_t kStun = 0x5E, kStunTimes = 0x2B1, kStunMost = 0x07F1C6;
+    constexpr uint32_t kStun = 0x5E, kStunTimes = 0x2B1, kStunMost = At(0x07F1C6);
 
     int PlayerOf(uint32_t record) {
         record &= 0xFFFFFF;
@@ -175,7 +175,7 @@ namespace {
     void Hud(Machine &machine, std::vector<HudLine> &lines, std::vector<HudBox> &) {
         for (int n = 0; n < 2; n++) {
             const uint32_t player = Player(n);
-            if (FeatureOn("gauge_refill") && Ram8(player + kSuperGauge) < kGaugeFull) {
+            if (family::kTurbo && FeatureOn("gauge_refill") && Ram8(player + kSuperGauge) < kGaugeFull) {
                 SetRam8(player + kSuperGauge, kGaugeFull);
             }
             if (FeatureOn("stun_readout")) {
@@ -233,12 +233,17 @@ void RegisterTraining() {
     d.inputWords = "What each player presses and for how many frames: the stick as a keypad number from the player's side (6 "
                    "forward, 4 back, 2 down), then the buttons.";
     d.hud = Hud;
-    d.ownAids = {"gauge_refill", "stun_readout"};
+    d.ownAids = {"stun_readout"};
     Game &game = TheGame();
-    game.features.push_back({"gauge_refill", modes::kTraining, "Gauge refills", "Both players' super combo gauge kept full."});
+    if (family::kTurbo) { // (Super Street Fighter II has no super combos)
+        d.ownAids.insert(d.ownAids.begin(), "gauge_refill");
+        game.features.push_back({"gauge_refill", modes::kTraining, "Gauge refills", "Both players' super combo gauge kept full."});
+    }
     game.features.push_back({"stun_readout", modes::kTraining, "Stun readout",
-                             "Under each player's bar: the stun built up, against how much stuns the player (it goes away when they "
-                             "are left alone for a while, and takes more each time they have been stunned)."});
+                             family::kTurbo ? "Under each player's bar: the stun built up, against how much stuns the player (it goes away "
+                                              "when they are left alone for a while, and takes more each time they have been stunned)." :
+                                              "Under each player's bar: the stun built up, against how much stuns the player (it goes away "
+                                              "when they are left alone for a while)."});
     session::Register(d);
     AddHook(HookAt(kPlayerStep), "PlayerStep", PlayerStep);
     AddHook(HookAt(kComputerPlayerStep), "ComputerPlayerStep", PlayerStep);

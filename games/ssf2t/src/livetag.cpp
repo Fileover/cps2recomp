@@ -34,14 +34,14 @@ namespace {
     // The pool the shadows and the characters' own objects are taken from (003778) and given back to (003794): sixty
     // records of 0xC0 from FFA9A2, the free ones a list of words from A5+1580, their count at A5+154C (read off the list
     // in a fight). An object names its player at +26 (a word; Dee Jay's a long, the word after: 005144).
-    constexpr uint32_t kPool = 0xFFA9A2, kPoolSize = 0xC0;
+    constexpr uint32_t kPool = At(0xFFA9A2), kPoolSize = 0xC0;
     constexpr int kPoolCount = 60;
-    constexpr uint32_t kPoolList = 0xFF9580, kPoolLeft = 0xFF954C;
+    constexpr uint32_t kPoolList = At(0xFF9580), kPoolLeft = At(0xFF954C);
     constexpr uint32_t kOwner = 0x26, kKind = 0x20;
     // The kinds a player's setting up makes: its shadow (00503C), E. Honda's (005116), Dee Jay's (005134)
     constexpr uint8_t kMadeKinds[] = {0x8F, 0x4F, 0x69};
 
-    constexpr uint32_t kSuperFlash = 0xFF8DDC; // word: a super's flash, the camera and the players held (0CC640)
+    constexpr uint32_t kSuperFlash = At(0xFF8DDC); // word: a super's flash, the camera and the players held (0CC640)
     constexpr uint32_t kLieTime = 0x1E;        // byte: frames still to lie, in the reeling's lying step (07948E)
     constexpr uint32_t kNotHit = 0x1BF;        // byte: not to be hit, not to be thrown (0BE58C, 0BEB40, 0046D4)
     constexpr uint32_t kHitKind = 0x4B;        // byte: the kind of the hit coming (07AD10 copies it to +55)
@@ -60,8 +60,9 @@ namespace {
     };
     constexpr Bytes kKept[] = {{0x012, 0x013}, {0x02A, 0x02E}, {0x1BC, 0x1C0}, {0x1CC, 0x1D4}, {0x2B4, 0x2B5}};
     constexpr uint32_t kClearedFrom = 0x00E, kClearedTo = 0x380;
+    constexpr uint32_t kBar = 0x1BC;               // word: the health as the bar draws it (01006A steps it down to the health)
     constexpr uint32_t kHalfWidth = 0x1C2;         // word: half the player's width, by character (004F94, the table at 00502A)
-    constexpr uint32_t kHalfWidths = 0x00502A;
+    constexpr uint32_t kHalfWidths = At(0x00502A);
 
     int Side(uint32_t player) {
         player &= 0xFFFFFF;
@@ -103,7 +104,7 @@ namespace {
     // then the palettes), the brightness the game has put in each word kept
     void Colour(M68K &c, int player) {
         const uint32_t record = Player(player);
-        constexpr uint32_t kTable = 0x0BFAF2;
+        constexpr uint32_t kTable = At(0x0BFAF2);
         const uint32_t who = Ram8(record + kAkuma) ? 0x10 : Ram8(record + kCharacter);
         const uint32_t list = kTable + Mem16(c, kTable + who * 2);
         uint32_t from = list + Mem16(c, list + Ram8(record + kColourChoice) * 2u);
@@ -187,10 +188,10 @@ void TagIn(int player, int character, int colours) {
 
 // The team battle's computer difficulty, 0-7: the board's setting (the game reads it as it plays)
 void TagDifficulty(int level) {
-    SetRam8(0xFF82D3, static_cast<uint8_t>(level));
+    SetRam8(At(0xFF82D3), static_cast<uint8_t>(level));
 }
 int TagDifficultyNow() {
-    return Ram8(0xFF82D3);
+    return Ram8(At(0xFF82D3));
 }
 
 // The player let out of the picture, the camera not following it, or not (widescreen.cpp's KeepIn and camera)
@@ -226,19 +227,19 @@ bool TagTimeOver(M68K &c) {
     SetLow16(c.d[0], Ram16(Player(0) + kHealth));
     if (result == 1) {
         SetRam8(Player(0) + 0x390, 1);
-        c.pc = 0x00FCE2;
+        c.pc = At(0x00FCE2);
     } else if (result == 2) {
         SetRam8(Player(1) + 0x390, 1);
-        c.pc = 0x00FD62;
+        c.pc = At(0x00FD62);
     } else {
-        c.pc = 0x00FE0C;
+        c.pc = At(0x00FE0C);
     }
     return true;
 }
 // 00FCE6 and 00FD66: a side has won the round. In the tag style that is the match (its last fighter knocked out).
 bool TagRoundWon(M68K &c) {
     if (TeamBattle() && TeamTimeOverResult() != 0) {
-        SetRam8(Player(c.pc == 0x00FCE6 ? 0 : 1) + 0x390, 1);
+        SetRam8(Player(c.pc == At(0x00FCE6) ? 0 : 1) + 0x390, 1);
     }
     return false;
 }
@@ -256,6 +257,15 @@ void LiveTagBeforeFrame(Machine &machine) {
             g_colours[player] = false;
             Colour(machine.cpu, player);
             g_faces = true;
+        }
+        // The bar as drawn (kBar) only steps down to the health (00E33A/01006A: it is stepped by one until the two are
+        // alike), so a newcomer's health put back above it would have it go on down past nothing, the bar drawn empty:
+        // it is put at the health then, as a round's start puts it
+        const uint32_t record = Player(player);
+        const int16_t health = static_cast<int16_t>(Ram16(record + kHealth)), bar = static_cast<int16_t>(Ram16(record + kBar));
+        if (TeamBattle() && Ram16(kMode) == kModeGame && Ram16(kGameStep) == kGameMatch && health >= 0 && health <= kHealthFull &&
+            bar < health) {
+            SetRam16(record + kBar, static_cast<uint16_t>(health));
         }
     }
 
@@ -321,17 +331,21 @@ bool TagFaces(M68K &c) {
         return false;
     }
     g_faces = false;
-    c.Push32(0x078030);  // (back here)
-    c.Push32(0x0102F2);  // (the names, after the faces)
-    c.pc = 0x0104B2;
+    c.Push32(At(0x078030)); // (back here)
+    if constexpr (At(0x0104B2) != 0) {
+        c.Push32(At(0x0102F2)); // (the names, after the faces)
+        c.pc = At(0x0104B2);
+    } else {
+        c.pc = At(0x0102F2); // (a game whose faces are not made apart from its names: Super Street Fighter II's)
+    }
     return true;
 }
 
 void RegisterLiveTag() {
-    AddHook(HookAt(0x078030), "TagFaces", TagFaces);
-    AddHook(HookAt(0x00FDEE), "TagTimeOver", TagTimeOver);
-    AddHook(HookAt(0x00FCE6), "TagRoundWon", TagRoundWon);
-    AddHook(HookAt(0x00FD66), "TagRoundWon", TagRoundWon);
+    AddHook(HookAt(At(0x078030)), "TagFaces", TagFaces);
+    AddHook(HookAt(At(0x00FDEE)), "TagTimeOver", TagTimeOver);
+    AddHook(HookAt(At(0x00FCE6)), "TagRoundWon", TagRoundWon);
+    AddHook(HookAt(At(0x00FD66)), "TagRoundWon", TagRoundWon);
 }
 
 } // namespace cps2recomp

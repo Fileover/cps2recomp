@@ -82,8 +82,11 @@ void ChoosingState(Archive &ar) {
 }
 
 void RegisterChoosing() {
-    AddHook(HookAt(0x00EA5C), "Chose", Chose);
-    AddHook(HookAt(0x00E93A), "ChoiceFinal", Final);
+    if (!family::kTurbo) {
+        return; // (Super Street Fighter II has no hidden characters)
+    }
+    AddHook(HookAt(At(0x00EA5C)), "Chose", Chose);
+    AddHook(HookAt(At(0x00E93A)), "ChoiceFinal", Final);
     TheGame().features.push_back({"hidden_characters", "Game", "Hidden characters",
                                   "The hidden characters with no code: press two buttons at once as you choose a character for its "
                                   "old version (as in Super Street Fighter II), or the three punches at once for Akuma."});

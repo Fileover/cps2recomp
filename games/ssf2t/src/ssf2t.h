@@ -11,6 +11,7 @@
 #include "game.h"
 #include "lift.h"
 #include "machine.h"
+#include "places.h"
 
 #include <cstdint>
 
@@ -25,36 +26,36 @@ using cps2recomp::M68K;
 // and 4 during the match (2 for a frame between). The third is the match's: 2 and 4 the versus screen, 6 and 8 a
 // round's introduction, 0A the round being fought, 0C to 10 its end (then 6 again for the next round). Traced with
 // --watch through a one-player game.
-constexpr uint32_t kMode = 0xFF8000, kGameStep = 0xFF8004, kMatchStep = 0xFF8008, kRoundStep = 0xFF800C;
+constexpr uint32_t kMode = 0xFF8000, kGameStep = At(0xFF8004), kMatchStep = At(0xFF8008), kRoundStep = At(0xFF800C);
 enum : uint16_t { kModeGame = 2, kGameChoosing = 0, kGameMatch = 4, kMatchFought = 0x0A };
 
 // Credits paid for and not yet used, a byte (RAM dumps after one, two and three coins: 1, 2, 3; written at 002418)
-constexpr uint32_t kCredits = 0xFF82E9;
+constexpr uint32_t kCredits = At(0xFF82E9);
 
 // Who is in: a byte, bit 0 player 1, bit 1 player 2 (RAM dumps before and after each Start: 0, 1, 3)
-constexpr uint32_t kPlayersIn = 0xFF82F0;
+constexpr uint32_t kPlayersIn = At(0xFF82F0);
 
 // The game's own free play. The operator's coin mode (the test menu's System Configuration, Coin: 00 to 0E in twos
 // one coin for one to six credits and two to four coins a credit, 10 a coin to start and one to continue) is kept in
 // kCoinMode; the board's start (00823A, the record copied at 00831C) takes its two coin words from a table by it
 // (008536) and sets kFreePlay for mode 12, which the menu never offers. The game tests kFreePlay wherever it counts
 // credits (the title says FREE PLAY, and Start lets a player in). Seen with the byte poked to 1.
-constexpr uint32_t kCoinMode = 0xFF8342, kFreePlay = 0xFF82DF, kCoinsPerCredit1 = 0xFF82AE, kCoinsPerCredit2 = 0xFF82B6;
+constexpr uint32_t kCoinMode = At(0xFF8342), kFreePlay = At(0xFF82DF), kCoinsPerCredit1 = At(0xFF82AE), kCoinsPerCredit2 = At(0xFF82B6);
 constexpr uint8_t kCoinFreePlay = 0x12;
 constexpr uint16_t kFreePlayCoins = 0x0101; // (the table's word for mode 12)
 
 // The round's clock: seconds left, a BCD byte (99 at a round's start, 00D780), and the frames left of the second in the
 // byte after it (40 a second here: 00FE74 counts it down, and at nothing a second is taken off at 00FE8A). Found with
 // --watch through a fight; FBNeo's script names the first.
-constexpr uint32_t kRoundClock = 0xFF8DCE, kClockFrames = 0xFF8DCF;
-constexpr uint32_t kClockTick = 0x00FE74; // subq.b #1 off the second's frames
+constexpr uint32_t kRoundClock = At(0xFF8DCE), kClockFrames = At(0xFF8DCF);
+constexpr uint32_t kClockTick = At(0x00FE74); // subq.b #1 off the second's frames
 
 // The stage a match is fought on: a word, the number of the character whose stage it is (0 to 15; stage n is
 // character n's). In a one-player game it is the computer's next opponent too (taken from the ladder's list at A5+618A,
 // 0039A6); a match's stage is set up from it at 0CCC5C (copied to A5+CB0). Each picture seen with its low byte held at
 // each number.
-constexpr uint32_t kStage = 0xFF8C4E;
-constexpr uint32_t kStageMade = 0x0CCC5C; // move.w 0xC4E(a5),d0: the stage being set up for a match
+constexpr uint32_t kStage = At(0xFF8C4E);
+constexpr uint32_t kStageMade = At(0x0CCC5C); // move.w 0xC4E(a5),d0: the stage being set up for a match
 constexpr int kStages = 16;
 // Who a player is (a player's byte kCharacter): RAM dumps through the ladder (Guile 3, Fei Long 14, Blanka 2 against
 // player 1's Ryu 0), the rest by the stages', which are in the same order
@@ -70,12 +71,12 @@ inline constexpr const char *kStageNames[kStages] = {
 // Each stage's tune (CPS2RECOMP_SOUNDTRACK_LOG over a fight on each), and the character choice's and the versus screen's
 inline constexpr uint16_t kStageTunes[kStages] = {0x02, 0x03, 0x05, 0x07, 0x01, 0x04, 0x06, 0x08,
                                                   0x0C, 0x0B, 0x09, 0x0A, 0x0E, 0x0F, 0x0D, 0x10};
-constexpr uint16_t kTuneChoose = 0xD3, kTuneVersus = 0x35;
+constexpr uint16_t kTuneChoose = family::kTuneChoose, kTuneVersus = 0x35;
 
 // The sound queue: a ring of sixteen-byte requests at A5-7582, the word at A5-7586 the place of the next (007A84 puts
 // one in, a long a code with the code in its low word; 0079E8 sends the oldest to the sound CPU), as in the later
 // games. FF05 asks for the music to stop (007B22).
-constexpr uint32_t kSoundQueue = 0xFF0A7E, kSoundQueueEnd = 0xFF0A7A;
+constexpr uint32_t kSoundQueue = At(0xFF0A7E), kSoundQueueEnd = At(0xFF0A7A);
 constexpr uint16_t kTuneOff = 0xFF05;
 
 // The camera's record (0CC4A6 steps it; the stage's own scroll screens follow it): its place across (the picture's
@@ -83,9 +84,9 @@ constexpr uint16_t kTuneOff = 0xFF05;
 // words from A5: C54 and C56 across, C58 and C5A up. Every word holding it across moved together with it in RAM dumps as
 // the players walked to each end (FF8FEA-FF8FF0, written at 0CDC7E); the game makes the scroll screens' own words from
 // it each frame. 256 to 640 across on every stage seen.
-constexpr uint32_t kCamera = 0xFF8ECE, kCameraX = 0xFF8ED4, kCameraY = 0xFF8ED8;
-inline constexpr uint32_t kCameraCopies[] = {0xFF8ED4, 0xFF8FEA, 0xFF8FEC, 0xFF8FEE, 0xFF8FF0};
-constexpr uint32_t kCameraEndLeft = 0xFF8C54, kCameraEndRight = 0xFF8C56, kCameraEndBottom = 0xFF8C58, kCameraEndTop = 0xFF8C5A;
+constexpr uint32_t kCamera = At(0xFF8ECE), kCameraX = At(0xFF8ED4), kCameraY = At(0xFF8ED8);
+inline constexpr uint32_t kCameraCopies[] = {At(0xFF8ED4), At(0xFF8FEA), At(0xFF8FEC), At(0xFF8FEE), At(0xFF8FF0)};
+constexpr uint32_t kCameraEndLeft = At(0xFF8C54), kCameraEndRight = At(0xFF8C56), kCameraEndBottom = At(0xFF8C58), kCameraEndTop = At(0xFF8C5A);
 constexpr int kCameraLeft = 0x100, kCameraRight = 0x280;
 // Where the players stand at a round's start, and how far they can go (player 1 walked to each end, the camera there)
 constexpr uint16_t kStartX[2] = {0x228, 0x2D8};
@@ -100,13 +101,13 @@ constexpr int kBootFrames = 810;
 
 // The round's result: 1 player 1 has won (player 2's health below nothing), 2 player 2, FF neither (a double knock-out
 // or a draw at time over); 0 while it is fought (00FC88, the round's end, 00FCE6 and on)
-constexpr uint32_t kRoundResult = 0xFF8DD2;
+constexpr uint32_t kRoundResult = At(0xFF8DD2);
 
 // --- the players ---
 
 // Each player's record, 0x400 apart, the first at FF844E (A5+44E: cleared at 003616, 0x380 bytes each, with the
 // second at A5+84E); FBNeo's script has them there too
-constexpr uint32_t kPlayer1 = 0xFF844E, kPlayerSize = 0x400;
+constexpr uint32_t kPlayer1 = At(0xFF844E), kPlayerSize = 0x400;
 inline uint32_t Player(int n) {
     return kPlayer1 + static_cast<uint32_t>(n) * kPlayerSize;
 }
@@ -154,12 +155,12 @@ constexpr uint32_t kAkuma = 0x3BD; // byte: the player is Akuma (00E96A)
 
 // The records of what the players throw: eight of 0xC0 bytes from FF97A2, +00 1 for one in use (a player's layout:
 // its frame and box tables where a player's are; FBNeo's script), the thrower's record a word at +26 (004968)
-constexpr uint32_t kThrown = 0xFF97A2, kThrownSize = 0xC0, kThrownOwner = 0x26;
+constexpr uint32_t kThrown = At(0xFF97A2), kThrownSize = 0xC0, kThrownOwner = 0x26;
 constexpr int kThrownRecords = 8;
 
 // The control panel as the game read it this frame, a word a player: the stick below (bit 0 right, 1 left, 2 down, 3
 // up), the punches in bits 4-6 and the kicks in 8-10 (FBNeo's script names them; RAM dumps holding each)
-constexpr uint32_t kControls[2] = {0xFF8086, 0xFF808A};
+constexpr uint32_t kControls[2] = {At(0xFF8086), At(0xFF808A)};
 
 // The player can do anything: in charge of itself, standing, walking or crouching, or in its guarding pose before a hit
 inline bool CanAct(uint32_t player) {
@@ -173,22 +174,22 @@ inline bool CanAct(uint32_t player) {
 // A hit's damage off the victim's health: sub.w d6,0x2A(a2), D6 the damage, A2 the victim; 0BE646 in the hit of a
 // player's attack (0BE580: A6 the attacker, A3 the attack) and 0BEBA6 in that of something thrown (0BEB0E: A6 what was
 // thrown). Found counting the writers of both players' health over fights.
-constexpr uint32_t kHitDamage = 0x0BE646, kThrownDamage = 0x0BEBA6;
+constexpr uint32_t kHitDamage = At(0x0BE646), kThrownDamage = At(0x0BEBA6);
 // A throw's damage, D4 off the victim's (A3) health: at once (00490A, and 0049B0 in 00492C), or put by in the victim's
 // word kDamagePut (004A58, in 004A4C: at once a knockout if it is more than the health) and taken off as the throw ends
 // (004C98 half of it, 07AB6E, 07ACEA). Found as the other writers of the health over made-up play with no damage.
-inline constexpr uint32_t kThrowDamage[] = {cps2recomp::HookAt(0x00490A), cps2recomp::HookAt(0x0049B0), cps2recomp::HookAt(0x004A58)};
+inline constexpr uint32_t kThrowDamage[] = {cps2recomp::HookAt(At(0x00490A)), cps2recomp::HookAt(At(0x0049B0)), cps2recomp::HookAt(At(0x004A58))};
 constexpr uint32_t kDamagePut = 0x78;
 
 // A player's fight step goes on by kState, once a step for each player: a person's (0782D4, in 078270's fight step
 // 0782A0) and the computer's (07BC12, before the computer's plan and its dispatch on kState at 07BC56, which can run
 // more than once a step: in 07BB22's fight step 07BBA4)
-constexpr uint32_t kPlayerStep = 0x0782D4, kComputerPlayerStep = 0x07BC12;
+constexpr uint32_t kPlayerStep = At(0x0782D4), kComputerPlayerStep = At(0x07BC12);
 // A hit has been decided and taken (A6 the attacker, A2 the victim; kGuarded says whether guarded): where a player's
 // attack's two ways meet (0BE678), and a thrown thing's (0BEBDA)
-constexpr uint32_t kHitTaken = 0x0BE678, kThrownHitTaken = 0x0BEBDA;
+constexpr uint32_t kHitTaken = At(0x0BE678), kThrownHitTaken = At(0x0BEBDA);
 // The match's first step: the characters are chosen (00D714, the step word under the game's going to 2)
-constexpr uint32_t kMatchBegins = 0x00D714;
+constexpr uint32_t kMatchBegins = At(0x00D714);
 
 // --- the picture ---
 

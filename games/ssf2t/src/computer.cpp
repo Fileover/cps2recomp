@@ -21,12 +21,12 @@ namespace cps2recomp {
 namespace {
     using namespace ssf2t;
 
-    constexpr uint32_t kComputerStep = 0x07804A;
-    constexpr uint32_t kCharacterTables = 0x07D6F4, kPlan = 0x07E36E, kPlanRound = 0x07BB82;
-    constexpr uint32_t kPlanWords = 0x24EAE8; // (two words a character, to +23A and +23C)
-    constexpr uint32_t kComputerStepReturns = 0x078052;
+    constexpr uint32_t kComputerStep = At(0x07804A);
+    constexpr uint32_t kCharacterTables = At(0x07D6F4), kPlan = At(0x07E36E), kPlanRound = At(0x07BB82);
+    constexpr uint32_t kPlanWords = At(0x24EAE8); // (two words a character, to +23A and +23C)
+    constexpr uint32_t kComputerStepReturns = At(0x078052);
     constexpr uint32_t kPlanTable = 0x1E0;    // a player's long: the computer's plan for the character (07E3A8)
-    constexpr uint32_t kPersonStep = 0x078270;
+    constexpr uint32_t kPersonStep = At(0x078270);
     constexpr uint32_t kReadingFrom = 0x080, kReadingTo = 0x0E0; // a person's reading of the controls for its moves
 
     int PlayerOf(uint32_t record) {

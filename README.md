@@ -26,6 +26,7 @@ file). Only the versions named below work for each game, and this project cannot
 
 | Game | ROM set | Notes |
 | --- | --- | --- |
+| [**Super Street Fighter II**](games/ssf2/README.md) (1993) | `ssf2` (World 931005) | The New Challengers: the first on the CPS-2, with bonus stages |
 | [**Super Street Fighter II Turbo**](games/ssf2t/README.md) (1994) | `ssf2xjr1` (Japan 940223) | The tournament revision; Akuma and the old characters without codes |
 | [**Hyper Street Fighter II**](games/hsf2/README.md) (2004) | `hsf2` (USA 040202) | Every character in each game of the series' version, against each other; Akuma without a code |
 | [**Street Fighter Alpha**](games/sfa/README.md) (1995) | `sfa` (Europe 950727) | |

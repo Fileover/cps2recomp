@@ -24,8 +24,8 @@ void TagUntouchable(int player);
 namespace {
     using namespace ssf2t;
 
-    constexpr uint32_t kAnimate = 0x002EE2; // the animation on by a step (the frame's time down, then the next frame)
-    constexpr uint32_t kFly = 0x002F50;     // a step through the air: the speeds by their pulls, the place by the speeds
+    constexpr uint32_t kAnimate = At(0x002EE2); // the animation on by a step (the frame's time down, then the next frame)
+    constexpr uint32_t kFly = At(0x002F50);     // a step through the air: the speeds by their pulls, the place by the speeds
     // Words, 256ths of a pixel a step: the speeds across and up, and what is taken off them each step (a jump's: 002F46)
     constexpr uint32_t kSpeedX = 0x3C, kSpeedY = 0x3E, kPullX = 0x40, kPullY = 0x42;
     constexpr int16_t kFlungAcross = 0xC0; // knocked out: away over the end, three quarters of a pixel a step
@@ -37,7 +37,7 @@ namespace {
     constexpr uint32_t kMovingFrom = 0x03, kMovingTo = 0x60;
     constexpr uint32_t kActive = 0x00;
     // The game's random number, a word (002E96 steps it, a shift register: it must never be 0)
-    constexpr uint32_t kRandom = 0xFF82D0;
+    constexpr uint32_t kRandom = At(0xFF82D0);
 
     // The panel and the stage's pieces: everything but the fighters
     bool NotTheFighters(uint32_t tile, uint16_t attributes) {

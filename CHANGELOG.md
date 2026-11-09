@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+- **Super Street Fighter II: The New Challengers**, set `ssf2` (World 931005): the first CPS-2 game, built from Super
+  Turbo's sources (as Zero 2 Alpha is from Alpha 2's), so it has everything the other fighting games have: free play,
+  straight to the title, the Board page, the cheats, a custom soundtrack with its music named, training mode, attract
+  mode, the stage and model viewers, survival, endless battle, ring out, the tag team battle, widescreen and invisible
+  walls, the camera's zoom, custom colours and the colour editor, and the other fighting games' stages as Super Turbo
+  has them. Its own stages are Super Turbo's (the same graphics), which the other games already show.
+- **Super Turbo's tag team battle**: after a tag, the newcomer's health bar was drawn empty (the bar only steps down to
+  the health, and went on past nothing); it is put at the health now.
+- The toolkit: `colours::Description::palettesOf` (a game whose characters' colour sets have different counts of
+  palettes) and `Game::songAddresses` (a song table whose places carry a bank above the sound ROM's size).
+
 - **Super Turbo's stages in other games have their breakable pieces**: Guile's crates, Ken's barrel, Blanka's fish
   (their pool of objects was never run, so they stood unmade and undrawn).
 - **Windows** (from Fileover, #208): a parent set's zip is found beside a game's zip when the path is written with

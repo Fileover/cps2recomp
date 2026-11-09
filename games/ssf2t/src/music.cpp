@@ -4,12 +4,13 @@
 // Super Street Fighter II Turbo: its music, for a custom soundtrack (port/soundtrack.h, machine/soundtrack.h). The
 // sound program (driver 1.04) keeps a table of its songs at 0x9006, four bytes a song, as the later drivers do: the
 // word at 0x9000 is how many (0x1FF), and a song whose data starts with a 0 is music (68 of them).
-#include "game.h"
+#include "ssf2t.h"
 
 namespace cps2recomp {
 
 void RegisterMusic() {
-    TheGame().songTable = 0x9006;
+    TheGame().songTable = ssf2t::family::kSongTable;
+    TheGame().songAddresses = ssf2t::family::kSongAddresses;
     TheGame().songCount = 0x1FF;
     // Found by playing (CPS2RECOMP_SOUNDTRACK_LOG, with pictures where each starts): a fight on each stage, the one-player
     // ladder to its end with Ryu, a two-player game, and attract mode with its sound on. Each stage's tune has a second
@@ -50,13 +51,10 @@ void RegisterMusic() {
         {0x1F, "thawk_later", "T. Hawk's stage, faster (a fighter\'s health low)"},
         {0x1D, "feilong_later", "Fei Long's stage, faster (a fighter\'s health low)"},
         {0x20, "deejay_later", "Dee Jay's stage, faster (a fighter\'s health low)"},
-        // The last fight of the ladder, against M. Bison
-        {0xD5, "final_fight", "The final fight"},
-        {0xD6, "final_fight_later", "The final fight, faster (a fighter\'s health low)"},
         // Between the fights
-        {0xD4, "title", "The introduction and the title", true},
+        {ssf2t::family::kTuneTitle, "title", "The introduction and the title", true},
         {0x3D, "qsound", "The QSound notice", true},
-        {0xD3, "player_select", "Player select"},
+        {ssf2t::family::kTuneChoose, "player_select", "Player select"},
         {0x35, "versus", "Versus screen", true},
         {0x36, "winner", "Winner (the winner's quote)", true},
         {0x3A, "ranking", "Score ranking", true},
@@ -64,6 +62,15 @@ void RegisterMusic() {
         {0x23, "ryu_ending", "Ryu's ending"},
         {0x3C, "staff_roll", "Staff roll"},
     };
+    if (ssf2t::family::kTuneBonus) { // (Super Street Fighter II's bonus stages: Super Turbo has none)
+        TheGame().songs.push_back({ssf2t::family::kTuneBonus, "bonus", "A bonus stage"});
+    }
+    if (ssf2t::family::kTuneFinal) { // (after the stages': Super Street Fighter II's last fight has M. Bison's stage's tune)
+        auto &songs = TheGame().songs;
+        songs.insert(songs.begin() + 32, {{ssf2t::family::kTuneFinal, "final_fight", "The final fight"},
+                                          {static_cast<uint16_t>(ssf2t::family::kTuneFinal + 1), "final_fight_later",
+                                           "The final fight, faster (a fighter\'s health low)"}});
+    }
 }
 
 } // namespace cps2recomp

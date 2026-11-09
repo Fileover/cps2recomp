@@ -36,8 +36,9 @@ namespace {
     int Sets() {
         return static_cast<int>(g_description.setNames.size());
     }
-    int Palettes() {
-        return g_description.palettesInSet;
+    int Palettes(int number) {
+        return g_description.palettesOf ? std::clamp(g_description.palettesOf(number), 1, g_description.palettesInSet) :
+                                          g_description.palettesInSet;
     }
     // (a count as a word: "a set has four lines")
     const char *CountWord(int n, bool capital) {
@@ -171,8 +172,8 @@ namespace {
             if (set < 0) {
                 continue; // (colours before a set's name, or under a name that is wrong: said already)
             }
-            if (palette >= Palettes()) {
-                complain(std::string("a set has ") + CountWord(Palettes(), false) + " lines of colours");
+            if (palette >= Palettes(who.number)) {
+                complain(std::string("a set has ") + CountWord(Palettes(who.number), false) + " lines of colours");
                 continue;
             }
             if (list.size() > kColoursInPalette) {
@@ -324,7 +325,7 @@ namespace {
                  << g_description.originalHelp;
             for (int set = 0; set < Sets(); set++) {
                 file << "\n[" << g_description.setNames[static_cast<size_t>(set)] << "]\n";
-                for (int palette = 0; palette < Palettes(); palette++) {
+                for (int palette = 0; palette < Palettes(who.number); palette++) {
                     for (int n = 0; n < kColoursInPalette; n++) {
                         file << (n ? " " : "") << ColourText(GameColour(who.number, set, palette, n));
                     }
@@ -399,7 +400,7 @@ bool SaveColours(int number) {
     for (int set = 0; set < Sets(); set++) {
         std::string lines;
         bool changed = false;
-        for (int line = 0; line < Palettes(); line++) {
+        for (int line = 0; line < Palettes(number); line++) {
             bool same = true;
             for (int n = 0; n < kColoursInPalette; n++) {
                 same = same && Colour(number, set, line, n) == GameColour(number, set, line, n);
@@ -502,10 +503,10 @@ bool SaveSet(int number, int set, std::string &saved) {
     std::ofstream file(path + "/" + saved + ".txt");
     file << "# " << Name(number) << ": a set of colours saved in the colour editor (" << g_description.setNames[static_cast<size_t>(set)]
          << "), to load into any of the character's sets.\n"
-         << "# " << CountWord(Palettes(), true)
+         << "# " << CountWord(Palettes(number), true)
          << " lines of 16 colours: the character's own, then its effects'. A colour is #RRGGBB or #RGB;\n"
             "# - keeps the colour of the set it is loaded into.\n";
-    for (int line = 0; line < Palettes(); line++) {
+    for (int line = 0; line < Palettes(number); line++) {
         for (int n = 0; n < kColoursInPalette; n++) {
             file << (n ? " " : "") << ColourText(Colour(number, set, line, n));
         }
@@ -522,7 +523,7 @@ bool ReadSavedSet(int number, const std::string &saved, uint16_t colours[kMostPa
     }
     // (lines of colours, as in a character's file; a [name] line, if any, is passed over)
     int line = 0;
-    for (std::string text; line < Palettes() && std::getline(in, text);) {
+    for (std::string text; line < Palettes(number) && std::getline(in, text);) {
         const std::vector<std::string> list = Words(text);
         if (list.empty() || list[0].front() == '[') {
             continue;
