@@ -5,6 +5,8 @@
 - **Other games' stages are drawn by the game showing them**: a borrowed stage's board keeps only what its code hands
   over each frame, and the game's own renderer draws the stage from that, with the fighters over it (the same picture;
   the other board no longer draws one of its own).
+- **Super Turbo's stages in other games have their breakable pieces**: Guile's crates, Ken's barrel, Blanka's fish
+  (their pool of objects was never run, so they stood unmade and undrawn).
 - **Windows** (from Fileover, #208): a parent set's zip is found beside a game's zip when the path is written with
   backslashes, and the launcher opens without a console window beside it (recomp-common #62).
   
