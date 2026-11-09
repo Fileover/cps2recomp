@@ -61,8 +61,7 @@ namespace {
         for (int n = 0; n < 2; n++) {
             if (wanted.characters[n] >= 0 && wanted.characters[n] < kCharacters) {
                 SetRam8(Player(n) + kCharacter, static_cast<uint8_t>(wanted.characters[n]));
-                SetRam8(Player(n) + kAkuma, 0);
-                SetRam8(Player(n) + kOld, 0);
+                NotHidden(Player(n));
             }
             if (wanted.colours[n] >= 0) {
                 SetRam8(Player(n) + kColourChoice, static_cast<uint8_t>(wanted.colours[n]));
@@ -88,6 +87,8 @@ void RegisterModes() {
     d.soundQueue = kSoundQueue;
     d.soundQueueEnd = kSoundQueueEnd;
     d.tuneOff = kTuneOff;
+    d.soundQueueMask = kSoundQueueMask;
+    d.soundEntry = kSoundEntry;
     d.player1 = kPlayer1;
     d.playerSize = kPlayerSize;
     d.x = kX;

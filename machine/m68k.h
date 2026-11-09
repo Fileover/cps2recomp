@@ -199,6 +199,9 @@ public:
     std::vector<uint32_t> newEntries;
     // (for --stats: instructions the interpreter ran while translated code was meant to, and all it ran)
     uint64_t interpreted = 0;
+    // ... of which code the game runs in RAM (Champion Edition calls small routines it writes into video RAM): never
+    // the ROM's, so never translated
+    uint64_t interpretedRam = 0;
     // For finding out who writes somewhere (--watch): writes by the interpreter to addresses from watchLow to
     // watchHigh are reported with the instruction's address. Translated code is not watched (run with
     // --cpu blocks, which does the same things).

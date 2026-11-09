@@ -124,7 +124,11 @@ struct Game {
     // and how many entries it has (0: no custom soundtrack); and the names of the music, where they are known.
     // musicBelow: for a sound program whose songs' data do not tell music from effects (machine/soundtrack.h), the
     // songs below it are the music (0: told by their data)
-    uint32_t songTable = 0, songCount = 0, musicBelow = 0;
+    // songAddresses: for a sound program whose table gives a song's place with the bank above the ROM's size (Super
+    // Street Fighter II's: 108411 for 8411), the bits of it that are the place in the ROM (0: all)
+    // songEntry: the size of a song's entry, 4 (a three-byte place, then one more), or 2 (the classic CPS-1 board's: a
+    // two-byte place, high byte first, which is where it is in the sound ROM)
+    uint32_t songTable = 0, songCount = 0, musicBelow = 0, songAddresses = 0, songEntry = 4;
     std::vector<Song> songs;
 };
 Game &TheGame();

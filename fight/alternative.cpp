@@ -430,6 +430,11 @@ bool ToRound(Machine &machine, int32_t &frames, bool choose) {
 
 void PlaySound(uint16_t code) {
     const uint16_t at = Ram16(d.soundQueueEnd) & d.soundQueueMask;
+    if (d.soundEntry == 2) { // (a ring of words)
+        SetRam16(d.soundQueue + at, code);
+        SetRam16(d.soundQueueEnd, static_cast<uint16_t>((at + 2) & d.soundQueueMask));
+        return;
+    }
     SetRam32(d.soundQueue + at, code);
     SetRam32(d.soundQueue + at + 4, 0);
     SetRam32(d.soundQueue + at + 8, 0);
