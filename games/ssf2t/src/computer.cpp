@@ -25,7 +25,11 @@ namespace {
     constexpr uint32_t kCharacterTables = At(0x07D6F4), kPlan = At(0x07E36E), kPlanRound = At(0x07BB82);
     constexpr uint32_t kPlanWords = At(0x24EAE8); // (two words a character, to +23A and +23C)
     constexpr uint32_t kComputerStepReturns = At(0x078052);
-    constexpr uint32_t kPlanTable = 0x1E0;    // a player's long: the computer's plan for the character (07E3A8)
+    constexpr uint32_t kPlanTable = family::kPlanTable; // a player's long: the computer's plan for the character (07E3A8)
+    constexpr uint32_t kSetUp = 0x273;                  // a byte the computer's set-up puts at 2 (where kPlanTable is none)
+    bool SetUp(uint32_t player) {
+        return kPlanTable ? Ram32(player + kPlanTable) != 0 : Ram8(player + kSetUp) != 0;
+    }
     constexpr uint32_t kPersonStep = At(0x078270);
     constexpr uint32_t kReadingFrom = 0x080, kReadingTo = 0x0E0; // a person's reading of the controls for its moves
 
@@ -37,7 +41,7 @@ namespace {
     // 07804A: the computer's step is to come for the player at A6
     bool ComputerStep(M68K &c) {
         const uint32_t player = c.a[6] & 0xFFFFFF;
-        if (PlayerOf(player) < 0 || Ram32(player + kPlanTable) != 0 || Ram8(player + kFighting) != 2) {
+        if (PlayerOf(player) < 0 || SetUp(player) || Ram8(player + kFighting) != 2) {
             return false;
         }
         // (the game's own first step of the computer, 07BB40-07BB74, but for the animation it starts and its two bytes
@@ -52,10 +56,17 @@ namespace {
         SetRam16(player + 0x23C, static_cast<uint16_t>(c.Read(words + 2, 1)));
         SetRam8(player + 0x273, 2);
         c.d[0] = 0; // (moveq #0,d0)
+        // (a game whose set-up has fewer parts goes through those it has: the places 0 are none, family.h)
         c.Push32(kComputerStepReturns);
-        c.Push32(kPlanRound);
-        c.Push32(kPlan);
-        c.pc = kCharacterTables;
+        if constexpr (kPlanRound != 0) {
+            c.Push32(kPlanRound);
+        }
+        if constexpr (kCharacterTables != 0) {
+            c.Push32(kPlan);
+            c.pc = kCharacterTables;
+        } else {
+            c.pc = kPlan;
+        }
         return true;
     }
 
@@ -67,7 +78,7 @@ namespace {
     // computer, the player is set up for it again (above). In the game itself, as above, this never runs.
     bool PersonStep(M68K &c) {
         const uint32_t player = c.a[6] & 0xFFFFFF;
-        if (PlayerOf(player) < 0 || Ram32(player + kPlanTable) == 0) {
+        if (PlayerOf(player) < 0 || !SetUp(player)) {
             return false;
         }
         const uint8_t state = Ram8(player + kState);
@@ -77,7 +88,11 @@ namespace {
         for (uint32_t at = kReadingFrom; at < kReadingTo; at++) {
             SetRam8(player + at, 0);
         }
-        SetRam32(player + kPlanTable, 0);
+        if (kPlanTable) {
+            SetRam32(player + kPlanTable, 0);
+        } else {
+            SetRam8(player + kSetUp, 0);
+        }
         return false;
     }
 } // namespace

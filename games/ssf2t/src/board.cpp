@@ -86,6 +86,9 @@ namespace {
 // not read the settings again, so the choices go back in when a game next begins (demo sound, which the show
 // uses, at the next reset)
 void BoardBeforeFrame(Machine &machine) {
+    if (!ssf2t::family::kBoardInSources) {
+        return;
+    }
     if (g_chosen && machine.testSwitch) {
         for (size_t n = 0; n < std::size(kSettings); n++) {
             if (kSettings[n].variable) {
@@ -105,6 +108,9 @@ void BoardState(Archive &ar) {
 }
 
 void RegisterBoard() {
+    if (!ssf2t::family::kBoardInSources) {
+        return; // (a board whose settings are DIP switches: game.cfg's board_option lines are its Board page)
+    }
     Game &game = TheGame();
     game.pages.push_back({kPage, "", "The board's own settings, as its test menu has them (System Configuration): each as the board is "
                                      "set unless chosen here. Taken when the game starts or is reset."});

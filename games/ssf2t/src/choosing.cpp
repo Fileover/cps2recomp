@@ -21,7 +21,7 @@ namespace cps2recomp {
 namespace {
     using namespace ssf2t;
 
-    constexpr uint32_t kButtonsNow = 0x392, kButtonsBefore = 0x394; // words: the buttons held this frame and the last
+    constexpr uint32_t kButtonsNow = family::kButtonsNow, kButtonsBefore = family::kButtonsBefore; // words: the buttons held this frame and the last
     constexpr uint16_t kPunches = 0x070, kKicks = 0x700;
     constexpr uint8_t kAkumaColours = 0x0A, kOldPunchColours = 0x08, kOldKickColours = 0x09;
     uint16_t g_pressed[2] = {0, 0}; // what chose each player's character (kept with the game's state)

@@ -98,7 +98,7 @@ namespace {
         const uint32_t player = Player(n);
         const uint8_t who = Ram8(player + kCharacter);
         fight::MoveLog::Start start;
-        start.character = Ram8(player + kAkuma) ? "Akuma" : who < kCharacters ? kCharacterNames[who] : "?";
+        start.character = IsAkuma(player) ? "Akuma" : who < kCharacters ? kCharacterNames[who] : "?";
         start.input = fight::Notation(PanelHeld(n), Ram8(player + kFacesRight) == 0);
         start.air = Ram8(player + kState) == kJump || Ram8(player + kInAir) != 0;
         start.id = Ram32(player + kFrame); // (the move's first animation frame)
@@ -180,7 +180,7 @@ namespace {
             }
             if (FeatureOn("stun_readout")) {
                 char text[32];
-                const uint32_t most = kStunMost + (Ram8(player + kStunTimes) & 0x1E);
+                const uint32_t most = kStunMost + (family::kTurbo ? Ram8(player + kStunTimes) & 0x1E : 0);
                 snprintf(text, sizeof text, "stun %d/%d", Ram16(player + kStun), machine.Read16(most));
                 lines.push_back({n == 0 ? 0.02f : 0.98f, 0.12f, n == 0 ? -1 : 1, text});
             }

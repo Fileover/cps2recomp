@@ -21,7 +21,7 @@ namespace cps2recomp {
 namespace {
     using namespace ssf2t;
 
-    constexpr uint16_t kBooted = 0x10, kIntroduction = 0x02, kTitle = 0x16;
+    constexpr uint16_t kBooted = family::kBooted, kIntroduction = family::kIntro, kTitle = family::kTitleStep; // (family.h)
     constexpr int kSkipMost = 6000; // frames after which the skipping is given up
 
     bool g_skipping = false;

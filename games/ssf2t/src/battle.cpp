@@ -50,8 +50,8 @@ namespace {
     bool AttackComing(int side) {
         const uint32_t player = Player(side), other = Player(1 - side);
         uint16_t thrown = Ram16(other + 0x1D4);
-        if (!thrown) {
-            thrown = Ram16(other + 0x2AE);
+        if (!thrown && family::kThrownToo) {
+            thrown = Ram16(other + family::kThrownToo);
         }
         if (thrown) {
             const uint32_t record = 0xFF0000 | thrown;
@@ -198,8 +198,8 @@ void RegisterBattle() {
     d.speedY = kSpeedY;
     d.speedWords = true;
     d.floor = kGround;
-    d.meter = kSuperGauge; // (the super combo gauge, which the setting up leaves as it was)
-    d.meterSize = 1;
+    d.meter = family::kTurbo ? kSuperGauge : 0; // (the super combo gauge, which the setting up leaves as it was)
+    d.meterSize = family::kTurbo ? 1 : 0;
     battle::Register(d);
     battle::RegisterTeamTag(0.25f);
 }
