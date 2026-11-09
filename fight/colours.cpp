@@ -158,7 +158,7 @@ namespace {
                 const std::string name = Upper(list[0].substr(1, list[0].find(']') - 1));
                 set = -1;
                 for (int n = 0; n < Sets(); n++) {
-                    if (name == g_description.setNames[static_cast<size_t>(n)]) {
+                    if (name == Upper(g_description.setNames[static_cast<size_t>(n)])) { // (as written or not)
                         set = n;
                     }
                 }
