@@ -12,6 +12,7 @@ namespace cps2recomp {
 
 void RegisterCoins(); // coins.cpp
 void CoinsFrame(Machine &machine);
+void CoinsBeforeFrame(Machine &machine);
 void RegisterCheats(); // cheats.cpp
 void RegisterTitle(); // title.cpp
 void TitleFrame(Machine &machine);
@@ -56,6 +57,7 @@ void RegisterGame() {
     RegisterMusic();
     TheGame().beforeFrame = [](Machine &machine) {
         BoardBeforeFrame(machine);
+        CoinsBeforeFrame(machine);
         WidescreenBeforeFrame(machine);
         session::BeforeFrame(machine);
         modes::BeforeFrame(machine);

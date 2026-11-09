@@ -886,7 +886,8 @@ void Machine::WriteCps1(uint32_t address, uint16_t value, uint16_t mask) {
         // The classic CPS-1's sound latches: a request (0x800180-0x800187) and the music's volume (0x800188-0x80018F),
         // which its Z80 reads at F008 and F00A
         if (mask & 0x00FF) {
-            m_latch[address >= 0x800188] = static_cast<uint8_t>(value);
+            // (a request: a custom soundtrack may take it, machine/soundtrack.h)
+            m_latch[address >= 0x800188] = address >= 0x800188 ? static_cast<uint8_t>(value) : soundtrack.RequestClassic(static_cast<uint8_t>(value), frame);
             if (m_logClassic) {
                 fprintf(stderr, "68000 latch %d = %02X (frame %llu)\n", address >= 0x800188 ? 2 : 1, value & 0xFF, static_cast<unsigned long long>(frame));
             }

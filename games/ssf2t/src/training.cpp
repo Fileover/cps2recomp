@@ -24,7 +24,7 @@ namespace {
     // The stun: a word of what has built up (each hit adds to it: 07F1EE), and the frames until it goes away (+5C, the
     // word before it, counted down at 077EE2); the player is stunned when it reaches a word of the table at 07F1C6, by a
     // byte that steps by two each time the player has been stunned (30, then 34, then 35)
-    constexpr uint32_t kStun = 0x5E, kStunTimes = 0x2B1, kStunMost = 0x07F1C6;
+    constexpr uint32_t kStun = 0x5E, kStunTimes = 0x2B1, kStunMost = At(0x07F1C6);
 
     int PlayerOf(uint32_t record) {
         record &= 0xFFFFFF;
@@ -98,7 +98,7 @@ namespace {
         const uint32_t player = Player(n);
         const uint8_t who = Ram8(player + kCharacter);
         fight::MoveLog::Start start;
-        start.character = Ram8(player + kAkuma) ? "Akuma" : who < kCharacters ? kCharacterNames[who] : "?";
+        start.character = IsAkuma(player) ? "Akuma" : who < kCharacters ? kCharacterNames[who] : "?";
         start.input = fight::Notation(PanelHeld(n), Ram8(player + kFacesRight) == 0);
         start.air = Ram8(player + kState) == kJump || Ram8(player + kInAir) != 0;
         start.id = Ram32(player + kFrame); // (the move's first animation frame)
@@ -175,12 +175,12 @@ namespace {
     void Hud(Machine &machine, std::vector<HudLine> &lines, std::vector<HudBox> &) {
         for (int n = 0; n < 2; n++) {
             const uint32_t player = Player(n);
-            if (FeatureOn("gauge_refill") && Ram8(player + kSuperGauge) < kGaugeFull) {
+            if (family::kTurbo && FeatureOn("gauge_refill") && Ram8(player + kSuperGauge) < kGaugeFull) {
                 SetRam8(player + kSuperGauge, kGaugeFull);
             }
             if (FeatureOn("stun_readout")) {
                 char text[32];
-                const uint32_t most = kStunMost + (Ram8(player + kStunTimes) & 0x1E);
+                const uint32_t most = kStunMost + (family::kTurbo ? Ram8(player + kStunTimes) & 0x1E : 0);
                 snprintf(text, sizeof text, "stun %d/%d", Ram16(player + kStun), machine.Read16(most));
                 lines.push_back({n == 0 ? 0.02f : 0.98f, 0.12f, n == 0 ? -1 : 1, text});
             }
@@ -233,12 +233,17 @@ void RegisterTraining() {
     d.inputWords = "What each player presses and for how many frames: the stick as a keypad number from the player's side (6 "
                    "forward, 4 back, 2 down), then the buttons.";
     d.hud = Hud;
-    d.ownAids = {"gauge_refill", "stun_readout"};
+    d.ownAids = {"stun_readout"};
     Game &game = TheGame();
-    game.features.push_back({"gauge_refill", modes::kTraining, "Gauge refills", "Both players' super combo gauge kept full."});
+    if (family::kTurbo) { // (Super Street Fighter II has no super combos)
+        d.ownAids.insert(d.ownAids.begin(), "gauge_refill");
+        game.features.push_back({"gauge_refill", modes::kTraining, "Gauge refills", "Both players' super combo gauge kept full."});
+    }
     game.features.push_back({"stun_readout", modes::kTraining, "Stun readout",
-                             "Under each player's bar: the stun built up, against how much stuns the player (it goes away when they "
-                             "are left alone for a while, and takes more each time they have been stunned)."});
+                             family::kTurbo ? "Under each player's bar: the stun built up, against how much stuns the player (it goes away "
+                                              "when they are left alone for a while, and takes more each time they have been stunned)." :
+                                              "Under each player's bar: the stun built up, against how much stuns the player (it goes away "
+                                              "when they are left alone for a while)."});
     session::Register(d);
     AddHook(HookAt(kPlayerStep), "PlayerStep", PlayerStep);
     AddHook(HookAt(kComputerPlayerStep), "ComputerPlayerStep", PlayerStep);

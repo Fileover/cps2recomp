@@ -34,7 +34,8 @@ public:
     // (driver 1.71's music and effects begin alike): the songs below that number are, the rest not (with an entry
     // in the table or not: that driver plays some of its music, Zangief's theme among them, from elsewhere).
     // (Not kept with save states: the port sets them.)
-    void FindMusic(const std::vector<uint8_t> &program, uint32_t table, uint32_t count, uint32_t musicBelow = 0);
+    void FindMusic(const std::vector<uint8_t> &program, uint32_t table, uint32_t count, uint32_t musicBelow = 0, uint32_t addresses = 0,
+                   uint32_t entrySize = 4);
     bool IsMusic(uint16_t song) const {
         return song < m_music.size() && m_music[song];
     }
@@ -76,6 +77,10 @@ public:
     // for music the player has a file for
     // (CPS2RECOMP_SOUNDTRACK_LOG: each piece of music asked for, and each stop and fade, to stderr with the frame)
     void Request(uint8_t *shared, uint64_t frame);
+    // The same for the classic CPS-1 board, whose 68000 asks for a sound with one byte in a latch (machine.cpp): the
+    // code the sound side is to get. A song the player has a file for becomes F0 (everything stops: the classic sound
+    // program has no command that stops only its music); F0 stops the file too.
+    uint8_t RequestClassic(uint8_t code, uint64_t frame);
     // A frame has passed
     void Frame();
     void Reset() {

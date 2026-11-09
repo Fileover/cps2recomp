@@ -963,7 +963,8 @@ bool Port::Init(std::string &error) {
     autoState = opt.autoSeed * 0x9E3779B97F4A7C15ull + 0x1234567ull;
     rollbackTest.random = opt.rollbackTest * 0x9E3779B97F4A7C15ull + 0x89ABCDEull;
     if (TheGame().songCount) {
-        machine->soundtrack.FindMusic(roms.soundProgram, TheGame().songTable, TheGame().songCount, TheGame().musicBelow);
+        machine->soundtrack.FindMusic(roms.soundProgram, TheGame().songTable, TheGame().songCount, TheGame().musicBelow,
+                                            TheGame().songAddresses, TheGame().songEntry);
     }
     SoundtrackFollow();
     machine->SetBoardTiming(FeatureOn("arcade_timing"));
@@ -3397,6 +3398,11 @@ int main(int argc, char **argv) {
             fprintf(stderr, "%llu instructions had no translation and ran in the interpreter (about %.3f%% of the run)\n",
                     static_cast<unsigned long long>(p.machine->cpu.interpreted),
                     100.0 * p.machine->cpu.interpreted * 12.0 / std::max<uint64_t>(1, p.machine->cpu.cycles));
+            if (p.machine->cpu.interpretedRam) {
+                fprintf(stderr, "%llu of them the game's own code in RAM (no translation can have it): %llu of the ROM's\n",
+                        static_cast<unsigned long long>(p.machine->cpu.interpretedRam),
+                        static_cast<unsigned long long>(p.machine->cpu.interpreted - p.machine->cpu.interpretedRam));
+            }
         }
         if (p.machine->soundSide == Machine::SoundSide::Check) {
             fprintf(stderr, "%llu writes to the sound chip the same from the driver and the Z80\n",

@@ -20,9 +20,13 @@ no name for yet by number.
 - [Street Fighter Alpha](#street-fighter-alpha) (37)
 - [Street Fighter Alpha 2](#street-fighter-alpha-2) (59)
 - [Street Fighter Alpha 3](#street-fighter-alpha-3) (44)
+- [Street Fighter II Champion Edition](#street-fighter-ii-champion-edition) (28)
+- [Street Fighter II Hyper Fighting](#street-fighter-ii-hyper-fighting) (28)
+- [Street Fighter II The World Warrior](#street-fighter-ii-the-world-warrior) (28)
 - [Street Fighter Zero 2 Alpha](#street-fighter-zero-2-alpha) (59)
 - [Super Gem Fighter Mini Mix](#super-gem-fighter-mini-mix) (21)
 - [Super Puzzle Fighter II Turbo](#super-puzzle-fighter-ii-turbo) (24)
+- [Super Street Fighter II](#super-street-fighter-ii) (41)
 - [Super Street Fighter II Turbo](#super-street-fighter-ii-turbo) (42)
 - [The Punisher](#the-punisher) (22)
 - [Vampire Hunter 2](#vampire-hunter-2) (61)
@@ -467,6 +471,47 @@ no name for yet by number.
 | `ranking` | `07` | Score ranking |
 | `ending` | `2D` | The ending and the staff roll |
 
+## Street Fighter II Champion Edition
+
+| File name | Number | What it is |
+|---|---|---|
+| `ryu` | `01` | Ryu's stage |
+| `honda` | `02` | E. Honda's stage |
+| `blanka` | `03` | Blanka's stage |
+| `guile` | `05` | Guile's stage |
+| `ken` | `04` | Ken's stage |
+| `chunli` | `06` | Chun-Li's stage |
+| `zangief` | `07` | Zangief's stage |
+| `dhalsim` | `08` | Dhalsim's stage |
+| `bison` | `0C` | M. Bison's stage |
+| `sagat` | `0B` | Sagat's stage |
+| `balrog` | `09` | Balrog's stage |
+| `vega` | `0A` | Vega's stage |
+| `ryu_later` | `79` | Ryu's stage, faster (a fighter's health low) |
+| `honda_later` | `7A` | E. Honda's stage, faster (a fighter's health low) |
+| `blanka_later` | `7B` | Blanka's stage, faster (a fighter's health low) |
+| `guile_later` | `7C` | Guile's stage, faster (a fighter's health low) |
+| `ken_later` | `7D` | Ken's stage, faster (a fighter's health low) |
+| `chunli_later` | `7E` | Chun-Li's stage, faster (a fighter's health low) |
+| `zangief_later` | `7F` | Zangief's stage, faster (a fighter's health low) |
+| `dhalsim_later` | `80` | Dhalsim's stage, faster (a fighter's health low) |
+| `balrog_later` | `81` | Balrog's stage, faster (a fighter's health low) |
+| `vega_later` | `82` | Vega's stage, faster (a fighter's health low) |
+| `sagat_later` | `83` | Sagat's stage, faster (a fighter's health low) |
+| `title` | `16` | The introduction and the title (played once) |
+| `player_select` | `0E` | Player select |
+| `versus` | `0F` | Versus screen (played once) |
+| `winner` | `10` | A match won (played once) |
+| `bonus` | `0D` | A bonus stage |
+
+## Street Fighter II Hyper Fighting
+
+The same songs as [Street Fighter II Champion Edition](#street-fighter-ii-champion-edition).
+
+## Street Fighter II The World Warrior
+
+The same songs as [Street Fighter II Champion Edition](#street-fighter-ii-champion-edition).
+
 ## Street Fighter Zero 2 Alpha
 
 The same songs as [Street Fighter Alpha 2](#street-fighter-alpha-2).
@@ -525,6 +570,52 @@ The same songs as [Street Fighter Alpha 2](#street-fighter-alpha-2).
 | `ranking` | `15` | Score ranking (played once) |
 | `best_player` | `16` | Score ranking: the best player (played once) |
 | `staff_roll` | `17` | Ending and staff roll |
+
+## Super Street Fighter II
+
+| File name | Number | What it is |
+|---|---|---|
+| `ryu` | `02` | Ryu's stage |
+| `honda` | `03` | E. Honda's stage |
+| `blanka` | `05` | Blanka's stage |
+| `guile` | `07` | Guile's stage |
+| `ken` | `01` | Ken's stage |
+| `chunli` | `04` | Chun-Li's stage |
+| `zangief` | `06` | Zangief's stage |
+| `dhalsim` | `08` | Dhalsim's stage |
+| `bison` | `0C` | M. Bison's stage |
+| `sagat` | `0B` | Sagat's stage |
+| `balrog` | `09` | Balrog's stage |
+| `vega` | `0A` | Vega's stage |
+| `cammy` | `0E` | Cammy's stage |
+| `thawk` | `0F` | T. Hawk's stage |
+| `feilong` | `0D` | Fei Long's stage |
+| `deejay` | `10` | Dee Jay's stage |
+| `ryu_later` | `12` | Ryu's stage, faster (a fighter's health low) |
+| `honda_later` | `13` | E. Honda's stage, faster (a fighter's health low) |
+| `blanka_later` | `15` | Blanka's stage, faster (a fighter's health low) |
+| `guile_later` | `17` | Guile's stage, faster (a fighter's health low) |
+| `ken_later` | `11` | Ken's stage, faster (a fighter's health low) |
+| `chunli_later` | `14` | Chun-Li's stage, faster (a fighter's health low) |
+| `zangief_later` | `16` | Zangief's stage, faster (a fighter's health low) |
+| `dhalsim_later` | `18` | Dhalsim's stage, faster (a fighter's health low) |
+| `bison_later` | `1C` | M. Bison's stage, faster (a fighter's health low) |
+| `sagat_later` | `1B` | Sagat's stage, faster (a fighter's health low) |
+| `balrog_later` | `19` | Balrog's stage, faster (a fighter's health low) |
+| `vega_later` | `1A` | Vega's stage, faster (a fighter's health low) |
+| `cammy_later` | `1E` | Cammy's stage, faster (a fighter's health low) |
+| `thawk_later` | `1F` | T. Hawk's stage, faster (a fighter's health low) |
+| `feilong_later` | `1D` | Fei Long's stage, faster (a fighter's health low) |
+| `deejay_later` | `20` | Dee Jay's stage, faster (a fighter's health low) |
+| `title` | `33` | The introduction and the title (played once) |
+| `qsound` | `3D` | The QSound notice (played once) |
+| `player_select` | `34` | Player select |
+| `versus` | `35` | Versus screen (played once) |
+| `winner` | `36` | Winner (the winner's quote) (played once) |
+| `ranking` | `3A` | Score ranking (played once) |
+| `ryu_ending` | `23` | Ryu's ending |
+| `staff_roll` | `3C` | Staff roll |
+| `bonus` | `3B` | A bonus stage |
 
 ## Super Street Fighter II Turbo
 

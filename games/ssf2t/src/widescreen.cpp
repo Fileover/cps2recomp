@@ -38,12 +38,12 @@ namespace {
     constexpr uint32_t kPlaceX = 0x06, kPlaceY = 0x0A, kMovedX = 0x30, kMovedY = 0x32, kGoingX = 0x24, kGoingY = 0x25;
     // A player's (from 0CC4E4 and 0043F4): its half width, and what moves where it is seen from (while it reaches out:
     // the reach across, by its facing), the other player being where it is seen from (while held), and in a corner
-    constexpr uint32_t kHalfWidth = 0x1C2, kReaching = 0x2A7, kReach = 0x2AA, kSeenAsOther = 0x1F5, kCornered = 0x48;
-    constexpr uint32_t kNotKeptIn = 0x19D, kHolding = 0x63;
-    constexpr uint32_t kVarCamera = 0xFF8ED4; // (A5+ED4, the camera's place across, as 0043F4 reads it)
+    constexpr uint32_t kHalfWidth = 0x1C2, kReaching = 0x2A7, kReach = 0x2AA, kSeenAsOther = family::kSeenAsOther, kCornered = 0x48;
+    constexpr uint32_t kNotKeptIn = family::kNotKeptIn, kHolding = 0x63; // (kSeenAsOther, kNotKeptIn: 0 in a game without)
+    constexpr uint32_t kVarCamera = At(0xFF8ED4); // (A5+ED4, the camera's place across, as 0043F4 reads it)
     constexpr uint32_t kOnLedge = 0x163;      // a player's byte: its height is taken as the floor's (0CC64C)
     // Bytes and a word that hold the camera's place up still (0CC630): a flag of its own, the round's end, a super's flash
-    constexpr uint32_t kCameraHeld = 0xFF8F90, kRoundHeld = 0xFF8DDE, kSuperHeld = 0xFF8DDC;
+    constexpr uint32_t kCameraHeld = At(0xFF8F90), kRoundHeld = At(0xFF8DDE), kSuperHeld = At(0xFF8DDC);
 
     bool g_play = false;  // fights are played in the wide picture
     bool g_shown = false; // fights are shown in the wide picture (played in it, or played as on the board)
@@ -84,7 +84,10 @@ namespace {
     // faces), which goes into `reach` (all of it: moveq)
     void SeenAt(M68K &c, int at, int reach, uint32_t player, uint32_t other) {
         // (the team battle's tag style: a player off the stage is not followed, the other's place taken for it)
-        SetLow16(c.d[at], Ram16((Ram8(player + kSeenAsOther) || TagIsOff(player) ? other : player) + kX));
+        SetLow16(c.d[at], Ram16(((kSeenAsOther && Ram8(player + kSeenAsOther)) || TagIsOff(player) ? other : player) + kX));
+        if (!family::kTurbo) {
+            return; // (Super Street Fighter II: no reach, and its register left alone)
+        }
         c.d[reach] = 0;
         if (Ram8(player + kReaching)) {
             SetLow16(c.d[reach], Ram16(player + kReach));
@@ -143,7 +146,9 @@ namespace {
         if (!(S16(c.d[3]) > S16(c.d[2]))) {
             std::swap(c.d[2], c.d[3]);
             std::swap(c.a[1], c.a[2]);
-            std::swap(c.d[4], c.d[5]);
+            if (family::kTurbo) {
+                std::swap(c.d[4], c.d[5]);
+            }
         }
         const uint32_t first = c.a[1] & 0xFFFFFF, second = c.a[2] & 0xFFFFFF;
         SetLow16(c.d[2], static_cast<uint16_t>(Low(c.d[2]) - Ram16(first + kHalfWidth)));
@@ -169,8 +174,9 @@ namespace {
             return;
         }
         // (further apart: their middle in the middle)
-        uint16_t middle = static_cast<uint16_t>(Ram16(first + kX) + Low(c.d[4]) - Ram16(first + kHalfWidth) + Ram16(second + kX) +
-                                                Low(c.d[5]) + Ram16(second + kHalfWidth));
+        const uint16_t reach1 = family::kTurbo ? Low(c.d[4]) : 0, reach2 = family::kTurbo ? Low(c.d[5]) : 0;
+        uint16_t middle = static_cast<uint16_t>(Ram16(first + kX) + reach1 - Ram16(first + kHalfWidth) + Ram16(second + kX) + reach2 +
+                                                Ram16(second + kHalfWidth));
         SetLow16(c.d[0], static_cast<uint16_t>((middle >> 1) - place - 0xC0));
         if (S16(c.d[0]) < 0) {
             MoveAcross(c, camera, false);
@@ -194,7 +200,7 @@ namespace {
             SetRam16(camera + kPlaceY, to);
             return;
         }
-        if (Ram8(kCameraHeld) || Ram8(kRoundHeld) || Ram16(kSuperHeld)) {
+        if ((kCameraHeld && Ram8(kCameraHeld)) || Ram8(kRoundHeld) || Ram16(kSuperHeld)) {
             return;
         }
         // (each player's height: the floor's for one standing on something, a ledge)
@@ -247,11 +253,11 @@ namespace {
     // width (its reach, while it reaches out, counted in); one held is moved with it
     void KeepIn(M68K &c) {
         const uint32_t player = c.a[6] & 0xFFFFFF;
-        if (Ram8(player + kNotKeptIn)) {
+        if (kNotKeptIn && Ram8(player + kNotKeptIn)) {
             return;
         }
         SetRam8(player + kCornered, 0);
-        if (Ram8(player + kSeenAsOther)) {
+        if (kSeenAsOther && Ram8(player + kSeenAsOther)) {
             return;
         }
         // (the ring out: a player knocked about at an end of the stage goes over it; the tag style's off the stage)
@@ -263,8 +269,10 @@ namespace {
         uint16_t leftmost = static_cast<uint16_t>(shown + half);
         SetLow16(c.d[0], leftmost);
         uint16_t at = Ram16(player + kX), reach = 0;
-        c.d[3] = 0; // (moveq)
-        if (Ram8(player + kReaching)) {
+        if (family::kTurbo) {
+            c.d[3] = 0; // (moveq; Super Street Fighter II has no reach, and leaves D2 and D3 alone)
+        }
+        if (family::kTurbo && Ram8(player + kReaching)) {
             reach = Ram16(player + kReach);
             if (!Ram8(player + kFacesRight)) {
                 reach = static_cast<uint16_t>(0u - reach);
@@ -272,7 +280,9 @@ namespace {
             SetLow16(c.d[3], reach);
             at = static_cast<uint16_t>(at + reach);
         }
-        SetLow16(c.d[2], at);
+        if (family::kTurbo) {
+            SetLow16(c.d[2], at);
+        }
         if (!(S16(leftmost) < S16(at))) {
             ToEdge(c, player, leftmost, reach, 1);
         }
@@ -407,9 +417,9 @@ namespace {
 void RegisterWidescreen() {
     modes::Focus(FocusPlace, 40, 104);
     TheGame().widestPicture = [] { return Video::kWidth + (FeatureOn("widescreen") ? 2 * kSide : 0); };
-    AddRewrite(0x0CC4E4, "CameraAcross", CameraAcross, kFreeFlags, 418);
-    AddRewrite(0x0CC630, "CameraUp", CameraUp, kFreeFlags, 322);
-    AddRewrite(0x0043F4, "KeepIn", KeepIn, kFreeFlags, 215);
+    AddRewrite(At(0x0CC4E4), "CameraAcross", CameraAcross, kFreeFlags, 418);
+    AddRewrite(At(0x0CC630), "CameraUp", CameraUp, kFreeFlags, 322);
+    AddRewrite(At(0x0043F4), "KeepIn", KeepIn, kFreeFlags, 215);
     // (not in the Enhanced preset: it shows more of the stage than the board does, and a player who wants the game as
     // it is played in competition must not get that without asking)
     TheGame().features.push_back({"widescreen", "Display", "Widescreen",

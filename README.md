@@ -26,6 +26,7 @@ file). Only the versions named below work for each game, and this project cannot
 
 | Game | ROM set | Notes |
 | --- | --- | --- |
+| [**Super Street Fighter II**](games/ssf2/README.md) (1993) | `ssf2` (World 931005) | The New Challengers: the first on the CPS-2, with bonus stages |
 | [**Super Street Fighter II Turbo**](games/ssf2t/README.md) (1994) | `ssf2xjr1` (Japan 940223) | The tournament revision; Akuma and the old characters without codes |
 | [**Hyper Street Fighter II**](games/hsf2/README.md) (2004) | `hsf2` (USA 040202) | Every character in each game of the series' version, against each other; Akuma without a code |
 | [**Street Fighter Alpha**](games/sfa/README.md) (1995) | `sfa` (Europe 950727) | |
@@ -47,8 +48,9 @@ file). Only the versions named below work for each game, and this project cannot
 | [**Vampire Hunter 2**](games/vhunt2/README.md) (1997) | `vhunt2` (Japan 970929) | Night Warriors' cast on Vampire Savior's engine |
 | [**Vampire Savior Definitive**](games/vsav_definitive/README.md) (beta) | `vsavj` and `vsav2` (and `dstlk`, `nwarr`, `sfa`, `sfa2u`, `sfa3u`, `ssf2xjr1`, `msh`, `xmvsf`, `mshvsf`, `mvsc`, `xmcota`, `sgemf`, `cybots` for their stages) | Vampire Savior with all eighteen characters, and other games' stages |
 | [**Alien vs. Predator**](games/avsp/README.md) (1994) | `avspu` (USA 940520) | Beat-'em-up: three players, a stage to start at, score attack |
-| [**Street Fighter II: Champion Edition**](games/sf2ce/README.md) (1992, CPS-1) | `sf2ce` (World 920513) | Classic CPS-1 with YM2151 and OKI sound |
-| [**Street Fighter II: Hyper Fighting**](games/sf2hf/README.md) (1992, CPS-1) | `sf2hf` (World 921209) | Classic CPS-1 with YM2151 and OKI sound |
+| [**Street Fighter II: The World Warrior**](games/sf2/README.md) (1991, CPS-1) | `sf2` (World 910522) | The first, eight characters to choose; on the classic CPS-1 |
+| [**Street Fighter II: Champion Edition**](games/sf2ce/README.md) (1992, CPS-1) | `sf2ce` (World 920513) | The bosses playable, mirror matches; on the classic CPS-1 |
+| [**Street Fighter II: Hyper Fighting**](games/sf2hf/README.md) (1992, CPS-1) | `sf2hf` (World 921209) | Faster, new moves and colours; on the classic CPS-1 |
 | [**Ghouls'n Ghosts**](games/ghouls/README.md) (1988, CPS-1) | `ghouls` (World) | Platform game; classic CPS-1 with YM2151 and OKI sound |
 | [**Cadillacs and Dinosaurs**](games/dino/README.md) (1993, CPS-1) | `dino` (World 930201) | Beat-'em-up: three players, a stage to start at, score attack |
 | [**The Punisher**](games/punisher/README.md) (1993, CPS-1) | `punisheru` (USA 930422) | Beat-'em-up: two players, a stage to start at, score attack |
