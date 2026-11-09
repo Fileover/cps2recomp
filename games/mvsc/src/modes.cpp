@@ -9,6 +9,7 @@
 #include "session.h"
 #include "state.h"
 #include "mvsc.h"
+#include "marvel_stages.h"
 
 #include <iterator>
 #include <string>
@@ -46,6 +47,8 @@ namespace {
         const int stage = session::WantedStage();
         if (stage >= 1 && stage <= kStages) {
             SetRam8(kStage, static_cast<uint8_t>(stage - 1));
+        } else if (stage > kStages) {
+            SetRam8(kStage, 0); // (another game's: fought on the first, its stage drawn behind: stages.cpp)
         }
         // ... and the characters a mode wants (by the game's own word for them, kCharacter), as the players' picks (each
         // round is made from them: 01318E)
@@ -98,7 +101,9 @@ void RegisterModes() {
     d.startTraining = session::StartSession;
     d.modesWords = "Other ways to run the game: training, attract mode, viewers for the stages and the characters, and the "
                    "colour editor.";
+    // (its stages, then the other games': stages.cpp, fight/marvel_stages.h)
     d.stageNames.assign(std::begin(kStageNames), std::end(kStageNames));
+    marvel_stages::AddStages(d, "mvsc", kStages);
     // (the stages have no tunes of their own: a round plays player 2's second character's. The viewer offers each
     // character's theme, 0C and the character's number on, to Mega Man's: music.cpp)
     d.otherTuneNames.push_back("Onslaught's theme");
