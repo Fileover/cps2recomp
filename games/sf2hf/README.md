@@ -4,14 +4,22 @@
 > project has ported. This page is about Street Fighter II: Hyper Fighting; the [main page](../../README.md) says how
 > to download and play.
 
-An unofficial native PC port of the arcade game *Street Fighter II′: Hyper Fighting* (Capcom, 1992, CPS-1 board;
-*Street Fighter II′ Turbo* in Japan) for macOS, Linux (Steam Deck included) and Windows, made by static
-recompilation.
+An unofficial native PC port of the arcade game *Street Fighter II′: Hyper Fighting* (Capcom, 1992, CPS-1 board; *Street Fighter II′ Turbo* in Japan)
+for macOS, Linux (Steam Deck included) and Windows, made by static recompilation.
 
-> **Initial classic CPS-1 port, with sound.** The game's picture, controls and arcade music and effects run on the
-> toolkit's shared classic CPS-1 board. Board options and cheats are declared in `game.cfg`; there is no training
-> mode yet. The YM2151 uses [ymfm](https://github.com/aaronsgiles/ymfm), the BSD-3-Clause library listed in
-> [THIRD_PARTY_NOTICES.md](../../THIRD_PARTY_NOTICES.md). The OKI MSM6295 is implemented in `sound/okim6295.cpp`.
+Hyper Fighting is Champion Edition made faster, with new special moves and new colours. Capcom made it from Champion
+Edition's program, and Super Street Fighter II Turbo's grew out of the same line, so this port builds the same sources as the
+[Super Street Fighter II Turbo port](../ssf2t/README.md), with this game's own places and board, so it has what that
+one has but what Super Turbo added to the game (super combos, the hidden characters, the speeds).
+
+It has a full **training mode** (hit boxes, frame data and a frame meter, input display, combo and stun readouts, a
+dummy that records, replays and guards), the **alternative modes** (attract mode, the stage and model viewers,
+survival, endless battle, ring out, a tag team battle), **widescreen**, **custom colours** with a colour editor, and
+the features every game shares: free play, straight to the title, the board's DIP switches, cheats, save states,
+run-ahead, arcade timing, a custom soundtrack.
+
+> **Beta.** The game plays from start to ending and its code is checked instruction by instruction, but nobody has
+> played it by hand yet. Expect rough edges, and please [report what you find](#feedback-and-contributing).
 
 **No game files are included.** You need your own copy of the game: the arcade ROM set `sf2hf` (World, 921209), from
 a board you own. This project cannot help you get one.
@@ -19,51 +27,58 @@ a board you own. This project cannot help you get one.
 This project is not affiliated with, endorsed by, or sponsored by Capcom. *Street Fighter* is a trademark of Capcom
 Co., Ltd.
 
+![The title screen](../../docs/screenshots/sf2hf/title.png)
+
+![Ryu against Ken (in Hyper Fighting's colours) in E. Honda's bathhouse](../../docs/screenshots/sf2hf/fight.png)
+
+## What it is
+
+The game's 68000 program is translated ahead of time into C++ and compiled into the port, and so is its sound CPU's.
+The board is the toolkit's classic CPS-1 (no QSound): the Z80 drives a YM2151 ([ymfm](https://github.com/aaronsgiles/ymfm))
+and an OKI MSM6295 (`sound/okim6295.cpp`). Everything the port adds is Super Turbo's sources, which name the places they
+use in Super Turbo's program; this game's `family.h` says where each is here ([how it was made](PROGRESS.md)).
+
+Training mode, the alternative modes, widescreen and its invisible walls, the colour editor, the zoom, the in-game menu
+and the rest work as on the [Super Turbo page](../ssf2t/README.md), with these differences:
+
+- No super combo gauge, no hidden characters (all twelve are on the select screen), no game speed.
+- **Free play** is the board's own DIP switch, set by the feature.
+- **The Board page** is the board's DIP switches: difficulty, continue, demo sound, two coins to start.
+- **Custom colours**: each character has two sets, its own (Normal) and the one it has when both players choose it
+  (Other), of one palette. PalMod's file for it is `s2te_22.7f`.
+- **A custom soundtrack**: on the classic board too. [The list of its songs](../../docs/SONGS.md#street-fighter-ii-hyper-fighting)
+  names the music. A replaced tune stops the board's sound effects for a moment as it starts (the classic sound program
+  has no command that stops only its music). [How →](../../docs/SOUNDTRACK.md)
+
 ## What you need
 
-- The ROM set `sf2hf` (*Street Fighter II′: Hyper Fighting*, World 921209): `sf2hf.zip` or a folder with its files
-  (a merged zip works too: files are found by checksum). Other regions and revisions are refused.
+- The ROM set `sf2hf` (*Street Fighter II′: Hyper Fighting*, World 921209): `sf2hf.zip` or a folder with its files.
+  A merged zip with its clones in it works too: the launcher finds each file by checksum. Other regions and revisions
+  are refused.
 - One of: macOS 13 or later; Linux x86_64 or SteamOS; Windows 10 or 11, 64-bit.
+- A gamepad or stick with six buttons is recommended.
 
 ## Building from source
 
-With your own ROM set in `rom/sf2hf/` (ignored by Git), from the repository's top:
+With your own ROM sets in `rom/sf2hf/` and `rom/ssf2t/` (ignored by Git; Super Turbo's is needed only to make
+`family.h` again), CMake, Ninja, SDL 3 and Python 3, from the repository's top:
 
 ```sh
 make GAME=sf2hf            # twice the first time
 make GAME=sf2hf explore    # once: finds the game's code by made-up play and translates it
 make GAME=sf2hf run
+make GAME=sf2hf check FRAMES=44000 MOVIE=games/sf2hf/movies/ladder.txt ARGS="--features free_play,no_damage,one_hit"
 ```
 
-A build of `sf2ce` first lets `tools/portmap.py` move its entry points to this program before exploring
-(`--from work/sf2ce --to work/sf2hf --limit 180000 --entries ...`, added to `work/sf2hf/entries.txt`).
+[docs/BUILDING.md](../../docs/BUILDING.md) has every platform, the checks and the release builds, and
+[PROGRESS.md](PROGRESS.md) what was found about the game and what is next.
 
-## Progress
+## Feedback and contributing
 
-**Where it stands.** Uses Champion Edition's classic board, S9263B graphics mapper, CPS-B-21 multiplier,
-extra kick inputs and sound hardware. Game-specific ROM lists, mapper ranges, DIPs and cheats stay in `game.cfg`.
+Bug reports and pull requests are welcome: see [CONTRIBUTING.md](../../CONTRIBUTING.md) for the rules (above all:
+nothing from the game, ever).
 
-**The DIP switches** are as the boards left the factory (`dip` in game.cfg, `FF FC 9F`): difficulty 3 (normal), continues allowed, the demonstrations' sound. Before, the port read them all off: the easiest difficulty and no continues.
+## License and credits
 
-**The Board page** (the in-game menu's, F1 or Esc, and the launcher's): the DIP switches by name, from game.cfg's `board_option_N` lines: difficulty (0 to 7), free play, continue, demo sound and two coins to start, each "As the board is set" unless chosen. The board reads them all the time, so a change applies at once, as the game next uses it.
-
-**The Cheats page** (the menu's and the launcher's), from game.cfg's `cheat_N` lines: writes to the work RAM before
-every frame while a cheat is on, while a round is fought. Infinite energy for each player, infinite time and one-hit
-knockouts (player 2). The bosses can be chosen in this game, so there is no cheat for them. Each can be switched any
-time; off, the game goes on as it was.
-
-## Reproducible checks
-
-`movies/smoke_play.txt` supplies 40,000 frames of input from reset. It exercises coin/start and gameplay;
-it is a smoke route, not a completed game. Ghouls finishes its board tests later than Street Fighter II;
-its first coin/start during those tests is ignored and the next pair starts play.
-
-```sh
-make GAME=sf2hf check FRAMES=40000 MOVIE=games/sf2hf/movies/smoke_play.txt
-make GAME=sf2hf check-rollback FRAMES=12000
-make GAME=sf2hf check-online FRAMES=6000
-```
-
-The online check uses two local peers and simulated packet delay/loss; it does not test Internet play.
-The classic sound program runs on the Z80. `check-sound`'s QSound high-level-driver comparison is not applicable.
-Windows is the tested platform for this contribution; macOS/Linux builds still need verification.
+GPL-3.0-only (see [LICENSE](../../LICENSE)); [THIRD_PARTY_NOTICES.md](../../THIRD_PARTY_NOTICES.md) lists what comes
+from other projects. The repository holds no game data and nothing derived from it.
