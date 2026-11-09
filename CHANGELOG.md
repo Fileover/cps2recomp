@@ -8,10 +8,24 @@
   mode, the stage and model viewers, survival, endless battle, ring out, the tag team battle, widescreen and invisible
   walls, the camera's zoom, custom colours and the colour editor. Its stages are Super Turbo's (the same graphics), which
   the other games already show.
+- **Street Fighter II: The World Warrior** (set `sf2`, World 910522) on the classic CPS-1 board, and **Champion Edition
+  and Hyper Fighting brought up to the other fighting games**: all three now build Super Turbo's sources (each with a
+  `family.h` of its own places and facts, as Super SF2), so each has free play, straight to the title, the cheats,
+  training mode, attract mode, the stage and model viewers, survival, endless battle, ring out, the tag team battle,
+  widescreen and invisible walls, the camera's zoom, custom colours and the colour editor, and a custom soundtrack with
+  its music named. Their Board page stays the board's DIP switches; free play is the board's own switch, set by the
+  feature (the Board page's Free play and the game.cfg cheats are replaced by the Game page's and the sources' own).
+- **A custom soundtrack on the classic CPS-1 board** (Street Fighter II's): the 68000's requests to the sound board's
+  latch are looked at as on the CPS-2, the songs found from the classic sound program's table (`Game::songEntry` 2).
+- **Custom colour files' set names** are read as written or not: `[Start]`, `[Held]`, `[OldP]` and `[OldK]` in Super
+  Turbo's and Hyper Street Fighter II's files were never taken before.
+- `--stats` counts apart the game's own code run in RAM (Champion Edition calls routines it writes into video RAM),
+  which no translation can have.
 - **Super Turbo's tag team battle**: after a tag, the newcomer's health bar was drawn empty (the bar only steps down to
   the health, and went on past nothing); it is put at the health now.
 - The toolkit: `colours::Description::palettesOf` (a game whose characters' colour sets have different counts of
-  palettes) and `Game::songAddresses` (a song table whose places carry a bank above the sound ROM's size).
+  palettes), `Game::songAddresses` (a song table whose places carry a bank above the sound ROM's size), and
+  `modes::Description::soundEntry` (a sound queue of words, the classic CPS-1's).
 
 - **Windows** (from Fileover, #208): a parent set's zip is found beside a game's zip when the path is written with
   backslashes, and the launcher opens without a console window beside it (recomp-common #62).

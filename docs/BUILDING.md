@@ -9,6 +9,9 @@ the build tells you which one is missing or different.
 
 | Game | `GAME=` | ROM set |
 | --- | --- | --- |
+| [Street Fighter II: The World Warrior](../games/sf2/README.md) | `sf2` | `sf2` (World 910522) |
+| [Street Fighter II: Champion Edition](../games/sf2ce/README.md) | `sf2ce` | `sf2ce` (World 920513) |
+| [Street Fighter II: Hyper Fighting](../games/sf2hf/README.md) | `sf2hf` | `sf2hf` (World 921209) |
 | [Super Street Fighter II](../games/ssf2/README.md) | `ssf2` | `ssf2` (World 931005) |
 | [Super Street Fighter II Turbo](../games/ssf2t/README.md) | `ssf2t` | `ssf2xjr1` (Japan 940223) |
 | [Hyper Street Fighter II](../games/hsf2/README.md) | `hsf2` | `hsf2` (USA 040202) |

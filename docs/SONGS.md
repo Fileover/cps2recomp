@@ -20,6 +20,9 @@ no name for yet by number.
 - [Street Fighter Alpha](#street-fighter-alpha) (37)
 - [Street Fighter Alpha 2](#street-fighter-alpha-2) (59)
 - [Street Fighter Alpha 3](#street-fighter-alpha-3) (44)
+- [Street Fighter II Champion Edition](#street-fighter-ii-champion-edition) (28)
+- [Street Fighter II Hyper Fighting](#street-fighter-ii-hyper-fighting) (28)
+- [Street Fighter II The World Warrior](#street-fighter-ii-the-world-warrior) (28)
 - [Street Fighter Zero 2 Alpha](#street-fighter-zero-2-alpha) (59)
 - [Super Gem Fighter Mini Mix](#super-gem-fighter-mini-mix) (21)
 - [Super Puzzle Fighter II Turbo](#super-puzzle-fighter-ii-turbo) (24)
@@ -467,6 +470,47 @@ no name for yet by number.
 | `game_over` | `06` | Game over (played once) |
 | `ranking` | `07` | Score ranking |
 | `ending` | `2D` | The ending and the staff roll |
+
+## Street Fighter II Champion Edition
+
+| File name | Number | What it is |
+|---|---|---|
+| `ryu` | `01` | Ryu's stage |
+| `honda` | `02` | E. Honda's stage |
+| `blanka` | `03` | Blanka's stage |
+| `guile` | `05` | Guile's stage |
+| `ken` | `04` | Ken's stage |
+| `chunli` | `06` | Chun-Li's stage |
+| `zangief` | `07` | Zangief's stage |
+| `dhalsim` | `08` | Dhalsim's stage |
+| `bison` | `0C` | M. Bison's stage |
+| `sagat` | `0B` | Sagat's stage |
+| `balrog` | `09` | Balrog's stage |
+| `vega` | `0A` | Vega's stage |
+| `ryu_later` | `79` | Ryu's stage, faster (a fighter's health low) |
+| `honda_later` | `7A` | E. Honda's stage, faster (a fighter's health low) |
+| `blanka_later` | `7B` | Blanka's stage, faster (a fighter's health low) |
+| `guile_later` | `7C` | Guile's stage, faster (a fighter's health low) |
+| `ken_later` | `7D` | Ken's stage, faster (a fighter's health low) |
+| `chunli_later` | `7E` | Chun-Li's stage, faster (a fighter's health low) |
+| `zangief_later` | `7F` | Zangief's stage, faster (a fighter's health low) |
+| `dhalsim_later` | `80` | Dhalsim's stage, faster (a fighter's health low) |
+| `balrog_later` | `81` | Balrog's stage, faster (a fighter's health low) |
+| `vega_later` | `82` | Vega's stage, faster (a fighter's health low) |
+| `sagat_later` | `83` | Sagat's stage, faster (a fighter's health low) |
+| `title` | `16` | The introduction and the title (played once) |
+| `player_select` | `0E` | Player select |
+| `versus` | `0F` | Versus screen (played once) |
+| `winner` | `10` | A match won (played once) |
+| `bonus` | `0D` | A bonus stage |
+
+## Street Fighter II Hyper Fighting
+
+The same songs as [Street Fighter II Champion Edition](#street-fighter-ii-champion-edition).
+
+## Street Fighter II The World Warrior
+
+The same songs as [Street Fighter II Champion Edition](#street-fighter-ii-champion-edition).
 
 ## Street Fighter Zero 2 Alpha
 
