@@ -539,6 +539,27 @@ namespace {
     }
 
     bool g_drawnOver = false; // (the game's picture was drawn to go over a guest's last frame)
+
+    // The guest's stage as this frame has it: drawn here, from its board's records (its board draws no picture of its
+    // own: Machine::ownPicture), by the same renderer as the game's; or its board's own picture, when it has no records to
+    // draw it from (a frame before its game's first list; --video board)
+    std::vector<uint32_t> g_guestPicture;
+    bool g_guestDrawn = false; // (g_guestPicture is this frame's)
+    const uint32_t *GuestPicture(const Machine &board) {
+        if (board.ownPicture) {
+            return board.Picture();
+        }
+        if (!g_guestDrawn) {
+            NativeVideo::FrameData records;
+            if (!board.nativeVideo.LastFrame(records)) {
+                return board.Picture();
+            }
+            g_guestPicture.resize(static_cast<size_t>(board.PictureWidth()) * Video::kHeight);
+            NativeVideo::DrawFrame(records, g_guestPicture.data(), board.PictureWidth());
+            g_guestDrawn = true;
+        }
+        return g_guestPicture.data();
+    }
     void BeforeFrame(Machine &machine) {
         // (the game's picture as it was, before the game's own sources set theirs: what was changed here for a guest's
         // stage put back, so that a stage of its own shows again once no other game's is)
@@ -644,6 +665,10 @@ namespace {
         board.video.markFront = !guest.fightersDrawn.empty() || guest.frontLevel;
         board.video.frontLevel = guest.frontLevel;
         board.video.wide.side = machine.video.wide.side;
+        // (its picture drawn here, from its records, when it keeps them; else its own, as it was)
+        NativeVideo::FrameData last;
+        board.ownPicture = !board.nativeVideo.Active() || (board.ownPicture && !board.nativeVideo.LastFrame(last));
+        g_guestDrawn = false;
         board.RunFrame();
         CheckFrame(guest, board, shown);
         // The picture: the guest's, under the game's marked pixels; but its pixels in front of the fighters over them (and
@@ -651,7 +676,7 @@ namespace {
         if (shown && machine.drawing && board.PictureWidth() == machine.PictureWidth()) {
             machine.guestBehind = true;
             uint32_t *picture = machine.Picture();
-            const uint32_t *behind = board.Picture();
+            const uint32_t *behind = GuestPicture(board);
             const size_t pixels = static_cast<size_t>(machine.PictureWidth()) * Video::kHeight;
             for (size_t i = 0; i < pixels; i++) {
                 const uint32_t mine = picture[i], theirs = behind[i];
@@ -686,7 +711,7 @@ namespace {
     // (a picture of one colour, or nearly: the stage not drawn at all. Longer than a fade's)
     constexpr int kLongestBlank = 30;
     bool Blank(const Machine &board) {
-        const uint32_t *picture = board.Picture();
+        const uint32_t *picture = GuestPicture(board);
         const size_t pixels = static_cast<size_t>(board.PictureWidth()) * Video::kHeight;
         size_t other = 0;
         for (size_t i = 0; i < pixels; i += 7) {
@@ -816,7 +841,7 @@ void LookFrame(Machine &machine) {
     memcpy(p + 8, size, 4);
     memcpy(p + 12, &from.cpsA[6], 12); // (scroll screens 1-3, across and down)
     uint8_t *rgb = p + 24, *front = rgb + static_cast<size_t>(width) * height * 3;
-    const uint32_t *picture = from.Picture();
+    const uint32_t *picture = board && &from == board ? GuestPicture(*board) : from.Picture();
     for (int y = 0; y < height; y++) {
         for (int x = 0; x < width; x++) {
             const uint32_t pixel = picture[static_cast<size_t>(y) * 2 * from.PictureWidth() + x * 2];

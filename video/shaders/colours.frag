@@ -9,6 +9,9 @@ layout(set = 2, binding = 0) uniform usampler2D screens;  // the scroll screens'
 layout(set = 2, binding = 1) uniform usampler2D objects;  // the second's: pen, level, top bit set where an object is
 layout(set = 2, binding = 2) uniform usampler2D lines;    // a line's record a row (common.glsl)
 layout(set = 2, binding = 3) uniform usampler2D palette;  // 64 x 48 colours: red, green, blue in the low three bytes
+// (the objects alone over another game's stage, in the same pass: that stage as its own game's records drew it, its
+// pixels in front of the fighters half there: L_MARKS bit 3)
+layout(set = 2, binding = 4) uniform sampler2D stage;
 
 // The combinations of the screens' marks (bit 0 the back one) behind which an object of `level` is not drawn
 uint Behind(uint level, uint p0, uint p1, uint p2) {
@@ -67,10 +70,16 @@ void main() {
     colour = vec4(float(rgb & 0xFFu), float((rgb >> 8) & 0xFFu), float((rgb >> 16) & 0xFFu), 255.0) / 255.0;
     if (texelFetch(lines, ivec2(28, at.y), 0).r != 0u) {
         // (the objects alone, to go over another picture: their pixels, and clear elsewhere, the colour times its alpha;
-        // with the panel's told from the rest, the rest half there (over.frag: under another picture's front pixels))
+        // with the panel's told from the rest, the rest half there (under another picture's front pixels: below))
         const bool panels = (texelFetch(lines, ivec2(29, at.y), 0).r & 1u) != 0u;
         colour = (o & 0x80000000u) != 0u ? vec4(colour.rgb, panels && (o & 0x80000u) == 0u ? 0.5 : 1.0) : vec4(0.0);
+        if ((texelFetch(lines, ivec2(29, at.y), 0).r & 8u) != 0u) {
+            // (over the stage: the objects' pixels, but the stage's in front of the fighters over those not the panel's)
+            const vec4 s = texelFetch(stage, at, 0);
+            const bool mine = colour.a > 0.25, panel = colour.a > 0.75, front = s.a < 0.75;
+            colour = vec4(mine && (panel || !front) ? colour.rgb : s.rgb, 1.0);
+        }
     } else if (front) {
-        colour.a = 0.5; // (a pixel in front of the fighters: over.frag)
+        colour.a = 0.5; // (a pixel in front of the fighters: read by the game's last pass, below)
     }
 }

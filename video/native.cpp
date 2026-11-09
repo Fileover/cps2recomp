@@ -144,6 +144,7 @@ void NativeVideo::Serialize(Archive &ar) {
     m_raster.Serialize(ar);
     if (!ar.Saving()) {
         m_inFrame = false; // (a frame begun before the state was put back is not one)
+        m_lastWhole = false;
         m_hasPending = false;
     }
 }
@@ -323,22 +324,63 @@ void NativeVideo::FrameStart(const native_video::PictureOptions &options) {
     }
 }
 
+NativeVideo::FrameData NativeVideo::FrameRecords() const {
+    FrameData data;
+    data.frame = frame;
+    data.video = m_frameVideo.data();
+    data.raster = &m_frameRaster;
+    data.events = &m_frameEvents;
+    data.uploads = &m_frameUploads;
+    data.layers = m_frameLayers;
+    data.scrollExtra = scrollFromExtra ? m_frameScrollExtra.data() : nullptr;
+    data.overrides = m_frameOverrides;
+    data.options = m_frameOptions;
+    data.board = checking ? m_frameBoard.data() : nullptr;
+    data.whole = m_frameComparable;
+    return data;
+}
+
+bool NativeVideo::LastFrame(FrameData &data) const {
+    if (!m_lastWhole) {
+        return false;
+    }
+    data = FrameRecords();
+    return true;
+}
+
+void NativeVideo::DrawFrame(const FrameData &frame, uint32_t *picture, int pitch) {
+    // (on copies: the frame's video RAM, palette and maps' marks as at its first line, each line drawn with what was
+    // written before it, as the GPU's bands draw it)
+    static thread_local std::vector<uint8_t> video, scrollExtra;
+    video.assign(frame.video, frame.video + 0x30000);
+    if (frame.scrollExtra) {
+        scrollExtra.assign(frame.scrollExtra, frame.scrollExtra + 0x30000 / 4);
+    }
+    native_video::Raster raster = *frame.raster;
+    size_t next = 0;
+    for (int row = 0; row < 224; row++) {
+        for (; next < frame.events->size() && (*frame.events)[next].row <= row; next++) {
+            const FrameEvent &e = (*frame.events)[next];
+            if (e.address & 0x80000000u) {
+                raster.Upload((*frame.uploads)[e.address & 0x7FFFFFFF]);
+            } else {
+                video[e.address] = static_cast<uint8_t>(e.value >> 8);
+                video[e.address + 1] = static_cast<uint8_t>(e.value);
+                if (frame.scrollExtra) {
+                    scrollExtra[e.address / 4] = e.extra;
+                }
+            }
+        }
+        raster.Line(row, frame.layers[row], video.data(), frame.options, &picture[static_cast<size_t>(row) * pitch],
+                    frame.scrollExtra ? scrollExtra.data() : nullptr);
+    }
+}
+
 void NativeVideo::FrameEnd() {
     m_inFrame = false;
+    m_lastWhole = m_frameComparable;
     if (frameDrawn) {
-        FrameData data;
-        data.frame = frame;
-        data.video = m_frameVideo.data();
-        data.raster = &m_frameRaster;
-        data.events = &m_frameEvents;
-        data.uploads = &m_frameUploads;
-        data.layers = m_frameLayers;
-        data.scrollExtra = scrollFromExtra ? m_frameScrollExtra.data() : nullptr;
-        data.overrides = m_frameOverrides;
-        data.options = m_frameOptions;
-        data.board = checking ? m_frameBoard.data() : nullptr;
-        data.whole = m_frameComparable;
-        frameDrawn(data, frameUser);
+        frameDrawn(FrameRecords(), frameUser);
     }
     if (!m_frameComparable) {
         return;
@@ -369,26 +411,16 @@ void NativeVideo::FrameEnd() {
     m_bands += static_cast<uint64_t>(bands);
     m_bandFrames++;
     m_mostBands = bands > m_mostBands ? bands : m_mostBands;
-    // Each line drawn with what was written before it: the GPU's bands, a line at a time
-    size_t next = 0;
+    // Each line drawn with what was written before it: the GPU's bands, a line at a time (DrawFrame, on copies: the
+    // records stay as they were, LastFrame's)
     const int width = native_video::Raster::kWidth + 2 * m_frameOptions.side;
+    static std::vector<uint32_t> mine;
+    mine.assign(static_cast<size_t>(native_video::Raster::kMaxWidth) * 224, 0);
+    DrawFrame(FrameRecords(), mine.data(), native_video::Raster::kMaxWidth);
     int differ = 0;
     for (int row = 0; row < 224; row++) {
-        for (; next < m_frameEvents.size() && m_frameEvents[next].row <= row; next++) {
-            const FrameEvent &e = m_frameEvents[next];
-            if (e.address & 0x80000000u) {
-                m_frameRaster.Upload(m_frameUploads[e.address & 0x7FFFFFFF]);
-            } else {
-                m_frameVideo[e.address] = static_cast<uint8_t>(e.value >> 8);
-                m_frameVideo[e.address + 1] = static_cast<uint8_t>(e.value);
-                if (scrollFromExtra) {
-                    m_frameScrollExtra[e.address / 4] = e.extra;
-                }
-            }
-        }
-        uint32_t mine[native_video::Raster::kMaxWidth];
-        m_frameRaster.Line(row, m_frameLayers[row], m_frameVideo.data(), m_frameOptions, mine, scrollFromExtra ? m_frameScrollExtra.data() : nullptr);
-        if (memcmp(mine, &m_frameBoard[static_cast<size_t>(row) * native_video::Raster::kMaxWidth], width * sizeof(uint32_t)) != 0) {
+        if (memcmp(&mine[static_cast<size_t>(row) * native_video::Raster::kMaxWidth],
+                   &m_frameBoard[static_cast<size_t>(row) * native_video::Raster::kMaxWidth], width * sizeof(uint32_t)) != 0) {
             differ++;
         }
     }

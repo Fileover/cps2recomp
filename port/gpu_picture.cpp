@@ -67,7 +67,7 @@ namespace {
 
     // A line's record (video/shaders/common.glsl)
     void LineRecord(int line, const Layers &l, uint16_t priority, const cps2recomp::native_video::PictureOptions &o, uint32_t overrides,
-                    const Raster &raster, uint32_t *out) {
+                    const Raster &raster, uint32_t *out, bool overStage = false) {
         memset(out, 0, kLineWords * 4);
         out[14] = static_cast<uint32_t>(o.side);
         out[15] = static_cast<uint32_t>(kWidth + 2 * o.side);
@@ -82,7 +82,7 @@ namespace {
         out[23] = o.layerMask;
         // (the objects alone over another picture: GpuPicture::Over)
         out[28] = (o.layerMask & ~1u) == 0 && !o.markLayers && (o.markObjects || o.layerMask == 0) ? 1 : 0;
-        out[29] = (o.markObjects && o.panelObject ? 1u : 0u) | (o.markFront ? 2u : 0u) | ((o.frontLevel & 7u) << 4);
+        out[29] = (o.markObjects && o.panelObject ? 1u : 0u) | (o.markFront ? 2u : 0u) | (overStage ? 8u : 0u) | ((o.frontLevel & 7u) << 4);
         if (raster.Cps1()) {
             out[21] = 1;
             out[22] = raster.Enable()[0] | (static_cast<uint32_t>(raster.Enable()[1]) << 8) | (static_cast<uint32_t>(raster.Enable()[2]) << 16);
@@ -149,14 +149,13 @@ bool GpuPicture::Open(SDL_GPUDevice *device, const uint8_t *graphics, size_t siz
     m_picture = MakeTexture(m_device, SDL_GPU_TEXTUREFORMAT_R8G8B8A8_UNORM, target, kMaxWidth, kHeight);
     m_readouts = MakeTexture(m_device, SDL_GPU_TEXTUREFORMAT_R8G8B8A8_UNORM, SDL_GPU_TEXTUREUSAGE_SAMPLER, kMaxWidth, kHeight);
     m_clear = MakeTexture(m_device, SDL_GPU_TEXTUREFORMAT_R8G8B8A8_UNORM, SDL_GPU_TEXTUREUSAGE_SAMPLER, kMaxWidth, kHeight);
-    m_composite = MakeTexture(m_device, SDL_GPU_TEXTUREFORMAT_R8G8B8A8_UNORM, target, kMaxWidth, kHeight);
     SDL_GPUSamplerCreateInfo sampler = {};
     sampler.min_filter = sampler.mag_filter = SDL_GPU_FILTER_NEAREST;
     sampler.mipmap_mode = SDL_GPU_SAMPLERMIPMAPMODE_NEAREST;
     sampler.address_mode_u = sampler.address_mode_v = sampler.address_mode_w = SDL_GPU_SAMPLERADDRESSMODE_CLAMP_TO_EDGE;
     m_sampler = SDL_CreateGPUSampler(m_device, &sampler);
     if (!m_graphics || !m_video || !m_lines || !m_frame || !m_screens || !m_objects || !m_depth || !m_lineTexture || !m_palette ||
-        !m_picture || !m_readouts || !m_clear || !m_overrides || !m_holes || !m_composite || !m_extraGraphics || !m_scrollExtra || !m_sampler ||
+        !m_picture || !m_readouts || !m_clear || !m_overrides || !m_holes || !m_extraGraphics || !m_scrollExtra || !m_sampler ||
         !MakePipelines(error)) {
         if (error.empty()) {
             error = std::string("the picture's GPU resources: ") + SDL_GetError();
@@ -246,12 +245,10 @@ bool GpuPicture::MakePipelines(std::string &error) {
     SDL_GPUShader *objectsFrag = MakeShader(m_device, SDL_GPU_SHADERSTAGE_FRAGMENT, k_objects_frag_spirv, sizeof(k_objects_frag_spirv),
                                             k_objects_frag_msl, 0, 2);
     SDL_GPUShader *colours = MakeShader(m_device, SDL_GPU_SHADERSTAGE_FRAGMENT, k_colours_frag_spirv, sizeof(k_colours_frag_spirv),
-                                        k_colours_frag_msl, 4, 0);
+                                        k_colours_frag_msl, 5, 0);
     SDL_GPUShader *shown = MakeShader(m_device, SDL_GPU_SHADERSTAGE_FRAGMENT, k_shown_frag_spirv, sizeof(k_shown_frag_spirv),
                                       k_shown_frag_msl, 2, 0);
-    SDL_GPUShader *over = MakeShader(m_device, SDL_GPU_SHADERSTAGE_FRAGMENT, k_over_frag_spirv, sizeof(k_over_frag_spirv),
-                                     k_over_frag_msl, 2, 0);
-    bool ok = fill && layers && holes && objectsVert && objectsFrag && colours && shown && over;
+    bool ok = fill && layers && holes && objectsVert && objectsFrag && colours && shown;
     if (ok) {
         SDL_GPUGraphicsPipelineCreateInfo info = {};
         info.primitive_type = SDL_GPU_PRIMITIVETYPE_TRIANGLELIST;
@@ -284,14 +281,12 @@ bool GpuPicture::MakePipelines(std::string &error) {
         m_coloursPipeline = SDL_CreateGPUGraphicsPipeline(m_device, &info);
         info.fragment_shader = shown;
         m_shownPipeline = SDL_CreateGPUGraphicsPipeline(m_device, &info);
-        info.fragment_shader = over;
-        m_overPipeline = SDL_CreateGPUGraphicsPipeline(m_device, &info);
-        ok = m_layersPipeline && m_holesPipeline && m_objectsPipeline && m_coloursPipeline && m_shownPipeline && m_overPipeline;
+        ok = m_layersPipeline && m_holesPipeline && m_objectsPipeline && m_coloursPipeline && m_shownPipeline;
     }
     if (!ok) {
         error = std::string("the picture's shaders: ") + SDL_GetError();
     }
-    for (SDL_GPUShader *shader : {fill, layers, holes, objectsVert, objectsFrag, colours, shown, over}) {
+    for (SDL_GPUShader *shader : {fill, layers, holes, objectsVert, objectsFrag, colours, shown}) {
         if (shader) {
             SDL_ReleaseGPUShader(m_device, shader);
         }
@@ -309,12 +304,12 @@ void GpuPicture::Close() {
         }
     }
     for (SDL_GPUTexture *texture : {m_screens, m_holes, m_objects, m_depth, m_lineTexture, m_palette, m_picture, m_readouts, m_clear, m_shown,
-                                    m_stack, m_composite}) {
+                                    m_stack}) {
         if (texture) {
             SDL_ReleaseGPUTexture(m_device, texture);
         }
     }
-    for (SDL_GPUGraphicsPipeline *pipeline : {m_layersPipeline, m_holesPipeline, m_objectsPipeline, m_coloursPipeline, m_shownPipeline, m_overPipeline}) {
+    for (SDL_GPUGraphicsPipeline *pipeline : {m_layersPipeline, m_holesPipeline, m_objectsPipeline, m_coloursPipeline, m_shownPipeline}) {
         if (pipeline) {
             SDL_ReleaseGPUGraphicsPipeline(m_device, pipeline);
         }
@@ -336,10 +331,9 @@ void GpuPicture::Close() {
     m_extraGraphicsSize = 0;
     m_tilesCapacity = 0;
     m_screens = m_holes = m_objects = m_depth = m_lineTexture = m_palette = m_picture = m_readouts = m_clear = m_shown = m_stack = nullptr;
-    m_composite = nullptr;
     m_shownWidth = 0;
     m_sampler = nullptr;
-    m_layersPipeline = m_holesPipeline = m_objectsPipeline = m_coloursPipeline = m_shownPipeline = m_overPipeline = nullptr;
+    m_layersPipeline = m_holesPipeline = m_objectsPipeline = m_coloursPipeline = m_shownPipeline = nullptr;
     m_upload = m_download = m_readoutsUpload = nullptr;
     m_uploadSize = 0;
 }
@@ -421,7 +415,8 @@ void GpuPicture::Draw(SDL_GPUCommandBuffer *commands, const NativeVideo::FrameDa
     auto *lineWords = reinterpret_cast<uint32_t *>(up + at);
     for (int line = 0; line < kHeight; line++) {
         const uint32_t overrides = frame.overrides ? static_cast<uint32_t>(frame.overrides[line].size()) : 0;
-        LineRecord(line, frame.layers[line], raster.Priority(), frame.options, overrides, raster, &lineWords[line * kLineWords]);
+        LineRecord(line, frame.layers[line], raster.Priority(), frame.options, overrides, raster, &lineWords[line * kLineWords],
+                   m_stage != nullptr);
     }
     lineWords[kHeight * kLineWords] = static_cast<uint32_t>(m_graphicsSize);
     lineWords[kHeight * kLineWords + 1] = frame.scrollExtra ? static_cast<uint32_t>(m_extraGraphicsSize) : 0;
@@ -637,9 +632,9 @@ void GpuPicture::Draw(SDL_GPUCommandBuffer *commands, const NativeVideo::FrameDa
             SDL_SetGPUViewport(pass, &viewport);
             SDL_SetGPUScissor(pass, &scissor);
             SDL_BindGPUGraphicsPipeline(pass, m_coloursPipeline);
-            SDL_GPUTextureSamplerBinding bindings[4] = {
-                {m_holes, m_sampler}, {m_objects, m_sampler}, {m_lineTexture, m_sampler}, {m_palette, m_sampler}};
-            SDL_BindGPUFragmentSamplers(pass, 0, bindings, 4);
+            SDL_GPUTextureSamplerBinding bindings[5] = {{m_holes, m_sampler},       {m_objects, m_sampler}, {m_lineTexture, m_sampler},
+                                                        {m_palette, m_sampler},     {m_stage ? m_stage : m_clear, m_sampler}};
+            SDL_BindGPUFragmentSamplers(pass, 0, bindings, 5);
             SDL_DrawGPUPrimitives(pass, 3, 1, 0, 0);
             SDL_EndGPURenderPass(pass);
         }
@@ -685,6 +680,24 @@ void GpuPicture::Keep(const NativeVideo::FrameData &frame) {
     m_hasKept = true;
 }
 
+bool GpuPicture::DrawKeptPicture(SDL_GPUCommandBuffer *commands) {
+    if (!CanDrawKept()) {
+        return false;
+    }
+    NativeVideo::FrameData frame;
+    frame.frame = m_kept.frame;
+    frame.video = m_kept.video.data();
+    frame.raster = &m_kept.raster;
+    frame.events = &m_kept.events;
+    frame.uploads = &m_kept.uploads;
+    frame.layers = m_kept.layers;
+    frame.overrides = m_kept.overrides;
+    frame.options = m_kept.options;
+    frame.scrollExtra = m_kept.scrollExtra.empty() ? nullptr : m_kept.scrollExtra.data();
+    Draw(commands, frame);
+    return true;
+}
+
 SDL_GPUTexture *GpuPicture::DrawKept(SDL_GPUCommandBuffer *commands, const uint32_t *readouts, bool zoomed) {
     if (!CanDrawKept()) {
         return nullptr;
@@ -699,21 +712,13 @@ SDL_GPUTexture *GpuPicture::DrawKept(SDL_GPUCommandBuffer *commands, const uint3
     if (!Over(m_kept.options) && guestBehind && *guestBehind) {
         return nullptr; // (put together over a guest's, but not of objects alone: the CPU's)
     }
-    SDL_GPUTexture *stage = guest ? guest->DrawKept(commands, nullptr, false) : nullptr;
-    if (guest && !stage) {
+    // (the guest's stage drawn from its records, then this game's frame, its objects over that stage in its last pass)
+    if (guest && !guest->DrawKeptPicture(commands)) {
         return nullptr;
     }
-    NativeVideo::FrameData frame;
-    frame.frame = m_kept.frame;
-    frame.video = m_kept.video.data();
-    frame.raster = &m_kept.raster;
-    frame.events = &m_kept.events;
-    frame.uploads = &m_kept.uploads;
-    frame.layers = m_kept.layers;
-    frame.overrides = m_kept.overrides;
-    frame.options = m_kept.options;
-    frame.scrollExtra = m_kept.scrollExtra.empty() ? nullptr : m_kept.scrollExtra.data();
-    Draw(commands, frame);
+    m_stage = guest ? guest->m_picture : nullptr;
+    DrawKeptPicture(commands);
+    m_stage = nullptr;
     const int width = KeptWidth();
     if (width != m_shownWidth) {
         // (the presenter takes the texture's size as the picture's: these are made at the frame's width)
@@ -740,24 +745,8 @@ SDL_GPUTexture *GpuPicture::DrawKept(SDL_GPUCommandBuffer *commands, const uint3
         SDL_UploadToGPUTexture(copy, &from, &to, true);
         SDL_EndGPUCopyPass(copy);
     }
-    // (over a guest's stage: the stage, and this game's objects over it, but under the stage's pixels in front of the
-    // fighters: over.frag, from the guest's picture as drawn, its marks in its alpha)
+    // (over a guest's stage, the frame's last pass put the two together: colours.frag's `stage`)
     SDL_GPUTexture *base = m_picture;
-    if (stage) {
-        SDL_GPUColorTargetInfo composite = {};
-        composite.texture = m_composite;
-        composite.load_op = SDL_GPU_LOADOP_DONT_CARE;
-        composite.store_op = SDL_GPU_STOREOP_STORE;
-        SDL_GPURenderPass *pass = SDL_BeginGPURenderPass(commands, &composite, 1, nullptr);
-        SDL_BindGPUGraphicsPipeline(pass, m_overPipeline);
-        const SDL_GPUViewport viewport = {0, 0, static_cast<float>(width), static_cast<float>(kHeight), 0, 1};
-        SDL_SetGPUViewport(pass, &viewport);
-        SDL_GPUTextureSamplerBinding bindings[2] = {{guest->m_picture, m_sampler}, {m_picture, m_sampler}};
-        SDL_BindGPUFragmentSamplers(pass, 0, bindings, 2);
-        SDL_DrawGPUPrimitives(pass, 3, 1, 0, 0);
-        SDL_EndGPURenderPass(pass);
-        base = m_composite;
-    }
     // The picture with the readouts over it; zoomed, the game's alone above that (rows 224-447)
     SDL_GPUTexture *out = zoomed ? m_stack : m_shown;
     SDL_GPUColorTargetInfo target = {};

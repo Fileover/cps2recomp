@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- **Other games' stages are drawn by the game showing them**: a borrowed stage's board keeps only what its code hands
+  over each frame, and the game's own renderer draws the stage from that, with the fighters over it (the same picture;
+  the other board no longer draws one of its own).
 - **Super Street Fighter II: The New Challengers**, set `ssf2` (World 931005): the first CPS-2 game, built from Super
   Turbo's sources (as Zero 2 Alpha is from Alpha 2's), so it has everything the other fighting games have: free play,
   straight to the title, the Board page, the cheats, a custom soundtrack with its music named, training mode, attract
