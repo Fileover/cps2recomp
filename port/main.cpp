@@ -877,6 +877,7 @@ bool Port::Init(std::string &error) {
         };
         machine->nativeVideo.frameUser = &gpuPicture;
         gpuPicture.guestBehind = &machine->guestBehind;
+        gpuPicture.guestShift = &machine->guestShift;
 #ifdef GAME_GUEST_TABLE
         // (the guests' boards' frames too, for their stages drawn under the game's objects)
         static const GuestGame kDrawnGuests[] = GAME_GUEST_TABLE;
@@ -913,6 +914,7 @@ bool Port::Init(std::string &error) {
         }
         g_gpuPicture = &checkPicture;
         checkPicture.guestBehind = &machine->guestBehind;
+        checkPicture.guestShift = &machine->guestShift;
 #ifdef GAME_GUEST_TABLE
         static const GuestGame kCheckedGpuGuests[] = GAME_GUEST_TABLE;
         for (const GuestGame &guest : kCheckedGpuGuests) {

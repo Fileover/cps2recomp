@@ -604,7 +604,27 @@ namespace {
         }
     }
 
-    void CheckFrame(const Guest &guest, Machine &board, bool shown);
+    void CheckFrame(const Guest &guest, Machine &board, bool shown, int shift);
+    // How far short its camera is of the place wanted up or down (up: its picture to be moved down; 0 where its camera's
+    // height is not known): the game's camera's height, not put between the guest's ends, against the guest camera's.
+    // No more than kMostShift (a fighter's jump above a stage that does not rise; not a game's camera coming down from
+    // the sky at a round's start, its top line repeated down half the picture)
+    constexpr int kMostShift = 48;
+    int Shift(const Guest &guest, const uint8_t *ram) {
+        uint32_t atX = 0, atY = 0;
+        CameraAt(guest, ram, atX, atY);
+        if (!atY) {
+            return 0;
+        }
+        const int y = static_cast<int16_t>(R16(ram, atY));
+        int shift = g.cameraY - y;
+        if (guest.placeDown && guest.camera == Guest::Camera::Place && guest.endLeft) {
+            const uint32_t record = guest.cameraRecord ? guest.cameraRecord(ram) : guest.cameraAtX - guest.placeX;
+            const int bottom = static_cast<int16_t>(R16(ram, record + guest.endBottom));
+            shift = g.cameraY - (bottom - y);
+        }
+        return std::clamp(shift, -kMostShift, kMostShift);
+    }
     // The guest's frame, after the game's: its picture under the game's marked objects, its sound with the game's
     void Frame(Machine &machine) {
         machine.guestBehind = false;
@@ -643,7 +663,11 @@ namespace {
             g.built = 2;
         }
         g.follow = shown;
-        const int x = std::clamp<int>(Ram16(h.cameraX), h.cameraLeft, h.cameraRight);
+        int hostX = static_cast<int16_t>(Ram16(h.cameraX)), hostUp = static_cast<int16_t>(Ram16(h.cameraY));
+        if (h.camera) {
+            h.camera(hostX, h.cameraLeft, h.cameraRight, hostUp);
+        }
+        const int x = std::clamp<int>(hostX, h.cameraLeft, h.cameraRight);
         const int16_t wasX = g.cameraX;
         g.hostX = static_cast<int16_t>(x);
         g.cameraX = static_cast<int16_t>(Across(x, h.cameraLeft, h.cameraRight, guest.cameraLeft, guest.cameraRight));
@@ -654,7 +678,7 @@ namespace {
         if (guest.StageAlone() && g.built == 1 && (guest.roundStart || guest.placing) && std::abs(g.cameraX - wasX) > kJump) {
             g.built = 2; // (at the board's next frame: Guest::roundStart)
         }
-        g.cameraY = static_cast<int16_t>(static_cast<int16_t>(Ram16(h.cameraY)) - guest.lower);
+        g.cameraY = static_cast<int16_t>(hostUp - guest.lower);
         if (!guest.StageAlone()) {
             SetG8(board, guest.clock, guest.clockFull);
         }
@@ -670,18 +694,23 @@ namespace {
         board.ownPicture = !board.nativeVideo.Active() || (board.ownPicture && !board.nativeVideo.LastFrame(last));
         g_guestDrawn = false;
         board.RunFrame();
-        CheckFrame(guest, board, shown);
+        machine.guestShift = shown ? Shift(guest, board.ram.data()) : 0;
+        CheckFrame(guest, board, shown, machine.guestShift);
         // The picture: the guest's, under the game's marked pixels; but its pixels in front of the fighters over them (and
-        // under the game's panel)
+        // under the game's panel). Moved down by the shift (its camera short of the game's, up or down)
         if (shown && machine.drawing && board.PictureWidth() == machine.PictureWidth()) {
             machine.guestBehind = true;
             uint32_t *picture = machine.Picture();
             const uint32_t *behind = GuestPicture(board);
-            const size_t pixels = static_cast<size_t>(machine.PictureWidth()) * Video::kHeight;
-            for (size_t i = 0; i < pixels; i++) {
-                const uint32_t mine = picture[i], theirs = behind[i];
-                const bool over = (mine & 0x80000000u) && ((mine & 0x40000000u) || !(theirs & 0x40000000u));
-                picture[i] = over ? mine & 0xFFFFFF : theirs & 0xFFFFFF;
+            const int width = machine.PictureWidth();
+            for (int line = 0; line < Video::kHeight; line++) {
+                const int from = std::clamp(line - machine.guestShift, 0, Video::kHeight - 1);
+                uint32_t *mine = picture + static_cast<size_t>(line) * width;
+                const uint32_t *theirs = behind + static_cast<size_t>(from) * width;
+                for (int i = 0; i < width; i++) {
+                    const bool over = (mine[i] & 0x80000000u) && ((mine[i] & 0x40000000u) || !(theirs[i] & 0x40000000u));
+                    mine[i] = over ? mine[i] & 0xFFFFFF : theirs[i] & 0xFFFFFF;
+                }
             }
         }
         // The sound: the guest's music, as loud as the game's would be (its fades), while the game's stage tune is what
@@ -704,7 +733,7 @@ namespace {
         bool on = false;
         uint64_t frames = 0, followed = 0, off = 0, unknown = 0, blank = 0;
         int run = 0, longestRun = 0, worst = 0, settling = 0, blankRun = 0, longestBlank = 0;
-        int lastGuest = 0, lastStage = 0;
+        int lastGuest = 0, lastStage = 0, mostShift = 0;
         const char *worstStage = nullptr; // (the stage of the longest time off)
     } g_check;
     constexpr int kNear = 8, kLongestOff = 4, kSettle = 60;
@@ -719,7 +748,7 @@ namespace {
         }
         return other * 7 < pixels / 100;
     }
-    void CheckFrame(const Guest &guest, Machine &board, bool shown) {
+    void CheckFrame(const Guest &guest, Machine &board, bool shown, int shift) {
         // (for finding things out: CPS2RECOMP_GUEST_DUMP=FRAME:FILE writes the guest's work RAM (and FILE.video, FILE.sound: the memory it shares with its sound CPU) after its frame FRAME)
         static const char *dump = getenv("CPS2RECOMP_GUEST_DUMP");
         static uint64_t guestFrames = 0;
@@ -768,7 +797,9 @@ namespace {
         const int x = static_cast<int16_t>(G16(board, atX)), y = static_cast<int16_t>(G16(board, atY));
         int wantedX, wantedY;
         WantedAt(guest, board.ram.data(), wantedX, wantedY);
-        const int distance = std::max(std::abs(x - wantedX), atY ? std::abs(y - wantedY) : 0);
+        // (up or down, the picture moved by the shift: as far off as it is short of that)
+        const int distance = std::max(std::abs(x - wantedX), atY ? std::max(0, std::abs(y - wantedY) - std::abs(shift)) : 0);
+        g_check.mostShift = std::max(g_check.mostShift, std::abs(shift));
         if (distance <= kNear) {
             g_check.followed++;
             g_check.run = 0;
@@ -882,6 +913,9 @@ bool Report(FILE *out) {
             static_cast<unsigned long long>(g_check.frames), kNear, static_cast<unsigned long long>(g_check.followed),
             static_cast<unsigned long long>(g_check.off), g_check.longestRun, g_check.worst,
             static_cast<unsigned long long>(g_check.blank), g_check.longestBlank, g_check.unknown ? " (a guest's camera not known: not checked)" : "", ok ? "ok" : "FAILED");
+    if (g_check.mostShift) {
+        fprintf(out, "stage check: a guest's picture moved up or down by at most %d (its camera short of the game's)\n", g_check.mostShift);
+    }
     if (g_check.worstStage) {
         fprintf(out, "stage check: the longest time off on %s\n", g_check.worstStage);
     }

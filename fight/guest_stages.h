@@ -135,6 +135,9 @@ struct Guest {
 struct Host {
     uint32_t cameraX = 0, cameraY = 0; // the game's camera's place (words)
     int cameraLeft = 256, cameraRight = 640;
+    // (or, where its camera's place is not in words of its own: its place across, the stage's ends, and how high it is
+    // above its lowest (up from 0), each frame)
+    void (*camera)(int &x, int &left, int &right, int &up) = nullptr;
     bool (*shown)() = nullptr;  // a frame in which the stage is shown (a match's, not its versus screen; the viewer's)
     bool (*viewer)() = nullptr; // the stage viewer: nothing of the game's own is drawn
     bool (*notTheStage)(uint32_t tile, uint16_t attributes) = nullptr; // the game's objects that are not its stage's

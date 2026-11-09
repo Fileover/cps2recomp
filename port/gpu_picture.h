@@ -68,6 +68,7 @@ public:
     }
     // (whether the frame was put together over a guest's: Machine::guestBehind; drawn over one only when it was)
     const bool *guestBehind = nullptr;
+    const int *guestShift = nullptr; // (Machine::guestShift)
     // (what its reports begin with)
     std::string checkName = "video gpu-check";
 
