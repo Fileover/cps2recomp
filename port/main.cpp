@@ -590,13 +590,15 @@ void RegisterPortFeatures() {
                                   "During an online match, how many frames each player's own controls are held back, at the bottom "
                                   "of the picture (\"DELAY 2\"): the host chooses it.",
                                   0});
-    // (display_gpu: --video gpu, docs/NATIVE_VIDEO.md; read as the game starts)
-    TheGame().features.push_back({"display_gpu", "Display", "GPU picture (test)",
-                                  "The game's picture drawn on the GPU from what the game's code hands over (its sprites, its scroll "
-                                  "layers and palettes), in place of a model of the board's video chips: the same picture, pixel for "
-                                  "pixel. A test of what is to come: frames it cannot draw yet are drawn as before. Takes effect when "
-                                  "the game starts; not with a shader preset.",
-                                  0});
+    // (display_picture: the GPU's picture, --video gpu, unless the CPU's is chosen, --video native; docs/NATIVE_VIDEO.md; read
+    // as the game starts. It was display_gpu, off by default, while the GPU's was a test.)
+    TheGame().features.push_back({"display_picture", "Display", "Picture drawn by",
+                                  "The GPU: the game's picture drawn on the graphics card from what the game's code hands over (its "
+                                  "sprites, its scroll layers and palettes), the same picture pixel for pixel; frames it cannot draw "
+                                  "yet (a shader preset, the modes that put two pictures together) are drawn by the CPU, and so is "
+                                  "everything on a machine whose graphics card cannot be used. The CPU: every frame drawn by the "
+                                  "processor, as before. Takes effect when the game starts.",
+                                  0, {"The GPU", "The CPU"}});
     // (display_vsync: Presenter::SetVsync, issue #185)
     TheGame().features.push_back({"display_vsync", "Display", "VSync",
                                   "Each picture shown when the screen refreshes, so the picture never tears. The game keeps the "
@@ -847,7 +849,11 @@ bool Port::Init(std::string &error) {
     }
     // The machine's picture drawn from the game's side's records, a line at a time, not by video.cpp, unless the board's
     // is asked for (--video board) or the checks compare the two
-    const bool gpu = opt.video == "gpu" || (opt.video.empty() && FeatureOn("display_gpu"));
+    // (the GPU's picture unless the CPU's is asked for: --video native, cpu or board, or the Display page's choice)
+    if (opt.video == "cpu") {
+        opt.video = "native";
+    }
+    const bool gpu = opt.video == "gpu" || (opt.video.empty() && FeatureValue("display_picture") == 0);
     if (opt.video == "native" || gpu || opt.video.empty()) {
         machine->nativeVideo.recording = true;
         machine->nativeVideo.drawsPicture = true;
@@ -892,7 +898,7 @@ bool Port::Init(std::string &error) {
     }
     if (!opt.video.empty() && opt.video != "board" && opt.video != "native" && opt.video != "gpu" && opt.video != "check" &&
         opt.video != "gpu-check") {
-        error = "--video: board, native, gpu, check or gpu-check";
+        error = "--video: gpu, native (or cpu), board, check or gpu-check";
         return false;
     }
     RegisterVideoLifts();
@@ -2857,13 +2863,13 @@ void Usage() {
             "                         interp (the interpreter, an instruction at a time), check\n"
             "  --sound SIDE           driver (the sound program as ordinary code), z80 (the program itself),\n"
             "                         check (both, every write to the chip compared)\n"
-            "  --video SIDE           native (the default: the picture drawn from the records the game's video code\n"
-            "                         hands over, on the CPU), board (the picture from the board's registers and\n"
-            "                         memories, the reference), check (the\n"
-            "                         native interface the game's video code hands over compared with the\n"
-            "                         board's, every record: docs/NATIVE_VIDEO.md), gpu-check (that, and each\n"
-            "                         frame drawn on the GPU from it too, read back and compared), gpu (the window's\n"
-            "                         picture drawn on the GPU from the native records, where it can be)\n"
+            "  --video SIDE           gpu (the window's picture drawn on the GPU from the records the game's video\n"
+            "                         code hands over, where it can be: the default, unless the Display page's\n"
+            "                         Picture drawn by says the CPU), native or cpu (drawn from those records on\n"
+            "                         the CPU), board (the picture from the board's registers and memories, the\n"
+            "                         reference), check (the native interface the game's video code hands over\n"
+            "                         compared with the board's, every record: docs/NATIVE_VIDEO.md), gpu-check\n"
+            "                         (that, and each frame drawn on the GPU from it too, read back and compared)\n"
             "  --sound-test SEED[:N]  every N frames (30) a command to the sound side: each song in turn, placed\n"
             "                         some made-up way, and the other commands (with --sound check)\n"
             "  --scale N              window size, times 224 lines (else the Display page's)\n"

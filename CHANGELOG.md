@@ -6,14 +6,14 @@
   Turbo's sources (as Zero 2 Alpha is from Alpha 2's), so it has everything the other fighting games have: free play,
   straight to the title, the Board page, the cheats, a custom soundtrack with its music named, training mode, attract
   mode, the stage and model viewers, survival, endless battle, ring out, the tag team battle, widescreen and invisible
-  walls, the camera's zoom, custom colours and the colour editor. Its stages are Super Turbo's (the same graphics), which
-  the other games already show.
+  walls, the camera's zoom, custom colours and the colour editor, and the other fighting games' stages as Super Turbo
+  has them. Its own stages are Super Turbo's (the same graphics), which the other games already show.
 - **Street Fighter II: The World Warrior** (set `sf2`, World 910522) on the classic CPS-1 board, and **Champion Edition
   and Hyper Fighting brought up to the other fighting games**: all three now build Super Turbo's sources (each with a
   `family.h` of its own places and facts, as Super SF2), so each has free play, straight to the title, the cheats,
   training mode, attract mode, the stage and model viewers, survival, endless battle, ring out, the tag team battle,
-  widescreen and invisible walls, the camera's zoom, custom colours and the colour editor, and a custom soundtrack with
-  its music named. Their Board page stays the board's DIP switches; free play is the board's own switch, set by the
+  widescreen and invisible walls, the camera's zoom, custom colours and the colour editor, the other fighting games'
+  stages (Super Turbo's among them), and a custom soundtrack with its music named. Their Board page stays the board's DIP switches; free play is the board's own switch, set by the
   feature (the Board page's Free play and the game.cfg cheats are replaced by the Game page's and the sources' own).
 - **A custom soundtrack on the classic CPS-1 board** (Street Fighter II's): the 68000's requests to the sound board's
   latch are looked at as on the CPS-2, the songs found from the classic sound program's table (`Game::songEntry` 2).
@@ -27,6 +27,8 @@
   palettes), `Game::songAddresses` (a song table whose places carry a bank above the sound ROM's size), and
   `modes::Description::soundEntry` (a sound queue of words, the classic CPS-1's).
 
+- **Super Turbo's stages in other games have their breakable pieces**: Guile's crates, Ken's barrel, Blanka's fish
+  (their pool of objects was never run, so they stood unmade and undrawn).
 - **Windows** (from Fileover, #208): a parent set's zip is found beside a game's zip when the path is written with
   backslashes, and the launcher opens without a console window beside it (recomp-common #62).
   
@@ -35,6 +37,10 @@
   A change there reached only one player's game, so the two drifted apart and the match stopped. The rows say the host
   sets them before hosting.
 
+- **The picture is drawn on the GPU by default**: the Display page's **Picture drawn by** (it was "GPU picture (test)",
+  off) is the GPU unless you choose the CPU. The same picture, pixel for pixel; frames the GPU cannot draw yet (with a
+  shader preset, in the modes that put two pictures together) and machines whose graphics card cannot be used get the
+  CPU's, as before. `--video cpu` (or `native`) for the CPU's.
 - **The input display** (training mode, every fighting game) no longer shows the stick at rest as 5: a line shows the
   direction held, if any, and the buttons, and nothing held is not a line (as in sf3comp).
 

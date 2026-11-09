@@ -60,6 +60,12 @@ bar down to the health (00E33A here, 01006A in Super Turbo: stepped by one until
 down past nothing and was drawn empty for the rest of the round (Super Turbo's bars at 0xF76A and 0xFD30 in the
 team movie at frame 3,600). The live tag's frame now puts the bar at the health when it is below it. Both games.
 
+## Other games' stages in it
+
+It hosts the other fighting games' stages as Super Turbo does (games/ssf2t/src/stages.cpp, game.cfg's `guests`, Super
+Turbo's own left out: they are this game's): training on Darkstalkers' and Gem Fighter's seen, and check-rollback and
+check-online pass with `other_stages`.
+
 ## Its stages in the other games
 
 Its stages are Super Turbo's: the same graphics files, the same stage code (portmap pairs it), the same sixteen. The

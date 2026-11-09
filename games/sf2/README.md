@@ -48,6 +48,8 @@ and the rest work as on the [Super Turbo page](../ssf2t/README.md), with these d
 - **The Board page** is the board's DIP switches: difficulty, continue, demo sound, two coins to start.
 - **Custom colours**: each character has one set (Normal) of one palette; no two players can choose the same
   character here. The program is in byte-wide pairs of files, so there is no PalMod file: text files only.
+- **Other games' stages**: the training mode, the viewers and the battles can be fought on the other fighting games'
+  stages, Super Turbo's redrawn ones among them (their sets needed beside this one's).
 - **A custom soundtrack**: on the classic board too. [The list of its songs](../../docs/SONGS.md#street-fighter-ii-the-world-warrior)
   names the music. A replaced tune stops the board's sound effects for a moment as it starts (the classic sound program
   has no command that stops only its music). [How →](../../docs/SOUNDTRACK.md)

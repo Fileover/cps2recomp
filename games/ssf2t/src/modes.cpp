@@ -12,6 +12,8 @@
 #include "session.h"
 #include "ssf2t.h"
 
+#include "all_guests.h"
+
 #include <iterator>
 
 namespace cps2recomp {
@@ -46,6 +48,8 @@ namespace {
         const int stage = session::WantedStage();
         if (stage >= 1 && stage <= kStages) {
             SetRam16(kStage, static_cast<uint16_t>(stage - 1));
+        } else if (stage > kStages) {
+            SetRam16(kStage, 0); // (another game's: fought on Ryu's, its stage drawn behind: stages.cpp)
         }
     }
 
@@ -89,8 +93,14 @@ void RegisterModes() {
     d.playerSize = kPlayerSize;
     d.x = kX;
     d.xLong = true;
+    // (this game's stages, then the other games': stages.cpp, fight/all_guests.h. Not in the Infinite, whose stages are
+    // this game's spare machines'; each plays the first stage's tune in this game's place: its own plays)
     d.stageNames.assign(std::begin(kStageNames), std::end(kStageNames));
+    const std::vector<const char *> others = guests::NamesBut("ssf2t");
+    d.stageNames.insert(d.stageNames.end(), others.begin(), others.end());
+    d.infiniteStages = kStages;
     d.stageTunes.assign(std::begin(kStageTunes), std::end(kStageTunes));
+    d.stageTunes.resize(d.stageNames.size(), kStageTunes[0]);
     d.otherTuneNames = {"Character select", "Versus"};
     d.otherTunes = {kTuneChoose, kTuneVersus};
     d.cameraLeft = kCameraLeft;

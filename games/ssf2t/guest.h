@@ -80,7 +80,9 @@ inline cps2recomp::guest_stages::Guest Description() {
             cps2recomp::Call(c, 0x00120A);
         }
     };
-    d.frame = {0x02822A, 0x0C8E1C, 0x0CC3EE, 0x0BE518, 0x0C66CA};
+    // (and the pool of the stage's breakable pieces, A5+1DA2 (16 of 0xC0, run by 07794A): the crates, the barrel, the fish,
+    // which 0C84AC puts there from the stage's table; not run, they stood unmade and undrawn)
+    d.frame = {0x02822A, 0x07794A, 0x0C8E1C, 0x0CC3EE, 0x0BE518, 0x0C66CA};
     d.placing = 0x0CC3EE;
     d.soundQueue = 0xFF0A7E;
     d.soundQueueEnd = 0xFF0A7A;

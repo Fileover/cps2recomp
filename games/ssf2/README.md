@@ -46,6 +46,8 @@ menu and the rest work as on the [Super Turbo page](../ssf2t/README.md), with th
 - **Custom colours**: each character has eight sets (the six buttons, Start, a button held) of one to eight palettes
   (one for most, three for Ryu, Guile, Ken, Chun-Li, Sagat and Dee Jay, eight for M. Bison). PalMod's file for it is
   `ssfe.04`.
+- **Other games' stages**: as in Super Turbo, the training mode, the viewers and the battles can be fought on the
+  other fighting games' stages (their sets needed beside this one's).
 - **A custom soundtrack**: [the list of its songs](../../docs/SONGS.md#super-street-fighter-ii) names the music:
   Super Turbo's, but its own title and player select, the bonus stages' tune, and no final fight's (M. Bison's stage
   plays). [How →](../../docs/SOUNDTRACK.md)

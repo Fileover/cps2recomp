@@ -29,6 +29,7 @@ void ModelFrame(Machine &machine);
 void ModelState(Archive &ar);
 bool ModelViewer();
 void RegisterColours();  // colours.cpp
+void RegisterStages();   // stages.cpp
 void RegisterChoosing(); // choosing.cpp
 void ChoosingState(Archive &ar);
 void RegisterComputer(); // computer.cpp
@@ -94,6 +95,8 @@ void RegisterGame() {
     };
     // Its own, never set for the other games by the collection's launcher
     OwnFeatures({"survival_best", "ringout_best", "model_animation", "colours_animation"});
+    // Other games' stages: last, as it goes around the frame's callbacks and the state's (stages.cpp)
+    RegisterStages();
 }
 
 } // namespace cps2recomp
