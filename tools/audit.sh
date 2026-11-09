@@ -19,7 +19,11 @@ grep_files() { grep -v -e '^tools/audit\.sh$' -e '^third_party/' "$LIST" | tr '\
 
 check "no game, key, save or archive file types" "$(grep -iE '\.(zip|7z|rar|key|bin|rom|chd|state|sav|eep|nv|lst)$|(^|/)[a-z0-9]{2,5}\.[0-9]{2}[a-z]?m?$' "$LIST" || true)"
 # (a game's movies are the player's key presses, as text: they are allowed, in games/<id>/movies/)
-check "nothing made from a game (generated code, entry lists, listings, memory dumps)" "$(grep -E '(^|/)(work|build)/|(^|/)(native|z80)_[0-9]+\.cpp$|(^|/)(entries|guessed)[^/]*\.txt|(^|/)game_info\.h$|(^|/)gen/|\.(dump|ram)$' "$LIST" || true)"
+# (a game's entries files, games/<id>/entries.txt and entries.txt.z80, are allowed: addresses where its code was seen
+# to start, one a line, and nothing else, checked below; not the guesses' cache, nor anything else from work/)
+check "nothing made from a game (generated code, other entry lists, listings, memory dumps)" "$(grep -vE '^games/[a-z0-9_]+/entries\.txt(\.z80)?$' "$LIST" | grep -E '(^|/)(work|build)/|(^|/)(native|z80)_[0-9]+\.cpp$|(^|/)(entries|guessed)[^/]*\.txt|(^|/)game_info\.h$|(^|/)gen/|\.(dump|ram)$' || true)"
+check "entries files hold addresses only (6 hex digits a line; .z80: 4)" "$(grep -E '^games/[a-z0-9_]+/entries\.txt$' "$LIST" | while read -r f; do grep -vnE '^(#.*|[0-9A-F]{6})$' "$f" | sed "s|^|$f:|"; done; \
+    grep -E '^games/[a-z0-9_]+/entries\.txt\.z80$' "$LIST" | while read -r f; do grep -vnE '^(#.*|[0-9A-F]{4})$' "$f" | sed "s|^|$f:|"; done)"
 check "movies only in a game's movies folder, and as text" "$(grep -E '(^|/)movies/' "$LIST" | grep -vE '^games/[a-z0-9_]+/movies/[a-z0-9_]+\.txt$' || true)"
 check "every game has its game.cfg" "$(grep -E '^games/[^/]+/' "$LIST" | cut -d/ -f2 | sort -u | while read -r g; do [ -f "games/$g/game.cfg" ] || echo "games/$g"; done)"
 check "no pictures but the README's, no sound or video" "$(grep -iE '\.(png|jpe?g|gif|bmp|ppm|webp|mp4|mov|webm|wav|ogg|mp3|flac)$' "$LIST" | grep -vE '^docs/screenshots/([a-z0-9_]+/)?[a-z0-9-]+\.(png|jpg|gif)$' || true)"
