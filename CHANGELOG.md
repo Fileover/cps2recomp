@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+- **Progear** (`progearu`, USA 010117; the Asian set of the same date plays too), Cave's horizontal shoot-'em-up and
+  the collection's second shooter, on the toolkit's `shmup/` as Giga Wing is: free play (the board's own), straight to
+  the title, start at stage, the Board page (difficulty, ships, extra ships, rapid fire, continue, demo sound), the
+  cheats (infinite ships and bombs, invincibility for each player), a custom soundtrack with its music named, and the
+  shooter's modes: practice (with the pilot and gunner, ships, bombs and the shot's power chosen) with the ships' true
+  hit boxes, the enemies' shots and bodies, a readout of the power and a summary at each boss and stage end, score attack, caravan, boss rush, the stage viewer and attract mode. A game can now give the practice
+  page's readout its own words, and a game with no multiplier has its summaries count its points (Giga Wing's are as
+  they were).
 - **Alien vs. Predator's free play with a chute each**: with the Board page's Players on "Three, a chute each", free
   play now gives each player a credit on their own count (the game keeps one for each chute then), so players 2 and 3
   can join too; before, only the first player's count was filled.

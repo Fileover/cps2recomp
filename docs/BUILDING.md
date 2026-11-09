@@ -31,6 +31,7 @@ the build tells you which one is missing or different.
 | [Marvel vs. Capcom](../games/mvsc/README.md) | `mvsc` | `mvsc` (Europe 980123) |
 | [Super Puzzle Fighter II Turbo](../games/puzzle_fighter/README.md) | `puzzle_fighter` | `spf2t` (Europe 960529) |
 | [Giga Wing](../games/gigawing/README.md) | `gigawing` | `gigawing` (USA 990222) |
+| [Progear](../games/progear/README.md) | `progear` | `progearu` (USA 010117) |
 
 ## macOS
 
