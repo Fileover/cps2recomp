@@ -211,7 +211,7 @@ namespace {
         g.stageWas = d.stage ? d.stage() : -1;
         for (State::Counts &counts : g.counts) {
             counts = State::Counts();
-            counts.multiplierAt = d.multiplier ? d.multiplier(0) : 0;
+            counts.multiplierAt = d.multiplier ? d.multiplier(0) : d.score ? d.score(0) : 0;
         }
         g.lastShips = d.ships ? d.ships(0) : 0;
         g.lastBombs = d.bombs ? d.bombs(0) : 0;
@@ -357,20 +357,21 @@ namespace {
         }
     }
 
-    // A summary of counts `which` (0 a boss's part, 1 the stage), shown in its place; the counts start again
+    // A summary of counts `which` (0 a boss's part, 1 the stage), shown in its place; the counts start again. What it
+    // says was gained is the multiplier's growth, or the score's in a game with no multiplier (kept in multiplierAt).
     void Summary(const char *what, int which) {
         State::Counts &counts = g.counts[which];
-        const uint64_t multiplier = d.multiplier ? d.multiplier(0) : 0;
-        if (d.multiplier && what && counts.frames >= kFps) {
+        const uint64_t gauge = d.multiplier ? d.multiplier(0) : d.score ? d.score(0) : 0;
+        if ((d.multiplier || d.score) && what && counts.frames >= kFps) {
             std::snprintf(g.summary[which][0], sizeof g.summary[which][0], "%s in %s", what, Clock(counts.frames).c_str());
-            std::snprintf(g.summary[which][1], sizeof g.summary[which][1], "multiplier +%s, %d ship%s lost, %d bomb%s",
-                          Grouped(multiplier - std::min(multiplier, counts.multiplierAt)).c_str(), counts.shipsLost,
-                          counts.shipsLost == 1 ? "" : "s", counts.bombsUsed, counts.bombsUsed == 1 ? "" : "s");
+            std::snprintf(g.summary[which][1], sizeof g.summary[which][1], "%s +%s, %d ship%s lost, %d bomb%s",
+                          d.multiplier ? "multiplier" : "score", Grouped(gauge - std::min(gauge, counts.multiplierAt)).c_str(),
+                          counts.shipsLost, counts.shipsLost == 1 ? "" : "s", counts.bombsUsed, counts.bombsUsed == 1 ? "" : "s");
             g.summaryShown[which] = kShownFor;
         }
         // (fewer than a second played since the last: a boss's flag set again at a stage's end, say; nothing to say)
         counts = State::Counts();
-        counts.multiplierAt = multiplier;
+        counts.multiplierAt = gauge;
     }
 
     // The summary's counts, a stage's and a boss's
@@ -695,17 +696,32 @@ void Register(const Description &description) {
     }
     game.features.push_back({"practice_ships", kPractice, "Ships", "The ships at practice's start (with the one in play).", 0, ships});
     game.features.push_back({"practice_bombs", kPractice, "Bombs", "The bombs at practice's start.", 0, bombs});
-    game.features.push_back({"practice_power", kPractice, "Power", "The shot's power at practice's start.", 0, power});
+    if (d.setPower) {
+        game.features.push_back({"practice_power", kPractice, "Power", "The shot's power at practice's start.", 0, power});
+    }
     game.features.push_back({"practice_hitbox", kPractice, "Hit boxes", "Each ship's true hit box, the only part of it a shot or an enemy can hit "
                                                                        "(far smaller than the ship).",
                              kFeatureTraining});
     game.features.push_back({"practice_shots", kPractice, "Enemy hit areas", "Where each enemy shot and enemy body can hit the ship.", kFeatureTraining});
-    game.features.push_back({"practice_readout", kPractice, "Readout", "The scoring as it happens, at the left: the multiplier, the medal chain, the power, "
-                                                                     "the reflect gauge and the boss's clock.",
+    if (d.readout) {
+        game.features.push_back({"practice_readout", kPractice, "Readout",
+                                 d.readoutWords ? d.readoutWords
+                                                : "The scoring as it happens, at the left: the multiplier, the medal chain, the power, the reflect "
+                                                  "gauge and the boss's clock.",
+                                 kFeatureTraining});
+    }
+    game.features.push_back({"practice_summary", kPractice, "Summary",
+                             d.summaryWords ? d.summaryWords
+                                            : "When a boss comes, when it is over and at a stage's end: how long it took, what the multiplier "
+                                              "gained, the ships lost and the bombs used.",
                              kFeatureTraining});
-    game.features.push_back({"practice_summary", kPractice, "Summary", "When a boss comes, when it is over and at a stage's end: how long it took, what the "
-                                                                     "multiplier gained, the ships lost and the bombs used.",
-                             kFeatureTraining});
+    // (a game's own words for a row the collection's other shooters have too)
+    if (d.readoutWords) {
+        OwnFeatures({"practice_readout"});
+    }
+    if (d.summaryWords) {
+        OwnFeatures({"practice_summary"});
+    }
 
     game.pages.push_back({kAttract, kModes, "The game's own show on a loop, with no coin in and its sound on: all of it, or one part."});
     game.commands.push_back({"attract_start", kAttract, "Start", "Starts attract mode: the game's own show, over and over. Start (or a coin) ends it.", StartAttract});

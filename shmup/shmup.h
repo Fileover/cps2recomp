@@ -2,7 +2,7 @@
 // Copyright (C) 2026 Tommy McLeroy. Part of cps2recomp.
 //
 // A shoot-'em-up's "Alternative modes" page and its practice mode, for every shooting game on the board (Giga Wing the
-// first; 19XX, 1944 and Progear would describe themselves the same way). Each is started by a command of the in-game
+// first, then Progear; 19XX and 1944 would describe themselves the same way). Each is started by a command of the in-game
 // menu and ends when the board is reset, when another is started, or as said below.
 //
 //   Practice       a stage, or straight at its boss, with the fighter, ships, bombs and power chosen. Backspace (a
@@ -68,14 +68,18 @@ struct Description {
     // --- what practice can set, as the ship's start is reached: each -1 leaves it as the game had it ---
     void (*setShips)(int player, int ships) = nullptr;
     void (*setBombs)(int player, int bombs) = nullptr;
-    void (*setPower)(int player, int power) = nullptr;
+    void (*setPower)(int player, int power) = nullptr; // (none: no Power row on the Practice page)
     int maxShips = 9, maxBombs = 8, maxPower = 3;
     // --- the practice aids ---
     // The players' ships' hit boxes, and the enemies' shots and bodies, in the picture's pixels
     void (*shipBoxes)(std::vector<HudBox> &boxes) = nullptr;
     void (*enemyBoxes)(std::vector<HudBox> &boxes) = nullptr;
-    // Lines of the readout (the multiplier and the like), each player's
+    // Lines of the readout (the multiplier and the like), each player's (none: no readout), and what its row on the
+    // Practice page says it shows (nullptr: Giga Wing's words)
     void (*readout)(int player, std::vector<std::string> &lines) = nullptr;
+    const char *readoutWords = nullptr;
+    // What the summary's row says it counts (nullptr: Giga Wing's words; a game with no multiplier counts its score)
+    const char *summaryWords = nullptr;
     // The numbers a summary counts (a stage's or a boss's): the player's multiplier as a number, and the ships and bombs
     // the player has now
     uint64_t (*multiplier)(int player) = nullptr;
