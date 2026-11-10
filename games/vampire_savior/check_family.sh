@@ -57,8 +57,10 @@ check_stage() { # stage, rewrites to leave out, more of the port's options
     return 0
 }
 outer=$(grep -oE '"(Back8|Far32)(Across|Up)[A-Za-z0-9]*"' games/vampire_savior/src/planes.cpp | tr -d '"' | paste -sd, -)
-# (the stages: the choices of the training session's "Stage", but for the game's own)
-stages=$(($($port --list-features 2>/dev/null | grep "^training_stage" | cut -f6 | tr '|' '\n' | wc -l) - 1))
+# (the stages: the game's own, the training session's "Stage" choices after "The game's choice" up to the first of
+# the other games' stages (named "<game>: <stage>"), which their own games' checks see to; with those, 191 stages
+# made this check take hours)
+stages=$($port --list-features 2>/dev/null | grep "^training_stage" | cut -f6 | tr '|' '\n' | awk 'NR == 1 { next } /: / { exit } { n++ } END { print n + 0 }')
 n=1
 while [ $n -le "$stages" ]; do
     at_once check_stage $n ""
