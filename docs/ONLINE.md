@@ -7,6 +7,29 @@ Deck and Windows can play each other.
 
 ## Starting a match
 
+### Watching a match
+
+The host can enable **Allow spectators** before hosting. It is off by default. When a listed match begins,
+its lobby entry offers **Watch** instead of Join. Viewers need their own ROM set and the same game version and
+build as the players. A viewer can join a match already in progress; the game shows **SPECTATING**.
+
+Viewers receive a confirmed snapshot and then both players' confirmed inputs, so their picture is slightly
+behind the players. Their controls and chat never enter the match. Esc asks **Stop watching?**; leaving does
+not disconnect either player. Up to eight viewers can connect. A viewer who falls too far behind is disconnected
+and can choose Watch again; the players never wait for a viewer.
+
+This requires the spectator-capable shared launcher and online service, as well as the game (protocol 10).
+It does not add streaming video, spectator chat, rankings, or the separate FT5/FT10 contribution. The service
+only introduces viewers to the host; the match data travels directly. The same router limitations as joining
+apply. Unlisted matches do not appear in the public lobby.
+
+From a terminal, host with `--host --net-spectators --net-list --net-name NAME`, then use `--watch CODE` in
+another copy. With `--net-service off`, `--watch ADDRESS:PORT` works on a reachable local network too.
+
+For development, `node online/dev-service.mjs` starts an in-memory service on loopback port 8787 only.
+Set `CPS2RECOMP_NET_SERVICE=http://127.0.0.1:8787` in the environment of the launcher and games to test the full
+lobby flow without changing the public service. Restarting this development service clears its listings.
+
 Each player needs the game and its ROM set. The launcher's **Online** page (in the sidebar) has it all:
 
 - **Open matches**: the matches other players are hosting in the lobby, in every game, each with **Join**. A match in a

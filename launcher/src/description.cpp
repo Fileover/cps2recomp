@@ -291,8 +291,12 @@ launcher::Description describe_game(const GameInfo& game) {
                 "shows; the other joins with it. Each presses Start to come in. The match has the host's board settings and the "
                 "features that change play."};
     // (the lobby: online/, the matches hosts have listed; Netplay::kService, kProtocol)
-    d.online.lobby = keep(std::string(port::Netplay::kService) + "/v1/lobby/" + game.id + "?protocol=" + std::to_string(port::Netplay::kProtocol));
+    d.online.lobby = keep(std::string(port::Netplay::Service()) + "/v1/lobby/" + game.id + "?protocol=" + std::to_string(port::Netplay::kProtocol));
     d.online.list_argument = "--net-list";
+#ifdef RECOMP_LAUNCHER_SPECTATORS
+    d.online.watch_argument = "--watch";
+    d.online.spectators_argument = "--net-spectators";
+#endif
     d.online.name_argument = "--net-name";
     d.online.arcade_argument = "--net-arcade"; // (the host plays alone until the other player comes: port/main.cpp, ArcadeFrame)
     d.online.invite_argument = "--net-invite"; // (a player in the waiting room invited: online/, Collection::room)
@@ -393,12 +397,12 @@ const launcher::Collection& launcher::describe_collection() {
         // then the next game's (--multi endless:shuffle:SECONDS or endless:scroll:SPEED)
         c.multi_intro = "Several games played one after another, as long as you like. Choose the games and how they are played, then Start.";
         // (online play's lobby, every game's: online/, Netplay::kService, kProtocol)
-        static const std::string lobby = std::string(port::Netplay::kService) + "/v1/lobby?protocol=" + std::to_string(port::Netplay::kProtocol);
+        static const std::string lobby = std::string(port::Netplay::Service()) + "/v1/lobby?protocol=" + std::to_string(port::Netplay::kProtocol);
         c.lobby = lobby.c_str();
-        static const std::string lookup = std::string(port::Netplay::kService) + "/v1/code/";
+        static const std::string lookup = std::string(port::Netplay::Service()) + "/v1/code/";
         c.code_lookup = lookup.c_str();
         // (the waiting room: online/, the players whose Online page is open, to invite to a match)
-        static const std::string room = std::string(port::Netplay::kService) + "/v1/room";
+        static const std::string room = std::string(port::Netplay::Service()) + "/v1/room";
         c.room = room.c_str();
         c.room_protocol = port::Netplay::kProtocol;
         c.file_name = "ROM set";

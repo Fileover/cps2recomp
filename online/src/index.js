@@ -183,7 +183,10 @@ export default {
       return match.fetch("https://match/info");
     }
     if (request.method === "GET" && parts[1] === "host") {
-      return match.fetch(`https://match/poll?secret=${encodeURIComponent(url.searchParams.get("secret") || "")}`);
+      return match.fetch(`https://match/poll?secret=${encodeURIComponent(url.searchParams.get("secret") || "")}&active=${url.searchParams.get("active") === "1" ? "1" : "0"}`);
+    }
+    if (request.method === "POST" && parts[1] === "watch") {
+      return match.fetch("https://match/watch", { method: "POST", body: await request.text() });
     }
     if (request.method === "POST" && parts[1] === "join") {
       const text = await request.text();
@@ -216,7 +219,8 @@ export class Match {
     const lobby = this.env.LOBBIES.get(this.env.LOBBIES.idFromName("all"));
     await lobby.fetch(`https://lobby/${what}`, {
       method: "POST",
-      body: JSON.stringify({ code, game: match.game, title: match.title, version: match.version, name: match.name, protocol: match.protocol, made: match.made }),
+      body: JSON.stringify({ code, game: match.game, title: match.title, version: match.version, name: match.name, protocol: match.protocol,
+                             made: match.made, watching: !!(match.active && match.spectators) }),
     });
   }
 
@@ -238,7 +242,7 @@ export class Match {
     const url = new URL(request.url);
     const now = Date.now();
     let match = (await this.state.storage.get("match")) || null;
-    if (match && now - match.made > kLifetime) {
+    if (match && now > (match.expires || match.made + kLifetime)) {
       await this.state.storage.deleteAll();
       match = null;
     }
@@ -256,7 +260,7 @@ export class Match {
       const secret = typeof body.secret === "string" && /^[0-9a-f-]{36}$/.test(body.secret) ? body.secret : crypto.randomUUID();
       match = { made: now, secret, game: cleanText(body.game), build: cleanText(body.build), host: cleanAddresses(body.addresses), joiner: null,
                 listed: body.listed === true, name: cleanName(body.name), title: cleanText(body.title), version: cleanText(body.version),
-                protocol: Number(body.protocol) || 0,
+                protocol: Number(body.protocol) || 0, spectators: body.spectators === true, active: false, viewers: [],
                 code: url.searchParams.get("code") || "",
                 invite: cleanIds([body.invite])[0] || null, from: cleanIds([body.from])[0] || "", invited: "" };
       await this.invite(match);
@@ -270,7 +274,7 @@ export class Match {
       return json({ error: "no such code" }, 404);
     }
     if (url.pathname === "/info") {
-      if (match.joiner) {
+      if (match.joiner || match.active) {
         return json({ error: "Someone has joined that match already." }, 409);
       }
       return json({ game: match.game, title: match.title || match.game, version: match.version || "", protocol: match.protocol });
@@ -279,17 +283,29 @@ export class Match {
       if (url.searchParams.get("secret") !== match.secret) {
         return json({ error: "no such code" }, 404);
       }
-      if (!match.joiner && now - (this.waitingSaid || 0) > 15000) {
+      // Only the authenticated host may say the match is running. Keep its listing alive for viewers.
+      // A player may have joined directly by address, without going through /join.
+      const active = url.searchParams.get("active") === "1" && match.spectators;
+      if (match.active && !active) await this.lobby(match, "gone", match.code);
+      match.active = active;
+      if (active) {
+        match.expires = now + kLifetime;
+        await this.state.storage.setAlarm(match.expires);
+      }
+      match.seen = now;
+      match.viewers = (match.viewers || []).filter((v) => now - v.seen < kHere);
+      await this.state.storage.put("match", match);
+      if (!match.joiner && !active && now - (this.waitingSaid || 0) > 15000) {
         // (the stats told this host is waiting, now and then: it is counted as waiting while it has been told lately)
         this.waitingSaid = now;
         const stats = this.env.STATS.get(this.env.STATS.idFromName("all"));
         await stats.fetch("https://stats/waiting", { method: "POST", body: JSON.stringify({ code: match.code, game: match.game, listed: match.listed }) }).catch(() => {});
       }
-      if (!match.joiner && now - this.told > kTell) {
+      if ((!match.joiner || active) && now - this.told > kTell) {
         this.told = now;
         await this.lobby(match, "seen", match.code);
       }
-      if (!match.joiner) {
+      if (!match.joiner && !active) {
         if (match.invite && !match.invited) {
           await this.invite(match);
           if (match.invited) {
@@ -297,7 +313,37 @@ export class Match {
           }
         }
       }
-      return json(match.joiner ? { joined: true, addresses: match.joiner } : { joined: false, ...(match.invited ? { invite: match.invited } : {}) });
+      return json(match.joiner || active ? { joined: true, addresses: match.joiner || [],
+                                  viewers: active ? match.viewers.map(({ token, addresses }) => ({ token, addresses })) : [],
+                                  watchers: active ? match.viewers.flatMap(v => v.addresses.map(a => v.token + "@" + a)) : [] }
+                              : { joined: false, ...(match.invited ? { invite: match.invited } : {}) });
+    }
+    if (url.pathname === "/watch") {
+      let body;
+      try { body = JSON.parse(await request.text()); }
+      catch { return json({ error: "not JSON" }, 400); }
+      if (!match.spectators || !match.active || now - (match.seen || 0) > kSeen) {
+        return json({ error: "This match is not available to watch." }, 409);
+      }
+      if (cleanText(body.game) !== match.game || cleanText(body.version) !== match.version ||
+          cleanText(body.build) !== match.build || Number(body.protocol) !== match.protocol) {
+        return json({ error: "Watching needs the same game and build as the players." }, 409);
+      }
+      const addresses = cleanAddresses(body.addresses);
+      if (!addresses.length) return json({ error: "No viewer address supplied." }, 400);
+      match.viewers = (match.viewers || []).filter((v) => now - v.seen < kHere);
+      // Retry with the token from the first response rather than consuming another slot.
+      let viewer = match.viewers.find((v) => v.token === body.token);
+      if (!viewer) {
+        if (match.viewers.length >= 8) return json({ error: "The spectator connections are full. Try again shortly." }, 429);
+        viewer = { token: crypto.randomUUID(), addresses, seen: now };
+        match.viewers.push(viewer);
+      } else {
+        viewer.addresses = addresses;
+        viewer.seen = now;
+      }
+      await this.state.storage.put("match", match);
+      return json({ addresses: match.host, token: viewer.token });
     }
     if (url.pathname === "/join") {
       let body;
@@ -315,7 +361,7 @@ export class Match {
       if (cleanText(body.build) !== match.build) {
         return json({ error: "The two copies of the game are different builds: use the same release on both." }, 409);
       }
-      if (match.joiner) {
+      if (match.joiner || match.active) {
         return json({ error: "Someone has joined that match already." }, 409);
       }
       match.joiner = cleanAddresses(body.addresses);
@@ -375,7 +421,8 @@ export class Lobby {
         if (now - m.seen > kSeen) {
           delete matches[code];
         } else if (m.protocol === protocol && (!game || m.game === game)) {
-          shown.push({ game: m.game, title: m.title || m.game, version: m.version || "", code, name: m.name, waiting: Math.round((now - m.made) / 1000) });
+          shown.push({ game: m.game, title: m.title || m.game, version: m.version || "", code, name: m.name,
+                       waiting: Math.round((now - m.made) / 1000), watching: m.watching === true });
         }
       }
       shown.sort((a, b) => a.waiting - b.waiting);
@@ -386,7 +433,8 @@ export class Lobby {
       return json({});
     }
     if (url.pathname === "/seen") {
-      matches[body.code] = { game: body.game, title: body.title, version: body.version, name: body.name, protocol: body.protocol, made: body.made, seen: now };
+      matches[body.code] = { game: body.game, title: body.title, version: body.version, name: body.name, protocol: body.protocol,
+                             made: body.made, seen: now, watching: body.watching === true };
     } else if (url.pathname === "/gone") {
       delete matches[body.code];
     }

@@ -47,6 +47,23 @@ game (90 days kept), and knows the hosts asking about a match in the last 30 sec
 
 ## Running it
 
+### Spectator development
+
+The spectator protocol adds `POST /v1/watch/CODE`. Only a live match whose host opted in is watchable.
+The viewer supplies its game, build, version, protocol and addresses and receives the host's addresses and
+an admission token. Authenticated host polls with `active=1` keep the running lobby entry alive and deliver
+viewer addresses and tokens for UDP introduction. Ordinary joins still consume only player 2's slot.
+The lobby says `watching: true` for a running match and never publishes addresses or tokens.
+
+Run `node online/test-spectators.mjs` for service tests. `node online/dev-service.mjs` starts a loopback-only
+in-memory development server; it is not a replacement for a production deployment. With it running, set
+`SERVICE=http://127.0.0.1:8787` and run `python tools/check_spectators.py` from the repository root after
+building Marvel vs. Capcom. With no SERVICE, that test connects by local address instead. It checks a late
+viewer against confirmed hashes and verifies that viewer input and departure do not affect the players.
+
+The public Watch flow needs this service update deployed by its operator and the companion recomp-common
+launcher update released. Developing or testing this branch does not deploy anything.
+
 ```sh
 cd online
 npx wrangler login     # once: Cloudflare's tool, signed in to the account in a browser

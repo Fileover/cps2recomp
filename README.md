@@ -78,6 +78,10 @@ Every fighting game has a full training mode, from the in-game menu (not yet the
 
 ## Online play
 
+Hosts can opt into **Allow spectators**; running lobby entries then offer **Watch**. Viewers follow confirmed
+play without controlling either player. This needs the updated spectator service and shared launcher; see
+[watching a match](docs/ONLINE.md#watching-a-match).
+
 Two players on two machines, with **rollback** netcode. Any mix of macOS, Linux, the Steam Deck and Windows can play
 each other.
 

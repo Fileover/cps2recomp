@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- **Spectating online matches:** hosts can opt into spectators, and running public lobby entries offer Watch.
+  Viewers join from a confirmed snapshot and follow both players' confirmed controls without affecting play.
+  Requires the updated shared launcher and online service, and protocol 10 on all copies.
+
 - **Dimahoo** (`dimahoou`, USA 000121; the European set and the Japanese *Great Mahou Daisakusen* of the same date play
   too), Raizing's vertical shoot-'em-up and the collection's third shooter, on the toolkit's `shmup/`: free play (the
   board's own), straight to the title, start at stage, the Board page (difficulty, ships, bombs, extra ships, one loop or
