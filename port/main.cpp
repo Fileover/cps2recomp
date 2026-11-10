@@ -495,6 +495,11 @@ bool ReadDeclaredFeatures(std::string& error) {
 
 // Every game's features that come from the port itself (after the game's own: RegisterGame), for the game and
 // for the list the launcher asks for (--list-features)
+// The board's timing: the port's arcade_timing feature, or what the game's sources say (Game::boardTiming)
+bool BoardTimingWanted() {
+    return TheGame().boardTiming ? TheGame().boardTiming() : FeatureOn("arcade_timing");
+}
+
 void RegisterPortFeatures() {
     // (the board's settings from game.cfg: ReadBoardOptions)
     if (!g_boardOptions.empty()) {
@@ -522,15 +527,17 @@ void RegisterPortFeatures() {
                                   "on the board (input lag taken away). The game runs as it does without it; it takes two or three "
                                   "times the processor. Off by itself in the game's own modes beyond fights and training.",
                                   0, {"Off", "1 frame", "2 frames"}});
-    // (arcade_timing: machine.h, SetBoardTiming; docs/TIMING.md)
-    TheGame().features.push_back({"arcade_timing", "Game", "Arcade timing",
-                                  "The processor runs as on the arcade board, waiting for its memory and giving the bus to the "
-                                  "video chip, so the game slows down where and as much as the board does (big supers, busy "
-                                  "screens). Off: it has every clock, and the game seldom slows. Checked frame by frame against "
-                                  "a cycle-exact model of the board. In training mode, the game's other modes, widescreen and "
-                                  "with cheats on, the port's own code for some routines runs, and the timing there is close "
-                                  "but not exact.",
-                                  0});
+    // (arcade_timing: machine.h, SetBoardTiming; docs/TIMING.md. Not for a game whose sources decide it: Game::boardTiming)
+    if (!TheGame().boardTiming) {
+        TheGame().features.push_back({"arcade_timing", "Game", "Arcade timing",
+                                      "The processor runs as on the arcade board, waiting for its memory and giving the bus to the "
+                                      "video chip, so the game slows down where and as much as the board does (big supers, busy "
+                                      "screens). Off: it has every clock, and the game seldom slows. Checked frame by frame against "
+                                      "a cycle-exact model of the board. In training mode, the game's other modes, widescreen and "
+                                      "with cheats on, the port's own code for some routines runs, and the timing there is close "
+                                      "but not exact.",
+                                      0});
+    }
     // (rapid_fire: Port::RapidFire)
     TheGame().features.push_back({"rapid_fire", "Game", "Rapid fire",
                                   "A button held down is pressed again and again (fifteen times a second), for the first button or "
@@ -990,7 +997,7 @@ bool Port::Init(std::string &error) {
                                             TheGame().songAddresses, TheGame().songEntry);
     }
     SoundtrackFollow();
-    machine->SetBoardTiming(FeatureOn("arcade_timing"));
+    machine->SetBoardTiming(BoardTimingWanted());
     return true;
 }
 
@@ -2367,7 +2374,7 @@ void Port::BackToSolo(bool stillHosting) {
     }
     ownFeatures.clear();
     zoom.Forbid(false);
-    machine->SetBoardTiming(FeatureOn("arcade_timing"));
+    machine->SetBoardTiming(BoardTimingWanted());
     hostedFromMenu = false;
     if (!stillHosting) {
         fprintf(stderr, "online: playing alone again\n");
@@ -2479,7 +2486,7 @@ void Port::Matched() {
     if (net->Local() != 0) {
         opt.eepromPath.clear(); // (the board settings are the host's, for this match: the player's own are left as they are)
     }
-    machine->SetBoardTiming(FeatureOn("arcade_timing"));
+    machine->SetBoardTiming(BoardTimingWanted());
     SoundtrackFollow();
 }
 
@@ -2571,7 +2578,7 @@ void Port::RunFrame() {
     }
     ClearSpareRan();
     SoundtrackFollow();
-    machine->SetBoardTiming(FeatureOn("arcade_timing"));
+    machine->SetBoardTiming(BoardTimingWanted());
     if (!opt.moviePlay.empty()) {
         auto it = playMovie.changes.find(frame);
         if (it != playMovie.changes.end()) {

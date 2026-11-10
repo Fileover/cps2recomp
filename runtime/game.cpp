@@ -118,7 +118,7 @@ namespace {
     std::set<std::string> g_aids; // the features marked kFeatureTraining (LoadFeatures)
     bool g_fastForward = false;
     bool g_runningAhead = false;
-    int g_slowMotion = 1;
+    int g_slowMotion = 1, g_fastMotion = 1;
     std::string g_settingsPath;
 
     std::string Trim(const std::string &s) {
@@ -266,6 +266,12 @@ void SetSlowMotion(int by) {
 }
 int SlowMotion() {
     return g_slowMotion;
+}
+void SetFastMotion(int times) {
+    g_fastMotion = times < 1 ? 1 : times;
+}
+int FastMotion() {
+    return g_fastMotion;
 }
 
 namespace {

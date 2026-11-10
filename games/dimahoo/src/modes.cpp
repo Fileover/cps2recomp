@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 // Copyright (C) 2026 Tommy McLeroy
 //
-// Dimahoo: the menu's "Alternative modes" and practice (the toolkit's shmup/shmup.h): what they need of the game.
+// Dimahoo: the menu's "Alternative modes" and training mode (the toolkit's shmup/shmup.h): what they need of the game.
 //
 // A mode gets into a game the way a player does: a credit, Start, the choice of character (the cursor put on it and the
 // shot button pressed, or the player's own choice in the scored modes), and the stage begins (scene 0C). The stage it
@@ -32,7 +32,7 @@ namespace {
             return false;
         }
         const uint16_t scene = Ram16(kScene);
-        // (played once player 1's ship is there: a ship's start puts its bombs back, so what practice sets is put in
+        // (played once player 1's ship is there: a ship's start puts its bombs back, so what training mode sets is put in
         // after it)
         if (scene == kScenePlay) {
             return ShipInPlay(0);
@@ -45,12 +45,23 @@ namespace {
         return false;
     }
 
+    // The picture's row for a place across (dimahoo.h: the stage pans across with the ships)
+    int Row(int across) {
+        return across - static_cast<int16_t>(Ram16(kPan)) - kPanOffset;
+    }
+
     // A box in the game's places (across and up, dimahoo.h) as the picture's: its column is up less 64, its row across
+    // less the pan
     HudBox Box(int left, int right, int low, int high, uint8_t r, uint8_t g, uint8_t b, uint8_t a) {
-        return {low - kUpOffset, left, high - low, right - left, r, g, b, a};
+        return {low - kUpOffset, Row(left), high - low, right - left, r, g, b, a};
     }
 
     void ShipBoxes(std::vector<HudBox> &boxes) {
+        // (no ship can be hit while a bomb goes off: the box the shots are tested against is then the bomb's, which
+        // takes them in; dimahoo.h)
+        if (Ram8(kHitsLetBy) || Ram8(kHitsLetBy2)) {
+            return;
+        }
         for (int n = 0; n < kPlayers2; n++) {
             const uint32_t ship = Ship(n);
             if (!InGame() || !ShipInPlay(n)) {
@@ -69,7 +80,8 @@ namespace {
 
     // The enemies' shots and bodies as the hit tests last saw them: the game makes its grids during a frame and they are
     // gone before it ends, so they are read at the tests (hooks that only look). For drawing only, so kept out of the
-    // state: `frame` is the count of frames they were read at, for leaving out what no test read this frame.
+    // state: `frame` is the count of frames they were read at, for leaving out what no test read this frame. Their rows
+    // are places across, made the picture's as they are drawn (the pan as the frame ends, as the ships').
     struct Seen {
         std::vector<HudBox> shots, bodies;
         uint64_t shotsFrame = 0, bodiesFrame = 0;
@@ -116,7 +128,7 @@ namespace {
                     const int left = static_cast<int16_t>(Ram16(body + 8)), right = static_cast<int16_t>(Ram16(body + 0xA));
                     const int low = static_cast<int16_t>(Ram16(body + 0xC)), high = static_cast<int16_t>(Ram16(body + 0xE));
                     if (right > left && high > low) {
-                        g_seen.bodies.push_back(Box(left, right, low, high, 255, 140, 0, 40));
+                        g_seen.bodies.push_back({low - kUpOffset, left, high - low, right - left, 255, 140, 0, 40});
                     }
                 }
                 node = Ram16(at);
@@ -125,13 +137,19 @@ namespace {
         return false;
     }
 
-    void EnemyBoxes(std::vector<HudBox> &boxes) {
-        if (g_seen.bodiesFrame + 1 >= g_frame) {
-            boxes.insert(boxes.end(), g_seen.bodies.begin(), g_seen.bodies.end());
+    void Seen(const std::vector<HudBox> &seen, uint64_t frame, std::vector<HudBox> &boxes) {
+        if (frame + 1 >= g_frame) {
+            for (HudBox box : seen) {
+                box.y = Row(box.y);
+                boxes.push_back(box);
+            }
         }
-        if (g_seen.shotsFrame + 1 >= g_frame) {
-            boxes.insert(boxes.end(), g_seen.shots.begin(), g_seen.shots.end());
-        }
+    }
+    void BodyBoxes(std::vector<HudBox> &boxes) {
+        Seen(g_seen.bodies, g_seen.bodiesFrame, boxes);
+    }
+    void ShotBoxes(std::vector<HudBox> &boxes) {
+        Seen(g_seen.shots, g_seen.shotsFrame, boxes);
     }
 
     void Readout(int player, std::vector<std::string> &lines) {
@@ -193,7 +211,8 @@ void RegisterModes() {
     d.readout = Readout;
     d.readoutWords = "The magic gauge: the items taken toward the next magic level (48 make one).";
     d.shipBoxes = ShipBoxes;
-    d.enemyBoxes = EnemyBoxes;
+    d.bodyBoxes = BodyBoxes;
+    d.shotBoxes = ShotBoxes;
     d.summaryWords = "When a boss comes and at a stage's end: how long the way to the boss took, and the boss, the points scored, the ships "
                      "lost and the bombs used.";
     d.ships = [](int player) { return static_cast<int>(Ram8(Player(player) + kPlayerShips)) + 1; };

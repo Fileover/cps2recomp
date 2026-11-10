@@ -263,10 +263,8 @@ def emit_routine(out, head, members, blocks, mem, hooks=(), watches=()):
                 direct = directly(insn, mem, nxt)
                 if direct:
                     out.extend("    " + line for line in direct)
-                    if insn.length == 2:  # (a trap or rte that went elsewhere: the refetch, as the interpreter has it)
-                        out.append("    if (c.pc != 0x%Xu) {" % nxt)
-                        out.append("        c.cycles += c.busWait;")
-                        out.append("    }")
+                    if insn.length == 2:  # (a trap or rte: the refetch where it goes, as the interpreter has it, M68K::RefillWait)
+                        out.append("    c.cycles += c.busWait;")
                 else:
                     out.append("    c.Interpret(0x%Xu);" % insn.addr)
                 if insn.flow in ("stop", "end"):

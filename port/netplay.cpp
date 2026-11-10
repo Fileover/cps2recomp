@@ -125,6 +125,9 @@ namespace {
         if (name.rfind("widescreen", 0) == 0 || category == "Game" || category == "Board") {
             return Share::Host;
         }
+        if (name.size() > 9 && name.compare(name.size() - 9, 9, "_hitboxes") == 0) {
+            return Share::Own; // (a shooting game's hit boxes, on its Cheats page: drawn over the picture only)
+        }
         if (category == "Cheats") {
             return Share::Off; // (a fair match: no damage for the host's player, say, is not)
         }

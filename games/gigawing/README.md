@@ -5,7 +5,7 @@
 
 An unofficial native PC port of the arcade game *Giga Wing* (Takumi, published by Capcom, 1999, CPS-2 board) for
 macOS, Linux (Steam Deck included) and Windows, made by static recompilation: the collection's first shoot-'em-up, for
-one or two players, with a practice mode, a score attack, a caravan, a boss rush, free play, the board's own settings
+one or two players, with a training mode, a score attack, a caravan, a boss rush, free play, the board's own settings
 and cheats.
 
 > **Beta.** The game plays through its stages in made-up play and its code is checked instruction by instruction, but
@@ -20,7 +20,7 @@ Capcom.
 
 ![The title](../../docs/screenshots/gigawing/title.png)
 
-![Practice with the true hit box, the enemies' hit areas and the scoring readout](../../docs/screenshots/gigawing/practice.png)
+![Training mode with the true hit box, the enemies' hit boxes and the scoring readout](../../docs/screenshots/gigawing/practice.png)
 
 ## What it is
 
@@ -32,23 +32,26 @@ its inputs, its settings memory and QSound.
   another player (rollback, as the other games). The buttons are called what the game calls them: **Shot** (held: the
   Reflect Barrier) and **Bomb**.
 - An in-game menu (Esc or `F1`; on a gamepad, the left stick's click or Start and Select together) with save states,
-  speed (1/8 to 8x: slow motion), pause and frame advance, rapid fire, run-ahead, the board's timing (its slowdown),
+  speed (1/8 to 8x: slow motion), pause and frame advance, rapid fire, run-ahead, the slowdown (arcade perfect or none),
   the cheats and every feature.
 - **Pure** plays exactly as the board does. **Enhanced** (the default) adds free play (the board's own). Every other
   feature is a switch of its own.
-- **Practice**: any of the seven stages, from its start or straight at its boss, with the fighter, ships, bombs and
+- **Training mode**: any of the seven stages, from its start or straight at its boss, with the fighter, ships, bombs and
   power you choose. One button (Backspace, or a gamepad's left shoulder) puts it back as it began, at once; another
-  replays your last attempt. Its aids: each ship's true hit box (a 6-pixel square, far smaller than the ship) and the
-  point of every enemy shot, the enemies' bodies, a readout of the multiplier, the medal chain, the power and the
+  replays your last attempt. Its aids: a readout of the multiplier, the medal chain, the power and the
   boss's clock, and a summary at each boss and stage end (the time, what the multiplier gained, ships lost, bombs used).
-  The cheats work in practice too. [All about practice →](../../docs/PRACTICE.md)
+  The cheats work in training mode too. [All about training mode →](../../docs/PRACTICE.md)
+- **Hit boxes**, on the Cheats page and in every mode, the board's own game too: each ship's true hit box (a 6-pixel
+  square, far smaller than the ship), the enemies' bodies and the point of every enemy shot, each a switch of its own,
+  drawn with the objects as the board shows them.
 - **Alternative modes**, at the head of the in-game menu:
   - **Score attack**: one player and one credit from the first stage, no continue and no cheats; the best score is
     kept.
-  - **Caravan**: two, three or five minutes from the first stage, a ship for every one lost; the best score in the time
-    is kept for each length.
+  - **Caravan**: a score attack against the clock: two, three or five minutes from the first stage, a ship for every one
+    lost; the best score in the time is kept for each length.
   - **Boss rush**: every boss in turn, the way between them run unseen; the best score is kept, and the time.
-  - **Stage viewer**: a stage scrolling by with nobody on it: no ships, enemies, shots or panel.
+  - **Stage viewer**: a stage scrolling by with nobody on it: no ships, enemies, shots or panel. Its speed is yours to
+    choose; up or right scrolls it faster, down or left back the way it came, and the shot button stops it.
   - **Attract mode**: the game's own show on a loop, with its sound on: all of it, only the demonstrations or only
     the story.
 - **Start at stage**: a new game starts at the beginning of any of the seven stages.
@@ -58,8 +61,9 @@ its inputs, its settings memory and QSound.
 - The board's operator settings on the Board page (difficulty, ships, force bombs, continue, demo sound), each as the
   board is set unless you choose; or the game's own test menu from the in-game menu.
 - **Straight to the title**: at a start or a reset, the board's start and its warning run unseen.
-- **Slowdown**: with Arcade timing on, the game slows where the board does, as its memory waits and the video chip's
-  are counted ([docs/TIMING.md](../../docs/TIMING.md)); off, the processor always has time and the game seldom slows.
+- **Slowdown** (the Game page): arcade perfect, the default: the processor waits for its memory and the video chip as
+  on the board, so the game slows where and as much as the board does ([docs/TIMING.md](../../docs/TIMING.md)); or none:
+  the processor overclocked, and the game never slows.
 - Your ROM set is only ever read. Settings, save states and the board's settings memory go in your own user folder,
   or beside the launcher in [portable mode](../../docs/LAUNCHER.md#portable-mode).
 
