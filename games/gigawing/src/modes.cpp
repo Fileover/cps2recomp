@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 // Copyright (C) 2026 Tommy McLeroy
 //
-// Giga Wing: the menu's "Alternative modes" and practice (the toolkit's shmup/shmup.h): what they need of the game.
+// Giga Wing: the menu's "Alternative modes" and training mode (the toolkit's shmup/shmup.h): what they need of the game.
 //
 // A mode gets into a game the way a player does: a credit, Start, the choice of fighter (the fighter put in the
 // choice's variable and the shot button pressed, or the player's own choice in the scored modes), Start again to skip
@@ -66,15 +66,16 @@ namespace {
                 continue;
             }
             const int x = static_cast<int16_t>(Ram16(ship + kShipX)), y = static_cast<int16_t>(Ram16(ship + kShipY));
-            const int left = Ram16(ship + kShipBoxLeft), right = Ram16(ship + kShipBoxRight), up = Ram16(ship + kShipBoxUp),
-                      down = Ram16(ship + kShipBoxDown);
+            // (signed: a ship's box can sit off its middle, up 7 and down -1, say)
+            const int left = static_cast<int16_t>(Ram16(ship + kShipBoxLeft)), right = static_cast<int16_t>(Ram16(ship + kShipBoxRight)),
+                      up = static_cast<int16_t>(Ram16(ship + kShipBoxUp)), down = static_cast<int16_t>(Ram16(ship + kShipBoxDown));
             // (bright green in a black edge, to stand out from any ship)
             boxes.push_back({x - left - 1, Row(y + up) - 1, left + right + 2, up + down + 2, 0, 0, 0, 255});
             boxes.push_back({x - left, Row(y + up), left + right, up + down, 0, 255, 0, 255});
         }
     }
 
-    void EnemyBoxes(std::vector<HudBox> &boxes) {
+    void BodyBoxes(std::vector<HudBox> &boxes) {
         // The enemies' bodies, each a box the ships' middles are tested against
         for (int n = 0; n < kBodies; n++) {
             const uint32_t body = kBody + kBodySize * static_cast<uint32_t>(n);
@@ -86,6 +87,9 @@ namespace {
                       up = static_cast<int16_t>(Ram16(body + kBodyUp)), down = static_cast<int16_t>(Ram16(body + kBodyDown));
             boxes.push_back({x - left, Row(y + up), left + right, up + down, 255, 140, 0, 40});
         }
+    }
+
+    void ShotBoxes(std::vector<HudBox> &boxes) {
         // The enemies' shots, each a point tested against the ships' boxes
         uint32_t shot = Ram32(kShots);
         for (int n = 0; shot >= 0xFF0000 && n < 1024; n++) {
@@ -155,7 +159,11 @@ void RegisterModes() {
     d.maxBombs = kMostBombs;
     d.maxPower = kMostPower;
     d.shipBoxes = ShipBoxes;
-    d.enemyBoxes = EnemyBoxes;
+    d.bodyBoxes = BodyBoxes;
+    d.shotBoxes = ShotBoxes;
+    // (the game moves everything every frame, but makes its object list every other frame, from the places of the frame
+    // before: found from the list and an enemy shot's place, frame by frame)
+    d.listLag = 1;
     d.readout = Readout;
     d.multiplier = [](int player) { return FromBcd(Ram32(kMultiplier + 4 * static_cast<uint32_t>(player))); };
     d.ships = [](int player) { return static_cast<int>(Ram16(kShips + 2 * static_cast<uint32_t>(player))); };

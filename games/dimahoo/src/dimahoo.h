@@ -130,13 +130,17 @@ inline uint32_t Ship(int n) {
 // 0292E4: a ship (A6) hit with no barrier: unless the board's invincibility is on (A5+A91), it starts its blast (the
 // ship's step 0x22). 029310 goes on unhurt, as the board's invincibility does.
 constexpr uint32_t kShipHit = 0x0292E4, kShipUnhurt = 0x029310;
+// A hit is let by while either of these bytes is set (029208: after the hit tests, a ship's hit bit is acted on only with
+// both clear, its step under 0x22 and no barrier): A5+25A while a bomb goes off (found from a trace through bombs: set
+// for each one's 134 frames, while the ship's box is the bomb's 40 by 88), A5+325 at another time not yet seen.
+constexpr uint32_t kHitsLetBy = At(0x25A), kHitsLetBy2 = At(0x325);
 // 029FDE: `subq.b #1,0x9(a3)`, a bomb taken (A3 the player's record) as it goes off
 constexpr uint32_t kBombTaken = 0x029FDE;
 
 // The hit tests, each run by a ship (A6) once a frame (029202, 0291FC), found from a watch on the ship's +48. Places are
 // whole pixels with the picture stood up as the monitor shows it: across (the picture's rows, as the board draws it
-// lying down) and up (its columns, 64 more: a ship held up goes to 384, at the picture's column 320). Found from the
-// ship's place while it was moved, against pictures.
+// lying down, less the pan: kPan below) and up (its columns, 64 more: a ship held up goes to 384, at the picture's
+// column 320). Found from the ship's place while it was moved, against pictures.
 //   002E60: the ship's box, +08 to +0A across and +0C to +0E up (6 by 10 pixels), against the enemies' shots: points
 //       (+32 across, +30 up), found through a grid of lists (the word at FFE076 its address in work RAM: a row of 16
 //       cells for each 32 pixels up, a cell for each 32 across; a cell's word the first node, a node's first word the
@@ -150,6 +154,12 @@ constexpr uint32_t kShotGrid = 0xFFE076, kBodyGrid = 0xFFE078;
 constexpr uint32_t kShotGridSize = 0x400, kBodyGridSize = 0x100;
 constexpr uint32_t kShipBoxLeft = 0x08, kShipBoxRight = 0x0A, kShipBoxLow = 0x0C, kShipBoxHigh = 0x0E;
 constexpr int kUpOffset = 64;
+// The stage is wider than the picture and pans across with the ships (word, A5+68E: 0310B6 sets it every frame; -16 with
+// a ship at the left, on through 0 and up as it goes right): a place across is at the picture's row across - pan - 16.
+// Found with a ship held at several places across (with the pan -12, 2 and 8 it was drawn 4, 18 and 24 rows above its
+// place across) and checked against pictures of a ship moved by made-up controls, every frame it stood still.
+constexpr uint32_t kPan = At(0x68E);
+constexpr int kPanOffset = 16;
 
 // The scroll screens that are the stage: 2 and 3 (scroll screen 1 is the panel: its bars, the scores and the ships
 // left; found with the stage viewer, one screen at a time)

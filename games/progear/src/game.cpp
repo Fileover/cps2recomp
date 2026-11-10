@@ -65,7 +65,7 @@ namespace {
         }
     }
 
-    // The cheats work in the board's own game and in practice; the other modes leave them out (their scores are kept)
+    // The cheats work in the board's own game and in training mode; the other modes leave them out (their scores are kept)
     bool CheatsWork() {
         return !ChoicesLeftOut() || shmup::Practice();
     }
@@ -178,7 +178,6 @@ void RegisterGame() {
     Game &game = TheGame();
     RegisterMusic();
     RegisterBoard();
-    RegisterModes();
     game.features.push_back({"free_play", "Game", "Free play", "Start works without a coin (the board's own free play).", kFeatureEnhanced});
     game.features.push_back({"skip_intro", "Game", "Straight to the title",
                              "When the game starts, and when it is reset, goes straight to the title: the board's start, its warning and "
@@ -190,6 +189,7 @@ void RegisterGame() {
     game.features.push_back({"invincible_2", "Cheats", "Invincibility, player 2", "Player 2's ship is never hit."});
     game.features.push_back({"start_stage", "Game", "Start at stage", "A new game starts at the beginning of the stage chosen.", 0,
                              {"Stage 1", "Stage 2", "Stage 3", "Stage 4", "Stage 5"}});
+    RegisterModes(); // (after the cheats: the hit boxes come after them on the Cheats page)
     AddHook(HookAt(kGameBegins), "GameBegins", GameBegins);
     AddHook(HookAt(kShipHitTaken), "ShipHit", ShipHit);
     AddHook(HookAt(kBombTaken), "BombTaken", BombTaken);

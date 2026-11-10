@@ -2,10 +2,40 @@
 
 ## Unreleased
 
-- **First-to sets online:** Marvel vs. Capcom and X-Men vs. Street Fighter offer Casual, FT5 and FT10 under
-  **Online > Set format**. The host's choice applies to both players. Confirmed two-player results award game wins,
-  and both players return to the launcher after agreeing on the final score and showing the winner briefly. Casual is the
-  default, including in Pure. Both players need this updated online protocol.
+- **Online: first to 5 or 10** (from liquidmetalxy-debug, #242): in Marvel vs. Capcom and X-Men vs. Street Fighter
+  the host chooses **Online > Set format**: Casual (the default, and in Pure), FT5 or FT10, for both players. A strip
+  at the top shows the score; only finished games between the two players count (not draws, not the computer). When a
+  player reaches it, both games agree on the score, show the winner for two seconds and close, back to the launcher.
+  Both players need this version (the online protocol is now 7).
+- **The shoot-'em-ups (Giga Wing, Progear, Dimahoo): tester feedback.**
+  - **Training mode**: practice is now called training mode, as in the fighting games.
+  - **Hit boxes in every mode**: Player hit boxes, Enemy hit boxes and Bullet hit boxes (the enemies' shots, apart from
+    their bodies now) are switches on the Cheats page and are drawn in every mode, the board's own game too; online,
+    each player keeps their own. They are drawn with the objects the board shows: the board shows the object list the
+    game made in the frame before, and Giga Wing and Progear make theirs from the places of the frame before that (Giga
+    Wing every other frame), so the boxes were a frame or two ahead of the sprites, more so in motion. Dimahoo's were
+    also out sideways: its stage is wider than the screen and pans with the ship (A5+68E), which the boxes now follow.
+  - The player hit box is left out while the game lets hits by: in Dimahoo while a bomb goes off (its box is then the
+    bomb's, 40 by 88, which takes the shots in). Giga Wing's box can sit off the ship's middle (down -1): it was read
+    unsigned and drawn as a box the screen's height.
+  - **Boss rush goes on past the first boss**: the summary's count of the boss's flag hid the boss's end from the rush
+    (the flag goes as the next stage begins); and a game over between bosses now ends the rush with its score, where
+    it waited on the show.
+  - **Stage viewer**: a scroll speed (stopped, a quarter, half, normal, twice, four times), and the controls take it
+    over: up or right faster, down or left back the way it came (from states it keeps every half second, the frames
+    behind remade unseen, so the picture runs back smoothly), the shot button stops and starts it.
+  - **Slowdown** on the Game page: arcade perfect (the default: the board's timing, the processor waiting for its
+    memory and the video chip, `arcade_timing` for these games) or none (the 68000 overclocked four times). The scored
+    modes keep their bests apart for each. A game's sources can now decide the board's timing (`Game::boardTiming`)
+    and ask for faster play (`SetFastMotion`, beside `SetSlowMotion`).
+  - Caravan is described as what it is: a score attack against the clock.
+- **Arcade timing: a jump to the next word refetches.** A one-word instruction that always goes elsewhere (`jmp` and
+  `jsr (an)`, `rts`, `rtr`, `rte`, `trap`) refills the 68000's prefetch even when it lands on the next word, as a jump
+  table's first entry does; the interpreter left that word's wait out where translated code counted it, so Dimahoo's and
+  Giga Wing's checks with the board's timing came apart (at frames 1442 and 1259). Both count it now.
+- **Input lag with VSync on**: one frame in flight on the GPU, so the picture made is the next one shown, none queued
+  behind another. (Without VSync, the default, the port paces the frames and shows each as soon as it is made.)
+
 - **Dimahoo** (`dimahoou`, USA 000121; the European set and the Japanese *Great Mahou Daisakusen* of the same date play
   too), Raizing's vertical shoot-'em-up and the collection's third shooter, on the toolkit's `shmup/`: free play (the
   board's own), straight to the title, start at stage, the Board page (difficulty, ships, bombs, extra ships, one loop or

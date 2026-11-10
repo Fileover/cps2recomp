@@ -75,17 +75,22 @@ score attack, and the stage and model viewers.
 
 Giga Wing, Progear and Dimahoo have a shooter's modes instead:
 
-- **Practice**: any stage, from its start or straight at its boss, with the fighter (in Progear the pilot and gunner, in Dimahoo the character),
+- **Training mode**: any stage, from its start or straight at its boss, with the fighter (in Progear the pilot and gunner, in Dimahoo the character),
   ships, bombs and power you choose. Backspace (a gamepad's left shoulder) puts it back as it began at once; Backslash (the left trigger with the
-  left shoulder) replays your last attempt, until you touch the controls. Its aids show each ship's true hit box, the
-  point of every enemy shot and the enemies' bodies, the scoring or the power as it happens, and a summary at each boss and
-  stage end. Slow motion and frame advance are the menu's speed and pause. [All about practice →](PRACTICE.md)
+  left shoulder) replays your last attempt, until you touch the controls. Its aids show the scoring or the power as it
+  happens and a summary at each boss and stage end. Slow motion and frame advance are the menu's speed and pause. [All
+  about training mode →](PRACTICE.md)
+- **Hit boxes**, on the Cheats page and in every mode: each ship's true hit box, the enemies' bodies and the point of
+  every enemy shot, each a switch of its own.
 - **Score attack**: one credit, no continue, no cheats; the best score is kept.
-- **Caravan**: two, three or five minutes, a ship for every one lost; the best score is kept for each length.
+- **Caravan**: a score attack against the clock: two, three or five minutes, a ship for every one lost; the best score
+  is kept for each length.
 - **Boss rush**: every boss in turn, the way between them run unseen; the best score and its time are kept.
-- **Stage viewer**: a stage scrolling by with nobody on it.
+- **Stage viewer**: a stage scrolling by with nobody on it, at the speed you choose; up or right scrolls it faster,
+  down or left back the way it came, and the shot button stops it.
+- **Slowdown** (the Game page): arcade perfect, as the board slows (the default), or none, the processor overclocked.
 
-![Giga Wing: practice, with the ship's hit box and the points of the enemies' shots](screenshots/gigawing/practice.png)
+![Giga Wing: training mode, with the ship's hit box and the points of the enemies' shots](screenshots/gigawing/practice.png)
 
 ## Multi game
 

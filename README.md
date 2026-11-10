@@ -54,9 +54,9 @@ file). Only the versions named below work for each game, and this project cannot
 | [**Ghouls'n Ghosts**](games/ghouls/README.md) (1988, CPS-1) | `ghouls` (World) | Platform game; classic CPS-1 with YM2151 and OKI sound |
 | [**Cadillacs and Dinosaurs**](games/dino/README.md) (1993, CPS-1) | `dino` (World 930201) | Beat-'em-up: three players, a stage to start at, score attack |
 | [**The Punisher**](games/punisher/README.md) (1993, CPS-1) | `punisheru` (USA 930422) | Beat-'em-up: two players, a stage to start at, score attack |
-| [**Giga Wing**](games/gigawing/README.md) (1999) | `gigawing` (USA 990222) | Shoot-'em-up: practice with true hit boxes, score attack, caravan, boss rush |
-| [**Progear**](games/progear/README.md) (2001) | `progearu` (USA 010117) | Cave's horizontal shoot-'em-up: practice with true hit boxes, score attack, caravan, boss rush |
-| [**Dimahoo**](games/dimahoo/README.md) (2000) | `dimahoou` (USA 000121) | Raizing's vertical shoot-'em-up: practice with true hit boxes, score attack, caravan, boss rush |
+| [**Giga Wing**](games/gigawing/README.md) (1999) | `gigawing` (USA 990222) | Shoot-'em-up: training mode, true hit boxes, score attack, caravan, boss rush |
+| [**Progear**](games/progear/README.md) (2001) | `progearu` (USA 010117) | Cave's horizontal shoot-'em-up: training mode, true hit boxes, score attack, caravan, boss rush |
+| [**Dimahoo**](games/dimahoo/README.md) (2000) | `dimahoou` (USA 000121) | Raizing's vertical shoot-'em-up: training mode, true hit boxes, score attack, caravan, boss rush |
 
 Each game's page has all it does, with pictures.
 
@@ -111,9 +111,9 @@ each other.
   stage viewer, the endless and team battles, and (an option) arcade matches. Each needs that game's ROM set.
 - **Alternative modes** in the fighting games: survival, ring out, an endless battle the game plays itself, and in
   most a tag team battle; plus a stage viewer and a model viewer ([more](docs/MODES.md)).
-- **Shoot-'em-up practice** in Giga Wing, Progear and Dimahoo: any stage or straight at its boss, back to the start with one button, the
-  ships' true hit boxes and the enemies' shots shown ([more](docs/PRACTICE.md)); and a score attack, a caravan and a
-  boss rush ([more](docs/MODES.md#the-shoot-em-ups)).
+- **Shoot-'em-up training mode** in Giga Wing, Progear and Dimahoo: any stage or straight at its boss, back to the start with one
+  button ([more](docs/PRACTICE.md)); the ships' true hit boxes, the enemies' and their shots' in any mode; a score attack,
+  a caravan and a boss rush; and the board's slowdown, or none ([more](docs/MODES.md#the-shoot-em-ups)).
 - **The picture your way**: sharp or smooth scaling, 4:3 or square pixels (a vertical game stood upright), and RetroArch shaders (CRT, scanlines,
   xBRZ and more, or your own preset). A camera zoom follows either fighter, keeps both in view, or closes in
   and out with the fighters' distance while the health bars stay put ([more](docs/PICTURE.md)).
