@@ -22,6 +22,21 @@ namespace {
         return static_cast<uint16_t>((p[0] << 8) | p[1]);
     }
 
+    // Where a CPS-1's PAL puts a kind's tile, in 64-byte units (machine/romset.h, GfxRange); -1: in no range, not
+    // drawn
+    int64_t MapTile(const Board &board, uint8_t kind, uint32_t unit) {
+        for (const GfxRange &range : board.gfxMap) {
+            if ((range.kinds & kind) && unit >= range.start && unit <= range.end) {
+                uint32_t base = 0;
+                for (unsigned b = 0; b < range.bank; b++) {
+                    base += board.gfxBanks[b];
+                }
+                return base + (unit & (board.gfxBanks[range.bank] - 1));
+            }
+        }
+        return -1;
+    }
+
     // Eight pixels of a tile row from its four bytes: one bit plane per byte, leftmost pixel in bit 7
     inline void Unpack(const uint8_t *row, uint8_t *pixels) {
         const uint8_t b0 = row[0], b1 = row[1], b2 = row[2], b3 = row[3];
@@ -107,6 +122,11 @@ void Video::DrawScroll(int which, int rasterLine, uint16_t *pens, uint8_t *prior
     const int ownLeft = kWide ? wide.side + wide.scroll[which] + (rowScroll && wide.rows ? wide.rows[(rasterLine + a[kRowScrollOffset]) & 0x3FF] : 0) : 0;
     const int ownRight = ownLeft + kWidth; // the board's own columns
     const uint32_t firstX = static_cast<uint32_t>(kFirstColumn - ownLeft + static_cast<int>(scrollX)) & mapMask;
+    if (layerProbe) {
+        LayerLine &probe = layerProbe[which][rasterLine - kFirstLine];
+        probe.row = static_cast<int32_t>(rasterLine + scrollY);
+        probe.left = kFirstColumn - ownLeft + static_cast<int>(scrollX);
+    }
     const uint16_t colourBase = static_cast<uint16_t>(0x20 * (which + 1));
 
     int out = -static_cast<int>(firstX & (size - 1)); // where the first (partly hidden) tile starts
@@ -148,6 +168,15 @@ void Video::DrawScroll(int which, int rasterLine, uint16_t *pens, uint8_t *prior
             rowBytes = 16;
             break;
         }
+        if (!m_src.board.gfxMap.empty()) {
+            // (a CPS-1 whose PAL does not keep the tiles in order: Street Fighter II's)
+            static const uint8_t kKinds[3] = {GfxRange::kScroll1, GfxRange::kScroll2, GfxRange::kScroll3};
+            const int64_t mapped = MapTile(m_src.board, kKinds[which], code << (which == 0 ? 0 : which == 1 ? 1 : 3));
+            if (mapped < 0) {
+                continue;
+            }
+            at = static_cast<uint32_t>(mapped) * 64 + (which == 0 && (column & 1) ? 4 : 0);
+        }
         const int line = static_cast<int>(y & (size - 1));
         const bool flipX = attr & 0x20, flipY = attr & 0x40;
         at += static_cast<uint32_t>(flipY ? size - 1 - line : line) * rowBytes;
@@ -185,7 +214,7 @@ void Video::DrawScroll(int which, int rasterLine, uint16_t *pens, uint8_t *prior
 // later entries of the list are in front. Drawn back to front here would need the scroll screens' marks
 // kept apart, so (as MAME does) they are drawn front to back and a pixel once claimed stays claimed.
 template <bool kWide>
-void Video::DrawObjects(int rasterLine, uint16_t *pens, uint8_t *priority, const uint32_t *masks) {
+void Video::DrawObjects(int rasterLine, uint16_t *pens, uint8_t *priority, const uint32_t *masks, uint8_t *marks) {
     const int xOffset = 64 - m_src.objectRegs[kObjXOffset];
     const int yOffset = 16 - m_src.objectRegs[kObjYOffset];
     const int width = kWide ? Width() : +kWidth;
@@ -206,6 +235,9 @@ void Video::DrawObjects(int rasterLine, uint16_t *pens, uint8_t *priority, const
         const bool flipX = attr & 0x20, flipY = attr & 0x40;
         const uint16_t colour = static_cast<uint16_t>((attr & 0x1F) * 16);
         const uint32_t mask = masks[level] | 0x80000000u;
+        // (what its pixels are marked as, where it is the front object: the panel's, or in front of the fighters)
+        const uint8_t mark = !marks ? 0 : static_cast<uint8_t>((panelObject && panelObject(code, attr) ? kPanelPixel : 0) |
+                                                               (markFront && (m_objects[i] & 0x1000) ? kFrontPixel : 0));
         // (an object of the extra set's: its tiles are in its graphics)
         const bool extra = m_extraGraphics && m_objectsFromExtra[i / 4];
         const uint8_t *graphics = extra ? m_extraGraphics : m_src.graphics;
@@ -246,8 +278,12 @@ void Video::DrawObjects(int rasterLine, uint16_t *pens, uint8_t *priority, const
                     }
                     const uint8_t pen = pixels[flipX ? 15 - k : k];
                     if (pen != 15) {
-                        if (!((mask >> (priority[px] & 0x1F)) & 1)) {
+                        const bool shown = !((mask >> (priority[px] & 0x1F)) & 1);
+                        if (shown) {
                             pens[px] = static_cast<uint16_t>(colour + pen);
+                        }
+                        if (marks && priority[px] != 31) {
+                            marks[px] = static_cast<uint8_t>(mark & (shown ? 0xFF : ~kFrontPixel));
                         }
                         priority[px] = 31;
                     }
@@ -308,7 +344,16 @@ void Video::DrawObjectsCps1(int rasterLine, uint16_t *pens, const uint8_t *high,
                 }
                 const int cx = flipX ? across - 1 - tx : tx, cy = flipY ? down - 1 - ty : ty;
                 const uint32_t tile = (code & ~0xFu) + ((code + cx) & 0xF) + 0x10 * cy;
-                const uint32_t at = tile * 128 + static_cast<uint32_t>(flipY ? 15 - line : line) * 8;
+                uint32_t at = tile * 128 + static_cast<uint32_t>(flipY ? 15 - line : line) * 8;
+                if (!m_src.board.gfxMap.empty()) {
+                    // (through the graphics mapper, in units of 8x8 tiles as the scroll screens; a tile it has no
+                    // range for is not drawn)
+                    const int64_t mapped = MapTile(m_src.board, GfxRange::kObjects, tile << 1);
+                    if (mapped < 0) {
+                        continue;
+                    }
+                    at = static_cast<uint32_t>(mapped) * 64 + static_cast<uint32_t>(flipY ? 15 - line : line) * 8;
+                }
                 if (at + 8 > m_src.graphicsSize) {
                     continue;
                 }
@@ -510,9 +555,28 @@ void Video::RenderLineAs(int line, uint32_t *out) {
         }
     };
     const unsigned order[3] = {l0, l1, l2};
+    if (layerProbe) {
+        for (int which = 0; which < 3; which++) {
+            layerProbe[which][line] = LayerLine{};
+        }
+    }
     for (int n = 0; n < 3; n++) {
         if (order[n] && enabled(order[n])) {
             DrawScroll<kWide>(static_cast<int>(order[n]) - 1, rasterLine, pens, priority, static_cast<uint8_t>(1u << n));
+        }
+    }
+    if (layerProbe) {
+        // (the columns where each is seen: it is the front one painted there, or none is and it is drawn on the line)
+        for (int x = 0; x < width; x++) {
+            const unsigned marks = priority[x] & 7;
+            for (int n = 0; n < 3; n++) {
+                if (!order[n] || layerProbe[order[n] - 1][line].row < 0 || (marks ? (marks >> n) != 1 : false)) {
+                    continue;
+                }
+                LayerLine &probe = layerProbe[order[n] - 1][line];
+                probe.first = probe.first < 0 ? static_cast<int16_t>(x) : probe.first;
+                probe.last = static_cast<int16_t>(x);
+            }
         }
     }
     // (the holes filled from the scroll screens alone, before the objects: a fighter or the panel beside a hole is not
@@ -520,11 +584,25 @@ void Video::RenderLineAs(int line, uint32_t *out) {
     if (kWide && wide.fillHoles && wide.side > 0) {
         FillHoles(pens, width);
     }
+    // (the marks of the objects' pixels: the panel's, those in front of the fighters)
+    uint8_t marks[kMaxWidth];
+    const bool marking = (markObjects && panelObject) || markFront;
+    if (marking) {
+        memset(marks, 0, sizeof(marks));
+    }
     if (layerMask & 1) {
-        DrawObjects<kWide>(rasterLine, pens, priority, masks);
+        DrawObjects<kWide>(rasterLine, pens, priority, masks, marking ? marks : nullptr);
     }
     for (int x = 0; x < width; x++) {
         out[x] = m_palette[pens[x]];
+    }
+    if (markFront) {
+        // (in front: an object marked so, or a scroll screen's pixel an object of the fighters' level is behind)
+        const uint32_t behind = frontLevel ? masks[frontLevel & 7] : 0;
+        for (int x = 0; x < width; x++) {
+            const bool front = priority[x] == 31 ? (marks[x] & kFrontPixel) != 0 : ((behind >> (priority[x] & 7)) & 1) != 0;
+            out[x] |= front ? 0x40000000u : 0;
+        }
     }
     if (markObjects) {
         // (the marks of the scroll screens marked too, by where they are in the order)
@@ -535,8 +613,10 @@ void Video::RenderLineAs(int line, uint32_t *out) {
             }
         }
         for (int x = 0; x < width; x++) {
-            const bool mark = priority[x] == 31 || (priority[x] & marked) != 0;
-            out[x] |= mark ? 0x80000000u | (static_cast<uint32_t>(pens[x] >> 4) & 0x1F) << 24 : 0;
+            const bool layer = priority[x] != 31 && (priority[x] & marked) != 0;
+            const bool mark = priority[x] == 31 || layer;
+            const bool panel = layer || (priority[x] == 31 && marking && (marks[x] & kPanelPixel));
+            out[x] |= mark ? 0x80000000u | (static_cast<uint32_t>(pens[x] >> 4) & 0x1F) << 24 | (panel && panelObject ? 0x40000000u : 0) : 0;
         }
     }
 }

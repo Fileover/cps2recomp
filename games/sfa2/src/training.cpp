@@ -368,6 +368,8 @@ void RegisterTraining() {
     d.framesFirstInState = true;
     d.wideStage = WideStage;
     d.wideSide = WideSide;
+    d.wideMargin = WideMargin;
+    d.wideEnds = WideEnds;
     d.stageChoices = modes::StageChoices({"The game's choice"});
     d.stageWords = "Where a training session's fight is: the game's own choice (the stage of one of the two characters) or a stage "
                    "named here. Takes effect when the characters are next chosen.";

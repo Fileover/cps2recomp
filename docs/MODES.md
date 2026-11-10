@@ -71,6 +71,22 @@ score attack, and the stage and model viewers.
 
 ![Cadillacs and Dinosaurs: three players](screenshots/dino/three-players.png)
 
+### The shoot-'em-ups
+
+Giga Wing, Progear and Dimahoo have a shooter's modes instead:
+
+- **Practice**: any stage, from its start or straight at its boss, with the fighter (in Progear the pilot and gunner, in Dimahoo the character),
+  ships, bombs and power you choose. Backspace (a gamepad's left shoulder) puts it back as it began at once; Backslash (the left trigger with the
+  left shoulder) replays your last attempt, until you touch the controls. Its aids show each ship's true hit box, the
+  point of every enemy shot and the enemies' bodies, the scoring or the power as it happens, and a summary at each boss and
+  stage end. Slow motion and frame advance are the menu's speed and pause. [All about practice →](PRACTICE.md)
+- **Score attack**: one credit, no continue, no cheats; the best score is kept.
+- **Caravan**: two, three or five minutes, a ship for every one lost; the best score is kept for each length.
+- **Boss rush**: every boss in turn, the way between them run unseen; the best score and its time are kept.
+- **Stage viewer**: a stage scrolling by with nobody on it.
+
+![Giga Wing: practice, with the ship's hit box and the points of the enemies' shots](screenshots/gigawing/practice.png)
+
 ## Multi game
 
 **Multi game** (the page after Controllers) plays several games one after another, for as long as you like. Its
@@ -81,7 +97,8 @@ or **Scroll**, going by in order at the speed you choose), the **Screen** (every
 window, or as each game is set), the **Picture** (every game widescreen, every game 4:3, or as each game is set) and
 the rest of the Display page every game has (**Invisible walls**, **Scaling**, **Picture shape**, **Window size**,
 **Shader**, each also as each game is set) and the **Zoom** (**Both fighters**: in every game the camera follows the
-two fighters, as close as they allow), then **Start**. These are for that run only: each game's own settings stay as they
+two fighters, as close as they allow; **By distance**: closer as they come together, out as they part, the health bars
+left as they are), then **Start**. These are for that run only: each game's own settings stay as they
 were. In a window, each game opens where the one before it was and as large, wherever you moved it. Touch
 the controls to take a fighter over. While it plays, **N** (or a gamepad's left shoulder) fades out to the next game
 and **F** (or the left trigger) held fast-forwards at four times the speed; the page lists them under **While it

@@ -6,8 +6,8 @@
 #   make            translate the game's code to C++ and build the game (build/$(GAME)/$(GAME)); on macOS also
 #                   the launcher and the app bundle, so that the bundle is never older than the game (NO_APP=1: not)
 #   make run        run it (windowed)
-#   make explore    find the game's code by made-up play, in rounds (a fresh tree needs this once)
-#   make record     run it and add the places it reaches by computed jumps to the entries file
+#   make explore    find more of the game's code by made-up play, in rounds, and add it to games/$(GAME)/entries.txt*
+#   make record     run it and add the places it reaches by computed jumps to the entries files
 #   make check      translated code against the interpreter run the same way, by state hash; two runs alike
 #   make check-blocks  every translated block beside the interpreter (registers, cycles, writes)
 #   make check-sound   the sound driver beside the game's sound program on the Z80 (every write to the chip)
@@ -15,7 +15,8 @@
 #   make launcher   build the launcher (build/$(GAME)/$(GAME)-launcher)
 #   make app        macOS app bundle (build/$(GAME)/<Name>.app)
 #
-# Per-game data lives in games/$(GAME)/ (game.cfg, movies); generated files in work/$(GAME)/
+# Per-game data lives in games/$(GAME)/ (game.cfg, movies, and entries.txt and entries.txt.z80: the addresses where
+# the game's code was seen to start, which the translator starts from); generated files in work/$(GAME)/
 # (decrypted program, generated code, settings memory); builds in build/$(GAME)/. The ROM set is never
 # part of the repository: ROM points at your own folder of its files.
 
@@ -45,7 +46,14 @@ EXTRA_SET := $(shell $(CFG) extra_set $(GAME))
 HOOK_SOURCES := games/$(GAME)/src$(foreach g,$(SHARES),:games/$(g)/src)
 
 PROGRAM := $(WORK)/program.bin
+# The entries files: the addresses the game's code was seen to reach by computed jumps (68000; .z80: the sound
+# program's). The repository's lists (TRACKED) are added to this tree's (ENTRIES, where runs note what they reach)
+# before each translation, and explore and record add this tree's back to the repository's, so that what they find
+# shows in git status. Addresses only, nothing of the game's code (tools/audit.sh checks that).
 ENTRIES := $(WORK)/entries.txt
+TRACKED := games/$(GAME)/entries.txt
+# (this tree's lists into the repository's)
+KEEP_ENTRIES = $(CR)/tools/merge_entries.sh $(TRACKED) $(ENTRIES) && $(CR)/tools/merge_entries.sh $(TRACKED).z80 $(ENTRIES).z80
 
 .PHONY: all configure port gen run record explore check check-blocks check-sound check-rewrites check-rollback check-online check-common launcher app clean
 # (on macOS the app bundle too, which is what the player opens: a bundle left from an older build hides what
@@ -61,6 +69,7 @@ endif
 # (NO_ROM=1: there is no ROM set, so the build stops at the interpreter-only one; the toolkit's stand-in game)
 gen:
 	@mkdir -p $(GEN)
+	@$(CR)/tools/merge_entries.sh -q $(ENTRIES) $(TRACKED); $(CR)/tools/merge_entries.sh -q $(ENTRIES).z80 $(TRACKED).z80
 	@$(CFG) --header $(GEN)/game_info.h $(GAME)
 	@# (the map of this program in the other set's is made again whenever the game's entries have grown since: one
 	@# made from a fresh tree's first few entries knows little of the other set's code, and a graft from it gives
@@ -77,11 +86,17 @@ gen:
 		echo '#define GRAFT_NOT_YET 1 // (the first build: the extra set not read yet; tools/graft.py writes this file)' > $(GEN)/graft_data.h; \
 	fi
 	@region=$$($(CFG) region_at $(GAME)); if [ -n "$$region" ]; then printf '%X\n' $$((0x$$region + 6)); fi > $(GEN)/region_hooks.txt
+	@# (Capcom's video library, video/lifts.cpp: the routines game.cfg's video_* keys have rewritten, ADDRESS:CRC, are hooks;
+	@# the instructions video_writes names are watches, which the translator does not start a block at)
+	@$(CFG) video_palette_commit $(GAME) | tr ' |' '\n\n' | cut -d: -f1 | grep . > $(GEN)/video_hooks.txt || true
+	@$(CFG) video_writes $(GAME) | tr ' |' '\n\n' | grep . > $(GEN)/video_watches.txt || true
+	@# (the palette commit's two moves to the registers watched too, for when the game's own code runs it: lifts.cpp)
+	@commit=$$($(CFG) video_palette_commit $(GAME) | cut -d: -f1); if [ -n "$$commit" ]; then printf '%06X\n%06X\n' $$((0x$$commit)) $$((0x$$commit + 8)) >> $(GEN)/video_watches.txt; fi
 	@if [ -f $(PROGRAM) ]; then \
 		python3 $(CR)/tools/recomp.py --program $(PROGRAM) --entries $(ENTRIES) --out $(GEN) \
 			--limit $(shell $(CFG) code_end $(GAME)) --list $(WORK)/program.lst \
 			--guess $(WORK)/guessed.txt --data $(PROGRAM).data \
-			--hook-sources "$(HOOK_SOURCES)" --places games/$(GAME)/family.h --hooks $(GEN)/graft_data_hooks.txt:$(GEN)/region_hooks.txt; \
+			--hook-sources "$(HOOK_SOURCES)" --places games/$(GAME)/family.h --hooks $(GEN)/graft_data_hooks.txt:$(GEN)/region_hooks.txt:$(GEN)/video_hooks.txt --watches $(GEN)/video_watches.txt; \
 	fi
 	@if [ -f $(PROGRAM).z80 ]; then \
 		python3 $(CR)/tools/recompz80.py --program $(PROGRAM).z80 --entries $(ENTRIES).z80 --out $(GEN) \
@@ -104,10 +119,10 @@ run: port
 # from those too (ARGS="--headless --frames 20000 --auto 1")
 record: port
 	$(PORT) $(RUN_ARGS) --stats $(ARGS)
+	@$(KEEP_ENTRIES)
 
-# Find the game's code by playing it with made-up input, in rounds, translating what each round found before
-# the next (a fresh tree knows almost none of it, and runs mostly in the interpreter until this is done; about
-# ten minutes). EXPLORE_FEATURES: features that help the made-up play get far (cheats). EXPLORE_LADDER: features
+# Find more of the game's code by playing it with made-up input, in rounds, translating what each round found
+# before the next, and add what it found to games/$(GAME)/entries.txt* (commit them: about ten minutes). EXPLORE_FEATURES: features that help the made-up play get far (cheats). EXPLORE_LADDER: features
 # with which one made-up player wins every match, for the one-player game to its end (a few minutes more);
 # EXPLORE_LADDER_2: another such set, for a second way through it (a hidden opponent, say).
 explore: port
@@ -119,6 +134,7 @@ explore: port
 	@$(CR)/tools/explore.sh 50 6 30000 --test-switch 600:30000
 	@if [ -n "$(EXPLORE_LADDER)" ]; then AUTO=":400:1" $(CR)/tools/explore.sh 100 12 130000 --features $(EXPLORE_LADDER); fi
 	@if [ -n "$(EXPLORE_LADDER_2)" ]; then AUTO=":400:1" $(CR)/tools/explore.sh 120 6 130000 --features $(EXPLORE_LADDER_2); fi
+	@$(KEEP_ENTRIES)
 	@$(MAKE) --no-print-directory port
 
 # Every translated block beside the interpreter, compared (FRAMES=n, MOVIE=path or ARGS=...)

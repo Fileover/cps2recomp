@@ -22,6 +22,7 @@
 #include "battle.h"
 #include "hsf2.h"
 #include "state.h"
+#include "wide_ends.h"
 
 #include <algorithm>
 
@@ -50,6 +51,23 @@ namespace {
 
     int Margin() {
         return g_play ? kSide : 0;
+    }
+    // Where the wide picture would show a stage past what the board shows of it (tools/stage_ends.sh): only on Cammy's
+    // castle ruins, as in Super Turbo (games/ssf2t/src/widescreen.cpp): its floor's far lines go slower than the camera
+    // (the camera stops 6 further in), and its two planes behind go at 0.64 and 0.34 of its speed (drawn moved: their
+    // places with the camera at the board's ends, for the 8-pixel and the 32-pixel scroll screens).
+    constexpr int kCammys = 12;
+    constexpr wide::Ends kCammysEnds = {6, 6};
+    constexpr int16_t kCammysPlanes[3][2] = {{324, 571}, {0, 0}, {383, 512}};
+    wide::Ends StageEnds() {
+        return Ram16(kStage) == kCammys ? kCammysEnds : wide::Ends{};
+    }
+    // How far short of the board's ends the camera stops, at each end, in the picture played in
+    int LeftMargin() {
+        return g_play ? kSide + StageEnds().left : 0;
+    }
+    int RightMargin() {
+        return g_play ? kSide + StageEnds().right : 0;
     }
     int16_t S16(uint32_t value) {
         return static_cast<int16_t>(value);
@@ -90,7 +108,7 @@ namespace {
         const uint16_t moved = static_cast<uint16_t>(before + Low(c.d[by]));
         SetRam16(camera + kPlaceX, moved);
         // (the end: in the wide picture 64 nearer the middle)
-        const uint16_t end = static_cast<uint16_t>(right ? Ram16(kCameraEndRight) - Margin() : Ram16(kCameraEndLeft) + Margin());
+        const uint16_t end = static_cast<uint16_t>(right ? Ram16(kCameraEndRight) - RightMargin() : Ram16(kCameraEndLeft) + LeftMargin());
         SetLow16(c.d[2], end);
         if (right ? end >= moved : end < moved) {
             SetRam16(camera + kMovedX, Low(c.d[by]));
@@ -110,7 +128,7 @@ namespace {
         const uint32_t camera = c.a[6] & 0xFFFFFF;
         if (modes::CameraAt().x >= 0) {
             // (a mode wants the camera at a place of its own: it goes there, as far as its ends let it)
-            const int end0 = Ram16(kCameraEndLeft) + Margin(), end1 = Ram16(kCameraEndRight) - Margin();
+            const int end0 = Ram16(kCameraEndLeft) + LeftMargin(), end1 = Ram16(kCameraEndRight) - RightMargin();
             const uint16_t place = Ram16(camera + kPlaceX);
             const uint16_t wanted = static_cast<uint16_t>(std::clamp(modes::CameraAt().x, end0, end1));
             SetRam16(camera + kMovedX, static_cast<uint16_t>(wanted - place));
@@ -297,11 +315,15 @@ namespace {
             // (the view's left edge is 64 left of the camera, and no further left than the camera's own end: nearer
             // the end than that, the stage is drawn to the side by what is missing. Played in the wide picture the
             // camera never goes there; with invisible walls it does, and the board's picture is then to one side)
-            g_shift = shown - std::clamp<int>(shown, CameraLeftEnd() + kSide, CameraRightEnd() - kSide);
+            g_shift = wide::ViewShift(shown, CameraLeftEnd(), CameraRightEnd(), kSide, StageEnds());
         }
         Video::Wide &wide = machine.video.wide;
         wide.side = g_side;
         wide.scroll[0] = wide.scroll[1] = wide.scroll[2] = g_shift;
+        if (g_side && Ram16(kStage) == kCammys) {
+            // (Cammy's planes behind, kept inside their painting over the camera's range: fight/wide_ends.h)
+            wide::FarPlanes(wide.scroll, kCammysPlanes, shown, CameraLeftEnd(), CameraRightEnd(), g_play, kSide, kCammysEnds);
+        }
         wide.object = g_side ? MoveObject : nullptr;
         wide.tile = nullptr;
         wide.fillHoles = g_side != 0;
@@ -317,6 +339,10 @@ bool WidePlay() {
 }
 int WideMargin() {
     return Margin();
+}
+void WideEnds(int &left, int &right) {
+    left = LeftMargin();
+    right = RightMargin();
 }
 int WideSide() {
     return g_side;

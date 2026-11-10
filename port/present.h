@@ -11,6 +11,7 @@
 #include <SDL3/SDL.h>
 
 #include <cstdint>
+#include <functional>
 #include <memory>
 #include <string>
 #include <vector>
@@ -39,9 +40,12 @@ float PictureShape(int columns, int rows, Shape shape, float window);
 // the rectangle the whole picture would; and `keep`, rectangles of the one below (in the pixels of its own size,
 // not counting the one above) are shown where they are and at their size all the same: the readout's panels,
 // which are not part of the game's picture.
+// With `panel`, the one below is laid over all of what is shown where its alpha is set, at its own size, and is clear
+// elsewhere: the game's panel, which is not zoomed either (zoom.h, by distance), with the readout's panels.
 struct Zoomed {
     SDL_FRect view;
     std::vector<SDL_Rect> keep;
+    bool panel = false;
 };
 
 class Presenter {
@@ -78,6 +82,11 @@ public:
     // rectangle `where` of the window, the rest black (zoomed: part of it larger, as `zoomed` says). Shaded, through
     // the preset unless `shade` is false (the menu, drawn larger than the game's picture: only fitted to `where`)
     void Show(const uint32_t *pixels, int width, int height, const SDL_FRect &where, const Zoomed *zoomed = nullptr, bool shade = true);
+    // The same with a picture drawn on the GPU (gpu_picture.h): `draw` draws it in the frame's command buffer and gives
+    // its texture (`width` x `height`, twice as tall zoomed), or none, and then nothing is shown; false when the
+    // picture is not drawn with SDL_GPU here (SDL's renderer, a shader preset): Show the CPU's then
+    bool ShowDrawn(const std::function<SDL_GPUTexture *(SDL_GPUCommandBuffer *)> &draw, int width, int height, const SDL_FRect &where,
+                   const Zoomed *zoomed = nullptr);
     // Vsync (the Display page's VSync, issue #185): each picture shown when the screen next refreshes, so never
     // torn, and none left out for want of a free one of the window's. Off unless set (frames are paced by the port,
     // and shown as soon as made). The same after the presenter is opened again.

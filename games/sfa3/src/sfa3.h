@@ -35,6 +35,13 @@ constexpr uint32_t kCoinMode = 0xFF8097, kFreePlay = 0xFF809C, kCoinsPerCredit1 
 constexpr uint8_t kCoinFreePlay = 0x12;
 constexpr uint16_t kFreePlayCoins = 0x0101;
 
+// Where the board is (a word, the region doubled: 0 Japan, 2 USA), which picks the board's factory settings (the table
+// at 00235A: seven records of 0x30, the test menu's settings record's layout), and the test menu's regulation
+// (System configuration; the record's +06): 0 red blood and the full effects, the factory setting in Japan, 1 elsewhere
+// (01F9C4 whitens the blood's colours, palette 25's 13 and 14). Both from HSFA's index (Rickow/HSFA, MIT), seen here:
+// 0002 and 1 on this set, and red blood with A5+BB held at 0.
+constexpr uint32_t kRegion = 0xFF8090, kRegulation = 0xFF80BB;
+
 // Step values: FF8004 the match (2 choosing), FF8008 a round, FF800C the round being fought (2 and 4 its
 // introduction, 8 on its end), from --watch over a versus game
 enum : uint16_t { kGameChoosing = 2, kGameMatch = 4, kMatchRound = 6, kRoundFought = 6 };
@@ -46,6 +53,10 @@ constexpr uint8_t kClockFull = 99;
 constexpr uint32_t kClockTick = 0x009BFE;
 // From A5: the round's result (009BEE: 1 player 1 won, 2 player 2), time over (009C14)
 constexpr uint32_t kRoundResult = 0xFF810C, kTimeOver = 0xFF810D;
+// From A5: a bit for each player whose pose at the round's end is over (029E10, by the player's +101; the next round
+// waits for them: 00A0F8), and the ending to be shown (00A92C, from A5+132: the character's number; 0x20 at 025DF6),
+// both named in HSFA's index and seen here (03 at the end of a round of the ladder; 18, E. Honda's, at its end)
+constexpr uint32_t kPosesOver = 0xFF810B, kEnding = 0xFF81C6;
 
 // Who a player is (a player's byte kCharacter): each number seen in a fight with player 2's byte held at it from the
 // start (and its name plate). 12, 14 and 17 are not characters of this version (wrong name plates, a broken picture,
@@ -162,7 +173,9 @@ constexpr uint32_t kCustomCombo = 0xB9, kCustomComboTime = 0xBA;
 // each stun), the frames until it drains again (0xB4 after a hit: 0232B2), and set while stunned
 constexpr uint32_t kStun = 0x2CC, kStunMost = 0x2CD, kStunTimer = 0x2CB, kStunned = 0x2CE; // bytes
 // The animations of the player's character: four lists of word offsets to the frames (the setting up of a character
-// makes them; 02A708 takes from the first, 02A758 the second, 02A75E the third, the reelings', 02A74E the fourth)
+// makes them; 02A708 takes from the first, 02A758 the second, 02A75E the third, the reelings', 02A710 the fourth, the
+// attacks': unless +EB is set, it first takes the attack's +23E and +293 from the character's table, by its ism, in the
+// first of the tables at 0DCB12; HSFA's index named 02A710 for the fourth list, where this had only its tail, 02A74E)
 constexpr uint32_t kAnimations[4] = {0x2B0, 0x2B4, 0x2B8, 0x2BC}; // longs
 // The control panel as the player holds it, by its facing: bit 0 set while it holds away from the other (and can
 // guard: 02AB34)
@@ -202,7 +215,8 @@ constexpr uint32_t kPlayersIn = 0xFF80A8, kPlayersChosen = 0xFF80AC;
 // --- routines (addresses in the program) ---
 
 constexpr uint32_t kPlayerDispatch = 0x027CBA; // a fighting player's routine goes on by kControl (027C94: once a step for
-                                               // each player, a person's and the computer's)
+                                               // each player, a person's and the computer's; the four records in an
+                                               // order drawn by the random number each step, 0277EE: HSFA's index)
 constexpr uint32_t kSetAnimation = 0x02A762;   // D0: the animation of that number in the list at A0
 constexpr uint32_t kSetReelAnimation = 0x02A75E; // D0: the animation of that number in the reelings' list
 constexpr uint32_t kAnimate = 0x02A7EA;        // the animation on by a step
@@ -245,6 +259,7 @@ namespace cps2recomp {
 int WideSide();
 int WideStage();
 int WideMargin();
+void WideEnds(int &left, int &right);
 void WideForSpare(Machine &machine);
 void WideForPort(Machine &machine);
 // Objects by what they are (modes.cpp; for Video::hideObject): the panel, the stage's own pieces, all but those

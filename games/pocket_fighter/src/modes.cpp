@@ -8,6 +8,8 @@
 #include "pocket.h"
 #include "session.h"
 
+#include "all_guests.h"
+
 #include <iterator>
 
 namespace cps2recomp {
@@ -45,6 +47,8 @@ namespace {
         const int stage = session::WantedStage();
         if (stage >= 1 && stage <= kStages) {
             SetRam16(kStage, static_cast<uint16_t>((stage - 1) * 2));
+        } else if (stage > kStages) {
+            SetRam16(kStage, 0); // (another game's: fought on Felicia's, its stage drawn behind: stages.cpp)
         }
         return false;
     }
@@ -64,10 +68,16 @@ void RegisterModes() {
     d.player1 = kPlayer1;
     d.playerSize = kPlayerSize;
     d.x = kX;
+    // (this game's stages, then the other games': stages.cpp, fight/all_guests.h. Not in the Infinite, whose stages are
+    // this game's spare machines'; each plays the first stage's tune in this game's place: its own plays)
     d.stageNames.assign(std::begin(kStageNames), std::end(kStageNames));
+    const std::vector<const char *> others = guests::NamesBut("pocket_fighter");
+    d.stageNames.insert(d.stageNames.end(), others.begin(), others.end());
+    d.infiniteStages = kStages;
     for (int stage = 1; stage <= kStages; stage++) {
         d.stageTunes.push_back(static_cast<uint16_t>(stage));
     }
+    d.stageTunes.resize(d.stageNames.size(), 1);
     d.otherTuneNames = {"Character select", "Versus"};
     d.otherTunes = {kTuneChoose, kTuneVersus};
     d.cameraLeft = kCameraLeft;

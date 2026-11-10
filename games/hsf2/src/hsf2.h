@@ -32,12 +32,14 @@ constexpr uint32_t kShowTask = 0xFF02A2, kTitleTask = 0xFF02C2, kGameTask = 0xFF
 // Words from A5, each a step (in twos) of the one before. In the game's task the first is 2 while the players choose
 // (the speed, the character's version, the character: the second word steps through them), 4 during a match, 8 once
 // the one player has lost (continue and game over). In a match the second word is the match's step: 2 and 4 the versus
-// screen, 6 a round's introduction, 8 the round being fought, 0A its end, 0C the next round's start (then 6 again).
-// Traced with --watch through a one-player game. (Super Turbo has them a word lower: its game's step is its second
-// word, the match's its third.)
+// screen, 6 a round's introduction, 8 the round, 0A its end, 0C the next round's start (then 6 again). In step 8 the
+// third word is 0 while the round is called ("FIGHT", about 120 frames: the players stand, their routines not run) and
+// 2 while it is fought. Traced with --watch through a one-player game. (Super Turbo has them a word lower: its game's
+// step is its second word, the match's its third, and its fought step comes after the call.)
 constexpr uint32_t kMode = 0xFF8000, kMatchStep = 0xFF8004, kRoundStep = 0xFF8008, kRoundStep2 = 0xFF800C;
 enum : uint16_t { kModeChoosing = 2, kModeMatch = 4, kModeLost = 8 };
-enum : uint16_t { kMatchIntroduction = 0x06, kMatchFought = 0x08, kMatchRoundEnd = 0x0A, kMatchNextRound = 0x0C };
+enum : uint16_t { kMatchIntroduction = 0x06, kMatchRound = 0x08, kMatchRoundEnd = 0x0A, kMatchNextRound = 0x0C };
+constexpr uint16_t kRoundFought = 0x02; // (kRoundStep in kMatchRound)
 
 inline bool InGame() {
     return cps2recomp::Ram8(kGameTask) != 0;
@@ -49,7 +51,7 @@ inline bool InMatch() {
     return InGame() && cps2recomp::Ram16(kMode) == kModeMatch;
 }
 inline bool Fought() {
-    return InMatch() && cps2recomp::Ram16(kMatchStep) == kMatchFought;
+    return InMatch() && cps2recomp::Ram16(kMatchStep) == kMatchRound && cps2recomp::Ram16(kRoundStep) == kRoundFought;
 }
 
 // Credits paid for and not yet used, a byte (RAM dumps after one, two, three and four coins, two coins a credit:
@@ -268,6 +270,7 @@ namespace cps2recomp {
 int WideSide();
 int WideStage();
 int WideMargin();
+void WideEnds(int &left, int &right);
 void WideForSpare(Machine &machine);
 void WideForPort(Machine &machine);
 } // namespace cps2recomp

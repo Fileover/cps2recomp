@@ -47,6 +47,10 @@ enum : unsigned {
     // A long choice whose list in the in-game menu the player may make shorter on the launcher (recomp-common/settings.h:
     // MenuChoices, settings.ini's [menu]): the menu goes past the choices left out
     kFeatureMenuChoices = 128,
+    // A list of the stages: the in-game menu keeps the player's favourites of it (port/menu.cpp: Confirm on its row marks
+    // the stage shown, and a row under it goes through the favourites alone; settings.ini's [favourites] stages, by
+    // name, the same for every list of the stages)
+    kFeatureFavourites = 256,
 };
 
 // Something the game's sources can do when the player asks (a row of the in-game menu, and a key if it has
@@ -93,12 +97,21 @@ struct Game {
     // For a game whose sources can ask for a wider picture (video.h, Video::wide): how many columns the
     // widest will have with the player's choices as they are, so that the window starts in its shape
     int (*widestPicture)() = nullptr;
+    // The board's monitor stood on end (a vertical game, drawn lying on its side: ROT270, the top of its picture at the
+    // right): the port turns the picture upright unless the Display page says otherwise (port.h, Turned)
+    bool vertical = false;
     // For the port's camera (its zoom, port/zoom.h): where to look to see player `player`'s fighter (0: player 1's
     // side), in the picture's pixels; false when there is none to look at now (no fight on). Not given: no zoom.
     bool (*focus)(int player, int &x, int &y) = nullptr;
     // ... how far above the feet that place is, and how tall a fighter stands from its feet, so that the camera keeping
     // both in the picture shows them whole
     int focusLift = 44, focusTall = 120;
+    // ... and the game's panel (its health bars, clock and names), which the zoom that follows the fight's distance leaves
+    // where it is: its objects (true for an object of the panel, by its tile's number and attributes, as
+    // Video::hideObject has them), and the scroll screens it is drawn on (Video::layerMask's bits). Not given: that
+    // zoom has the panel zoomed with the rest.
+    bool (*panel)(uint32_t tile, uint16_t attributes) = nullptr;
+    unsigned panelLayers = 0;
     // Not to run ahead now (the port's run-ahead): a mode whose own workings a save state does not wholly hold,
     // so that frames run and taken back would change it. Not given: run-ahead whenever it is on.
     bool (*noRunAhead)() = nullptr;
@@ -114,7 +127,11 @@ struct Game {
     // and how many entries it has (0: no custom soundtrack); and the names of the music, where they are known.
     // musicBelow: for a sound program whose songs' data do not tell music from effects (machine/soundtrack.h), the
     // songs below it are the music (0: told by their data)
-    uint32_t songTable = 0, songCount = 0, musicBelow = 0;
+    // songAddresses: for a sound program whose table gives a song's place with the bank above the ROM's size (Super
+    // Street Fighter II's: 108411 for 8411), the bits of it that are the place in the ROM (0: all)
+    // songEntry: the size of a song's entry, 4 (a three-byte place, then one more), or 2 (the classic CPS-1 board's: a
+    // two-byte place, high byte first, which is where it is in the sound ROM)
+    uint32_t songTable = 0, songCount = 0, musicBelow = 0, songAddresses = 0, songEntry = 4;
     std::vector<Song> songs;
 };
 Game &TheGame();
@@ -231,8 +248,11 @@ using PointerLoadFn = uint32_t (*)(uint32_t address, uint32_t value);
 void SetPointerLoads(PointerLoadFn fn, uint32_t low, uint32_t high);
 PointerLoadFn PointerLoads(uint32_t &low, uint32_t &high);
 
-// Work RAM as the game's sources see it: by the 68000's address (FF0000-FFFFFF). Values are big-endian.
-void SetRam(uint8_t *ram);
+// Work RAM as the game's sources see it: by the 68000's address (FF0000-FFFFFF). Values are big-endian. The video
+// memory (900000-92FFFF) is reached the same way, for a game that keeps its variables there (Dimahoo's base register
+// points at 928000).
+constexpr uint32_t kVideoRamLow = 0x900000, kVideoRamHigh = 0x930000;
+void SetRam(uint8_t *ram, uint8_t *videoRam = nullptr);
 uint8_t *Ram(uint32_t address);
 inline uint8_t Ram8(uint32_t address) {
     return *Ram(address);

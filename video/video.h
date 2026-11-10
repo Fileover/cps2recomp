@@ -10,6 +10,7 @@
 #pragma once
 
 #include "../machine/romset.h"
+#include "native.h"
 
 #include <cstdint>
 #include <vector>
@@ -43,6 +44,10 @@ public:
     void Reset();
     // The palette is copied from video RAM when the game writes its address register
     void CopyPalette();
+    // ... that upload, as the native interface has it (native.h: the board's side of --video check)
+    native_video::PaletteUpload DecodePalette() const {
+        return native_video::DecodePalette(m_src.videoRam, m_src.cpsA, m_src.cpsB, m_src.board);
+    }
     // At the start of vertical blanking the board keeps a copy of the object list for the next picture (and,
     // with a second set of graphics, which of its entries are drawn from that: a byte an entry, or none)
     void LatchObjects(const uint8_t *objectRam, const uint8_t *fromExtra = nullptr);
@@ -62,6 +67,14 @@ public:
 
     // (for tools: which layers are drawn; bit 0 objects, bits 1-3 scroll screens 1-3)
     unsigned layerMask = 0xF;
+    // (for tools: what each scroll screen (0-2) drew on each line of the picture, as it is drawn: the line of its map
+    // (-1: not drawn), its column at the picture's left edge (not wrapped to the map), and the first and last of the
+    // picture's columns where it is seen (-1: none): it is the front one painted there, or none is. None: not looked at.)
+    struct LayerLine {
+        int32_t row = -1, left = 0;
+        int16_t first = -1, last = -1;
+    };
+    LayerLine (*layerProbe)[kHeight] = nullptr;
     // For a game's own sources: an object is not drawn when this says so of its tile's number and its
     // attributes (the colour set is the low five bits). A game that can tell its players' objects from its
     // stage's can show one without the other. Not part of a save state: who sets it keeps it set.
@@ -73,6 +86,16 @@ public:
     // ... and the pixels of these scroll screens too (layerMask's bits; 0: none): a game whose panel is a scroll
     // screen, not objects, has it laid over the other picture with its fighters
     unsigned markLayers = 0;
+    // ... and of those, the panel's (objects this says so of, and the marked scroll screens') have 0x40 in the top byte
+    // too: what stays over another picture's pixels marked to be in front (below)
+    bool (*panelObject)(uint32_t tile, uint16_t attributes) = nullptr;
+    // For a picture another is put together over (another game's stage under a game's fighters, fight/guest_stages.h):
+    // the pixels in front of where its own fighters would be have 0x40 in the top byte. Those of the objects whose
+    // entries the game's sources marked so (bit 12 of the entry's first word, which the board does not read), and,
+    // with frontLevel (1-7), the scroll screens' pixels that an object of that level would be behind.
+    bool markFront = false;
+    unsigned frontLevel = 0;
+    static constexpr uint8_t kPanelPixel = native_video::kPanelPixel, kFrontPixel = native_video::kFrontPixel;
 
     // For a game's own sources that draw something the game's list has not got (a thing the game stopped
     // drawing because the board's picture would not show it): called when the board has taken the object
@@ -112,6 +135,32 @@ public:
     int Width() const {
         return kWidth + 2 * wide.side;
     }
+    // What the game's sources have set on the picture, for the picture drawn from the native records (native_render.h)
+    native_video::PictureOptions Options() const {
+        native_video::PictureOptions o;
+        o.side = wide.side;
+        for (int n = 0; n < 3; n++) {
+            o.scroll[n] = wide.scroll[n];
+        }
+        o.rows = wide.rows;
+        o.object = wide.object;
+        o.tile = wide.tile;
+        o.fillHoles = wide.fillHoles;
+        o.hideObject = hideObject;
+        o.objectsTaken = objectsTaken;
+        o.markObjects = markObjects;
+        o.markLayers = markLayers;
+        o.layerMask = layerMask;
+        o.panelObject = panelObject;
+        o.markFront = markFront;
+        o.frontLevel = frontLevel;
+        return o;
+    }
+    // The picture --video check's picture drawn from the records is compared with: every one now (a CPS-2's or a
+    // CPS-1's, another set's graphics or not)
+    bool ComparablePicture() const {
+        return true;
+    }
 
 private:
     void FillHoles(uint16_t *pens, int width) const;
@@ -131,7 +180,7 @@ private:
     template <bool kWide> void DrawScroll(int which, int rasterLine, uint16_t *pens, uint8_t *priority, uint8_t mark, uint8_t *high = nullptr);
     void RenderLineCps1(int line, uint32_t *out);
     void DrawObjectsCps1(int rasterLine, uint16_t *pens, const uint8_t *high, uint16_t *drawn = nullptr);
-    template <bool kWide> void DrawObjects(int rasterLine, uint16_t *pens, uint8_t *priority, const uint32_t *masks);
+    template <bool kWide> void DrawObjects(int rasterLine, uint16_t *pens, uint8_t *priority, const uint32_t *masks, uint8_t *marks = nullptr);
 };
 
 } // namespace cps2recomp

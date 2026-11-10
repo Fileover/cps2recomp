@@ -211,9 +211,12 @@ struct Description {
     // The game's other modes ended (one mode at a time), and whether the stage viewer draws the picture itself
     void (*endModes)() = nullptr;
     bool (*stageViewer)() = nullptr;
-    // The wide picture (0: none): columns it adds on each side, and how far short of each end the camera stops
+    // The wide picture (0: none): columns it adds on each side (where the players are stopped), and how far short of
+    // each end the camera stops; and, where that is further in at a stage's end (fight/wide_ends.h), how far at each
+    // (none: wideMargin at both)
     int (*wideSide)() = nullptr;
     int (*wideMargin)() = nullptr;
+    void (*wideEnds)(int &left, int &right) = nullptr;
     // Objects by what they are (Video::hideObject): all but the stage's pieces, the panel only, the panel and
     // the stage's pieces; a player's own colour sets, as a mask of bits
     bool (*notTheStage)(uint32_t tile, uint16_t attributes) = nullptr;
@@ -246,6 +249,11 @@ void RegisterTeamTag(float labelY);
 
 // Whether one of these modes is on, and ending it
 bool BattleMode();
+// The stage chosen for the endless battle (one stage) or the team battle when it is another game's, after the game's
+// own in the lists (`stageChoices`, the game's `stages` first): its number in them, from 1 (0: none, or the game's own).
+// Such a match is fought on the game's first stage, and the other drawn behind it (fight/guest_stages.h, the game's
+// Host::wanted)
+int BattleStage();
 void EndBattle();
 bool BattleNoClock();    // the round's clock stands still
 bool BattleNoKnockOut(); // nobody's health goes below nothing

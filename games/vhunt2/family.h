@@ -5,7 +5,22 @@
 // (games/vampire_savior/src; places.h there): where the places those sources name are in this game.
 #pragma once
 
+#include "../dstlk/guest.h"
+#include "../sfa2/guest.h"
+#include "../sfa3/guest.h"
+#include "../msh/guest.h"
+#include "../mshvsf/guest.h"
+#include "../mvsc/guest.h"
+#include "../xmcota/guest.h"
+#include "../xmvsf/guest.h"
+#include "../nwarr/guest.h"
+#include "../pocket_fighter/guest.h"
+#include "../cybots/guest.h"
+#include "../sfa/guest.h"
+#include "../ssf2t/guest.h"
+
 #include <array>
+#include <cstddef>
 #include <cstdint>
 
 namespace vsav::family {
@@ -684,9 +699,22 @@ inline constexpr const char *kStageNames[] = {
     "Feast of the Damned, empty",
 };
 
-// Stages of another game shown after these (Vampire Savior Definitive's, Darkstalkers': its src/stages.cpp), in the lists
-// a stage is chosen from by name (training's, the stage viewer's): none here
-inline constexpr std::array<const char *, 0> kMoreStageNames{};
+
+// Other games' stages, shown after these (fight/guest_stages.h; src/stages.cpp: each run from its own stage code), in the
+// lists a stage is chosen from by name (training's, versus's, the stage viewer's): the first Darkstalkers' (each
+// character's, in that game's order), then Street Fighter Alpha 2's (game.cfg's guests, in the same order)
+template <size_t A, size_t B>
+constexpr std::array<const char *, A + B> Joined(const std::array<const char *, A> &a, const std::array<const char *, B> &b) {
+    std::array<const char *, A + B> out{};
+    for (size_t i = 0; i < A; i++) {
+        out[i] = a[i];
+    }
+    for (size_t i = 0; i < B; i++) {
+        out[A + i] = b[i];
+    }
+    return out;
+}
+inline constexpr auto kMoreStageNames = Joined(Joined(Joined(Joined(Joined(Joined(Joined(Joined(Joined(Joined(Joined(Joined(dstlk_guest::kStageNames, sfa2_guest::kStageNames), sfa3_guest::kStageNames), ssf2t_guest::kStageNames), sfa_guest::kStageNames), nwarr_guest::kStageNames), msh_guest::kStageNames), xmvsf_guest::kStageNames), mshvsf_guest::kStageNames), mvsc_guest::kStageNames), xmcota_guest::kStageNames), pocket_fighter_guest::kStageNames), cybots_guest::kStageNames);
 
 // The frame's lists of objects to draw that the objects of kind 12 have, one for each depth (src/picture.cpp): one more
 // than Vampire Savior's (the table at 013D0C), so that the stage's pieces' lists come one later
@@ -826,7 +854,11 @@ inline constexpr uint32_t kFirstLineOnly = 0xEF9AEF96;
 inline constexpr const char *kColoursFile = nullptr, *kColoursFileWhose = "Vampire Hunter 2's, 970929";
 
 // What this game's own sources add (none: Vampire Savior's sources are all it has)
-inline void RegisterOwnSources() {}
+// Other games' stages (src/stages.cpp), as a game of these sources' own does last
+void RegisterOtherStages();
+inline void RegisterOwnSources() {
+    RegisterOtherStages();
+}
 
 // What a character put in by a mode in place of the one chosen needs besides its number (src/training.cpp)
 inline void CharacterPut(uint32_t, int) {}

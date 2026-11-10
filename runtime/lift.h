@@ -37,6 +37,12 @@ void Wait(M68K &c, uint64_t cycles, uint32_t busy = 0);
 
 using HookFn = bool (*)(M68K &c);
 void AddHook(uint32_t address, const char *name, HookFn fn);
+// A watch: a function told, before the instruction at `address` runs, the CPU as the instruction finds it. It only
+// looks (its result is not asked), and the place is not where a block of translated code starts, as a hook's is, so
+// the game runs exactly as it did: the same blocks, the same places to take an interrupt. Its addresses are given to
+// the translator by a file (tools/recomp.py --watches), not found in the sources. It is any instruction's, not only a
+// block's first.
+void AddWatch(uint32_t address, const char *name, HookFn fn);
 // For the run loop and translated code: runs the hook at the address, if there is one
 bool RunHook(M68K &c, uint32_t address);
 bool HasHook(uint32_t address);

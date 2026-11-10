@@ -53,7 +53,7 @@ routines calling one another on the host's stack, and time running out inside th
 
 ## `make check-release` (FRAMES=n): the build with no translated code
 
-Builds the game with no translated code (what CI builds, and a checkout before `make explore`) and runs the ladder
+Builds the game with no translated code (what CI builds, and a checkout before its first full `make`) and runs the ladder
 movie, five runs at once, comparing the picture hashes frame for frame: two runs of that build alike; that build
 against the translated build run with `--cpu interp` (the same program but for the translated code); and the
 translated build against itself with `--cpu blocks` (its translated code is the interpreter's over the whole ladder).

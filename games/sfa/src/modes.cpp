@@ -13,6 +13,8 @@
 #include "session.h"
 #include "sfa.h"
 
+#include "all_guests.h"
+
 #include <iterator>
 
 namespace cps2recomp {
@@ -101,8 +103,14 @@ void RegisterModes() {
     d.player1 = kPlayer1;
     d.playerSize = kPlayerSize;
     d.x = kX;
+    // (this game's stages, then the other games': stages.cpp, fight/all_guests.h. Not in the Infinite, whose stages are
+    // this game's spare machines'; each plays the first stage's tune in this game's place: its own plays)
     d.stageNames.assign(std::begin(kStageNames), std::end(kStageNames));
+    const std::vector<const char *> others = guests::NamesBut("sfa");
+    d.stageNames.insert(d.stageNames.end(), others.begin(), others.end());
+    d.infiniteStages = kStages;
     d.stageTunes.assign(std::begin(kStageTunes), std::end(kStageTunes));
+    d.stageTunes.resize(d.stageNames.size(), kStageTunes[0]);
     d.otherTuneNames = {"Character select", "Versus"};
     d.otherTunes = {kTuneChoose, kTuneVersus};
     d.cameraLeft = kCameraLeft;

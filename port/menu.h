@@ -14,6 +14,7 @@
 #include "../recomp-common/menu.h"
 
 #include <cstdint>
+#include <functional>
 #include <string>
 
 namespace port {
@@ -43,6 +44,9 @@ public:
     // The "Sound" row: the frontend plays nothing while this is set (--mute starts with it set)
     bool muted = false;
     bool hosting = false; // (a match hosted from the Online page, waited for: its row is Stop hosting)
+    // During an online match: whether the match decides this feature (TheGame().features' place) for both players. The
+    // menu then shows it as the match has it and doesn't change it (a change on one side alone would leave the games apart).
+    std::function<bool(size_t feature)> matchDecides;
     int Slot() const {
         return m_menu.Slot();
     }

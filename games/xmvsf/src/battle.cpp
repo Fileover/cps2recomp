@@ -74,6 +74,7 @@ void RegisterBattle() {
     d.stageViewer = modes::StageViewer;
     d.wideSide = marvel::WideSide;
     d.wideMargin = marvel::WideMargin;
+    d.wideEnds = marvel::WideEnds;
     d.notTheStage = NotTheStage;
     d.thePanel = ThePanel;
     d.notTheFighters = [](uint32_t tile, uint16_t attributes) { return ThePanel(tile, attributes) || (attributes & 0x1F) >= 0x1A; };

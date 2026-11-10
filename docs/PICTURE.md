@@ -23,6 +23,7 @@ The Display page (in the launcher and the in-game menu) says how the picture fit
 | Picture shape | 4:3 (as the arcade's monitor showed it), Square pixels, Fill |
 | Shader | Off, or one of RetroArch's shaders (below) |
 | Window size | 3x the board's 224 lines, or 2x to 6x |
+| Picture turned | A vertical game only (Dimahoo): Upright (its picture stood up in a tall window, 3:4, as the cabinet's monitor stood on end showed it), or On its side (as the board draws it, for a screen turned on its side) |
 
 ## Shaders
 
@@ -47,3 +48,8 @@ the right shoulder for player 2's (keyboard: hold Left Shift and press Q or E). 
 2x, then back to the whole picture. With the click held, the d-pad moves the camera; the right stick's click
 (keyboard: Left Shift and W) keeps **both fighters** in the picture instead, as close as shows both whole. The zoom is
 the window's alone: the game plays the same.
+
+The menu's **Zoom** row (Display page) has these and one more, **By distance**, made for playing: the camera a little
+closer than the whole picture as a round starts, a quarter closer than that as the fighters come together, and out to
+the whole picture as they part (from four fifths of the way to the ends), with both fighters always in it. The health
+bars, the clock and the rest of the game's panel stay where they are and at their size; only the fight is zoomed.

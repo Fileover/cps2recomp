@@ -6,6 +6,275 @@
   **Online > Set format**. The host's choice applies to both players. Confirmed two-player results award game wins,
   and both players return to the launcher after agreeing on the final score and showing the winner briefly. Casual is the
   default, including in Pure. Both players need this updated online protocol.
+- **Dimahoo** (`dimahoou`, USA 000121; the European set and the Japanese *Great Mahou Daisakusen* of the same date play
+  too), Raizing's vertical shoot-'em-up and the collection's third shooter, on the toolkit's `shmup/`: free play (the
+  board's own), straight to the title, start at stage, the Board page (difficulty, ships, bombs, extra ships, one loop or
+  two, continue, demo sound), the cheats (infinite ships and bombs, invincibility for each player), a custom soundtrack
+  with its music named, and the shooter's modes: practice (with the character, ships and bombs chosen) with the ship's
+  true hit box, the enemies' shots and bodies, a readout of the magic gauge and a summary at each boss and stage end, score attack, caravan, boss
+  rush, the stage viewer and attract mode. The collection's first vertical game: its picture is shown upright in a
+  tall window, or on its side (the Display page's new Picture turned, for a vertical game only). The game keeps its
+  variables in the video memory: a game's sources now reach it by address as they reach work RAM, and `--trace` takes
+  it too.
+- **Progear** (`progearu`, USA 010117; the Asian set of the same date plays too), Cave's horizontal shoot-'em-up and
+  the collection's second shooter, on the toolkit's `shmup/` as Giga Wing is: free play (the board's own), straight to
+  the title, start at stage, the Board page (difficulty, ships, extra ships, rapid fire, continue, demo sound), the
+  cheats (infinite ships and bombs, invincibility for each player), a custom soundtrack with its music named, and the
+  shooter's modes: practice (with the pilot and gunner, ships, bombs and the shot's power chosen) with the ships' true
+  hit boxes, the enemies' shots and bodies, a readout of the power and a summary at each boss and stage end, score attack, caravan, boss rush, the stage viewer and attract mode. A game can now give the practice
+  page's readout its own words, and a game with no multiplier has its summaries count its points (Giga Wing's are as
+  they were).
+- **Alien vs. Predator's free play with a chute each**: with the Board page's Players on "Three, a chute each", free
+  play now gives each player a credit on their own count (the game keeps one for each chute then), so players 2 and 3
+  can join too; before, only the first player's count was filled.
+- **Alien vs. Predator's player mode as the board has it**: the Board page's hook worked out the two variables
+  the game reads from the player mode with modes 0 and 2 the other way round, so a board as it left the factory (two
+  players, one chute) played as three players with a chute each, taking the third player's coin and start, and
+  "Three, a chute each" played as two. They are now worked out as the game's own 003C5E does (found comparing work RAM
+  with MAME frame by frame).
+- **Other games' stages are drawn by the game showing them**: a borrowed stage's board keeps only what its code hands
+  over each frame, and the game's own renderer draws the stage from that, with the fighters over it (the same picture;
+  the other board no longer draws one of its own).
+- **Super Street Fighter II: The New Challengers**, set `ssf2` (World 931005): the first CPS-2 game, built from Super
+  Turbo's sources (as Zero 2 Alpha is from Alpha 2's), so it has everything the other fighting games have: free play,
+  straight to the title, the Board page, the cheats, a custom soundtrack with its music named, training mode, attract
+  mode, the stage and model viewers, survival, endless battle, ring out, the tag team battle, widescreen and invisible
+  walls, the camera's zoom, custom colours and the colour editor, and the other fighting games' stages as Super Turbo
+  has them. Its own stages are Super Turbo's (the same graphics), which the other games already show.
+- **Street Fighter II: The World Warrior** (set `sf2`, World 910522) on the classic CPS-1 board, and **Champion Edition
+  and Hyper Fighting brought up to the other fighting games**: all three now build Super Turbo's sources (each with a
+  `family.h` of its own places and facts, as Super SF2), so each has free play, straight to the title, the cheats,
+  training mode, attract mode, the stage and model viewers, survival, endless battle, ring out, the tag team battle,
+  widescreen and invisible walls, the camera's zoom, custom colours and the colour editor, the other fighting games'
+  stages (Super Turbo's among them), and a custom soundtrack with its music named. Their Board page stays the board's DIP switches; free play is the board's own switch, set by the
+  feature (the Board page's Free play and the game.cfg cheats are replaced by the Game page's and the sources' own).
+- **A custom soundtrack on the classic CPS-1 board** (Street Fighter II's): the 68000's requests to the sound board's
+  latch are looked at as on the CPS-2, the songs found from the classic sound program's table (`Game::songEntry` 2).
+- **Custom colour files' set names** are read as written or not: `[Start]`, `[Held]`, `[OldP]` and `[OldK]` in Super
+  Turbo's and Hyper Street Fighter II's files were never taken before.
+- `--stats` counts apart the game's own code run in RAM (Champion Edition calls routines it writes into video RAM),
+  which no translation can have.
+- **Super Turbo's tag team battle**: after a tag, the newcomer's health bar was drawn empty (the bar only steps down to
+  the health, and went on past nothing); it is put at the health now.
+- The toolkit: `colours::Description::palettesOf` (a game whose characters' colour sets have different counts of
+  palettes), `Game::songAddresses` (a song table whose places carry a bank above the sound ROM's size), and
+  `modes::Description::soundEntry` (a sound queue of words, the classic CPS-1's).
+
+- **Super Turbo's stages in other games have their breakable pieces**: Guile's crates, Ken's barrel, Blanka's fish
+  (their pool of objects was never run, so they stood unmade and undrawn).
+- **Windows** (from Fileover, #208): a parent set's zip is found beside a game's zip when the path is written with
+  backslashes, and the launcher opens without a console window beside it (recomp-common #62).
+
+- **Online: the settings the match decides stay put** (#195): during an online match, the in-game menu no longer changes
+  the host's board settings (game speed, difficulty, timer...), the other features that change play, or the cheats.
+  A change there reached only one player's game, so the two drifted apart and the match stopped. The rows say the host
+  sets them before hosting.
+
+- **The picture is drawn on the GPU by default**: the Display page's **Picture drawn by** (it was "GPU picture (test)",
+  off) is the GPU unless you choose the CPU. The same picture, pixel for pixel; frames the GPU cannot draw yet (with a
+  shader preset, in the modes that put two pictures together) and machines whose graphics card cannot be used get the
+  CPU's, as before. `--video cpu` (or `native`) for the CPU's.
+- **The input display** (training mode, every fighting game) no longer shows the stick at rest as 5: a line shows the
+  direction held, if any, and the buttons, and nothing held is not a line (as in sf3comp).
+
+- **Zoom by distance** (issue #272): the Zoom row (Display page) and the launcher's Multi game page have **By
+  distance**, a camera made for playing: a little closer than the whole picture as a round starts, a quarter closer as
+  the fighters come together, out to the whole picture as they part, both fighters always in it. The health bars, clock
+  and the rest of the game's panel stay where they are and at their size. `--zoom 1:4` starts with it.
+- **Cyberbots: Fullmetal Madness** (#135), set `cybots` (Europe 950424, the set FBNeo and Fightcade play): Capcom's
+  giant-robot fighter, with everything the other fighting games have: free play (the game's own), straight to the
+  title, the Board page, the cheats, a custom soundtrack with its music named, a training mode (hit boxes, frame data
+  and the meter, the input display with the game's four buttons, the dummy), attract mode, the stage viewer, the model
+  viewer, survival, endless battle, ring out, widescreen and invisible walls, the camera's zoom, custom colours and the
+  colour editor, and the four hidden machines (Super-8, Gaits, Warlock, Killer Bee) at a switch.
+- **Cyberbots' stages in the other games**: its fourteen stages, each run from its own stage code alone with its own
+  music, in Vampire Savior Definitive, the Alpha games and the Vampire Savior games, after the other guests' in the
+  lists (Cyberbots' ROM set needed).
+- The toolkit: `fight::SetButtonNames` (a game's own names for its buttons in the input display and the frame data
+  log) and `colours::Description::lineAddress` (a game whose colour set's palettes are each in a table of their own).
+- **Each game's found code is kept in the repository**: `games/<id>/entries.txt` and `entries.txt.z80` (addresses
+  only), so a fresh checkout translates every game's known code on its first build; `make explore` and `make record`
+  add their finds to them (`tools/audit.sh` checks they hold nothing but addresses).
+
+## 1.4.0
+
+**Six more games, and every menu in Portuguese and Spanish**: Street Fighter II: Champion Edition, Street Fighter II:
+Hyper Fighting and Ghouls'n Ghosts on the classic CPS-1 board, Hyper Street Fighter II: The Anniversary Edition, and
+Giga Wing with a shoot-'em-up practice mode. The launcher and every game's in-game menu can be in Brazilian Portuguese
+or Spanish, chosen once on the Games page. Vampire Savior Definitive, the Alpha games and every Vampire Savior game fight
+on the other fighting games' stages, which now look as in their own games, and the launcher sorts the games by kind.
+Also favourite stages in the menu, held arrows that repeat, and the picture drawn from the game's level by default.
+
+**Known issue:** in Vampire Savior 2 and Vampire Hunter 2, widescreen shows a blank strip at one end of nine of the other
+games' stages (Darkstalkers' and Night Warriors' Demitri's, Night Warriors' Donovan's, Alpha 2's Dan's, Alpha 3's Ken's,
+Sodom's, Guy's and Dhalsim's, and Super Turbo's Dee Jay's). Their own stages, and every other game, are not affected.
+
+- **The launcher and the in-game menus in Brazilian Portuguese and Spanish** (issue #274): the launcher's Games page
+  has a **Language** choice (the system's, English, Português (Brasil) or Español), and every game the launcher starts
+  has its menu in it: the rows, the features, commands and pages and their descriptions, the hint, the online wait's
+  lines. The games' own words (on the board's screen) are not changed. recomp-common's `i18n.h` does the looking up;
+  the toolkit's words are in `port/i18n_pt_br.h` and `port/i18n_es.h`, and `--list-text` lists every text a game's
+  menu can show, for a table to have. A text no table has stays in English.
+
+- **Favourite stages**: in the in-game menu, Enter or A on a list of stages (training's, the stage viewer's, the endless
+  and team battles') marks the stage shown a favourite (a `*` after it), and a **Favourites** row under the list goes
+  through the favourites alone. The same favourites in every list, kept in settings.ini.
+- **Holding the d-pad (or an arrow key) in the in-game menu** goes on through the rows and the choices, faster after a
+  second (recomp-common's `MenuRepeat`).
+- **Alpha 2's and Zero 2 Alpha's fighters' shadows** are behind another game's pieces in front of the fighters, as the
+  fighters are (they were taken for the panel's, which goes over them).
+- **Other games' stages look as in their own games**: what is in front of the fighters in a stage's own game is in front
+  of them in another's too (Fetus of God's bulbs, Alpha 3's trees), under the panel; Alpha 3's stages have their objects
+  (the castle, the trees, the grass, the pieces that move); pieces that go by the fight's frame counter move (the Tower
+  of Arrogance's searchlights); and a wide stage's camera goes no faster than the game's (the skull canyon, the harbour,
+  whose pieces ran fast with it). Alpha 3's stage viewer shows its stages' objects too. For checking:
+  `tools/stage_look.py`, each other game's stage against the same in its own game's viewer (`--stage-look`).
+- **Other games' stages in the Alpha games and every Vampire Savior game**: Street Fighter Alpha and Alpha 3 show them
+  now too, and Alpha 2, Zero 2 Alpha, Vampire Savior, Vampire Savior 2 and Vampire Hunter 2 show every other fighting
+  game's (not only Darkstalkers' and one more): in training, the stage viewer, the endless and team battles, and with
+  Display's **Other games' stages** in arcade matches. Alpha's panel is drawn over them too.
+- **Super Gem Fighter's stages in Vampire Savior Definitive**: all eight, each run from its own stage code alone,
+  after X-Men: Children of the Atom's in the lists (its ROM set needed).
+- **X-Men: Children of the Atom's stages in Vampire Savior Definitive**: all twelve, each run from its own stage code
+  alone, after Marvel vs. Capcom's in the lists (its ROM set needed). The sunset is without its sun's glow, which comes
+  with a round's fighters.
+- **Marvel vs. Capcom's stages in Vampire Savior Definitive**: all ten, each run from its own stage code alone, after
+  Marvel Super Heroes vs. Street Fighter's in the lists (its ROM set needed).
+- **Marvel Super Heroes vs. Street Fighter's stages in Vampire Savior Definitive**: all twelve, each run from its own
+  stage code alone, after X-Men vs. Street Fighter's in the lists (its ROM set needed).
+- **X-Men vs. Street Fighter's stages in Vampire Savior Definitive**: all eleven, each run from its own stage code
+  alone, after Marvel Super Heroes' in the lists (its ROM set needed).
+- **Marvel Super Heroes' stages in Vampire Savior Definitive**: all twelve, each run from Marvel Super Heroes' own
+  stage code alone, after Night Warriors' in the lists (its ROM set needed).
+- **Night Warriors' stages in Vampire Savior Definitive**: all fourteen (Darkstalkers' in their Night Warriors colours,
+  Hsien-Ko's and Donovan's), each run from Night Warriors' own stage code alone, after Alpha's in the lists (Night
+  Warriors' ROM set needed).
+- **Other games' stages in the endless and team battles**: in Vampire Savior Definitive, Vampire Savior, Vampire Savior
+  2, Vampire Hunter 2, Alpha 2 and Zero 2 Alpha, the endless battle's **Stage** and the team battle's list have them
+  after the game's own (the endless battle's Shuffle and Scroll still go through the game's own).
+- **Street Fighter Alpha's stages in Vampire Savior Definitive**: all thirteen, each run from Alpha's own stage code
+  alone, in training's and the stage viewer's lists after Super Turbo's (Alpha's ROM set needed).
+- **Street Fighter Alpha's stage viewer plays the music chosen** (it went on with the stage's own).
+- **Super Street Fighter II Turbo's stages in Vampire Savior Definitive**: all sixteen, each run from Super Turbo's own
+  stage code alone, in training's and the stage viewer's lists after Alpha 3's (Super Turbo's ROM set needed).
+- **Darkstalkers' stages have their music** wherever another game shows them (it was silent).
+- **Street Fighter Alpha 3's stages in Vampire Savior Definitive**: all twenty-six, each run from Alpha 3's own stage
+  code alone, in training's and the stage viewer's lists after Alpha 2's (Alpha 3's ROM set needed).
+- **Other games' stages in Vampire Savior, Vampire Savior 2 and Vampire Hunter 2**: the first Darkstalkers' and Street
+  Fighter Alpha 2's stages, each run from its own stage code, in training's, versus's and the stage viewer's lists after
+  the game's own, and with Display's **Other games' stages** in arcade matches.
+- **Alpha 2's stages from its stage code alone**: the Street Fighter Alpha 2 stages Vampire Savior Definitive shows are
+  run by Alpha 2's own stage code and nothing else of it, as Vampire Savior's and Darkstalkers' are: all eighteen,
+  their pieces and colours as before, with the fight's camera.
+- **Darkstalkers' stages from its stage code alone**: in Alpha 2, Zero 2 Alpha and Vampire Savior Definitive, the first
+  Darkstalkers' stages are run by its own stage code and nothing else of it, as Vampire Savior's are: no match is
+  played behind them. They look and sound as before (Victor's lightning, Anakaris's sarcophagi and fountain) and go
+  with the fight's camera.
+- **Other games' stages scroll with the fight**: Vampire Savior's stages in Alpha 2 and Zero 2 Alpha stood still while
+  the fight's camera moved (the fighters seemed to slide against them). Their camera now goes where the game's does,
+  every frame, round starts and fast moves too, the train's stage among them. A check of it for the test runs,
+  `--stage-check`, fails a run whose borrowed stage's camera is off for more than a few frames.
+- **Vampire Savior's stages from its stage code alone**: the stages Alpha 2 and Zero 2 Alpha show from Vampire Savior are
+  run by Vampire Savior's own stage code and nothing else of the game: no hidden match is played to them, no fighters,
+  no clock. Its board is started once and kept at the top of its main loop; a stage is built there as a round's first
+  step builds it, and each frame only the stage's routines run. The picture and the music are the same as before.
+- **Other games' stages in Street Fighter Alpha 2 and Zero 2 Alpha**: Darkstalkers' and Vampire Savior's stages, as
+  those games show them (their own boards running beside, their music too), in training's, versus's and the stage
+  viewer's lists after the game's own; and, with Display's **Other games' stages**, in arcade matches. Each needs that
+  game's ROM set. Vampire Savior's stages can now be shown by any game that takes guests (`games/vampire_savior/guest.h`).
+- **The picture drawn from the game's level by default** ([docs/NATIVE_VIDEO.md](docs/NATIVE_VIDEO.md)): every game's
+  picture is drawn from what its video code hands over (sprite lists, layers, palettes), not by the model of the
+  board's video chip, which is kept as the reference (`--video board`). The picture is the same as before, frame for
+  frame.
+- **GPU picture (test) in the fighting modes**: endless battle, ring out, tag and team battles (and the colour editor)
+  showed another machine's frame on the GPU, without the fighters or the HUD; frames those modes put together are now
+  shown from the CPU's picture, until the GPU draws them itself.
+- **GPU picture (test) reads only its own memory**: two reads past the end of the GPU's buffers are fixed.
+- **The machine's picture drawn from the game's level** (`--video native`, [docs/NATIVE_VIDEO.md](docs/NATIVE_VIDEO.md)):
+  the picture screenshots, frame hashes and the window use can be drawn from what the game hands over instead of the
+  board model, the same as the board's in every game. Nothing changes in play.
+- **Other games' stages at the game's level** ([docs/NATIVE_VIDEO.md](docs/NATIVE_VIDEO.md)): the boards of the games
+  whose stages Vampire Savior Definitive shows (Darkstalkers, Alpha 2) now have their own records of what their code
+  hands over, checked against their boards, and drawn on the GPU with the game's fighters over them.
+  Nothing changes in play.
+- **The CPS-1 games' picture from the game's level and on the GPU** ([docs/NATIVE_VIDEO.md](docs/NATIVE_VIDEO.md)):
+  Cadillacs and Dinosaurs and The Punisher are drawn from what the game hands over, on the CPU and on the GPU, by the
+  CPS-1's own rules (its layer order, its priority masks), the same as the board's. With them, every game of the
+  collection's picture can be drawn on the GPU. Nothing changes in play.
+- **Vampire Savior Definitive's picture from the game's level and on the GPU**
+  ([docs/NATIVE_VIDEO.md](docs/NATIVE_VIDEO.md)): the sprites and tiles of the three characters taken from Vampire
+  Savior 2 are drawn from that game's graphics in the picture made from the records and on the GPU too, the same as
+  the board's. Nothing changes in play.
+- **The GPU's picture in widescreen** ([docs/NATIVE_VIDEO.md](docs/NATIVE_VIDEO.md)): what a game's widescreen sets on
+  the picture (the wider picture, the stage's tiles beyond the board's columns, moved sprites, filled holes) is drawn on
+  the GPU too, the same as the board's, pixel for pixel, in every game that has widescreen. Nothing changes in play.
+- **The GPU's picture in the window, to try** (`--video gpu`, [docs/NATIVE_VIDEO.md](docs/NATIVE_VIDEO.md)): the window
+  shows the picture SDL_GPU draws from what the game hands over, with the training mode's readouts over it; frames it
+  cannot draw yet are the board model's. The game's side of the picture is kept in save states, so online play's
+  rollback puts it back too. Nothing changes in play.
+- **The picture at the game's level in the CPS-1 games too** ([docs/NATIVE_VIDEO.md](docs/NATIVE_VIDEO.md)): Cadillacs
+  and Dinosaurs' and The Punisher's palettes, sprite lists and layers' registers are known at the game's level and checked
+  against the board's, so every game of the collection has them. Nothing changes in play.
+- **The picture drawn on the GPU, checked** ([docs/NATIVE_VIDEO.md](docs/NATIVE_VIDEO.md)): SDL_GPU draws a frame
+  from what the game hands over (its sprite list as instanced tiles, its scroll layers and palettes in shaders), and
+  every frame is the same as the board's, pixel for pixel, in every CPS-2 game compared (`--video gpu-check`). The game
+  does not show it yet. Nothing changes in play.
+- **The picture drawn a frame at a time, as the GPU will** ([docs/NATIVE_VIDEO.md](docs/NATIVE_VIDEO.md)): drawn from
+  what the game hands over, with its writes to its maps put in at the line they came before, every frame is the same as
+  the board's in every CPS-2 game compared. Nothing changes in play.
+- **The picture drawn from the game's level, with widescreen** ([docs/NATIVE_VIDEO.md](docs/NATIVE_VIDEO.md)): the
+  renderer that draws only from what the game hands over now follows what a game's sources set on the picture (the
+  wider picture, its moved layers and objects, hidden and marked objects), and is the same as the board's, pixel for
+  pixel, with widescreen on in every game that has it. The plan for drawing it on the GPU is written. Nothing changes in
+  play.
+- **The picture drawn from the game's level, checked** ([docs/NATIVE_VIDEO.md](docs/NATIVE_VIDEO.md)): a renderer that
+  draws only from what the game hands over (its palettes, its sprite lists, its layers' registers line by line) gives
+  the same picture as the board's, pixel for pixel, on every line compared, in every CPS-2 game but Vampire Savior
+  Definitive (which draws from a second set's graphics). It is laid out the way the GPU renderer to come will draw.
+  Nothing changes in play.
+- **The picture at the game's level in every CPS-2 game**: the palette's uploads, the object lists and the layers'
+  registers, checked against the board's, now in all 21 CPS-2 games of the collection. Nothing changes in play.
+- **The picture at the game's level: the layers' registers** ([docs/NATIVE_VIDEO.md](docs/NATIVE_VIDEO.md)): where the
+  game's scroll layers are, where each is scrolled to, the row scroll and the layers' order, as the game sets them,
+  are checked against the board's on every line drawn, in the same eight games. Nothing changes in play.
+- **The picture at the game's level: the object list** ([docs/NATIVE_VIDEO.md](docs/NATIVE_VIDEO.md)): the list of
+  sprites the game hands the board each frame is now known at the game's level and checked against the board's, every
+  frame, in the same eight games. The toolkit's hooks gained a kind that only looks (a watch), which leaves the
+  translated code's blocks, and so the game's timing, exactly as they were. Nothing changes in play.
+- **The picture at the game's level, begun** ([docs/NATIVE_VIDEO.md](docs/NATIVE_VIDEO.md)): the inventory of how the
+  games hand the board their pictures, the native interface they are to hand them to instead, and its check
+  (`--video check`); the palette's upload is native in eight games, one or two of each family of Capcom's video code
+  (Alpha 2, Vampire Savior, Darkstalkers, Marvel Super Heroes, Marvel Super Heroes vs. Street Fighter, Super Street
+  Fighter II Turbo, Alien vs. Predator, Giga Wing), written once in the toolkit. Nothing changes in play.
+- **Kinds of games in the launcher**: the sidebar groups the beat-'em-ups (Alien vs. Predator, Cadillacs and Dinosaurs,
+  The Punisher) and the shoot-'em-ups (Giga Wing) as it groups a series.
+- **Giga Wing's practice**: begun at the last stage's boss it now starts the Medallion's fight (it ran on to the end
+  credits); the summary after a boss is no longer replaced by an empty one, and a stage's summary counts the whole
+  stage; the cheats work in practice. Practice has a page of its own: [docs/PRACTICE.md](docs/PRACTICE.md).
+- **Board and Cheats choices from a game's `game.cfg`** (#163): a game can name its board's DIP switches
+  (`board_option_N`) and cheats that write to the work RAM (`cheat_N`, if wanted only while a value holds) in its
+  `game.cfg`. They go on the same Board and Cheats pages, into the same settings and the launcher's list as the
+  features a game's sources register; a name both give stops the game with a message. `tools/check_config_features.py`
+  checks the reading of them without a game. A game that declares none runs as before.
+- **The classic CPS-1 board** (#163): `board = cps1-classic` is the CPS-1 before QSound: the 68000 at 10 or 12 MHz
+  (`cpu_clock`), its DIP switches (`dip`), the graphics mapper (`gfx_map`), program files of words high byte first
+  (`/be`), graphics files joined in groups (`+`), and its sound, the Z80 with a YM2151 ([ymfm](third_party/), the
+  second named exception of rule 4) and an OKI MSM6295, all of it in the save state (version 10). The CPS-1 games
+  with QSound and the CPS-2 games play as before.
+- **Street Fighter II: Champion Edition, Street Fighter II: Hyper Fighting and Ghouls'n Ghosts** (#163): the first
+  classic CPS-1 games, with their music (and the Street Fighter IIs' voices), the Board page and cheats from their `game.cfg`, and input
+  movies for the checks. Ghouls'n Ghosts is the collection's first platformer. Their picture is drawn from the native
+  records and on the GPU too, the graphics mapper through a table (`GfxTable`), each checked the same as the board's.
+- **Giga Wing** (`gigawing`, USA 990222; the Asia, Hispanic and Brazil sets of the same date play too), the
+  collection's first shoot-'em-up, with a shooter's modes in a new part of the toolkit (`shmup/`): **practice** at any
+  stage or straight at its boss, with the fighter, ships, bombs and power chosen, put back as it began with one button
+  and the last attempt replayed; its aids (the ships' true hit boxes, the points of the enemies' shots and their
+  bodies, a scoring readout, a summary at each boss and stage end); a **score attack**, a **caravan** of two, three or
+  five minutes and a **boss rush**, each keeping its best score; a stage viewer and attract mode. Also free play, start
+  at stage, the board's settings, cheats (infinite ships, infinite bombs, invincibility), the music's names and online
+  play.
+- **Street Fighter Alpha 3's Regulation on the Board page**: the board's blood setting, red (off, as in Japan) or
+  white (on, the other regions' boards); found from notes the HSFA project shared.
 - **Hyper Street Fighter II: The Anniversary Edition** (`hsf2`, USA 040202; the Asia and Japan sets of the same date
   play too): every character as they were in World Warrior, Champion Edition, Hyper Fighting, Super and Super Turbo,
   against each other, with everything the other fighting games have: training mode, the alternative modes (attract
@@ -18,6 +287,14 @@
   between blocks, and in those games that moves the random number and the ladder parts. It now compares that build,
   frame for frame, with the translated build run with `--cpu interp`, and the translated build with `--cpu blocks`;
   the games' `release_allowed` is gone.
+- **Widescreen stays inside each stage's art** (#239, part of #116): in every fighting game the wide picture no
+  longer shows past what the board shows of a stage, at either end. The camera stops a little sooner where a stage's
+  own plane or floor would run out (by up to 36 pixels, measured stage by stage), and backgrounds that scroll slower
+  than the camera are drawn a little slower still, so they reach their own ends just as the camera does; with
+  invisible walls the view stays on the art. In the Marvel games (Marvel Super Heroes, X-Men vs. Street Fighter,
+  Marvel Super Heroes vs. Street Fighter, Marvel vs. Capcom) the camera now stops short of the ends on every stage, so
+  the fighters no longer walk out of the picture. `tools/stage_ends.sh` measures it, and each game's
+  `check-widescreen` fails on any column shown past the art.
 
 ## 1.3.0
 

@@ -19,16 +19,8 @@ mkdir -p "$work/explore"
 seq "$first" $((first + runs - 1)) | xargs -P 6 -I{} sh -c \
     "$port --rom '$ROM' --headless --frames $frames --auto {}${AUTO:-:400} --record-entries $work/explore/entries_{}.txt $* 2>/dev/null"
 # (one file per run, so that runs do not write over one another; merged here: the 68000's, then the sound
-# driver's)
-merge() { # the entries file, the runs' files
-    main=$1; shift
-    before=$(grep -vc '^#' "$main" 2>/dev/null || echo 0)
-    cat "$main" "$@" 2>/dev/null | grep -v '^#' | sort -u > "$main.new"
-    { echo "# Places the game's code was seen to reach in ways the translator cannot follow"; cat "$main.new"; } > "$main"
-    rm -f "$main.new"
-    echo "$(basename "$main"): $before -> $(grep -vc '^#' "$main")"
-}
-merge "$work/entries.txt.z80" "$work"/explore/entries_*.txt.z80
+# driver's. build.mk's explore then adds them to the game's tracked lists, games/<id>/entries.txt*)
+"$(dirname "$0")/merge_entries.sh" "$work/entries.txt.z80" "$work"/explore/entries_*.txt.z80
 rm -f "$work"/explore/entries_*.txt.z80
-merge "$work/entries.txt" "$work"/explore/entries_*.txt
+"$(dirname "$0")/merge_entries.sh" "$work/entries.txt" "$work"/explore/entries_*.txt
 rm -f "$work"/explore/entries_*.txt

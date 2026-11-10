@@ -12,15 +12,19 @@
 
 namespace cps2recomp {
 
-void Soundtrack::FindMusic(const std::vector<uint8_t> &program, uint32_t table, uint32_t count, uint32_t musicBelow) {
+void Soundtrack::FindMusic(const std::vector<uint8_t> &program, uint32_t table, uint32_t count, uint32_t musicBelow, uint32_t addresses,
+                           uint32_t entrySize) {
     m_music.assign(count, false);
     m_songs.clear();
     for (uint32_t song = 0; song < count; song++) {
-        const uint32_t entry = table + song * 4;
+        const uint32_t entry = table + song * entrySize;
         if (entry + 3 > program.size()) {
             break;
         }
-        const uint32_t at = (program[entry] << 16) | (program[entry + 1] << 8) | program[entry + 2];
+        uint32_t at = entrySize == 2 ? (program[entry] << 8) | program[entry + 1] : (program[entry] << 16) | (program[entry + 1] << 8) | program[entry + 2];
+        if (addresses) {
+            at &= addresses; // (the bank above the ROM's size: the board's banks go round)
+        }
         // (below musicBelow, a song is music even with no entry here: driver 1.71 finds some of its music elsewhere)
         if (musicBelow ? song < musicBelow : at != 0 && at < program.size() && program[at] == 0) {
             m_music[song] = true;
@@ -96,6 +100,31 @@ void Soundtrack::Request(uint8_t *shared, uint64_t frame) {
     memset(shared, 0, 15);
     shared[0] = 0xFF;
     shared[1] = 0x05;
+}
+
+uint8_t Soundtrack::RequestClassic(uint8_t code, uint64_t frame) {
+    static const bool log = getenv("CPS2RECOMP_SOUNDTRACK_LOG") != nullptr;
+    if (log && (code >= 0xF0 || IsMusic(code)) && code != 0xFF) {
+        fprintf(stderr, "soundtrack: frame %llu %s %02X\n", static_cast<unsigned long long>(frame),
+                code >= 0xF0 ? "command" : Replaced(code) ? "music (file)" : "music", code);
+    }
+    if (code == 0xF0) { // (everything stops)
+        state.song = -1;
+        return code;
+    }
+    if (code >= 0xF0 || !IsMusic(code)) {
+        return code;
+    }
+    if (!Replaced(code) && !Taken(code)) {
+        state.song = -1; // (the board's own)
+        return code;
+    }
+    state.song = code;
+    state.serial++;
+    state.frames = 0;
+    state.level = state.target = kFull;
+    state.step = 0;
+    return 0xF0; // (the board's music stops instead)
 }
 
 void Soundtrack::Frame() {

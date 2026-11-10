@@ -28,9 +28,18 @@ struct M68KBus {
     virtual uint16_t Fetch16(uint32_t address) = 0;
     // The CPU takes the interrupt of this level
     virtual void InterruptAck(unsigned level) {}
+    // Trial execution in the block checker: MMIO writes may change another address's read (a hardware multiplier).
+    // Reflect only those dependencies, then restore them before the reference interpreter runs.
+    virtual void BeginCheck() {}
+    virtual void CheckWrite(uint32_t address, unsigned size, uint32_t value) {}
+    virtual void EndCheck() {}
 };
 
 class M68K;
+// Watches (runtime/lift.h, AddWatch): a byte for each word of the program, set where one is; and the call
+extern const uint8_t *g_watchMap;
+extern uint32_t g_watchMapSize;
+void RunWatch(M68K &c, uint32_t address);
 // A translated routine (runtime/native.h): runs from the block at cpu.pc until it leaves the routine
 using NativeFn = void (*)(M68K &);
 
@@ -101,10 +110,32 @@ public:
     // One instruction by the interpreter, the refetch above counted (every run loop's and check's way of doing one)
     void ExecuteOne() {
         const uint32_t start = pc;
+        // (a watch is told before its instruction; not on another game's board, which runs another program)
+        if (ownHooked ? ownWatched && start / 2 < ownWatchedSize && ownWatched[start / 2]
+                      : g_watchMap && start / 2 < g_watchMapSize && g_watchMap[start / 2]) {
+            if (ownHooked) {
+                const uint32_t kept = pc;
+                pc = start;
+                ownWatch(*this);
+                pc = kept;
+            } else {
+                RunWatch(*this, start);
+            }
+        }
         fetchedWords = 0;
-        Execute(Fetch());
+        if (callLog) {
+            // (CPS2RECOMP_CALL_LOG: each jsr and bsr the interpreter runs, where from and where to)
+            const uint16_t op = bus.Fetch16(start);
+            Execute(Fetch());
+            if ((op & 0xFFC0) == 0x4E80 || (op & 0xFF00) == 0x6100) {
+                callLog(start, pc);
+            }
+        } else {
+            Execute(Fetch());
+        }
         RefillWait(start);
     }
+    void (*callLog)(uint32_t from, uint32_t to) = nullptr;
     uint64_t budget = 0; // translated code stops at the first block that starts at or after this
     // A wait (runtime/lift.h, Wait): the 68000 does nothing for so many cycles when it is next at `waitResume`
     // with the stack at `waitStack`; interrupts are taken meanwhile as they would be. When the wait is over
@@ -130,6 +161,12 @@ public:
     uint32_t ownHookedSize = 0; // (bytes of ROM it covers)
     bool (*ownHook)(M68K &c, uint32_t address) = nullptr;
     const void *ownContext = nullptr; // (whose hooks they are, for ownHook)
+    // ... and its watches (runtime/guest.h, AddGuestWatches): a byte for each word of its ROM, the function, and what it
+    // is told of them (watchContext: a guest's watched instructions; none on the game's own board)
+    const uint8_t *ownWatched = nullptr;
+    uint32_t ownWatchedSize = 0;
+    bool (*ownWatch)(M68K &c) = nullptr;
+    void *watchContext = nullptr;
     bool OwnHook(uint32_t address) {
         return address < ownHookedSize && ownHooked[address / 2] && ownHook(*this, address);
     }
@@ -138,6 +175,9 @@ public:
     M68KBus &bus;
     uint8_t *ram = nullptr;          // FF0000-FFFFFF
     uint8_t *video = nullptr;        // 900000 and up: video RAM (for the check of rewrites that write it)
+    // The native interface of the picture this CPU's machine draws (video/native.h): the video library's lifts hand it
+    // their records (each machine its own: the spare and guest boards run the same code)
+    class NativeVideo *nativeVideo = nullptr;
     uint32_t videoSize = 0;
     const uint8_t *rom = nullptr;    // the program as data
     const uint8_t *opcodes = nullptr; // the program as program
@@ -159,6 +199,9 @@ public:
     std::vector<uint32_t> newEntries;
     // (for --stats: instructions the interpreter ran while translated code was meant to, and all it ran)
     uint64_t interpreted = 0;
+    // ... of which code the game runs in RAM (Champion Edition calls small routines it writes into video RAM): never
+    // the ROM's, so never translated
+    uint64_t interpretedRam = 0;
     // For finding out who writes somewhere (--watch): writes by the interpreter to addresses from watchLow to
     // watchHigh are reported with the instruction's address. Translated code is not watched (run with
     // --cpu blocks, which does the same things).
@@ -172,6 +215,9 @@ public:
         history[historyAt++ & 63] = place;
     }
     uint32_t instruction = 0; // the address of the instruction the interpreter is doing
+    // More than 0 while a rewrite (runtime/lift.h) runs, but not the game's own code it calls: its writes to the video's
+    // registers are what the game's code says to them, and are told to the native interface (video/native.h)
+    int nativeWrites = 0;
 
     uint16_t SR() const {
         return static_cast<uint16_t>(flagC | (flagV << 1) | (flagZ << 2) | (flagN << 3) | (flagX << 4) | (interruptMask << 8) |

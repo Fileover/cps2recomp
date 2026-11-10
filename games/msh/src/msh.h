@@ -143,6 +143,22 @@ inline uint32_t CameraRecord() {
     return stage == 4 ? 0xFF4980 : stage == 6 ? 0xFF4B00 : 0xFF4A00;
 }
 constexpr uint32_t kCameraX = 0x0C, kCameraY = 0x10, kCameraLeft = 0x72, kCameraRight = 0x74, kCameraTop = 0x76, kCameraBottom = 0x78;
+// The other places that keep a camera between its ends: the stages' and their planes' own routines each have the
+// piece (move.w 0x72(a6),d0 ... move.w d0,0x10(a6), 0x30 bytes) that RegisterWidescreen's keepCamera (083A46) is one of,
+// and the stage's code goes on after it (0: the piece ends its routine). Widescreen has to keep each 64 nearer the
+// middle, or on those stages the camera goes to the board's ends while the players go 64 past them, out of the
+// picture (issue #116). Found as every such piece in the listing (tools/lst.py -r).
+struct KeptAt {
+    uint32_t at, after;
+};
+inline constexpr KeptAt kCameraKept[] = {
+    {cps2recomp::HookAt(0x07E620), 0x07E650}, {cps2recomp::HookAt(0x08340E), 0},
+    {cps2recomp::HookAt(0x0836AA), 0x0836DA}, {cps2recomp::HookAt(0x084182), 0},
+    {cps2recomp::HookAt(0x0846A2), 0x0846D2}, {cps2recomp::HookAt(0x084788), 0x0847B8},
+    {cps2recomp::HookAt(0x084FF0), 0}, {cps2recomp::HookAt(0x085354), 0x085384},
+    {cps2recomp::HookAt(0x085510), 0x085540}, {cps2recomp::HookAt(0x085716), 0x085746},
+    {cps2recomp::HookAt(0x085B2C), 0}, {cps2recomp::HookAt(0x085D66), 0}, {cps2recomp::HookAt(0x086338), 0x086368},
+    {cps2recomp::HookAt(0x0863C8), 0x0863F8}};
 // The floor's height: the camera's lowest place + 0xD8 (0x1D8 on most stages; read off each stage's round start)
 inline int Ground() {
     return static_cast<int16_t>(cps2recomp::Ram16(CameraRecord() + kCameraBottom)) + 0xD8;

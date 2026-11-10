@@ -50,8 +50,9 @@ code is not part of that source: it is made from the player's own ROM sets by th
 
 1. In a pull request: set `VERSION`, move the "Unreleased" lines of `CHANGELOG.md` under a heading for the
    version, and begin the section with a paragraph saying what is in the release (the release's page opens with it).
-   On a Mac with every ROM set in `rom/<id>/` and every game's code found (`make GAME=<id> explore` once in the
-   tree, about seven minutes a game; or `tools/seed_entries.sh <another tree>`, which takes what that tree found),
+   On a Mac with every ROM set in `rom/<id>/` and every game's code found (the tracked `games/<id>/entries.txt`
+   lists hold what explores have found; `make GAME=<id> explore` finds more and adds it to them, about seven minutes
+   a game; `tools/seed_entries.sh <another tree>` takes what that tree found and has not committed),
    `tools/release/checks.sh` passes (about 40 minutes, three games at once: `JOBS`): for every game its build,
    `check`, `check-blocks`, `check-release` over its ladder movie (40,000 frames; Puzzle Fighter's 66,000),
    `check-rewrites` and `check-widescreen` where it has them, `check-rollback` and `check-online` (what online play

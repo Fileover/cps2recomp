@@ -55,6 +55,13 @@ namespace {
         }
         // (0: the game's choice)
         const int stage = session::WantedStage();
+        if (stage > kStages && Ram8(kPlayersThen) == 3) {
+            // Another game's stage (its own stage code shows it, fight/guest_stages.h): this game's own under it is the
+            // first, whose camera does nothing of its own (the train's and Fetus of God's shake it at a round's start)
+            SetRam16(kStage, 0);
+            Return(c);
+            return true;
+        }
         if (stage < 1 || stage > kStages || Ram8(kPlayersThen) != 3) {
             return false;
         }
@@ -154,6 +161,7 @@ void RegisterTraining() {
     d.wideStage = WideStage;
     d.wideSide = WideSide;
     d.wideMargin = WideMargin;
+    d.wideEnds = WideEnds;
     d.stageChoices = StageChoices({"The game's choice"}, {}, true);
     d.stageWords = "Where a training session's fight is: the game's own choice (at random, from those that go with player 2's "
                    "character) or a stage named here. Takes effect when the characters are next chosen.";

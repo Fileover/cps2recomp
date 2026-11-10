@@ -62,6 +62,12 @@ for stage in range(1, 9):
     bad += max(shares) > kMost
 sys.exit(1 if bad else 0)
 PY
+# The stages' ends: past a stage's art (what the board shows of each scroll screen, with the camera at its ends) the
+# wide picture shows nothing, played in it or with invisible walls (tools/stage_ends.sh; fight/wide_ends.h).
+# Only with STAGE_ENDS=1 (make GAME=<id> check-widescreen STAGE_ENDS=1): it plays every stage at both ends, a long run.
+[ -z "${STAGE_ENDS:-}" ] || for walls in "" widescreen_walls; do
+    B=${B:-build/$GAME} QUIET=1 REACH=36:1,2,3 FEATURES=$walls tools/stage_ends.sh $GAME 8 8290 || status=1
+done
 # Invisible walls: the game as the board plays it
 for run in walls none; do
     features=free_play,no_damage,one_hit

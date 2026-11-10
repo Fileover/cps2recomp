@@ -11,6 +11,7 @@
 
 #include "../../machine/romset.h"
 #include "../../port/bindings.h"
+#include "../../port/i18n.h"
 #include "../../port/netplay.h"
 
 #include <algorithm>
@@ -184,6 +185,7 @@ std::vector<FeatureSwitch> feature_switches(const std::string& all) {
 
 // What a launcher is told about one game
 launcher::Description describe_game(const GameInfo& game) {
+    port::AddTranslations();  // (the toolkit's words in the player's language, beside recomp-common's)
     launcher::Description d;
     const std::string set = sets_named(game);
     d.original = "in the arcade";
@@ -442,10 +444,11 @@ const launcher::Collection& launcher::describe_collection() {
              {"Off", "CRT", "CRT Lottes", "CRT Royale", "CRT Guest", "CRT Light", "Scanlines: light", "Scanlines: strong", "Scanlines: OSSC",
               "Scanlines: dark", "xBRZ", "ScaleFX", "Your own", "As each game is set"},
              13},
-            // (port/zoom.h: --zoom 1:3, the camera on both fighters from the start)
+            // (port/zoom.h: --zoom 1:3, the camera on both fighters from the start; 1:4, by their distance)
             {"zoom", "Zoom", "Both fighters: in every game the camera follows the two fighters, as close as they allow (the zoom's L3 and R3 "
-             "together). Off: as each game starts, all of the picture.",
-             {"Off", "Both fighters"}},
+             "together). By distance: a little closer as they come together, out to all of the picture as they part, the health "
+             "bars and clock left as they are. Off: as each game starts, all of the picture.",
+             {"Off", "Both fighters", "By distance"}},
         };
         // (port/frontend_sdl.cpp: in a Multi game run; each unless the player has given it to the game)
         endless.buttons = {
@@ -489,9 +492,9 @@ const launcher::Collection& launcher::describe_collection() {
                 args.push_back("--features");
                 args.push_back(display);
             }
-            if (values[10] == 1) {
+            if (values[10] == 1 || values[10] == 2) {
                 args.push_back("--zoom");
-                args.push_back("1:3");
+                args.push_back(values[10] == 1 ? "1:3" : "1:4");
             }
             return args;
         };

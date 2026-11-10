@@ -21,7 +21,7 @@ namespace cps2recomp {
 namespace {
     using namespace ssf2t;
 
-    constexpr uint32_t kButtonsNow = 0x392, kButtonsBefore = 0x394; // words: the buttons held this frame and the last
+    constexpr uint32_t kButtonsNow = family::kButtonsNow, kButtonsBefore = family::kButtonsBefore; // words: the buttons held this frame and the last
     constexpr uint16_t kPunches = 0x070, kKicks = 0x700;
     constexpr uint8_t kAkumaColours = 0x0A, kOldPunchColours = 0x08, kOldKickColours = 0x09;
     uint16_t g_pressed[2] = {0, 0}; // what chose each player's character (kept with the game's state)
@@ -82,8 +82,11 @@ void ChoosingState(Archive &ar) {
 }
 
 void RegisterChoosing() {
-    AddHook(HookAt(0x00EA5C), "Chose", Chose);
-    AddHook(HookAt(0x00E93A), "ChoiceFinal", Final);
+    if (!family::kTurbo) {
+        return; // (Super Street Fighter II has no hidden characters)
+    }
+    AddHook(HookAt(At(0x00EA5C)), "Chose", Chose);
+    AddHook(HookAt(At(0x00E93A)), "ChoiceFinal", Final);
     TheGame().features.push_back({"hidden_characters", "Game", "Hidden characters",
                                   "The hidden characters with no code: press two buttons at once as you choose a character for its "
                                   "old version (as in Super Street Fighter II), or the three punches at once for Akuma."});

@@ -23,6 +23,7 @@
 #include "alternative.h"
 #include "pocket.h"
 #include "state.h"
+#include "wide_ends.h"
 
 #include <algorithm>
 
@@ -311,6 +312,20 @@ namespace {
         return CameraRightEnd() >= CameraLeftEnd() + 2 * kSide && camera >= CameraLeftEnd() && camera <= CameraRightEnd();
     }
 
+    // The planes behind each stage's own (by kStage): their places across with the camera at the board's ends, each
+    // drawn moved so that it reaches the end of its painting as the camera reaches its own ({0, 0}: it goes with the
+    // view). The camera itself stops in time on every stage. Measured by tools/stage_ends.sh (fight/wide_ends.h).
+    constexpr int16_t kFarPlanes[kStages][3][2] = {
+        {{0, 128}, {0, 0}, {0, 0}}, // 1
+        {{0, 128}, {0, 0}, {0, 0}}, // 2
+        {{48, 112}, {0, 0}, {88, 168}}, // 3
+        {{0, 128}, {0, 0}, {0, 0}}, // 4
+        {{400, 624}, {0, 0}, {0, 0}}, // 5
+        {{0, 128}, {0, 0}, {112, 144}}, // 6
+        {{32, 224}, {0, 0}, {64, 192}}, // 7
+        {{0, 128}, {0, 0}, {32, 224}}, // 8
+    };
+
     // An object's place: the panel's stay in the middle, the stage's and the fighters' go with the view
     int MoveObject(uint32_t tile, uint16_t attributes, int) {
         return ThePanel(tile, attributes) ? 0 : g_shift;
@@ -330,6 +345,10 @@ namespace {
         Video::Wide &wide = machine.video.wide;
         wide.side = g_side;
         wide.scroll[0] = wide.scroll[1] = wide.scroll[2] = g_shift;
+        const unsigned stage = Ram16(kStage) / 2;
+        if (g_side && stage < kStages) {
+            wide::FarPlanes(wide.scroll, kFarPlanes[stage], shown, CameraLeftEnd(), CameraRightEnd(), g_play, kSide, {});
+        }
         wide.object = g_side ? MoveObject : nullptr;
         wide.tile = nullptr;
         wide.fillHoles = g_side != 0;

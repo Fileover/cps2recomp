@@ -120,11 +120,11 @@ namespace {
     // The panel (an object of the last pool, its kind +2 6) has the names under the bars and the faces beside them in its
     // record, made as a round begins from the characters (0B9442, 0B958C): a name four words a player from +56 (a tile
     // by character from 0B97EC, its attributes 0316, a word by character from 0B986C for player 1 and 0B98EC for player
-    // 2, 0023; the tables 0x40 on with A5+90 set), a face two longs a player from +46 (from 0B996C for player 1, 0B9A7C
-    // for player 2, eight bytes a character, Chun-Li's in the X-ism the 0x20th; the first long with the player's colour
-    // set in it). Put right for a newcomer of a swap as the round's beginning would have them (in the usual mode of play).
+    // 2, 0023; the tables 0x40 on outside Japan, kRegion), a face two longs a player from +46 (from 0B996C for player
+    // 1, 0B9A7C for player 2, eight bytes a character, Chun-Li's in the X-ism the 0x20th; the first long with the
+    // player's colour set in it). Put right for a newcomer of a swap as the round's beginning would have them (in the usual mode of play).
     constexpr uint32_t kPanelNameTiles = 0x0B97EC, kPanelNames[2] = {0x0B986C, 0x0B98EC}, kPanelFaces[2] = {0x0B996C, 0x0B9A7C};
-    constexpr uint32_t kPlayMode = 0xFF8138, kForeign = 0xFF8090;
+    constexpr uint32_t kPlayMode = 0xFF8138;
     void Panel(M68K &c, int player) {
         if (Ram16(kPlayMode) != 0) {
             return;
@@ -137,7 +137,7 @@ namespace {
             }
             const uint32_t record = Player(player);
             const uint8_t who = Ram8(record + kCharacter);
-            const uint32_t tables = Ram16(kForeign) ? 0x40 : 0;
+            const uint32_t tables = Ram16(kRegion) ? 0x40 : 0;
             const uint32_t name = object + 0x56 + static_cast<uint32_t>(player) * 8;
             SetRam16(name, Mem16(c, kPanelNameTiles + tables + who * 2u));
             SetRam16(name + 2, Ram8(record + 0xEB) ? 0x0317 : 0x0316);

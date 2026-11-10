@@ -9,6 +9,10 @@ the build tells you which one is missing or different.
 
 | Game | `GAME=` | ROM set |
 | --- | --- | --- |
+| [Street Fighter II: The World Warrior](../games/sf2/README.md) | `sf2` | `sf2` (World 910522) |
+| [Street Fighter II: Champion Edition](../games/sf2ce/README.md) | `sf2ce` | `sf2ce` (World 920513) |
+| [Street Fighter II: Hyper Fighting](../games/sf2hf/README.md) | `sf2hf` | `sf2hf` (World 921209) |
+| [Super Street Fighter II](../games/ssf2/README.md) | `ssf2` | `ssf2` (World 931005) |
 | [Super Street Fighter II Turbo](../games/ssf2t/README.md) | `ssf2t` | `ssf2xjr1` (Japan 940223) |
 | [Hyper Street Fighter II](../games/hsf2/README.md) | `hsf2` | `hsf2` (USA 040202) |
 | [Street Fighter Alpha](../games/sfa/README.md) | `sfa` | `sfa` (Europe 950727) |
@@ -17,6 +21,7 @@ the build tells you which one is missing or different.
 | [Street Fighter Alpha 3](../games/sfa3/README.md) | `sfa3` | `sfa3u` (USA 980904) |
 | [Darkstalkers](../games/dstlk/README.md) | `dstlk` | `dstlk` (Europe 940705) |
 | [Night Warriors](../games/nwarr/README.md) | `nwarr` | `nwarr` (Europe 950316) |
+| [Cyberbots](../games/cybots/README.md) | `cybots` | `cybots` (Europe 950424) |
 | [Vampire Savior](../games/vampire_savior/README.md) | `vampire_savior` | `vsavj` (Japan 970519) |
 | [Super Gem Fighter Mini Mix](../games/pocket_fighter/README.md) | `pocket_fighter` | `sgemf` (USA 970904) |
 | [X-Men: Children of the Atom](../games/xmcota/README.md) | `xmcota` | `xmcota` (Euro 950331) |
@@ -25,6 +30,9 @@ the build tells you which one is missing or different.
 | [Marvel Super Heroes vs. Street Fighter](../games/mshvsf/README.md) | `mshvsf` | `mshvsf` (Europe 970625) |
 | [Marvel vs. Capcom](../games/mvsc/README.md) | `mvsc` | `mvsc` (Europe 980123) |
 | [Super Puzzle Fighter II Turbo](../games/puzzle_fighter/README.md) | `puzzle_fighter` | `spf2t` (Europe 960529) |
+| [Giga Wing](../games/gigawing/README.md) | `gigawing` | `gigawing` (USA 990222) |
+| [Progear](../games/progear/README.md) | `progear` | `progearu` (USA 010117) |
+| [Dimahoo](../games/dimahoo/README.md) | `dimahoo` | `dimahoou` (USA 000121) |
 
 ## macOS
 
@@ -35,7 +43,8 @@ with 3.4.14 the game's window stays black while it runs and sounds, so CMake ask
 make GAME=sfa2              # build/sfa2/sfa2 (twice the first time: the port itself writes the
                             # deciphered program the translator works from); on macOS also the game's
                             # own launcher and a quick app bundle (NO_APP=1: not)
-make GAME=sfa2 explore      # once, about ten minutes: finds the game's code by made-up play and translates it
+make GAME=sfa2 explore      # optional, about ten minutes: finds more of the game's code by made-up play, adds it
+                            # to games/sfa2/entries.txt and entries.txt.z80 (commit them), and translates it
 make GAME=sfa2 run          # play (windowed)
 
 make games                  # every game whose ROM set is in rom/<id>/
@@ -105,8 +114,9 @@ SDL_VIDEODRIVER=dummy SDL_AUDIODRIVER=dummy build/sfa2/sfa2 --rom rom/sfa2 --hea
 program built for macOS, Linux and Windows must write the same file.
 
 That holds for builds made from the same translated code. Which code gets translated, and where its blocks start,
-comes from the entries your own tree has found (`make GAME=<id> explore`, and every `make GAME=<id> run` adds
-what play reaches), and the port looks at time and interrupts only where a block starts. So two trees with
+comes from the entries: the game's tracked lists (`games/<id>/entries.txt`, `entries.txt.z80`: addresses only,
+which every build adds to the tree's own `work/<id>/` ones) and what your tree has found since (`make GAME=<id> explore`
+and `record` add their finds to the tracked lists; every `make GAME=<id> run` adds what play reaches to `work/<id>/`'s), and the port looks at time and interrupts only where a block starts. So two trees with
 different entries are both right and still differ in a few pictures: a tree built from nothing against the tree
 the releases are built from gave 21 different pictures in the 40,000 of Street Fighter Alpha 2's ladder movie,
 and the same last picture. Compare hash files, and replay input movies, between builds of one tree.

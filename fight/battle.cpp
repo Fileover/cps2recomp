@@ -141,11 +141,22 @@ namespace {
     }
     // The camera's ends and the picture's width, in 256ths of a pixel, for the picture being played in (a wide
     // picture's camera stops short of where the board's does)
+    // (how far short of each end the camera stops: the picture's margin, or further in at a stage's end)
+    void WideEnds(int &left, int &right) {
+        left = right = d.wideMargin();
+        if (d.wideEnds) {
+            d.wideEnds(left, right);
+        }
+    }
     int32_t LeftEnd() {
-        return (CameraLeft() + d.wideMargin()) * 256;
+        int left, right;
+        WideEnds(left, right);
+        return (CameraLeft() + left) * 256;
     }
     int32_t RightEnd() {
-        return (CameraRight() - d.wideMargin()) * 256;
+        int left, right;
+        WideEnds(left, right);
+        return (CameraRight() - right) * 256;
     }
     int PictureWidth() {
         return Video::kWidth + 2 * d.wideSide();
@@ -360,6 +371,9 @@ namespace {
     // The endless battle's stage: its feature's choices are two ways of changing it, then the stages
     int ChosenStage() {
         const int choice = FeatureValue("endless_stage");
+        if (choice >= 2 + d.stages) {
+            return 1; // (another game's stage, after the game's own: fought on its first, the other drawn behind: BattleStage)
+        }
         return choice >= 2 && choice < 2 + d.stages ? choice - 1 : static_cast<int>(Random() % static_cast<uint32_t>(d.stages)) + 1;
     }
     int AnyStage(int notThis) {
@@ -438,7 +452,7 @@ namespace {
         g.computer[1] = TeamComputer();
         g.tag = d.tagIn && FeatureValue("team_style") == 0; // (the tag style first: what a team battle is unless chosen)
         const int stage = FeatureValue("team_stage");
-        g.stage = stage >= 1 && stage <= d.stages ? stage : AnyStage(0);
+        g.stage = stage >= 1 && stage <= d.stages ? stage : stage > d.stages ? 1 : AnyStage(0); // (BattleStage)
     }
     // A match decided (the round's result: 1 player 1 has won, 2 player 2, 3 both down): the one knocked down is
     // out and the next of that side comes on; the other stays on with what it has left, and a little back
@@ -1428,6 +1442,7 @@ namespace {
     // The picture nearer black by `part` of 256
     void Darken(Machine &machine, int part) {
         const int keep = 256 - std::clamp(part, 0, 256);
+        MarkPictureMade();
         uint32_t *picture = machine.Picture();
         for (int i = 0; i < machine.PictureWidth() * Video::kHeight; i++) {
             const uint32_t p = picture[i];
@@ -1477,8 +1492,10 @@ namespace {
             }
             const int x = static_cast<int16_t>(Ram16(Player(n) + d.x)), half = HalfWidth(Player(n));
             const int margin = d.wideMargin();
-            const int side = camera <= CameraLeft() + margin && x - half < edge - margin ? -1 :
-                             camera >= CameraRight() - margin && x + half > edge + Video::kWidth + margin ? 1 : 0;
+            int left, right;
+            WideEnds(left, right);
+            const int side = camera <= CameraLeft() + left && x - half < edge - margin ? -1 :
+                             camera >= CameraRight() - right && x + half > edge + Video::kWidth + margin ? 1 : 0;
             if (side) {
                 if (Log()) {
                     fprintf(Log(), "out %d side=%d end=%d computer=%d plan=%s free_at=%d\n", g.clock, n, side, g.computer[n],
@@ -1828,6 +1845,17 @@ namespace {
 bool BattleMode() {
     return g.kind != Kind::None;
 }
+int BattleStage() {
+    if (g.kind == Kind::Endless && g.way == kStageOne) {
+        const int choice = FeatureValue("endless_stage");
+        return choice >= 2 + d.stages ? choice - 1 : 0;
+    }
+    if (g.kind == Kind::Team) {
+        const int choice = FeatureValue("team_stage");
+        return choice > d.stages ? choice : 0;
+    }
+    return 0;
+}
 void EndBattle() {
     End();
 }
@@ -2021,9 +2049,11 @@ bool RingOutLetsOut(uint32_t player) {
     }
     const int x = static_cast<int16_t>(Ram16(player + d.x)), half = HalfWidth(player);
     const int camera = CameraX(), edge = PictureLeft();
-    const int margin = d.wideMargin(); // (the picture's edges and the camera's ends)
-    const bool left = camera <= CameraLeft() + margin && x - half <= edge - margin;
-    const bool right = camera >= CameraRight() - margin && x + half >= edge + Video::kWidth + margin;
+    const int margin = d.wideMargin(); // (the picture's edges)
+    int leftEnd, rightEnd;             // (and the camera's ends)
+    WideEnds(leftEnd, rightEnd);
+    const bool left = camera <= CameraLeft() + leftEnd && x - half <= edge - margin;
+    const bool right = camera >= CameraRight() - rightEnd && x + half >= edge + Video::kWidth + margin;
     return left || right;
 }
 
@@ -2063,6 +2093,9 @@ void battle::Register(const Description &description) {
                                  "then both return to the launcher. Offline play is unchanged.",
                                  0, {"Casual", "FT5", "FT10"}});
     }
+    // (the zoom that keeps the panel where it is: port/zoom.h)
+    game.panel = d.thePanel;
+    game.panelLayers = d.panelLayers;
     game.pages.push_back({kSurvival, kModes, "One opponent after another on the health you have left. How many can you beat?"});
     game.pages.push_back({kEndless, kModes, "Two fighters the game plays, for as long as you like. Touch the controls to take one over."});
     game.commands.push_back({"survival_start", kSurvival, "Start",
@@ -2107,7 +2140,7 @@ void battle::Register(const Description &description) {
     game.features.push_back({"endless_stage", kEndless, "Stage",
                              "Where they fight. Shuffle: a stage that fades into another every so often. Scroll: the stages "
                              "go by, one after another, and the fighters are carried along. Or one stage.",
-                             0, d.stageChoices});
+                             kFeatureFavourites, d.stageChoices});
     game.features.push_back({"endless_shuffle", kEndless, "Shuffle every",
                              "Shuffle: how long they fight on a stage before it fades into another.", 0,
                              {"1 minute", "2 minutes", "3 minutes", "5 minutes", "10 minutes"}});
@@ -2148,7 +2181,7 @@ void battle::Register(const Description &description) {
         // (the stages: the choices after the endless battle's two ways of changing them)
         static std::vector<const char *> stages = {"Random"};
         stages.insert(stages.end(), d.stageChoices.begin() + std::min<size_t>(2, d.stageChoices.size()), d.stageChoices.end());
-        game.features.push_back({"team_stage", kTeam, "Stage", "Where the teams fight, from the first fight to the last.", 0, stages});
+        game.features.push_back({"team_stage", kTeam, "Stage", "Where the teams fight, from the first fight to the last.", kFeatureFavourites, stages});
     }
     static const char *const kOrder[kTeamMost] = {"first", "second", "third"};
     static std::string titles[2][kTeamMost], helps[2][kTeamMost];

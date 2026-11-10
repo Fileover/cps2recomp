@@ -301,6 +301,7 @@ namespace {
             d.wideForPort(machine);
         }
         memcpy(machine.Picture(), shown.data(), pixels * sizeof(uint32_t));
+        MarkPictureMade(); // (another machine ran in this one: RunSpare's way, by hand)
         machine.audio.insert(machine.audio.end(), sound.begin(), sound.end());
     }
 
@@ -429,6 +430,11 @@ bool ToRound(Machine &machine, int32_t &frames, bool choose) {
 
 void PlaySound(uint16_t code) {
     const uint16_t at = Ram16(d.soundQueueEnd) & d.soundQueueMask;
+    if (d.soundEntry == 2) { // (a ring of words)
+        SetRam16(d.soundQueue + at, code);
+        SetRam16(d.soundQueueEnd, static_cast<uint16_t>((at + 2) & d.soundQueueMask));
+        return;
+    }
     SetRam32(d.soundQueue + at, code);
     SetRam32(d.soundQueue + at + 4, 0);
     SetRam32(d.soundQueue + at + 8, 0);
@@ -454,6 +460,9 @@ bool AttractMode() {
 }
 bool StageViewer() {
     return g.mode == Mode::Viewer;
+}
+bool StageViewerShowing() {
+    return g.mode == Mode::Viewer && !g.starting;
 }
 int StageViewerStage() {
     return g.mode == Mode::Viewer ? g_wanted.stage : 0;
@@ -569,7 +578,7 @@ void Register(const Description &description) {
     game.features.push_back({"viewer_stage", kViewer, "Stage",
                              "The stage the viewer shows, or Infinite: every stage in turn, each scrolling into the next with its "
                              "own tune. Changing it while viewing goes to the new one.",
-                             0, StageChoices({}, {"Infinite"})});
+                             kFeatureFavourites, StageChoices({}, {"Infinite"})});
     game.features.push_back({"viewer_scroll", kViewer, "Scrolling",
                              "How the viewer moves across the stage: with the stick, or by itself from one end to the other and back "
                              "(Infinite: always onwards).",

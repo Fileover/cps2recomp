@@ -10,6 +10,9 @@
 
 namespace nwarr::family {
 
+// Its id, as another game's guest (fight/all_guests.h): its own stages are not shown as another game's
+inline constexpr const char *kGuestId = "nwarr";
+
 struct Place {
     uint32_t nwarr, here;
 };

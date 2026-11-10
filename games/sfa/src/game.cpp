@@ -20,6 +20,7 @@ void RegisterMusic(); // music.cpp
 void BoardBeforeFrame(Machine &machine);
 void TitleFrame(Machine &machine);
 void RegisterModes();    // modes.cpp
+void RegisterStages(); // stages.cpp
 void RegisterTraining(); // training.cpp
 void RegisterBattle();   // battle.cpp
 void RegisterComputer(); // computer.cpp
@@ -90,6 +91,8 @@ void RegisterGame() {
     // Its own, never set for the other games by the collection's launcher: Damage level has Super Puzzle Fighter II
     // Turbo's choices (Low, Normal, High, Maximum), where it means the counter gems an attack sends
     OwnFeatures({"board_damage", "survival_best", "ringout_best", "model_animation", "colours_animation"});
+    // Other games' stages: last, as it goes around the frame's callbacks and the state's (stages.cpp)
+    RegisterStages();
 }
 
 } // namespace cps2recomp

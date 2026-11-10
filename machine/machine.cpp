@@ -45,7 +45,7 @@ Machine::Machine(const RomSet &roms)
     , m_roms(roms)
     , m_picture(static_cast<size_t>(Video::kMaxWidth) * Video::kHeight)
     , m_cps1(roms.board.cps1)
-    , m_cyclesPerLine(roms.board.cps1 ? kCps1CpuCyclesPerLine : kCpuCyclesPerLine) {
+    , m_cyclesPerLine(roms.board.cps1 ? kCps1CpuCyclesPerLine * roms.board.cpuClock / 12 : kCpuCyclesPerLine) {
     Video::Sources sources;
     sources.graphics = roms.graphics.data();
     sources.graphicsSize = roms.graphics.size();
@@ -56,12 +56,32 @@ Machine::Machine(const RomSet &roms)
     sources.board = roms.board;
     video = Video(sources);
     eeprom.eightBit = m_cps1;
+    std::copy(std::begin(roms.board.dip), std::end(roms.board.dip), dip);
+    if (m_cps1 && !roms.board.qsound) {
+        m_classic = std::make_unique<Cps1Sound>(roms.samples.data(), roms.samples.size());
+        m_logClassic = getenv("CPS2RECOMP_SOUND_COMMANDS") != nullptr;
+    }
     if (const char *layers = getenv("CPS2RECOMP_LAYERS")) {
         video.layerMask = static_cast<unsigned>(strtoul(layers, nullptr, 0)); // (bit 0 objects, 1-3 scroll screens)
     }
     cpu.ram = ram.data();
     cpu.video = videoRam.data();
     cpu.videoSize = static_cast<uint32_t>(videoRam.size());
+    nativeVideo.videoRam = videoRam.data();
+    nativeVideo.paletteControl = roms.board.paletteControl;
+    nativeVideo.layerControl = roms.board.layerControl;
+    nativeVideo.cps1Masks = m_cps1 ? m_roms.board.priority : nullptr;
+    if (m_cps1) {
+        nativeVideo.SetCps1(m_roms.board.enable);
+        // (its graphics mapper as a table, for the picture from the records and the GPU's)
+        if (!MakeGfxTable(m_roms.board, m_gfxTable)) {
+            fprintf(stderr, "game.cfg's gfx_map: a range that is not whole steps of %X: the picture from the records has no map\n",
+                    GfxTable::kStep);
+        }
+        nativeVideo.SetGfx(&m_gfxTable);
+    }
+    nativeVideo.SetGraphics(roms.graphics.data(), roms.graphics.size());
+    cpu.nativeVideo = &nativeVideo;
     cpu.rom = roms.program.data();
     cpu.opcodes = roms.opcodes.data();
     cpu.romSize = static_cast<uint32_t>(roms.program.size());
@@ -101,6 +121,7 @@ void Machine::Reset() {
     cpsA[2] = 0x9040;
     cpsA[3] = 0x9080;
     cpsA[4] = 0x9100;
+    nativeVideo.Reset(cpsA, cpsB, objectRegs); // (the game's side starts where the board does)
     m_line = 0;
     m_lineStart = 0;
     cpu.cycles = 0;
@@ -126,9 +147,16 @@ void Machine::Reset() {
     }
     cpu.Reset(true);
     if (m_cps1) {
-        // (a CPS-1's Z80 is never held: it runs from the start)
+        // (a CPS-1's Z80 is never held: it runs from the start, the classic CPS-1's on its own chips)
         m_soundRunning = true;
-        if (soundDriver && soundSide != SoundSide::Z80) {
+        if (m_classic) {
+            m_classic->Reset();
+            memset(m_classicRam, 0, sizeof(m_classicRam));
+            memset(m_latch, 0, sizeof(m_latch));
+            m_classicFraction = 0;
+            soundCpu.SetInterruptLine(false);
+        }
+        if (m_roms.board.qsound && soundDriver && soundSide != SoundSide::Z80) {
             soundDriver->shadow = soundSide == SoundSide::Check;
             soundDriver->Reset();
         }
@@ -157,9 +185,28 @@ void Machine::RunFrame() {
     }
     video.wide.side = std::clamp(video.wide.side, 0, static_cast<int>(Video::kMaxSide));
     m_pictureWidth = video.Width();
+    // (the panel drawn apart for the zoom: Unpanelled; not over a picture the game's sources put together with marks of
+    // their own, nor while the records are checked against the board's lines)
+    // (the panel's objects told from the rest when the object list is taken, at the end of the frame before, which is when
+    // the records' renderer notes each object's marks: native_render.h; unless the game's sources tell them themselves)
+    if (panel.object && !video.panelObject) {
+        video.panelObject = m_panelMarks = panel.object;
+    } else if (!panel.object && m_panelMarks) {
+        if (video.panelObject == m_panelMarks) {
+            video.panelObject = nullptr;
+        }
+        m_panelMarks = nullptr;
+    }
+    m_panelDrawing = panel.object && drawing && !video.markObjects && !video.markLayers && !video.markFront && !video.layerProbe &&
+                     !nativeVideo.checking;
+    if (m_panelDrawing && m_unpanelled.size() != m_picture.size()) {
+        m_unpanelled.assign(m_picture.size(), 0);
+        m_panelPixels.assign(m_picture.size(), 0);
+    }
     do {
         RunLine();
     } while (m_line != kBlankingLine);
+    m_panelDrawn = m_panelDrawing;
     soundtrack.Frame();
     frame++;
     // (CPS2RECOMP_BUS_LOG=FILE: each frame's bus waits and DMA clocks, with the board's timing; docs/TIMING.md)
@@ -191,8 +238,18 @@ void Machine::RunLine() {
         UpdateInterruptLevel();
         if (m_cps1) {
             video.LatchObjectsCps1();
+            if (nativeVideo.Active()) {
+                nativeVideo.frame = frame;
+                nativeVideo.BoardObjectsCps1(native_video::DecodeObjectsCps1(videoRam.data(), cpsA), video.Options());
+            }
         } else {
             video.LatchObjects(&objectRam[m_objectBank ? 0x2000 : 0], m_extra ? objectsFromExtra[m_objectBank ? 1 : 0] : nullptr);
+            if (nativeVideo.Active()) {
+                nativeVideo.frame = frame;
+                nativeVideo.BoardObjects(native_video::DecodeObjects(&objectRam[m_objectBank ? 0x2000 : 0], objectRegs,
+                                                                  m_extra ? objectsFromExtra[m_objectBank ? 1 : 0] : nullptr),
+                                         video.Options());
+            }
         }
     }
 
@@ -215,17 +272,73 @@ void Machine::RunLine() {
 
     RunSound(kSoundCyclesPerLine);
 
+    if (nativeVideo.checking && m_line >= Video::kFirstLine && m_line < Video::kFirstLine + Video::kHeight) {
+        // (the registers the line is drawn with, as the game's side has them: --video check)
+        nativeVideo.frame = frame;
+        nativeVideo.BoardLayers(native_video::DecodeLayers(cpsA, cpsB, objectRegs, m_roms.board.layerControl, nativeVideo.cps1Masks),
+                                m_line - Video::kFirstLine);
+    }
     if (drawing && m_line >= Video::kFirstLine && m_line < Video::kFirstLine + Video::kHeight) {
         const int row = m_line - Video::kFirstLine;
-        video.RenderLine(row, &m_picture[static_cast<size_t>(row) * m_pictureWidth]);
+        uint32_t *out = &m_picture[static_cast<size_t>(row) * m_pictureWidth];
+        // (--video native: the line drawn from the game's side's records, with no model of the board's video chips; but
+        // before the game's first object list, and for a tool that probes the layers: video.cpp)
+        auto draw = [&](uint32_t *to) {
+            if (!(nativeVideo.drawsPicture && !video.layerProbe && nativeVideo.DrawLine(row, to, video.Options()))) {
+                video.RenderLine(row, to);
+            }
+        };
+        // (a machine whose picture another draws from its records keeps only them, but for a check: ownPicture)
+        if (!ownPicture && !nativeVideo.checking) {
+        } else if (m_panelDrawing) {
+            DrawPanelApart(row, out, draw);
+        } else {
+            draw(out);
+        }
+        if (nativeVideo.Active()) {
+            nativeVideo.BoardLine(row, &m_picture[static_cast<size_t>(row) * m_pictureWidth], video.Options(), video.ComparablePicture());
+        }
     }
     m_line = (m_line + 1) % kLines;
+}
+
+// A line for the zoom that leaves the panel where it is (Unpanelled): drawn with the panel's pixels marked, which are
+// noted and the marks taken off (the line as it would have been); and drawn again without the panel's objects and
+// scroll screens
+void Machine::DrawPanelApart(int row, uint32_t *out, const std::function<void(uint32_t *)> &draw) {
+    const size_t at = static_cast<size_t>(row) * m_pictureWidth;
+    video.markObjects = true;
+    video.markLayers = panel.layers;
+    draw(out);
+    video.markObjects = false;
+    video.markLayers = 0;
+    for (int x = 0; x < m_pictureWidth; x++) {
+        m_panelPixels[at + x] = (out[x] & 0x40000000u) ? 1 : 0;
+        out[x] &= 0x00FFFFFFu;
+    }
+    // (the game's own objects hidden stay hidden: theirs or the panel's)
+    static thread_local bool (*gameHides)(uint32_t, uint16_t) = nullptr;
+    static thread_local bool (*panelObject)(uint32_t, uint16_t) = nullptr;
+    gameHides = video.hideObject;
+    panelObject = panel.object;
+    const unsigned layers = video.layerMask;
+    video.hideObject = [](uint32_t tile, uint16_t attributes) {
+        return (gameHides && gameHides(tile, attributes)) || panelObject(tile, attributes);
+    };
+    video.layerMask = layers & ~panel.layers;
+    draw(&m_unpanelled[at]);
+    video.hideObject = gameHides;
+    video.layerMask = layers;
 }
 
 // The Z80 and the QSound chip for a stretch of time. The Z80's cycle count is the sound side's clock: it
 // runs to the next thing due (its interrupt, 250 times a second; the chip's next sample; the end of the
 // stretch), a little past it, and then what has come due happens.
 void Machine::RunSound(int cycles) {
+    if (m_classic) {
+        RunClassicSound(cycles);
+        return;
+    }
     m_soundTime += static_cast<uint64_t>(cycles);
     while (soundCpu.cycles < m_soundTime) {
         const uint64_t next = std::min({m_soundTime, m_soundInterruptAt, m_sampleAt});
@@ -280,6 +393,22 @@ void Machine::RunSound(int cycles) {
     }
     if (soundSide == SoundSide::Check) {
         CompareSound();
+    }
+}
+
+// The classic CPS-1's Z80 and its chips for a stretch of time (`cycles` of 8 MHz). Its cycle count is the clock
+// here: it runs to the next thing its chips have due (a timer, a sample) and then that happens. Its interrupt is
+// the YM2151's line, up for as long as a timer that interrupts has run out and the program has not cleared it.
+void Machine::RunClassicSound(int cycles) {
+    m_classicFraction += static_cast<uint64_t>(cycles) * Cps1Sound::kClock;
+    m_soundTime += m_classicFraction / kSoundClock;
+    m_classicFraction %= kSoundClock;
+    while (soundCpu.cycles < m_soundTime) {
+        const uint64_t next = std::min(m_soundTime, m_classic->NextEvent());
+        soundCpu.SetInterruptLine(m_classic->Interrupt());
+        soundCpu.Run(next, soundMode);
+        soundCpu.cycles = std::max(soundCpu.cycles, next);
+        m_classic->RunTo(soundCpu.cycles, audio);
     }
 }
 
@@ -581,6 +710,10 @@ void Machine::WriteRegister(uint32_t address, uint16_t value, uint16_t mask) {
         combine(cpsA[index]);
         if (index == 0x0A / 2) {
             video.CopyPalette(); // (writing the palette's address makes the chip take the palette)
+            if (nativeVideo.checking) {
+                nativeVideo.frame = frame;
+                nativeVideo.BoardPalette(video.DecodePalette());
+            }
             m_palettePending = boardTiming; // (... by DMA, at the next line: LineDma)
         }
         return;
@@ -649,7 +782,20 @@ uint16_t Machine::ReadCps1(uint32_t address) {
         return static_cast<uint16_t>(((~pressed & 0xFF) << 8) | 0xFF);
     }
     if (address >= 0x80001A && address < 0x800020) {
-        return 0xFFFF; // (no DIP switches: the settings are in the settings memory)
+        // The DIP switches, banks A, B and C in the high byte (game.cfg's dip; without it, all off: a CPS-1 with QSound
+        // keeps its settings in the settings memory)
+        const int bank = static_cast<int>(address - 0x80001A) / 2;
+        // (CPS2RECOMP_DIP_LOG: each bank's value as the game reads it, when it changes; =all: the first read of each
+        // frame too, to see when the game looks)
+        static const char *const log = getenv("CPS2RECOMP_DIP_LOG");
+        static int logged[3] = {-1, -1, -1};
+        static uint64_t loggedFrame[3] = {~0ull, ~0ull, ~0ull};
+        if (log && (logged[bank] != dip[bank] || (!strcmp(log, "all") && loggedFrame[bank] != frame))) {
+            logged[bank] = dip[bank];
+            loggedFrame[bank] = frame;
+            fprintf(stderr, "dip %c read %02X (frame %llu)\n", 'A' + bank, dip[bank], static_cast<unsigned long long>(frame));
+        }
+        return static_cast<uint16_t>((dip[bank] << 8) | 0xFF);
     }
     if (address == 0xF1C000 || address == 0xF1C002) {
         const uint16_t p = players[address == 0xF1C000 ? 2 : 3];
@@ -669,6 +815,18 @@ uint16_t Machine::ReadCps1(uint32_t address) {
     if (address >= 0xF00000 && address < 0xF10000) {
         const size_t at = (address - 0xF00000) / 2;
         return static_cast<uint16_t>(0xFF00 | (at < m_roms.soundProgram.size() ? m_roms.soundProgram[at] : 0xFF));
+    }
+    if (address == 0x800176 && !m_roms.board.qsound) {
+        // The classic CPS-1's kicks (Street Fighter II's three more buttons): player 1's in bits 0-2, player 2's in
+        // bits 4-6, light to hard, pressed as 0
+        auto kicks = [](uint16_t p) { return static_cast<unsigned>((p >> 7) & 7); };
+        return static_cast<uint16_t>(~(kicks(p1) | (kicks(p2) << 4)));
+    }
+    if ((address == 0x800144 || address == 0x800146) && !m_roms.board.qsound) {
+        // The classic CPS-1's CPS-B-21 multiplies the words written at 800140 and 800142 (Street Fighter II looks up
+        // its jump tables with it): the product's low word, then its high one
+        const uint32_t product = static_cast<uint32_t>(cpsB[0]) * cpsB[1];
+        return static_cast<uint16_t>(address == 0x800144 ? product : product >> 16);
     }
     if (address >= 0x800140 && address < 0x800180) {
         // (a chip with an ID gives it at its register, which some games check as they start: romset.h's Board; no
@@ -691,6 +849,10 @@ void Machine::WriteCps1(uint32_t address, uint16_t value, uint16_t mask) {
         combine(cpsA[index]);
         if (index == 0x0A / 2) {
             video.CopyPalette(); // (writing the palette's address makes the chip take the palette)
+            if (nativeVideo.checking) {
+                nativeVideo.frame = frame;
+                nativeVideo.BoardPalette(video.DecodePalette());
+            }
         }
         return;
     }
@@ -720,6 +882,18 @@ void Machine::WriteCps1(uint32_t address, uint16_t value, uint16_t mask) {
         }
         return;
     }
+    if (m_classic && address >= 0x800180 && address < 0x800190) {
+        // The classic CPS-1's sound latches: a request (0x800180-0x800187) and the music's volume (0x800188-0x80018F),
+        // which its Z80 reads at F008 and F00A
+        if (mask & 0x00FF) {
+            // (a request: a custom soundtrack may take it, machine/soundtrack.h)
+            m_latch[address >= 0x800188] = address >= 0x800188 ? static_cast<uint8_t>(value) : soundtrack.RequestClassic(static_cast<uint8_t>(value), frame);
+            if (m_logClassic) {
+                fprintf(stderr, "68000 latch %d = %02X (frame %llu)\n", address >= 0x800188 ? 2 : 1, value & 0xFF, static_cast<unsigned long long>(frame));
+            }
+        }
+        return;
+    }
     if ((address >= 0x800030 && address < 0x800038) || address == 0xF1C004 || (address >= 0x800180 && address < 0x800190)) {
         return; // (coin counters and lock-outs; the CPS-1's sound latches, which a QSound board does not use)
     }
@@ -729,6 +903,9 @@ void Machine::WriteCps1(uint32_t address, uint16_t value, uint16_t mask) {
 // --- the Z80's bus ---
 
 uint8_t Machine::Read(uint16_t address) {
+    if (m_classic) {
+        return ReadClassic(address);
+    }
     if (address < 0x8000) {
         return m_roms.soundProgram[address];
     }
@@ -752,6 +929,10 @@ uint8_t Machine::Read(uint16_t address) {
 }
 
 void Machine::Write(uint16_t address, uint8_t value) {
+    if (m_classic) {
+        WriteClassic(address, value);
+        return;
+    }
     if (address >= 0xC000 && address < 0xD000) {
         if (soundSide == SoundSide::Check && address == 0xC00F && value == 0xFF) {
             soundDriver->TakeCommand(); // (the sound program's interrupt has taken a command)
@@ -798,6 +979,89 @@ void Machine::Write(uint16_t address, uint8_t value) {
     }
 }
 
+bool Machine::LeaveSoundRequest(const uint8_t request[16]) {
+    if (soundRam[0x00F] != 0xFF) {
+        return false;
+    }
+    memcpy(soundRam, request, 15);
+    soundRam[0x00F] = request[15];
+    return true;
+}
+
+// The classic CPS-1's Z80 map (as MAME's CPS-1 driver records it): ROM, a bank of it, its RAM, the YM2151, the OKI
+// and the 68000's two latches
+// Only the multiplier operands need trial side effects. RAM writes stay in the checker's overlay;
+// sound requests, video writes and other I/O are applied once by the reference interpreter.
+void Machine::BeginCheck() {
+    std::copy(cpsB, cpsB + 2, m_checkFactors);
+}
+void Machine::CheckWrite(uint32_t address, unsigned size, uint32_t value) {
+    if (!m_cps1) return;
+    const unsigned bytes = 1u << size;
+    for (unsigned i = 0; i < bytes; ++i) {
+        const uint32_t at = ((address + i) & 0xFFFFFF) & ~0x4000u;
+        if (at < 0x800140 || at >= 0x800144) continue;
+        const unsigned shift = (at & 1) ? 0 : 8;
+        auto &word = cpsB[(at - 0x800140) / 2];
+        const uint16_t byte = static_cast<uint8_t>(value >> (8 * (bytes - 1 - i)));
+        word = static_cast<uint16_t>((word & ~(0xFFu << shift)) | (byte << shift));
+    }
+}
+void Machine::EndCheck() {
+    std::copy(m_checkFactors, m_checkFactors + 2, cpsB);
+}
+
+uint8_t Machine::ReadClassic(uint16_t address) {
+    if (address < 0x8000) {
+        return m_roms.soundProgram[address];
+    }
+    if (address < 0xC000) {
+        const size_t at = 0x8000 + static_cast<size_t>(m_soundBank) * 0x4000 + (address - 0x8000);
+        return at < m_roms.soundProgram.size() ? m_roms.soundProgram[at] : 0xFF;
+    }
+    if (address >= 0xD000 && address < 0xD800) {
+        return m_classicRam[address - 0xD000];
+    }
+    switch (address) {
+    case 0xF000:
+    case 0xF001:
+        return m_classic->ReadYm(soundCpu.cycles);
+    case 0xF002:
+        return m_classic->ReadOki();
+    case 0xF008:
+        return m_latch[0];
+    case 0xF00A:
+        return m_latch[1];
+    }
+    return 0xFF;
+}
+
+void Machine::WriteClassic(uint16_t address, uint8_t value) {
+    if (address >= 0xD000 && address < 0xD800) {
+        m_classicRam[address - 0xD000] = value;
+        return;
+    }
+    switch (address) {
+    case 0xF000:
+    case 0xF001:
+        m_classic->WriteYm(address - 0xF000, value, soundCpu.cycles);
+        soundCpu.SetInterruptLine(m_classic->Interrupt()); // (writing the timers' register clears it)
+        break;
+    case 0xF002:
+        m_classic->WriteOki(value);
+        if (m_logClassic) {
+            fprintf(stderr, "z80   oki %02X (frame %llu, timers run out so far %llu)\n", value, static_cast<unsigned long long>(frame), static_cast<unsigned long long>(m_classic->TimersRunOut()));
+        }
+        break;
+    case 0xF004:
+        m_soundBank = value & 0x01;
+        break;
+    case 0xF006:
+        m_classic->SetPin7(value & 0x01);
+        break;
+    }
+}
+
 void Machine::Serialize(Archive &ar) {
     ar.Mark(0x4D414348);
     cpu.Serialize(ar);
@@ -807,6 +1071,7 @@ void Machine::Serialize(Archive &ar) {
     }
     qsound.Serialize(ar);
     video.Serialize(ar);
+    nativeVideo.Serialize(ar);
     eeprom.Serialize(ar);
     ar.Vec(ram);
     ar.Vec(videoRam);
@@ -851,6 +1116,26 @@ void Machine::Serialize(Archive &ar) {
         ar.Pod(m_palettePending);
     } else if (!ar.Saving()) {
         m_palettePending = false;
+    }
+    if (m_classic) {
+        if (ar.version == 0 || ar.version >= 10) { // (the classic CPS-1's sound: from version 10)
+            m_classic->Serialize(ar);
+            ar.Pod(m_classicRam);
+            ar.Pod(m_latch);
+            ar.Pod(m_classicFraction);
+        } else if (!ar.Saving()) {
+            // (a save state older than the classic CPS-1's sound in it: its sound side starts afresh, counted from here)
+            m_classic->Reset();
+            memset(m_classicRam, 0, sizeof(m_classicRam));
+            memset(m_latch, 0, sizeof(m_latch));
+            m_classicFraction = 0;
+            m_soundRunning = true;
+            m_soundBank = 0;
+            m_soundTime = 0;
+            soundCpu.Reset();
+            soundCpu.cycles = 0;
+            soundCpu.SetInterruptLine(false);
+        }
     }
 }
 

@@ -15,6 +15,7 @@
 // screen, which holds the bars. The stage's pieces move and its music plays as in a fight. "Infinite" is every
 // stage in turn, each scrolled from end to end and then out of the picture as the next comes in: two machines,
 // the port's and a spare run beside it every frame, the picture made of the two and the sound mixed.
+#include "all_guests.h"
 #include "modes.h"
 #include "state.h"
 
@@ -95,8 +96,14 @@ void RegisterModes() {
     d.player1 = kPlayer1;
     d.playerSize = kPlayerSize;
     d.x = kX;
+    // (this game's stages, then the other games' its boards beside it show: stages.cpp. Not in the Infinite, whose
+    // stages are this game's spare machines'; each plays the first stage's tune in this game's place: its own plays)
     d.stageNames.assign(std::begin(kStageNames), std::end(kStageNames));
+    const std::vector<const char *> others = guests::NamesBut("sfa2"); // (fight/all_guests.h)
+    d.stageNames.insert(d.stageNames.end(), others.begin(), others.end());
+    d.infiniteStages = kStages;
     d.stageTunes.assign(std::begin(kStageTunes), std::end(kStageTunes));
+    d.stageTunes.resize(d.stageNames.size(), kStageTunes[0]);
     d.otherTuneNames = {"Character select", "Versus"};
     d.otherTunes = {kTuneChoose, kTuneVersus};
     d.cameraLeft = 256;

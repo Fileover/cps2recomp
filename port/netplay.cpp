@@ -430,6 +430,11 @@ namespace {
     }
 } // namespace
 
+bool Netplay::MatchDecides(const Feature &feature) {
+    const Share share = Shared(feature);
+    return share == Share::Host || share == Share::Off;
+}
+
 void Netplay::StartAt(int frames) {
     delay = std::clamp(frames, 0, kMostAhead); // (the first `delay` frames: nobody's controls)
     localUpTo = remoteUpTo = static_cast<uint64_t>(delay);

@@ -54,6 +54,7 @@ void RegisterMachines();
 // stops in the picture fights are played in (64, or 0)
 int WideSide();
 int WideMargin();
+void WideEnds(int &left, int &right);
 // A spare's frame is about to run, drawn as wide as the port's picture; and the port's machine is back
 void WideForSpare(Machine &machine);
 void WideForPort(Machine &machine);

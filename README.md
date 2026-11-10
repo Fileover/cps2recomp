@@ -26,6 +26,7 @@ file). Only the versions named below work for each game, and this project cannot
 
 | Game | ROM set | Notes |
 | --- | --- | --- |
+| [**Super Street Fighter II**](games/ssf2/README.md) (1993) | `ssf2` (World 931005) | The New Challengers: the first on the CPS-2, with bonus stages |
 | [**Super Street Fighter II Turbo**](games/ssf2t/README.md) (1994) | `ssf2xjr1` (Japan 940223) | The tournament revision; Akuma and the old characters without codes |
 | [**Hyper Street Fighter II**](games/hsf2/README.md) (2004) | `hsf2` (USA 040202) | Every character in each game of the series' version, against each other; Akuma without a code |
 | [**Street Fighter Alpha**](games/sfa/README.md) (1995) | `sfa` (Europe 950727) | |
@@ -41,13 +42,21 @@ file). Only the versions named below work for each game, and this project cannot
 | [**Super Puzzle Fighter II Turbo**](games/puzzle_fighter/README.md) (1996) | `spf2t` (Europe 960529) | A puzzle training mode and CPU battle |
 | [**Darkstalkers: The Night Warriors**](games/dstlk/README.md) (1994) | `dstlk` (Europe 940705) | Huitzil and Pyron at a switch |
 | [**Night Warriors: Darkstalkers' Revenge**](games/nwarr/README.md) (1995) | `nwarr` (Europe 950316) | Huitzil and Pyron at a switch |
+| [**Cyberbots: Fullmetal Madness**](games/cybots/README.md) (1995) | `cybots` (Europe 950424) | Giant robots on four buttons; Super-8, Gaits, Warlock and Killer Bee at a switch |
 | [**Vampire Savior**](games/vampire_savior/README.md) (1997) | `vsavj` (Japan 970519) | Tag team battle |
 | [**Vampire Savior 2**](games/vsav2/README.md) (1997) | `vsav2` (Japan 970913) | Donovan, Phobos and Pyron back |
 | [**Vampire Hunter 2**](games/vhunt2/README.md) (1997) | `vhunt2` (Japan 970929) | Night Warriors' cast on Vampire Savior's engine |
-| [**Vampire Savior Definitive**](games/vsav_definitive/README.md) (beta) | `vsavj` and `vsav2` (and `dstlk`, `sfa2u` for their stages) | Vampire Savior with all eighteen characters, and the first Darkstalkers' and Alpha 2's stages |
+| [**Vampire Savior Definitive**](games/vsav_definitive/README.md) (beta) | `vsavj` and `vsav2` (and `dstlk`, `nwarr`, `sfa`, `sfa2u`, `sfa3u`, `ssf2xjr1`, `msh`, `xmvsf`, `mshvsf`, `mvsc`, `xmcota`, `sgemf`, `cybots` for their stages) | Vampire Savior with all eighteen characters, and other games' stages |
 | [**Alien vs. Predator**](games/avsp/README.md) (1994) | `avspu` (USA 940520) | Beat-'em-up: three players, a stage to start at, score attack |
+| [**Street Fighter II: The World Warrior**](games/sf2/README.md) (1991, CPS-1) | `sf2` (World 910522) | The first, eight characters to choose; on the classic CPS-1 |
+| [**Street Fighter II: Champion Edition**](games/sf2ce/README.md) (1992, CPS-1) | `sf2ce` (World 920513) | The bosses playable, mirror matches; on the classic CPS-1 |
+| [**Street Fighter II: Hyper Fighting**](games/sf2hf/README.md) (1992, CPS-1) | `sf2hf` (World 921209) | Faster, new moves and colours; on the classic CPS-1 |
+| [**Ghouls'n Ghosts**](games/ghouls/README.md) (1988, CPS-1) | `ghouls` (World) | Platform game; classic CPS-1 with YM2151 and OKI sound |
 | [**Cadillacs and Dinosaurs**](games/dino/README.md) (1993, CPS-1) | `dino` (World 930201) | Beat-'em-up: three players, a stage to start at, score attack |
 | [**The Punisher**](games/punisher/README.md) (1993, CPS-1) | `punisheru` (USA 930422) | Beat-'em-up: two players, a stage to start at, score attack |
+| [**Giga Wing**](games/gigawing/README.md) (1999) | `gigawing` (USA 990222) | Shoot-'em-up: practice with true hit boxes, score attack, caravan, boss rush |
+| [**Progear**](games/progear/README.md) (2001) | `progearu` (USA 010117) | Cave's horizontal shoot-'em-up: practice with true hit boxes, score attack, caravan, boss rush |
+| [**Dimahoo**](games/dimahoo/README.md) (2000) | `dimahoou` (USA 000121) | Raizing's vertical shoot-'em-up: practice with true hit boxes, score attack, caravan, boss rush |
 
 Each game's page has all it does, with pictures.
 
@@ -57,7 +66,7 @@ Each game's page has all it does, with pictures.
 
 ## Training mode
 
-Every fighting game has a full training mode, from the in-game menu:
+Every fighting game has a full training mode, from the in-game menu (not yet the two classic Street Fighter II games):
 
 - **Hit boxes** (and throw boxes in Alpha 2 and 3), **frame data** and a **frame meter**, an **input display**, and a
   combo and damage readout (and stun, in the Street Fighter games and Pocket Fighter).
@@ -97,13 +106,21 @@ each other.
 ## Everything else
 
 - **Widescreen** in the fighting games: 16:9, with more of the stage on each side ([more](docs/PICTURE.md#widescreen)).
+- **Other games' stages**: Vampire Savior Definitive, the other Vampire Savior games and the Alpha games can fight on
+  every other fighting game's stages in the collection, as those games show them, their music too: in training, the
+  stage viewer, the endless and team battles, and (an option) arcade matches. Each needs that game's ROM set.
 - **Alternative modes** in the fighting games: survival, ring out, an endless battle the game plays itself, and in
   most a tag team battle; plus a stage viewer and a model viewer ([more](docs/MODES.md)).
-- **The picture your way**: sharp or smooth scaling, 4:3 or square pixels, and RetroArch shaders (CRT, scanlines,
-  xBRZ and more, or your own preset). A camera zoom follows either fighter or keeps both in view
-  ([more](docs/PICTURE.md)).
+- **Shoot-'em-up practice** in Giga Wing, Progear and Dimahoo: any stage or straight at its boss, back to the start with one button, the
+  ships' true hit boxes and the enemies' shots shown ([more](docs/PRACTICE.md)); and a score attack, a caravan and a
+  boss rush ([more](docs/MODES.md#the-shoot-em-ups)).
+- **The picture your way**: sharp or smooth scaling, 4:3 or square pixels (a vertical game stood upright), and RetroArch shaders (CRT, scanlines,
+  xBRZ and more, or your own preset). A camera zoom follows either fighter, keeps both in view, or closes in
+  and out with the fighters' distance while the health bars stay put ([more](docs/PICTURE.md)).
 - **Controls**: keyboard, gamepad or arcade stick, every button changeable per player and per game.
 - **An in-game menu**: save states, speed and pause, frame advance, cheats and every option.
+- **English, Brazilian Portuguese or Spanish** in the launcher and every game's menu: chosen once in the launcher (or
+  the system's language). The games' own words are left as they are.
 - **Arcade timing**: the processor slows down where and as much as the real board does, checked frame by frame
   against a cycle-exact model of it ([docs/TIMING.md](docs/TIMING.md)). Off unless you choose it.
 - **Run-ahead**, the board's operator settings, free play, rapid fire, and straight to the title at start-up.
@@ -156,12 +173,14 @@ place. Back, or the screen's **Menu**, opens the in-game menu.
   collection keeps the shared files there) or a folder of its files. The launcher checks every file and says which
   is missing or different. **Other regions** of the same release work too, played as the board plays in that region:
   the Marvel games', Super Gem Fighter's (*Pocket Fighter* in Japan), Puzzle Fighter's, Alpha's, Alpha 3's, Super
-  Turbo's and Alien vs. Predator's; each game's page names them. Other revisions don't work: each port is made from
+  Turbo's, Alien vs. Predator's, Giga Wing's, Progear's and Dimahoo's; each game's page names them. Other revisions don't work: each port is made from
   one version's program. Vampire Savior Definitive needs both `vsavj` and `vsav2`, and shows the first
-  Darkstalkers' and Alpha 2's stages with `dstlk` and `sfa2u` too.
+  Darkstalkers', Night Warriors', Alpha's, Alpha 2's, Alpha 3's, Super Turbo's, Super Gem Fighter's, Cyberbots' and five Marvel
+  games' stages with `dstlk`, `nwarr`, `sfa`, `sfa2u`, `sfa3u`, `ssf2xjr1`, `msh`, `xmvsf`, `mshvsf`, `mvsc`, `xmcota`,
+  `sgemf` and `cybots` too.
 - macOS 13 or later (Apple silicon or Intel), Linux x86_64 or ARM64 (SteamOS included), Windows 10 or 11, 64-bit, or
   Android 9 or later on 64-bit ARM, with Vulkan.
-- A gamepad or stick is recommended (six buttons for the fighting games).
+- A gamepad or stick is recommended (six buttons for the fighting games, four for Cyberbots).
 
 ## How it works
 
@@ -176,7 +195,7 @@ With your own ROM sets in `rom/<id>/` (ignored by Git), CMake, Ninja, SDL 3 and 
 
 ```sh
 make GAME=sfa2              # twice the first time
-make GAME=sfa2 explore      # once, about ten minutes: finds the game's code and translates it
+make GAME=sfa2 explore      # optional, about ten minutes: finds more of the game's code (games/<id>/entries.txt)
 make collection             # every game whose ROM set is here, and the launcher
 ```
 
@@ -212,7 +231,7 @@ The repository holds no game data and nothing derived from it.
 
 This project is not affiliated with, endorsed by, or sponsored by Capcom or Marvel. *Street Fighter*, *Super Puzzle
 Fighter*, *Super Gem Fighter*, *Pocket Fighter*, *Vampire Savior*, *Vampire Hunter*, *Night Warriors*, *Darkstalkers*, *Mega Man*,
-*Strider* and *Captain Commando* are trademarks of Capcom Co., Ltd.; *X-Men*, *Marvel Super Heroes*, *The Punisher*
-and their characters are trademarks of Marvel Characters, Inc.; *Alien vs. Predator* and *Cadillacs and Dinosaurs* are
+*Ghouls'n Ghosts*, *Strider*, *Captain Commando*, *Cyberbots*, *Giga Wing*, *Progear* and *Dimahoo* are trademarks of Capcom Co., Ltd.; *X-Men*, *Marvel Super Heroes*,
+*The Punisher* and their characters are trademarks of Marvel Characters, Inc.; *Alien vs. Predator* and *Cadillacs and Dinosaurs* are
 trademarks of their owners; "CPS-1", "CPS-2" and "QSound" are names and trademarks of their owners, used here only to
 say what the programs work with.

@@ -61,7 +61,7 @@ constexpr uint16_t kTuneChoose = 0x0E, kTuneVersus = 0x0F;
 
 // The sound queue: a ring of sixteen-byte requests at A5-59C2, the word at A5-49C2 the place of the next (012BEE puts
 // one in; 012B3E sends the oldest to the sound CPU), as Alpha 2's; FF05 asks for the music to stop before another
-constexpr uint32_t kSoundQueue = 0xFFA63E, kSoundQueueEnd = 0xFFB63E;
+constexpr uint32_t kSoundQueue = 0xFF263E, kSoundQueueEnd = 0xFF363E;
 constexpr uint16_t kTuneOff = 0xFF05;
 
 // The camera: the picture's left edge in the stage (a word of the stage's own scroll screen's record, FF8280), with
@@ -209,6 +209,7 @@ namespace cps2recomp {
 int WideSide();
 int WideStage();
 int WideMargin();
+void WideEnds(int &left, int &right);
 void WideForSpare(Machine &machine);
 void WideForPort(Machine &machine);
 } // namespace cps2recomp

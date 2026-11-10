@@ -11,6 +11,17 @@
 
 #include "../dstlk/guest.h"
 #include "../sfa2/guest.h"
+#include "../sfa3/guest.h"
+#include "../msh/guest.h"
+#include "../mshvsf/guest.h"
+#include "../mvsc/guest.h"
+#include "../xmcota/guest.h"
+#include "../xmvsf/guest.h"
+#include "../nwarr/guest.h"
+#include "../pocket_fighter/guest.h"
+#include "../cybots/guest.h"
+#include "../sfa/guest.h"
+#include "../ssf2t/guest.h"
 #include <cstdint>
 
 #include "game.h"
@@ -66,7 +77,7 @@ constexpr std::array<const char *, A + B> Joined(const std::array<const char *, 
     }
     return out;
 }
-inline constexpr auto kMoreStageNames = Joined(dstlk_guest::kStageNames, sfa2_guest::kStageNames);
+inline constexpr auto kMoreStageNames = Joined(Joined(Joined(Joined(Joined(Joined(Joined(Joined(Joined(Joined(Joined(Joined(dstlk_guest::kStageNames, sfa2_guest::kStageNames), sfa3_guest::kStageNames), ssf2t_guest::kStageNames), sfa_guest::kStageNames), nwarr_guest::kStageNames), msh_guest::kStageNames), xmvsf_guest::kStageNames), mshvsf_guest::kStageNames), mvsc_guest::kStageNames), xmcota_guest::kStageNames), pocket_fighter_guest::kStageNames), cybots_guest::kStageNames);
 
 // The frame's lists of objects to draw that the objects of kind 12 have, one for each depth (src/picture.cpp)
 inline constexpr int kTwelveLists = 7;
@@ -215,6 +226,8 @@ inline constexpr const char *kColoursFile = "vm3j.10b", *kColoursFileWhose = "th
 
 // What this game's own sources add: the characters taken in (src/graft.cpp)
 void RegisterOwnSources();
+// (src/stages.cpp of Vampire Savior's sources: the other games' stages of the games without their own; here its own)
+void RegisterOtherStages();
 
 // What a character put in by a mode in place of the one chosen needs besides its number (src/training.cpp): Phobos's
 // and Donovan's form, +3C2, which the character choice sets from Start held as they are chosen (01F832 in Vampire Savior 2; here none: src/rules.cpp); the form

@@ -12,8 +12,9 @@ This page is for people making or working on ports. To play, see the [main page]
 
 - **Translation ahead of time.** `tools/recomp.py` turns the game's 68000 program into C++, and
   `tools/recompz80.py` does the same for the sound CPU's. The code is found by reading the program
-  and by made-up play (`tools/explore.sh`). Code it has not found yet runs in an interpreter, and is
-  counted, so that the count can be driven to zero.
+  and by made-up play (`tools/explore.sh`); the addresses play found are kept with the game, in
+  `games/<id>/entries.txt` (and `entries.txt.z80`), so every checkout starts from them. Code it has not found
+  yet runs in an interpreter, and is counted, so that the count can be driven to zero.
 - **A machine of its own, not an emulator.** The 68000, the bus, interrupts and timing, the settings
   EEPROM, the ROM set and its cipher (`machine/`), the picture (`video/`), and the Z80 and QSound
   (`sound/`). Capcom's sound driver, version 2.01b, is also there as ordinary C++ (`sound/driver.cpp`),
@@ -42,6 +43,13 @@ This page is for people making or working on ports. To play, see the [main page]
   character alone at any size, with its animations put into its record frame by frame) are `beat/beat.h`. A game
   says how it gets to a stage, where its camera, its characters' animations and their objects are, and leaves out
   the parts of its show not wanted.
+- **The shoot-'em-up modes.** Practice (a stage or its boss, with the ships, bombs and power chosen, put back as it
+  began with one button: the start is kept as a save state in memory; the last attempt replayed from it), its aids (the
+  ships' hit boxes, the enemies' shots and bodies, a readout, a summary at each boss and stage end), a score attack, a
+  caravan (a few minutes, a ship for every one lost), a boss rush (the way between the bosses run unseen, the ships out
+  of harm, each boss met from a snapshot taken a few seconds before it) and a stage viewer are `shmup/shmup.h`. A game
+  says how it gets from Start to its first stage, where it keeps its stage, its boss's clock, its scores and its ships,
+  and draws its own boxes.
 - **The model viewer.** One character alone, on a stage or on plain white or black, at a quarter of its size to 25
   times, moved with player 1's controls or going through any of its animations (one, or all in turn, repeated, in slow
   motion) is `model/model.h`, for every game's "Model viewer" (the fighting games' and the beat-'em-ups'): the
@@ -235,7 +243,42 @@ set is loaded: Capcom's QSound programs all start the same way, and every Kabuki
 so a search that splits the cipher's two halves leaves a few thousand candidates, of which one deciphers into code
 that can be followed from its start without a fault. The Z80 reads opcodes through `Z80Bus::ReadOpcode`, and
 `tools/recompz80.py` takes the opcode image (`--opcodes`). A CPS-1 board's graphics PAL maps tile numbers to ROMs; the
-games here have them in order, and a game whose PAL does not will need its map in `cps_b`'s company.
+QSound games here have them in order; a game whose PAL does not gives its map as `gfx_map` (below).
+
+## Board options and cheats from game.cfg
+
+`board_option_N` and `cheat_N` (consecutive from 1) use the existing feature registry and its Board/Cheats pages.
+Games with their own registered features keep them; declaration names must be unique across both sources.
+Settings and launcher's feature discovery use the same registry. No separate menu or launcher page is required.
+
+A board declaration has `name | title | A:0-2 | description | Easy=7 | Hard=0`: the bank is A, B or C, the
+bit range is inclusive and values are hexadecimal, shifted into that range. A single bit or one choice is allowed.
+Choice zero, "As the board is set", preserves the `dip` defaults. The board decides when it reads its switches;
+some games need Reset. Keep the board's factory values and switch meanings in its game.cfg.
+
+A cheat is `name | title | description | On: FF0000.b=01`; this address is an example, not a game's cheat.
+Writes use `.b`, `.w` or `.l`, hexadecimal addresses/values, in aligned work RAM FF0000-FFFFFF only.
+Multiple labelled choices are allowed. An optional `when FF0002.w=000D` (or `!=`) gates the writes to an
+appropriate game state. Choice zero is Off and performs no writes. Apply them in the common simulated-frame
+path, including rollback replay. Invalid declarations stop discovery/startup with a diagnostic instead of being
+silently ignored. Check the parsers without game files:
+
+```sh
+python3 tools/check_config_features.py --output work/config-feature-check
+```
+
+Classic CPS-1 configuration additionally supports `cpu_clock = 10` or `12`, three hexadecimal `dip` bytes,
+`gfx_map`, `pairs=N` after the board as for `cps1`, `/be` for a program file of words high byte first, and graphics
+files joined with `+` (a group of byte-wide files side by side; a program's pairs are `pairs=N`, never `+`).
+The shared loader retains alternate-set selection. CPS-1 QSound boards retain their pre-existing DIP defaults.
+YM2151 and OKI state is saved for rollback; state version 10 follows version 9's guest board.
+
+The board-selection/default-DIP regression also runs without game files (from the repository root):
+
+```sh
+c++ -std=c++20 -I. -Irecomp-common tools/check_board_defaults.cpp machine/romset.cpp machine/cps2crypt.cpp machine/kabuki.cpp -lz -o work/check-board-defaults
+./work/check-board-defaults
+```
 
 ## Working on the toolkit
 
@@ -244,6 +287,18 @@ A toolkit change is checked with every game: build each (`make GAME=<id>`) and r
 that game's `game.cfg` or `src/`, not in the toolkit. A feature more than one game has should have the same
 name and choices in each: the collection's launcher then shows it once, for all of them.
 
+## Wanted
+
+- **The picture native at the game's level**, not a model of the board's video chips: the games' drawing code hands
+  a native interface its frames, and the board model is kept only as the reference the checks compare with
+  ([NATIVE_VIDEO.md](NATIVE_VIDEO.md); the palette's uploads, the object lists and the layers' registers are known at the game's level in every CPS-2
+  game, checked against the board's).
+- **Drawn on the GPU**: SDL_GPU draws the interface's objects, scroll layers (with row scroll) and palettes itself, not
+  a picture made on the CPU and handed over.
+- **Every CPS-2 fighting game's stages in every other**, solidly: a stage made by its own game's code hands its
+  layers, scrolls and palettes into the game's frame as layers of their own, with no second picture laid in and no
+  video chip model for the guest.
+
 ## Repository layout
 
 | Path | What |
@@ -251,12 +306,13 @@ name and choices in each: the collection's launcher then shows it once, for all 
 | `tools/` | The translators (`recomp.py`, `m68k.py`; `recompz80.py`, `z80.py`), `gamecfg.py`, the checks (`check.sh`, `check_sound.sh`, `check_release.sh`, `at-once.sh`), finding a game's code by made-up play (`explore.sh`), reading the listing (`lst.py`, `tracechanges.py`, `ramfind.py`), the computer player's scripts of the Vampire Savior games and Super Gem Fighter as text (`aiscripts.py`), `gen_shaders.py`, `sync-common.sh`, `audit.sh`, `collection.sh`, and the release builds (`release/`) |
 | `runtime/` | What translated code is written in terms of; hooks and readable rewrites (`lift.h`); features and settings (`game.h`); save states (`state.h`); spare machines a game's modes run beside the port's (`spare.h`); another game's board beside the game's (`guest.h`) |
 | `machine/` | The 68000, bus, interrupts, timing, settings EEPROM, ROM set and cipher; the custom soundtrack's catching of the game's music (`soundtrack.h`) |
-| `video/`, `sound/` | The picture; the Z80 and QSound; Capcom's sound driver (version 2.01b) as ordinary code (`driver.cpp`) |
+| `video/`, `sound/` | The picture (the board's model, `video.cpp`; the native interface and its check, `native.h`; Capcom's video library rewritten once, `lifts.cpp`: [NATIVE_VIDEO.md](NATIVE_VIDEO.md)); the Z80 and QSound; Capcom's sound driver (version 2.01b) as ordinary code (`driver.cpp`) |
 | `third_party/` | The sound file decoders the custom soundtrack reads with (stb_vorbis, dr_flac, dr_mp3, dr_wav), as their projects publish them |
 | `port/` | The frontend (SDL 3), the custom soundtrack's player (`soundtrack.*`, `decoders.*`), putting the picture on the screen (`present.*`; shaders in `shaders/`, compiled into `shaders.inc` by `tools/gen_shaders.py`), the in-game menu adapter, the HUD, control bindings |
 | `fight/` | What a fighting game's training mode has in common, its fighting modes, and the players' own colours ([docs/FIGHT.md](FIGHT.md)) |
 | `model/` | The model viewer every game can have, the fighting games' and the beat-'em-ups' alike |
 | `beat/` | A beat-'em-up's alternative modes: attract mode, score attack, the stage viewer (`modes.cpp`) and the model viewer (`model.cpp`, on `model/`) |
+| `shmup/` | A shoot-'em-up's practice mode and alternative modes: practice and its aids, attract mode, score attack, caravan, boss rush, the stage viewer (`modes.cpp`) |
 | `recomp-common/` | A copy of [recomp-common](https://github.com/tmcleroy/recomp-common) (the in-game menu, the settings rules, the launcher), made by `tools/sync-common.sh`; never changed here |
 | `launcher/` | What this toolkit tells the shared launcher (`recomp-common/launcher`; SDL 3 + Dear ImGui): `src/description.cpp` has the words for a ROM set, the check of the player's, the game's arguments and the buttons that can be chosen, for one game's launcher or the collection's |
 | `games/` | The games ([the main page](../README.md) has the list) |

@@ -237,6 +237,7 @@ changed, and the test menu shows the board's own values.
 | Join-in | Off, On | On |
 | Continue | Off, On | On |
 | Demo sound | Off, On | On |
+| Regulation (the blood) | Off (red, as in Japan), On (white) | On |
 
 ## What you need
 

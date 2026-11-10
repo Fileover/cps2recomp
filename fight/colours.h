@@ -51,10 +51,16 @@ struct Description {
     // The sets each has, by the names the files and the editor give them (the game's own order)
     std::vector<const char *> setNames;
     int palettesInSet = 4;
+    // ... or, for a game whose characters' sets have different counts of palettes (Super Street Fighter II: one, three
+    // or eight), the count for a character, up to palettesInSet (nullptr: palettesInSet for all)
+    int (*palettesOf)(int number) = nullptr;
     // The editor's names for a set's palettes ("Body", "Effect 1"... when not given)
     std::vector<const char *> lineNames;
     // Where a character's set is in the ROM (the data view, Program)
     uint32_t (*setAddress)(int number, int set) = nullptr;
+    // ... or, for a game whose set's palettes are not one after another in the ROM (each line from a table of its
+    // own), where each line of it is (nullptr: setAddress, a palette a line on from it)
+    uint32_t (*lineAddress)(int number, int set, int line) = nullptr;
     // Every place of the characters' colours (their sets and their effects' palettes): what a PalMod file may
     // change, and what is kept to put back
     std::vector<Range> (*ranges)() = nullptr;

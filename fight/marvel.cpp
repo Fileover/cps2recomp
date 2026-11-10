@@ -258,7 +258,8 @@ bool RingOutStep(M68K &c) {
 //
 // A fight is shown 512 columns wide where the board shows 384 (16:9 for 4:3, the height and the size of everything as
 // they were): more of the stage on each side. The fight is played in that picture too: the characters can go to its
-// edges, and the camera stops where its edges come to the stage's ends (64 nearer the middle at each end). With
+// edges, and the camera stops where its edges come to the stage's art's ends (64 nearer the middle at each end, and on
+// some stages further in, with far planes drawn moved: Engine::wideStages, fight/wide_ends.h). With
 // "Invisible walls" as well, the fight is shown in the wide picture but played as on the board. The two rules the wide
 // picture changes are the game's own code with the margin in it, in place of the game's while the fight is played wide.
 
@@ -272,31 +273,53 @@ namespace {
     int Margin() {
         return g_play ? kSide : 0;
     }
+    // The stage's widescreen facts (none: nothing to change)
+    const wide::Stage *StageWide() {
+        const int stage = e.stage ? Ram8(e.stage) : -1;
+        return e.wideStages && stage >= 0 && stage < e.wideStageCount ? &e.wideStages[stage] : nullptr;
+    }
+    wide::Ends StageEnds() {
+        const wide::Stage *facts = StageWide();
+        return facts ? facts->ends : wide::Ends{};
+    }
+    // How far short of its ends a camera record (A6) is kept: the stage's camera, 64 and the stage's own; another (a
+    // plane's), 64
+    void KeptShort(uint32_t camera, int &left, int &right) {
+        left = right = kSide;
+        if (camera == (e.cameraRecord() & 0xFFFFFF)) {
+            const wide::Ends ends = StageEnds();
+            left += ends.left;
+            right += ends.right;
+        }
+    }
 
     // The end of the camera's step (A6 its record): its place across and up kept between its ends; played wide, 64
     // nearer the middle across; a mode's camera wanted beyond its ends is not kept in at all
     bool KeepCamera(M68K &c) {
         const uint32_t camera = c.a[6] & 0xFFFFFF;
-        if (e.cameraWorkX) {
-            // (the game's own keeping across, its copy put back after: not kept in at all, or first kept 64 nearer the
-            // middle, inside the game's own ends, so that its keeping changes nothing)
-            if (modes::CameraAt().beyondEnds) {
-                c.pc = e.keptAcross;
-                return true;
-            }
-            if (g_play) {
-                const int x = Word(camera + e.cameraWorkX);
-                const int left = Word(camera + e.cameraLeft) + kSide, right = Word(camera + e.cameraRight) - kSide;
-                SetRam16(camera + e.cameraWorkX, static_cast<uint16_t>(std::clamp(x, left, std::max(left, right))));
-            }
-            return false;
-        }
         // (where the stages each keep their own camera, the stage's code goes on after the piece that keeps it)
         uint32_t after = 0;
         for (const Engine::KeepCameraPlace &place : e.keepCameraPlaces) {
             if (place.at == c.pc) {
                 after = place.after;
             }
+        }
+        if (e.cameraWorkX) {
+            // (the game's own keeping across, its copy put back after: not kept in at all, or first kept 64 nearer the
+            // middle, inside the game's own ends, so that its keeping changes nothing; each stage's piece goes on at
+            // its own place)
+            if (modes::CameraAt().beyondEnds) {
+                c.pc = after ? after : e.keptAcross;
+                return true;
+            }
+            if (g_play) {
+                const int x = Word(camera + e.cameraWorkX);
+                int shortLeft, shortRight;
+                KeptShort(camera, shortLeft, shortRight);
+                const int left = Word(camera + e.cameraLeft) + shortLeft, right = Word(camera + e.cameraRight) - shortRight;
+                SetRam16(camera + e.cameraWorkX, static_cast<uint16_t>(std::clamp(x, left, std::max(left, right))));
+            }
+            return false;
         }
         const auto done = [&] {
             if (after) {
@@ -313,7 +336,9 @@ namespace {
             return false;
         }
         const int x = Word(camera + e.cameraX);
-        const int left = Word(camera + e.cameraLeft) + kSide, right = Word(camera + e.cameraRight) - kSide;
+        int shortLeft, shortRight;
+        KeptShort(camera, shortLeft, shortRight);
+        const int left = Word(camera + e.cameraLeft) + shortLeft, right = Word(camera + e.cameraRight) - shortRight;
         SetRam16(camera + e.cameraX, static_cast<uint16_t>(std::clamp(x, left, std::max(left, right))));
         const int y = Word(camera + e.cameraY);
         const int top = Word(camera + e.cameraTop), bottom = Word(camera + e.cameraTop + 2);
@@ -385,13 +410,18 @@ namespace {
         g_side = g_shift = 0;
         if (g_shown && OnStage(camera) && OnStage(shown)) {
             g_side = kSide;
-            // (the view's left edge is 64 left of the board's, and no further left than the camera's own end allows:
-            // nearer the end than that, the stage is drawn to the side by what is missing)
-            g_shift = shown - std::clamp<int>(shown, CameraLeftEnd() + kSide, CameraRightEnd() - kSide);
+            // (the view's left edge is 64 left of the board's, and no nearer the camera's own end than the stage's art
+            // allows: nearer the end than that, the stage is drawn to the side by what is missing)
+            g_shift = wide::ViewShift(shown, CameraLeftEnd(), CameraRightEnd(), kSide, StageEnds());
         }
         Video::Wide &wide = machine.video.wide;
         wide.side = g_side;
         wide.scroll[0] = wide.scroll[1] = wide.scroll[2] = g_shift;
+        if (const wide::Stage *facts = g_side ? StageWide() : nullptr) {
+            // (the far planes kept inside their painting over the camera's range: its ends in the picture played in, or
+            // with invisible walls the board's)
+            wide::FarPlanes(wide.scroll, facts->places, shown, CameraLeftEnd(), CameraRightEnd(), g_play, kSide, facts->ends);
+        }
         wide.object = g_side ? MoveObject : nullptr;
         wide.tile = nullptr;
         wide.fillHoles = g_side != 0;
@@ -407,6 +437,11 @@ bool WidePlay() {
 }
 int WideMargin() {
     return Margin();
+}
+void WideEnds(int &left, int &right) {
+    const wide::Ends ends = StageEnds();
+    left = g_play ? kSide + ends.left : 0;
+    right = g_play ? kSide + ends.right : 0;
 }
 int WideSide() {
     return g_side;

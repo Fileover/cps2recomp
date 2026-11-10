@@ -41,6 +41,7 @@ void ModelState(Archive &ar);
 bool ModelViewer();
 void RegisterColours(); // colours.cpp
 void RegisterLiveTag(); // livetag.cpp
+void RegisterStages();  // stages.cpp
 void LiveTagBeforeFrame(Machine &machine);
 
 void RegisterGame() {
@@ -108,6 +109,8 @@ void RegisterGame() {
     // The training aids of this game's own work only in a training session (the toolkit's own are so already)
     TrainingAids({"stun_readout", "custom_combo_readout", "throw_range", "fixed_damage", "dummy_stun_mash", "dummy_computer"});
     OwnFeatures({"board_damage", "survival_best", "ringout_best", "model_animation", "colours_animation"});
+    // Other games' stages: last, as it goes around the frame's callbacks and the state's (stages.cpp)
+    RegisterStages();
 }
 
 } // namespace cps2recomp

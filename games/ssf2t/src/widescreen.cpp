@@ -4,8 +4,9 @@
 // Super Street Fighter II Turbo: widescreen, as the other fighting games have it. A fight is shown 512 columns wide
 // where the board shows 384 (16:9 for 4:3, the height and the size of everything as they were): more of the stage on
 // each side. The fight is played in that picture too: the players can go to its edges, and the camera stops where its
-// edges come to the stage's ends (64 nearer the middle at each end). With the feature off none of that is there and the
-// game is the board's. It is off in every preset: it changes how the game plays.
+// edges come to the stage's art's ends (64 nearer the middle at each end; on Cammy's a little further in, and its far
+// planes drawn moved: fight/wide_ends.h). With the feature off none of that is there and the game is the board's. It
+// is off in every preset: it changes how the game plays.
 //
 // With "Invisible walls" (widescreen_walls) as well, the fight is shown in the wide picture but played as on the
 // board: nothing here touches the rules (the margin is 0), so the players are stopped where the board's picture ends
@@ -21,6 +22,7 @@
 #include "battle.h"
 #include "ssf2t.h"
 #include "state.h"
+#include "wide_ends.h"
 
 #include <algorithm>
 
@@ -36,12 +38,12 @@ namespace {
     constexpr uint32_t kPlaceX = 0x06, kPlaceY = 0x0A, kMovedX = 0x30, kMovedY = 0x32, kGoingX = 0x24, kGoingY = 0x25;
     // A player's (from 0CC4E4 and 0043F4): its half width, and what moves where it is seen from (while it reaches out:
     // the reach across, by its facing), the other player being where it is seen from (while held), and in a corner
-    constexpr uint32_t kHalfWidth = 0x1C2, kReaching = 0x2A7, kReach = 0x2AA, kSeenAsOther = 0x1F5, kCornered = 0x48;
-    constexpr uint32_t kNotKeptIn = 0x19D, kHolding = 0x63;
-    constexpr uint32_t kVarCamera = 0xFF8ED4; // (A5+ED4, the camera's place across, as 0043F4 reads it)
+    constexpr uint32_t kHalfWidth = 0x1C2, kReaching = 0x2A7, kReach = 0x2AA, kSeenAsOther = family::kSeenAsOther, kCornered = 0x48;
+    constexpr uint32_t kNotKeptIn = family::kNotKeptIn, kHolding = 0x63; // (kSeenAsOther, kNotKeptIn: 0 in a game without)
+    constexpr uint32_t kVarCamera = At(0xFF8ED4); // (A5+ED4, the camera's place across, as 0043F4 reads it)
     constexpr uint32_t kOnLedge = 0x163;      // a player's byte: its height is taken as the floor's (0CC64C)
     // Bytes and a word that hold the camera's place up still (0CC630): a flag of its own, the round's end, a super's flash
-    constexpr uint32_t kCameraHeld = 0xFF8F90, kRoundHeld = 0xFF8DDE, kSuperHeld = 0xFF8DDC;
+    constexpr uint32_t kCameraHeld = At(0xFF8F90), kRoundHeld = At(0xFF8DDE), kSuperHeld = At(0xFF8DDC);
 
     bool g_play = false;  // fights are played in the wide picture
     bool g_shown = false; // fights are shown in the wide picture (played in it, or played as on the board)
@@ -49,6 +51,23 @@ namespace {
 
     int Margin() {
         return g_play ? kSide : 0;
+    }
+    // Where the wide picture would show a stage past what the board shows of it (tools/stage_ends.sh): only on Cammy's
+    // castle ruins, whose floor's far lines go slower than the camera (the camera stops 6 further in) and whose two
+    // planes behind go at 0.64 and 0.34 of its speed (drawn moved instead: their places with the camera at the board's
+    // ends, for the 8-pixel and the 32-pixel scroll screens). On every other stage each plane goes with the camera.
+    constexpr int kCammys = 12;
+    constexpr wide::Ends kCammysEnds = {6, 6};
+    constexpr int16_t kCammysPlanes[2][2] = {{324, 571}, {383, 512}};
+    wide::Ends StageEnds() {
+        return Ram16(kStage) == kCammys ? kCammysEnds : wide::Ends{};
+    }
+    // How far short of the board's ends the camera stops, at each end, in the picture played in
+    int LeftMargin() {
+        return g_play ? kSide + StageEnds().left : 0;
+    }
+    int RightMargin() {
+        return g_play ? kSide + StageEnds().right : 0;
     }
     int16_t S16(uint32_t value) {
         return static_cast<int16_t>(value);
@@ -65,7 +84,10 @@ namespace {
     // faces), which goes into `reach` (all of it: moveq)
     void SeenAt(M68K &c, int at, int reach, uint32_t player, uint32_t other) {
         // (the team battle's tag style: a player off the stage is not followed, the other's place taken for it)
-        SetLow16(c.d[at], Ram16((Ram8(player + kSeenAsOther) || TagIsOff(player) ? other : player) + kX));
+        SetLow16(c.d[at], Ram16(((kSeenAsOther && Ram8(player + kSeenAsOther)) || TagIsOff(player) ? other : player) + kX));
+        if (!family::kTurbo) {
+            return; // (Super Street Fighter II: no reach, and its register left alone)
+        }
         c.d[reach] = 0;
         if (Ram8(player + kReaching)) {
             SetLow16(c.d[reach], Ram16(player + kReach));
@@ -88,8 +110,8 @@ namespace {
         SetLow16(c.d[3], before);
         const uint16_t moved = static_cast<uint16_t>(before + Low(c.d[by]));
         SetRam16(camera + kPlaceX, moved);
-        // (the end: in the wide picture 64 nearer the middle)
-        const uint16_t end = static_cast<uint16_t>(right ? Ram16(kCameraEndRight) - Margin() : Ram16(kCameraEndLeft) + Margin());
+        // (the end: in the wide picture 64 nearer the middle, or more)
+        const uint16_t end = static_cast<uint16_t>(right ? Ram16(kCameraEndRight) - RightMargin() : Ram16(kCameraEndLeft) + LeftMargin());
         SetLow16(c.d[2], end);
         if (right ? end >= moved : end < moved) {
             SetRam16(camera + kMovedX, Low(c.d[by]));
@@ -109,7 +131,7 @@ namespace {
         const uint32_t camera = c.a[6] & 0xFFFFFF;
         if (modes::CameraAt().x >= 0) {
             // (a mode wants the camera at a place of its own: it goes there, as far as its ends let it)
-            const int end0 = Ram16(kCameraEndLeft) + Margin(), end1 = Ram16(kCameraEndRight) - Margin();
+            const int end0 = Ram16(kCameraEndLeft) + LeftMargin(), end1 = Ram16(kCameraEndRight) - RightMargin();
             const uint16_t place = Ram16(camera + kPlaceX);
             const uint16_t wanted = static_cast<uint16_t>(std::clamp(modes::CameraAt().x, end0, end1));
             SetRam16(camera + kMovedX, static_cast<uint16_t>(wanted - place));
@@ -124,7 +146,9 @@ namespace {
         if (!(S16(c.d[3]) > S16(c.d[2]))) {
             std::swap(c.d[2], c.d[3]);
             std::swap(c.a[1], c.a[2]);
-            std::swap(c.d[4], c.d[5]);
+            if (family::kTurbo) {
+                std::swap(c.d[4], c.d[5]);
+            }
         }
         const uint32_t first = c.a[1] & 0xFFFFFF, second = c.a[2] & 0xFFFFFF;
         SetLow16(c.d[2], static_cast<uint16_t>(Low(c.d[2]) - Ram16(first + kHalfWidth)));
@@ -150,8 +174,9 @@ namespace {
             return;
         }
         // (further apart: their middle in the middle)
-        uint16_t middle = static_cast<uint16_t>(Ram16(first + kX) + Low(c.d[4]) - Ram16(first + kHalfWidth) + Ram16(second + kX) +
-                                                Low(c.d[5]) + Ram16(second + kHalfWidth));
+        const uint16_t reach1 = family::kTurbo ? Low(c.d[4]) : 0, reach2 = family::kTurbo ? Low(c.d[5]) : 0;
+        uint16_t middle = static_cast<uint16_t>(Ram16(first + kX) + reach1 - Ram16(first + kHalfWidth) + Ram16(second + kX) + reach2 +
+                                                Ram16(second + kHalfWidth));
         SetLow16(c.d[0], static_cast<uint16_t>((middle >> 1) - place - 0xC0));
         if (S16(c.d[0]) < 0) {
             MoveAcross(c, camera, false);
@@ -175,7 +200,7 @@ namespace {
             SetRam16(camera + kPlaceY, to);
             return;
         }
-        if (Ram8(kCameraHeld) || Ram8(kRoundHeld) || Ram16(kSuperHeld)) {
+        if ((kCameraHeld && Ram8(kCameraHeld)) || Ram8(kRoundHeld) || Ram16(kSuperHeld)) {
             return;
         }
         // (each player's height: the floor's for one standing on something, a ledge)
@@ -228,11 +253,11 @@ namespace {
     // width (its reach, while it reaches out, counted in); one held is moved with it
     void KeepIn(M68K &c) {
         const uint32_t player = c.a[6] & 0xFFFFFF;
-        if (Ram8(player + kNotKeptIn)) {
+        if (kNotKeptIn && Ram8(player + kNotKeptIn)) {
             return;
         }
         SetRam8(player + kCornered, 0);
-        if (Ram8(player + kSeenAsOther)) {
+        if (kSeenAsOther && Ram8(player + kSeenAsOther)) {
             return;
         }
         // (the ring out: a player knocked about at an end of the stage goes over it; the tag style's off the stage)
@@ -244,8 +269,10 @@ namespace {
         uint16_t leftmost = static_cast<uint16_t>(shown + half);
         SetLow16(c.d[0], leftmost);
         uint16_t at = Ram16(player + kX), reach = 0;
-        c.d[3] = 0; // (moveq)
-        if (Ram8(player + kReaching)) {
+        if (family::kTurbo) {
+            c.d[3] = 0; // (moveq; Super Street Fighter II has no reach, and leaves D2 and D3 alone)
+        }
+        if (family::kTurbo && Ram8(player + kReaching)) {
             reach = Ram16(player + kReach);
             if (!Ram8(player + kFacesRight)) {
                 reach = static_cast<uint16_t>(0u - reach);
@@ -253,7 +280,9 @@ namespace {
             SetLow16(c.d[3], reach);
             at = static_cast<uint16_t>(at + reach);
         }
-        SetLow16(c.d[2], at);
+        if (family::kTurbo) {
+            SetLow16(c.d[2], at);
+        }
         if (!(S16(leftmost) < S16(at))) {
             ToEdge(c, player, leftmost, reach, 1);
         }
@@ -296,11 +325,21 @@ namespace {
             // (the view's left edge is 64 left of the camera, and no further left than the camera's own end: nearer
             // the end than that, the stage is drawn to the side by what is missing. Played in the wide picture the
             // camera never goes there; with invisible walls it does, and the board's picture is then to one side)
-            g_shift = shown - std::clamp<int>(shown, CameraLeftEnd() + kSide, CameraRightEnd() - kSide);
+            g_shift = wide::ViewShift(shown, CameraLeftEnd(), CameraRightEnd(), kSide, StageEnds());
         }
         Video::Wide &wide = machine.video.wide;
         wide.side = g_side;
         wide.scroll[0] = wide.scroll[1] = wide.scroll[2] = g_shift;
+        if (g_side && Ram16(kStage) == kCammys) {
+            // (Cammy's planes behind, kept inside their painting over the camera's range: fight/wide_ends.h)
+            const int end0 = CameraLeftEnd(), end1 = CameraRightEnd();
+            const wide::Ends ends = StageEnds();
+            const int from = g_play ? end0 + kSide + ends.left : end0, to = g_play ? end1 - kSide - ends.right : end1;
+            for (int n = 0; n < 2; n++) {
+                const int16_t *places = kCammysPlanes[n];
+                wide.scroll[n == 0 ? 0 : 2] = wide::FarScroll(places[1] - places[0], end1 - end0, shown, end0, end1, from, to, kSide, ends);
+            }
+        }
         wide.object = g_side ? MoveObject : nullptr;
         wide.tile = nullptr;
         wide.fillHoles = g_side != 0;
@@ -316,6 +355,10 @@ bool WidePlay() {
 }
 int WideMargin() {
     return Margin();
+}
+void WideEnds(int &left, int &right) {
+    left = LeftMargin();
+    right = RightMargin();
 }
 int WideSide() {
     return g_side;
@@ -374,9 +417,9 @@ namespace {
 void RegisterWidescreen() {
     modes::Focus(FocusPlace, 40, 104);
     TheGame().widestPicture = [] { return Video::kWidth + (FeatureOn("widescreen") ? 2 * kSide : 0); };
-    AddRewrite(0x0CC4E4, "CameraAcross", CameraAcross, kFreeFlags, 418);
-    AddRewrite(0x0CC630, "CameraUp", CameraUp, kFreeFlags, 322);
-    AddRewrite(0x0043F4, "KeepIn", KeepIn, kFreeFlags, 215);
+    AddRewrite(At(0x0CC4E4), "CameraAcross", CameraAcross, kFreeFlags, 418);
+    AddRewrite(At(0x0CC630), "CameraUp", CameraUp, kFreeFlags, 322);
+    AddRewrite(At(0x0043F4), "KeepIn", KeepIn, kFreeFlags, 215);
     // (not in the Enhanced preset: it shows more of the stage than the board does, and a player who wants the game as
     // it is played in competition must not get that without asking)
     TheGame().features.push_back({"widescreen", "Display", "Widescreen",
