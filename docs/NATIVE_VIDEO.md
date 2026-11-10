@@ -220,9 +220,9 @@ Darkstalkers' stages had no music: their build asked the sound program to stop e
 interrupt, sending that, empties the sound ring, the stage's tune asked for after it too. The build leaves it out now;
 the tune is the first stage's, as in Darkstalkers' own viewer.
 
-The endless battle (its one stage) and the team battle take other games' stages too: their lists (`stageChoices`) have
-them after the game's own, and a match on one is fought on the game's first stage, the other drawn behind it, as
-training's are (`BattleStage`, read by the host's `wanted`). The endless battle's Shuffle and Scroll go on through the
+The survival, the team battle and the endless battle (its one stage) take other games' stages too, from the menu's Stage
+page as every other fight does (`session::kStageFeature`: the game's own stages, then the others'): a match on one is
+fought on the game's first stage, the other drawn behind it (`BattleStage`, read by the host's `wanted`). The endless battle's Shuffle and Scroll go on through the
 game's own stages: each shows two stages at once, made on the game's spare boards.
 
 Alpha's stages go alone too (`games/sfa/guest.h`). Its start-up and attract mode keep a loop (001996, the modes called

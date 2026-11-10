@@ -7,7 +7,7 @@
 // in its own game's folder (games/dstlk/guest.h, games/sfa2/guest.h). Here is what is this game's: its camera, when a
 // stage is shown, its objects that are not its stage's, its stage tunes, and which stage is wanted.
 //
-// Which: a stage chosen by name (training's, the stage viewer's: the guests' after Vampire Savior's twelve), or, with
+// Which: a stage chosen by name (the Stage page's, the stage viewer's: the guests' after Vampire Savior's twelve), or, with
 // the "Darkstalkers' stages" feature, a match's stage is the opponent's own in Darkstalkers, where it has one (player
 // 2's in a two-player match; the computer's against it): twelve of the eighteen have.
 #include "definitive.h"
@@ -54,7 +54,7 @@ namespace {
     // The stage wanted now, 1 the guests' first (Darkstalkers' are first: game.cfg's guests); 0 this game's own
     int Wanted() {
         if (BattleMode()) {
-            // (the modes' stages are this game's own, but one chosen for the endless or the team battle from the guests')
+            // (a mode's stages are this game's own, but the player's stage when it is one of the guests': BattleStage)
             const int chosen = BattleStage();
             return chosen > kStages && chosen <= kStages + kMoreStages ? chosen - kStages : 0;
         }
@@ -83,8 +83,8 @@ void RegisterStages() {
     game.features.push_back({"dstlk_stages", "Display", "Darkstalkers' stages",
                              "A match is fought on the opponent's own stage in the first Darkstalkers, where it has one (twelve "
                              "of the eighteen have): its picture and its music, as that game shows them. Needs Darkstalkers' ROM "
-                             "set (dstlk) beside this game's, or chosen on its page in the launcher. Training's and the stage "
-                             "viewer's lists have them too, and Street Fighter Alpha 2's with its set.",
+                             "set (dstlk) beside this game's, or chosen on its page in the launcher. The menu's Stage page and "
+                             "the stage viewer's list have them too, and Street Fighter Alpha 2's with its set.",
                              0});
     guest_stages::Host host;
     host.cameraX = kCameraX;

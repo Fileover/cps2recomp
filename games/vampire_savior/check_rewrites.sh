@@ -55,7 +55,7 @@ check_mode() { # as check: a movie of a mode, whose own changes to the round's r
     return 0
 }
 for skip in "" "$computer"; do
-    at_once check_mode team_tag_computer 8000 free_play,team_style=0,team_size=1,team_opponent=0,team_stage=4 "$skip" "--keys 60:cteam_start"
+    at_once check_mode team_tag_computer 8000 free_play,team_style=0,team_size=1,team_opponent=0,stage=4 "$skip" "--keys 60:cteam_start"
     at_once check_mode ringout_computer 8000 free_play "$skip" "--keys 60:cringout_start"
     # (FF87B3, FF8BB3: each player's level; FF860A, FF8A0A: their tiers, 40 in the attract mode's own fights)
     for held in "FF87B3=00,FF8BB3=00" "FF87B3=0C,FF8BB3=0C,FF860A=20,FF8A0A=20" "FF87B3=1F,FF8BB3=1F,FF860A=00,FF8A0A=00"; do
@@ -69,7 +69,7 @@ run ladder 12000 free_play "$computer"
 # with them left out the ones they use.
 check_stage() { # stage (1-12), rewrites to leave out, more of the port's options
     out=$(CPS2RECOMP_SKIP_REWRITES="$2" $port --rom "${ROM:-rom/$GAME}" --headless --frames 6000 --auto 7:1500 \
-        --keys "5:ftraining_stage=$1,10:ctraining_start" $3 --check-rewrites 2>&1)
+        --keys "5:fstage=$1,10:ctraining_start" $3 --check-rewrites 2>&1)
     echo "== stage $1${2:+ (without the outer ones)}${3:+ ($3)}"
     # (training's own changes to the round's rules differ from the game's, as they are meant to: only the
     # stage's rewrites are looked at)

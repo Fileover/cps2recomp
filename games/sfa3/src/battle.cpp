@@ -121,7 +121,6 @@ void RegisterBattle() {
     for (const uint8_t number : kFighterNumbers) {
         d.fighterChoices.push_back(kCharacterNames[number]);
     }
-    d.stageChoices = modes::StageChoices({"Shuffle", "Scroll"});
     d.tuneOff = kTuneOff;
     d.inGame = [] { return Ram16(kMode) == 2; };
     d.choosing = modes::Choosing;

@@ -33,6 +33,7 @@ inline constexpr Place kPlaceList[] = {
     {0x007684, 0x00802E}, // an instruction, 8 on alike
     {0x007914, 0x0082C0}, // the same bytes, once only
     {0x00797C, 0x00832A}, // the stage's number doubled and kept (the code before it calls a new routine, 09D0F8) by hand
+    {0x007AFA, 0x09D17E}, // the end of the match making (training.cpp's StageChosen): this game's is a new routine both makings jump to (09D148) by hand
     {0x00B444, 0x00C4FE}, // an instruction, 17 on alike
     {0x00B50C, 0x00C5C6}, // an instruction, 24 on alike
     {0x00ECCE, 0x00EE14}, // an instruction, 4 on alike

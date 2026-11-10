@@ -61,7 +61,7 @@ board does not have. Each mode has a page there with a Start row and its choices
 | Survival: Best | `survival_best` | The most opponents beaten in one survival, kept here. Choosing a preset in the launcher puts it back to 0. |
 | Ring out: Best | `ringout_best` | The most ring outs in one go, kept the same way. |
 | Endless battle: Fighter 1, Fighter 2 | `endless_one`, `endless_two` | Who is on each side: Random (someone new each time), or one of the fifteen characters. |
-| Endless battle: Stage | `endless_stage` | Shuffle: a stage that fades into another, at random, every so often. Scroll: the stages go by one after another at a steady pace and the fighters are carried along with the floor, the picture's left edge pushing them on. Or one of the twelve stages. |
+| Endless battle: Stages | `endless_stage` | Shuffle: a stage that fades into another, at random, every so often. Scroll: the stages go by one after another at a steady pace and the fighters are carried along with the floor, the picture's left edge pushing them on. One stage: the one chosen on the menu's Stage page (with the game's choice there, another for each fight). |
 | Endless battle: Shuffle every | `endless_shuffle` | How long the fight stays on a stage before Shuffle fades it into another: 1, 2, 3, 5 or 10 minutes. |
 | Endless battle: Scroll speed | `endless_scroll` | How fast Scroll's stages go by: Slow, Medium or Fast. |
 | Attract mode: Shows | `attract_show` | What attract mode plays. Choices: Everything, The intro only (the introduction to the title, over and over), The fights only (one of the game's eight demonstration fights after another). |
@@ -127,12 +127,19 @@ test menu instead.
 | Full gauge, player 2 | `full_gauge_2` | Player 2 always has special gauges to spend. |
 | Infinite time | `infinite_time` | The round's clock stands still. |
 
+## Stage
+
+Its own page on the in-game menu's first page. Online, the match is on the host's.
+
+| Feature | Name in `settings.ini` | What it does |
+| --- | --- | --- |
+| Stage | `stage` | Where the fights are, whatever is played (the game's own games, training, the other modes): the game's own choice (at random, from those that go with player 2's character) or a stage named here. Takes effect when the characters are next chosen. Choices: The game's choice, Feast of the Damned, Concrete Cave, Tower of Arrogance, Red Thirst, Deserted Chateau, Abaraya, Vanity Paradise, War Agony, Forever Torment, Green Scream, Iron Horse, Iron Terror, Fetus of God. |
+
 ## Training mode
 
 | Feature | Name in `settings.ini` | What it does |
 | --- | --- | --- |
 | Start over at | `restart_at` | Where "Start over" puts the players: the middle or a corner, player 1 on the left or (swapped) on the right. Choices: Middle, Left corner, Right corner, Middle, swapped, Left corner, swapped, Right corner, swapped. |
-| Stage | `training_stage` | Where a training session's fight is: the game's own choice (at random, from those that go with player 2's character) or a stage named here. Takes effect when the characters are next chosen. Choices: The game's choice, Feast of the Damned, Concrete Cave, Tower of Arrogance, Red Thirst, Deserted Chateau, Abaraya, Vanity Paradise, War Agony, Forever Torment, Green Scream, Iron Horse, Iron Terror, Fetus of God. |
 | Combo readout | `damage_readout` | Under the bar of the player hit: what the hit took off; for a combo (hits landing before the player is free again) the hits and the damage; how much of it is lost for good and how much comes back; the round's best. |
 | Input display | `input_display` | Shows what each player presses and for how many frames: the stick as a keypad number (5 is the middle, 6 right, 2 down), then the buttons. |
 | Hit boxes | `hit_boxes` | Draws the boxes the game tests: where a player can be hit (blue), attacks (red; orange for things thrown), and the boxes that keep the players apart (green). |

@@ -68,7 +68,7 @@ check_mode() { # as check: a movie of a mode, whose own changes to the round's r
     echo "$out" | grep -q "^rewrite ComputerThinks" || return 1
     return 0
 }
-at_once check_mode team_tag_computer 8000 free_play,team_style=0,team_size=1,team_opponent=0,team_stage=4 "$deep" "--keys 60:cteam_start"
+at_once check_mode team_tag_computer 8000 free_play,team_style=0,team_size=1,team_opponent=0,stage=4 "$deep" "--keys 60:cteam_start"
 at_once check_mode ringout_computer 8000 free_play "$deep" "--keys 60:cringout_start"
 # (FF84A7, FF88A7: each player's level; FF861A, FF8A1A: their tiers)
 for held in "FF84A7=00,FF88A7=00" "FF84A7=0C,FF88A7=0C,FF861A=20,FF8A1A=20" "FF84A7=1F,FF88A7=1F,FF861A=40,FF8A1A=40"; do
@@ -77,7 +77,7 @@ done
 unset CPS2RECOMP_COACH CPS2RECOMP_BATTLE_SEED
 # A training session (player 1 sweeps; the dummy's quick rise): the training mode's own lines act inside the round's
 # clock and the damage (and what encloses them), so those are left out, and the players' routines are checked
-run training_rise 5500 free_play,dummy_getup=1 "RoundFrame,PlayersStep,PlayerFighting,RoundFighting,AllHitTests,PlayersAgainstPlayers,HitTest,TakeDamage" "--keys 3:ftraining_stage=1,5:ctraining_start"
+run training_rise 5500 free_play,dummy_getup=1 "RoundFrame,PlayersStep,PlayerFighting,RoundFighting,AllHitTests,PlayersAgainstPlayers,HitTest,TakeDamage" "--keys 3:fstage=1,5:ctraining_start"
 at_once_wait || status=1
 [ $status -eq 0 ] && echo "ok: every rewrite does what $GAME's code does" || echo "FAILED"
 exit $status

@@ -46,7 +46,7 @@ at_once attract ""
 at_once attract "ComputerPlays,AnswerNow,BrokenOff"
 check_stage() { # stage, rewrites to leave out, more of the port's options
     out=$(CPS2RECOMP_SKIP_REWRITES="$2" $port --rom "${ROM:-rom/$GAME}" --eeprom "$eeprom/stage-$1-$$.bin" --headless --frames 6000 \
-        --auto 7:1500 --keys "5:ftraining_stage=$1,10:ctraining_start" $3 --check-rewrites 2>&1)
+        --auto 7:1500 --keys "5:fstage=$1,10:ctraining_start" $3 --check-rewrites 2>&1)
     echo "== stage $1${2:+ (without the outer ones)}${3:+ ($3)}"
     # (training's own changes to the round's rules differ from the game's, as they are meant to: only the
     # stage's rewrites are looked at)
@@ -60,7 +60,7 @@ outer=$(grep -oE '"(Back8|Far32)(Across|Up)[A-Za-z0-9]*"' games/vampire_savior/s
 # (the stages: the game's own, the training session's "Stage" choices after "The game's choice" up to the first of
 # the other games' stages (named "<game>: <stage>"), which their own games' checks see to; with those, 191 stages
 # made this check take hours)
-stages=$($port --list-features 2>/dev/null | grep "^training_stage" | cut -f6 | tr '|' '\n' | awk 'NR == 1 { next } /: / { exit } { n++ } END { print n + 0 }')
+stages=$($port --list-features 2>/dev/null | grep "^stage" | cut -f6 | tr '|' '\n' | awk 'NR == 1 { next } /: / { exit } { n++ } END { print n + 0 }')
 n=1
 while [ $n -le "$stages" ]; do
     at_once check_stage $n ""

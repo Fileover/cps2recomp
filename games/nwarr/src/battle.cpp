@@ -112,7 +112,6 @@ void RegisterBattle() {
     d.rosterNumber = [](int choice) { return choice >= 1 && choice < kCharacters ? choice : -1; };
     d.fighterChoices = {"Random"};
     d.fighterChoices.insert(d.fighterChoices.end(), std::begin(kCharacterNames) + 1, std::end(kCharacterNames));
-    d.stageChoices = modes::StageChoices({"Shuffle", "Scroll"});
     d.inGame = [] { return Ram8(kPlayersIn) != 0 && Ram16(kMode) == kGameRunning; };
     d.choosing = modes::Choosing;
     d.toRound = modes::ToRound;

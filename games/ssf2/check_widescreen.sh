@@ -16,7 +16,7 @@ status=0
 dir=$(mktemp -d)
 for stage in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16; do
     SSF2_HOME=$dir/home_s$stage $port --rom "${ROM:-rom/$GAME}" --headless --frames 3900 --features free_play,widescreen \
-        --movie games/$GAME/movies/corners.txt --keys "3:ftraining_stage=$stage,5:ctraining_start" --shot-every 100:$dir/s${stage}_ > /dev/null 2>&1 &
+        --movie games/$GAME/movies/corners.txt --keys "3:fstage=$stage,5:ctraining_start" --shot-every 100:$dir/s${stage}_ > /dev/null 2>&1 &
 done
 wait
 python3 - "$dir" <<'PY' || status=1

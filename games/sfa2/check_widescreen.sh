@@ -23,9 +23,9 @@ status=0
 dir=$(mktemp -d)
 for stage in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18; do
     env $HOME_VAR=$dir/home_s$stage SFA2_WIDE_CHECK=1 $port --rom "${ROM:-rom/$GAME}" --headless --frames 3300 --features free_play,widescreen --movie games/sfa2/movies/corners.txt \
-        --keys "3:ftraining_stage=$stage,5:ctraining_start" --shot-every 1100:$dir/s${stage}_ 2> $dir/plan$stage.txt > /dev/null &
+        --keys "3:fstage=$stage,5:ctraining_start" --shot-every 1100:$dir/s${stage}_ 2> $dir/plan$stage.txt > /dev/null &
     env $HOME_VAR=$dir/home_w$stage $port --rom "${ROM:-rom/$GAME}" --headless --frames 3300 --features free_play,widescreen,widescreen_walls \
-        --movie games/sfa2/movies/corners.txt --keys "3:ftraining_stage=$stage,5:ctraining_start" --shot-every 1100:$dir/w${stage}_ > /dev/null 2>&1 &
+        --movie games/sfa2/movies/corners.txt --keys "3:fstage=$stage,5:ctraining_start" --shot-every 1100:$dir/w${stage}_ > /dev/null 2>&1 &
     [ $((stage % 6)) -eq 0 ] && wait
 done
 wait

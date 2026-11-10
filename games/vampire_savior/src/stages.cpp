@@ -8,7 +8,7 @@
 // wanted. Vampire Savior Definitive, built from these sources too, has its own (games/vsav_definitive/src/stages.cpp:
 // its Darkstalkers' stages by the opponent); family.h says which game calls this.
 //
-// Which: a stage chosen by name (training's, versus's, the stage viewer's: the guests' after this game's twelve), or,
+// Which: a stage chosen by name (the menu's Stage page's, the stage viewer's: the guests' after this game's twelve), or,
 // with the "Other games' stages" feature, an arcade match's stage is one of theirs, the same one for the same match.
 #include "guest_stages.h"
 #include "modes.h"
@@ -35,7 +35,7 @@ namespace {
     // The stage wanted now, 1 the guests' first (Darkstalkers' are first: game.cfg's guests); 0 this game's own
     int Wanted() {
         if (BattleMode()) {
-            // (the modes' stages are this game's own, but one chosen for the endless or the team battle from the guests')
+            // (a mode's stages are this game's own, but the player's stage when it is one of the guests': BattleStage)
             const int chosen = BattleStage();
             return chosen > kStages && chosen <= kStages + kMoreStages ? chosen - kStages : 0;
         }
@@ -75,8 +75,8 @@ void RegisterOtherStages() {
     game.features.push_back({"other_stages", "Display", "Other games' stages",
                              "An arcade match is fought on a stage of another game's, as that game shows it, its music too: "
                              "the other fighting games in the collection, those whose ROM sets are there (beside this "
-                             "game's, or chosen on their pages in the launcher). Training's, versus's and the stage "
-                             "viewer's lists have them all after this game's own.",
+                             "game's, or chosen on their pages in the launcher). The menu's Stage page and the stage "
+                             "viewer's list have them all after this game's own.",
                              0});
     guest_stages::Host host;
     host.cameraX = kCameraX;

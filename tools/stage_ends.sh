@@ -46,7 +46,7 @@ end=$((walk + 1800))
 # (Start over at the left corner, then the right, three times each: the keys count the port's ticks, which run ahead of
 # the frames while the title is skipped)
 start=${START:-3,5}
-keys="${start%,*}:ftraining_stage=STAGE,${start#*,}:ctraining_start"
+keys="${start%,*}:fstage=STAGE,${start#*,}:ctraining_start"
 for k in 0 400 800; do
     keys="$keys,$((walk + k)):frestart_at=1,$((walk + k + 1)):k1,$((walk + k + 200)):frestart_at=2,$((walk + k + 201)):k1"
 done

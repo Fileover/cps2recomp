@@ -1,5 +1,5 @@
 # cps2recomp input movie: frame player1 player2 player3 player4 (pressed bits, hex)
-# team battle, tag style, 2 vs 2, teams of three (made-up play for four players from 1300): tags, each jumping off and the next jumping in; bars emptied as knock-downs lying before the next comes in; one round. Run with CPS2RECOMP_BATTLE_SEED=1 and --features free_play,tag_team=2,team_style=0,team_size=1,team_stage=5,team_1_1=1,team_1_2=13,team_1_3=6,team_2_1=2,team_2_2=15,team_2_3=9 --keys 60:cteam_start
+# team battle, tag style, 2 vs 2, teams of three (made-up play for four players from 1300): tags, each jumping off and the next jumping in; bars emptied as knock-downs lying before the next comes in; one round. Run with CPS2RECOMP_BATTLE_SEED=1 and --features free_play,tag_team=2,team_style=0,team_size=1,stage=5,team_1_1=1,team_1_2=13,team_1_3=6,team_2_1=2,team_2_2=15,team_2_3=9 --keys 60:cteam_start
 0 0000 0000 0000 0000
 1304 0054 0206 0000 0000
 1307 0192 0206 0258 0000

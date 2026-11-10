@@ -58,8 +58,14 @@ namespace {
         return Ram8(kShowTask) || Ram8(kTitleTask) || InGame();
     }
 
-    // The stage wanted put in kStage (none: the game's own)
+    // The stage wanted put in kStage (none: the game's own). Not in the board's own one-player game: there the word
+    // is the ladder's place too (the computer's opponent is the stage's character, as in Super Turbo), so it stays
+    // the game's own; another game's stage is drawn behind such a match all the same (stages.cpp).
     void PutStage() {
+        const bool ladder = Ram8(kPlayersIn) != 3 && !modes::Wanted().stage && !BattleMode() && !session::InSession();
+        if (ladder) {
+            return;
+        }
         const int stage = session::WantedStage();
         if (stage >= 1 && stage <= kStages) {
             SetRam16(kStage, static_cast<uint16_t>(stage - 1));

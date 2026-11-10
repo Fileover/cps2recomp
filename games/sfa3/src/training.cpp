@@ -321,8 +321,9 @@ void RegisterTraining() {
     d.wideMargin = WideMargin;
     d.wideEnds = WideEnds;
     d.stageChoices = modes::StageChoices({"The game's choice"});
-    d.stageWords = "Where a training session's fight is: the game's own choice (the stage of one of the two characters) or a stage "
-                   "named here. Takes effect when the characters are next chosen.";
+    d.stageWords = "Where the fights are, whatever is played (the game's own games, training, the other modes): the "
+                   "game's own choice (the stage of one of the two characters) or a stage named here. Takes effect "
+                   "when the characters are next chosen.";
     d.inputWords = "What each player presses and for how many frames: the stick as a keypad number from the player's side (6 forward, "
                    "4 back, 2 down), then the buttons.";
     d.framesPrintVariable = "SFA3_FRAMES";

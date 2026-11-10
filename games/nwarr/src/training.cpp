@@ -190,6 +190,10 @@ void RegisterTraining() {
     d.wideEnds = WideEnds;
     d.pictureFloor = 196; // (the floor's line in the picture with the camera at its lowest: the players' feet)
     d.stageChoices = modes::StageChoices({"The game's choice"});
+    d.stageWords = "Where the fights are, whatever is played (two-player games, training, the other modes): the "
+                   "game's own choice or a stage named here. A one-player game's stage stays the opponent's own, "
+                   "which the game goes by; another game's stage is shown there all the same. Takes effect when the "
+                   "characters are next chosen.";
     d.dummy.downAfter = 34;
     session::Register(d);
     AddHook(HookAt(kPlayerStep), "PlayerStep", PlayerStep);

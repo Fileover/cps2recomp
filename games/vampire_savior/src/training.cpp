@@ -29,8 +29,9 @@ namespace {
 
     constexpr int kPictureFloor = 239; // the picture's line that height 0 in the stage is on, with the camera at the bottom
 
-    // The game is choosing the stage for a match (vsav.h, kChooseStage). In a training session with a stage
-    // asked for, that one is used and the game's routine is left out.
+    // The game is choosing the stage for a match (vsav.h, kChooseStage). Between two players (a training session's
+    // too) with a stage asked for, that one is used and the game's routine is left out; in a one-player game the
+    // routine chooses the next opponent too, and runs (StageChosenForOne).
     bool ChooseStage(M68K &c) {
         // The characters a mode wants, in place of the ones chosen (two alike: the second in its other colours),
         // in their hidden forms if asked for (which have two sets of colours)
@@ -68,6 +69,17 @@ namespace {
         SetRam16(kStage, static_cast<uint16_t>((stage - 1) * 2));
         Return(c);
         return true;
+    }
+
+    // 00AF14: the end of that routine for a one-player game, which has chosen the next opponent and, from the ladder's
+    // list, its stage (00AF10). The player's stage (the menu's Stage page) is put in its place: the opponent stays.
+    // Another game's: this game's first under it, as above.
+    bool StageChosenForOne(M68K &) {
+        const int stage = session::WantedStage();
+        if (stage >= 1 && Ram8(kPlayersThen) != 3) {
+            SetRam16(kStage, static_cast<uint16_t>(stage <= kStages ? (stage - 1) * 2 : 0));
+        }
+        return false;
     }
 
     // What the game read off the panel for a player this frame (vsav.h, kControls), as Button bits
@@ -129,6 +141,7 @@ bool TrainingMode() {
 
 void RegisterTraining() {
     AddHook(At(0x00AE7C), "ChooseStage", ChooseStage);
+    AddHook(At(0x00AF14), "StageChosenForOne", StageChosenForOne);
     session::Description d;
     d.player1 = kPlayer1;
     d.playerSize = kPlayerSize;
@@ -163,8 +176,9 @@ void RegisterTraining() {
     d.wideMargin = WideMargin;
     d.wideEnds = WideEnds;
     d.stageChoices = StageChoices({"The game's choice"}, {}, true);
-    d.stageWords = "Where a training session's fight is: the game's own choice (at random, from those that go with player 2's "
-                   "character) or a stage named here. Takes effect when the characters are next chosen.";
+    d.stageWords = "Where the fights are, whatever is played (the game's own games, training, the other modes): the "
+                   "game's own choice (at random, from those that go with player 2's character) or a stage named "
+                   "here. Takes effect when the characters are next chosen.";
     d.framesPrintVariable = "VSAV_FRAMES";
     d.hud = Hud;
     fight::DummyOptions &dummy = d.dummy;

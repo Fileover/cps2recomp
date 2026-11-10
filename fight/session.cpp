@@ -218,7 +218,9 @@ int WantedStage() {
     if (wanted) {
         return wanted;
     }
-    return InSession() ? FeatureValue("training_stage") : 0;
+    // The player's own choice (the menu's Stage page), whatever is being played: a training session, the game's own
+    // games, a mode that leaves the stage open (survival). Not where a mode says the game's (the ring out).
+    return modes::Wanted().gamesStage ? 0 : FeatureValue(kStageFeature);
 }
 
 bool NoClock() {
@@ -383,7 +385,9 @@ void Register(const Description &description) {
     game.features.push_back({"restart_at", page, "Start over at",
                              "Where \"Start over\" puts the players: the middle or a corner, player 1 on the left or (swapped) on the right.",
                              0, {"Middle", "Left corner", "Right corner", "Middle, swapped", "Left corner, swapped", "Right corner, swapped"}});
-    game.features.push_back({"training_stage", page, "Stage", d.stageWords, kFeatureFavourites, d.stageChoices});
+    // (the stage: a page of its own on the menu's first page, port/menu.cpp, for every way of playing)
+    game.pages.push_back({kStagePage, "", "Where the fights are: the game's own choice, or a stage named here."});
+    game.features.push_back({kStageFeature, kStagePage, "Stage", d.stageWords, kFeatureFavourites, d.stageChoices});
     game.features.push_back({"training_mode", page, "Training session",
                              "The fight has no clock and nobody is knocked out. (\"Start\" above switches this on and takes the game to "
                              "the character choice; Reset ends it.)",

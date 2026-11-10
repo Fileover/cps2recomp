@@ -6,7 +6,7 @@
 // one's facts in its own folder's guest.h). Here is what is this game's: its camera, when a stage is shown, its objects
 // that are not its stage's, its fights' tunes, and which stage is wanted.
 //
-// Which: a stage chosen by name (training's, versus's, the stage viewer's, the endless and team battles': the guests'
+// Which: a stage chosen by name (the menu's Stage page's, the stage viewer's: the guests'
 // after this game's thirteen), or, with the "Other games' stages" feature, an arcade match's stage is one of theirs,
 // the same one for the same match. Its panel's bars, names and clock are a scroll screen's, laid over too.
 #include "alternative.h"
@@ -32,7 +32,7 @@ namespace {
     // The stage wanted now, 1 the guests' first (fight/all_guests.h's order); 0 this game's own
     int Wanted() {
         if (BattleMode()) {
-            // (the modes' stages are this game's own, but one chosen for the endless or the team battle from the guests')
+            // (a mode's stages are this game's own, but the player's stage when it is one of the guests': BattleStage)
             const int chosen = BattleStage();
             return chosen > kStages && chosen <= kStages + guest_stages::Stages() ? chosen - kStages : 0;
         }
@@ -65,8 +65,8 @@ void RegisterStages() {
     game.features.push_back({"other_stages", "Display", "Other games' stages",
                              "An arcade match is fought on a stage of another game's, as that game shows it, its music too: "
                              "the other fighting games in the collection, those whose ROM sets are there (beside this "
-                             "game's, or chosen on their pages in the launcher). Training's, versus's, the stage viewer's and "
-                             "the endless and team battles' lists have them all after this game's own.",
+                             "game's, or chosen on their pages in the launcher). The menu's Stage page and the stage "
+                             "viewer's list have them all after this game's own.",
                              0});
     guest_stages::Host host;
     host.cameraX = kCameraX;
