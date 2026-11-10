@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+- **Dimahoo** (`dimahoou`, USA 000121; the European set and the Japanese *Great Mahou Daisakusen* of the same date play
+  too), Raizing's vertical shoot-'em-up and the collection's third shooter, on the toolkit's `shmup/`: free play (the
+  board's own), straight to the title, start at stage, the Board page (difficulty, ships, bombs, extra ships, one loop or
+  two, continue, demo sound), the cheats (infinite ships and bombs, invincibility for each player), a custom soundtrack
+  with its music named, and the shooter's modes: practice (with the character, ships and bombs chosen) with the ship's
+  true hit box, the enemies' shots and bodies, a readout of the magic gauge and a summary at each boss and stage end, score attack, caravan, boss
+  rush, the stage viewer and attract mode. The collection's first vertical game: its picture is shown upright in a
+  tall window, or on its side (the Display page's new Picture turned, for a vertical game only). The game keeps its
+  variables in the video memory: a game's sources now reach it by address as they reach work RAM, and `--trace` takes
+  it too.
 - **Progear** (`progearu`, USA 010117; the Asian set of the same date plays too), Cave's horizontal shoot-'em-up and
   the collection's second shooter, on the toolkit's `shmup/` as Giga Wing is: free play (the board's own), straight to
   the title, start at stage, the Board page (difficulty, ships, extra ships, rapid fire, continue, demo sound), the

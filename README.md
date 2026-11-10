@@ -56,6 +56,7 @@ file). Only the versions named below work for each game, and this project cannot
 | [**The Punisher**](games/punisher/README.md) (1993, CPS-1) | `punisheru` (USA 930422) | Beat-'em-up: two players, a stage to start at, score attack |
 | [**Giga Wing**](games/gigawing/README.md) (1999) | `gigawing` (USA 990222) | Shoot-'em-up: practice with true hit boxes, score attack, caravan, boss rush |
 | [**Progear**](games/progear/README.md) (2001) | `progearu` (USA 010117) | Cave's horizontal shoot-'em-up: practice with true hit boxes, score attack, caravan, boss rush |
+| [**Dimahoo**](games/dimahoo/README.md) (2000) | `dimahoou` (USA 000121) | Raizing's vertical shoot-'em-up: practice with true hit boxes, score attack, caravan, boss rush |
 
 Each game's page has all it does, with pictures.
 
@@ -107,10 +108,10 @@ each other.
   stage viewer, the endless and team battles, and (an option) arcade matches. Each needs that game's ROM set.
 - **Alternative modes** in the fighting games: survival, ring out, an endless battle the game plays itself, and in
   most a tag team battle; plus a stage viewer and a model viewer ([more](docs/MODES.md)).
-- **Shoot-'em-up practice** in Giga Wing and Progear: any stage or straight at its boss, back to the start with one button, the
+- **Shoot-'em-up practice** in Giga Wing, Progear and Dimahoo: any stage or straight at its boss, back to the start with one button, the
   ships' true hit boxes and the enemies' shots shown ([more](docs/PRACTICE.md)); and a score attack, a caravan and a
   boss rush ([more](docs/MODES.md#the-shoot-em-ups)).
-- **The picture your way**: sharp or smooth scaling, 4:3 or square pixels, and RetroArch shaders (CRT, scanlines,
+- **The picture your way**: sharp or smooth scaling, 4:3 or square pixels (a vertical game stood upright), and RetroArch shaders (CRT, scanlines,
   xBRZ and more, or your own preset). A camera zoom follows either fighter, keeps both in view, or closes in
   and out with the fighters' distance while the health bars stay put ([more](docs/PICTURE.md)).
 - **Controls**: keyboard, gamepad or arcade stick, every button changeable per player and per game.
@@ -169,7 +170,7 @@ place. Back, or the screen's **Menu**, opens the in-game menu.
   collection keeps the shared files there) or a folder of its files. The launcher checks every file and says which
   is missing or different. **Other regions** of the same release work too, played as the board plays in that region:
   the Marvel games', Super Gem Fighter's (*Pocket Fighter* in Japan), Puzzle Fighter's, Alpha's, Alpha 3's, Super
-  Turbo's, Alien vs. Predator's, Giga Wing's and Progear's; each game's page names them. Other revisions don't work: each port is made from
+  Turbo's, Alien vs. Predator's, Giga Wing's, Progear's and Dimahoo's; each game's page names them. Other revisions don't work: each port is made from
   one version's program. Vampire Savior Definitive needs both `vsavj` and `vsav2`, and shows the first
   Darkstalkers', Night Warriors', Alpha's, Alpha 2's, Alpha 3's, Super Turbo's, Super Gem Fighter's, Cyberbots' and five Marvel
   games' stages with `dstlk`, `nwarr`, `sfa`, `sfa2u`, `sfa3u`, `ssf2xjr1`, `msh`, `xmvsf`, `mshvsf`, `mvsc`, `xmcota`,
@@ -227,7 +228,7 @@ The repository holds no game data and nothing derived from it.
 
 This project is not affiliated with, endorsed by, or sponsored by Capcom or Marvel. *Street Fighter*, *Super Puzzle
 Fighter*, *Super Gem Fighter*, *Pocket Fighter*, *Vampire Savior*, *Vampire Hunter*, *Night Warriors*, *Darkstalkers*, *Mega Man*,
-*Ghouls'n Ghosts*, *Strider*, *Captain Commando*, *Cyberbots*, *Giga Wing* and *Progear* are trademarks of Capcom Co., Ltd.; *X-Men*, *Marvel Super Heroes*,
+*Ghouls'n Ghosts*, *Strider*, *Captain Commando*, *Cyberbots*, *Giga Wing*, *Progear* and *Dimahoo* are trademarks of Capcom Co., Ltd.; *X-Men*, *Marvel Super Heroes*,
 *The Punisher* and their characters are trademarks of Marvel Characters, Inc.; *Alien vs. Predator* and *Cadillacs and Dinosaurs* are
 trademarks of their owners; "CPS-1", "CPS-2" and "QSound" are names and trademarks of their owners, used here only to
 say what the programs work with.

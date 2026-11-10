@@ -23,6 +23,7 @@ The Display page (in the launcher and the in-game menu) says how the picture fit
 | Picture shape | 4:3 (as the arcade's monitor showed it), Square pixels, Fill |
 | Shader | Off, or one of RetroArch's shaders (below) |
 | Window size | 3x the board's 224 lines, or 2x to 6x |
+| Picture turned | A vertical game only (Dimahoo): Upright (its picture stood up in a tall window, 3:4, as the cabinet's monitor stood on end showed it), or On its side (as the board draws it, for a screen turned on its side) |
 
 ## Shaders
 
