@@ -99,10 +99,15 @@ public:
     uint64_t waitsCounted = 0; // (CPS2RECOMP_BUS_LOG: the waits since the last frame)
     // A one-word instruction that went somewhere else (a short branch taken, RTS, JMP (An), TRAP, RTE): the
     // 68000 fetches two words there in place of the one it had fetched ahead, a word more than the instruction
-    // has (translated code adds the same where it jumps; tools/recomp.py)
+    // has (translated code adds the same where it jumps; tools/recomp.py). One that always goes (JMP and JSR (An),
+    // RTS, RTR, RTE, TRAP) refetches even when where it goes is the next word (a jump table's first entry, say):
+    // only a short branch not taken leaves the prefetch as it was.
     unsigned fetchedWords = 0;
+    static bool AlwaysGoes(uint16_t op) {
+        return (op & 0xFFB8) == 0x4E90 || op == 0x4E75 || op == 0x4E77 || op == 0x4E73 || (op & 0xFFF0) == 0x4E40;
+    }
     void RefillWait(uint32_t start) {
-        if (busWait && fetchedWords == 1 && pc != start + 2) {
+        if (busWait && fetchedWords == 1 && (pc != start + 2 || AlwaysGoes(bus.Fetch16(start)))) {
             cycles += busWait;
             waitsCounted += busWait;
         }

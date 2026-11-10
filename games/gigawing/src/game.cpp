@@ -2,7 +2,7 @@
 // Copyright (C) 2026 Tommy McLeroy
 //
 // Giga Wing: what the game's own sources add to the port (see PROGRESS.md): free play, straight to the title, the
-// cheats, and the modes (modes.cpp, practice.cpp).
+// cheats, and the modes (modes.cpp).
 #include "gigawing.h"
 #include "shmup.h"
 #include "state.h"
@@ -62,7 +62,7 @@ namespace {
         }
     }
 
-    // The cheats work in the board's own game and in practice; the other modes leave them out (their scores are kept)
+    // The cheats work in the board's own game and in training mode; the other modes leave them out (their scores are kept)
     bool CheatsWork() {
         return !ChoicesLeftOut() || shmup::Practice();
     }
@@ -176,7 +176,6 @@ void RegisterGame() {
     Game &game = TheGame();
     RegisterMusic();
     RegisterBoard();
-    RegisterModes();
     game.features.push_back({"free_play", "Game", "Free play", "Start works without a coin (the board's own free play).", kFeatureEnhanced});
     game.features.push_back({"skip_intro", "Game", "Straight to the title",
                              "When the game starts, and when it is reset, goes straight to the title: the board's start, its warning, "
@@ -192,6 +191,7 @@ void RegisterGame() {
                              "The choice of fighter has a fifth, between Sinnosuke and Stuck, that the game never offers: a grey ship with a broad "
                              "laser, left unfinished (no pilot, odd icons on the panel; the Dreamcast port finished it as Stranger).",
                              0});
+    RegisterModes(); // (after the cheats: the hit boxes come after them on the Cheats page)
     AddHook(HookAt(kGameBegins), "GameBegins", GameBegins);
     AddHook(HookAt(kChooseStep), "ChooseStep", ChooseStep);
     AddHook(HookAt(kShipHitAnswer), "ShipHit", ShipHit);

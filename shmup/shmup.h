@@ -1,23 +1,29 @@
 // SPDX-License-Identifier: GPL-3.0-only
 // Copyright (C) 2026 Tommy McLeroy. Part of cps2recomp.
 //
-// A shoot-'em-up's "Alternative modes" page and its practice mode, for every shooting game on the board (Giga Wing the
-// first, then Progear; 19XX and 1944 would describe themselves the same way). Each is started by a command of the in-game
-// menu and ends when the board is reset, when another is started, or as said below.
+// A shoot-'em-up's "Alternative modes" page and its training mode, for every shooting game on the board (Giga Wing the
+// first, then Progear and Dimahoo; 19XX and 1944 would describe themselves the same way). Each is started by a command
+// of the in-game menu and ends when the board is reset, when another is started, or as said below.
 //
-//   Practice       a stage, or straight at its boss, with the fighter, ships, bombs and power chosen. Backspace (a
+//   Training mode  a stage, or straight at its boss, with the fighter, ships, bombs and power chosen. Backspace (a
 //                  gamepad's left shoulder) puts it back as it began, at once: the start is kept as a save state in
 //                  memory when it is first reached. Replay shows the last attempt again, from that start, with the
-//                  controls as they were pressed. The practice aids (the ships' true hit boxes, the enemies' shots, a
-//                  readout of the scoring, a summary at each boss and stage end) work only in practice.
+//                  controls as they were pressed. Its aids (a readout of the scoring, a summary at each boss and stage
+//                  end) work only in training mode.
 //   Attract mode   the game's own show on a loop, with no coin in and its sound on, or one part of it.
 //   Score attack   one player, one credit, no continue and no cheats, from the first stage: the board's own game, for
 //                  the best score, which is kept (shmup_scores.txt beside settings.ini).
-//   Caravan        two, three or five minutes from the first stage, as many ships as it takes: the best score in the
-//                  time is kept for each length.
+//   Caravan        a score attack against the clock: two, three or five minutes from the first stage, as many ships as
+//                  it takes; the best score in the time is kept for each length.
 //   Boss rush      each boss in turn: the way between them is run unseen, the ships out of harm. The best score is
 //                  kept, and the time it took.
-//   Stage viewer   a stage scrolling by with nobody on it: no ships, no enemies, no shots, no panel.
+//   Stage viewer   a stage scrolling by with nobody on it: no ships, no enemies, no shots, no panel. It scrolls at the
+//                  speed chosen; the directions take it over (forward: faster; back: back the way it came, from the
+//                  states it keeps every half second) and the shot button stops and starts it.
+//
+// Besides the modes, everywhere a stage is played (the board's own game too): the hit boxes (the Cheats page: the
+// players' ships', the enemies' bodies', the enemies' shots'), and the slowdown (the Game page: as the board has it, or
+// less or none, the 68000 run faster than the board's, Machine::cpuSpeed).
 //
 // A game's sources describe how it is got into and what it keeps where (Description), register it, and ask while the
 // game runs: the stage a game is to start at, whether the ships are to be out of harm (Protected), whether their own
@@ -65,17 +71,25 @@ struct Description {
     // A stage that is a boss from its start, with no clock (Giga Wing's last): its boss is met as the stage begins
     bool (*bossStage)(int stage) = nullptr;
     uint64_t (*score)(int player) = nullptr;
-    // --- what practice can set, as the ship's start is reached: each -1 leaves it as the game had it ---
+    // --- what training mode can set, as the ship's start is reached: each -1 leaves it as the game had it ---
     void (*setShips)(int player, int ships) = nullptr;
     void (*setBombs)(int player, int bombs) = nullptr;
-    void (*setPower)(int player, int power) = nullptr; // (none: no Power row on the Practice page)
+    void (*setPower)(int player, int power) = nullptr; // (none: no Power row on the Training mode page)
     int maxShips = 9, maxBombs = 8, maxPower = 3;
-    // --- the practice aids ---
-    // The players' ships' hit boxes, and the enemies' shots and bodies, in the picture's pixels
+    // --- the hit boxes ---
+    // The players' ships' hit boxes, the enemies' bodies and the enemies' shots, in the board's picture's pixels, as the
+    // game has them in the frame just run (they are shown a frame later, with the objects: the board shows the objects
+    // the game listed in the frame before)
     void (*shipBoxes)(std::vector<HudBox> &boxes) = nullptr;
-    void (*enemyBoxes)(std::vector<HudBox> &boxes) = nullptr;
+    void (*bodyBoxes)(std::vector<HudBox> &boxes) = nullptr;
+    void (*shotBoxes)(std::vector<HudBox> &boxes) = nullptr;
+    // The game makes its object list (Machine::ObjectsToCome) from the places of the frame before the one it makes it in
+    // (1: Giga Wing, Progear), not of that frame (0: Dimahoo): the boxes shown with a list are those of the places it was
+    // made from
+    int listLag = 0;
+    // --- the training aids ---
     // Lines of the readout (the multiplier and the like), each player's (none: no readout), and what its row on the
-    // Practice page says it shows (nullptr: Giga Wing's words)
+    // Training mode page says it shows (nullptr: Giga Wing's words)
     void (*readout)(int player, std::vector<std::string> &lines) = nullptr;
     const char *readoutWords = nullptr;
     // What the summary's row says it counts (nullptr: Giga Wing's words; a game with no multiplier counts its score)
@@ -117,7 +131,7 @@ int WantedStage();
 bool Protected();
 // A mode is getting the board to where it begins (the game's sources leave the board alone meanwhile)
 bool Starting();
-// The practice aids work (Game::inTraining)
+// Training mode's aids work (Game::inTraining)
 bool InPractice();
 void EndModes();
 

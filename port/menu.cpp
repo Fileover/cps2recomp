@@ -188,6 +188,10 @@ Menu::Rate Menu::GameRate() const {
     if (slowBy > 1 && speed.frames * slowBy > speed.ticks) {
         return {1, slowBy};
     }
+    const int fastBy = cps2recomp::FastMotion();
+    if (fastBy > 1 && speed.frames == speed.ticks) {
+        return {fastBy, 1};
+    }
     return {speed.frames, speed.ticks};
 }
 

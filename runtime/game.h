@@ -123,6 +123,9 @@ struct Game {
     // rewrites are needed now (training mode, a mode of the sources' own, widescreen, a cheat that works inside
     // one). Not given: never (the game's own code throughout).
     bool (*rewritesNeeded)() = nullptr;
+    // The game's sources decide the board's timing (machine.h, SetBoardTiming) in place of the port's arcade_timing
+    // feature, which is then left out: a shooting game's Slowdown row (shmup/shmup.h). Not given: arcade_timing.
+    bool (*boardTiming)() = nullptr;
     // For a custom soundtrack (machine/soundtrack.h): where the sound program's table of songs has song 0's entry,
     // and how many entries it has (0: no custom soundtrack); and the names of the music, where they are known.
     // musicBelow: for a sound program whose songs' data do not tell music from effects (machine/soundtrack.h), the
@@ -181,6 +184,10 @@ void SetRunningAhead(bool on);
 // slower of this and the speed the player chose in the menu is the speed the game runs at.
 void SetSlowMotion(int by);
 int SlowMotion();
+// ... and quickly: `times` frames of the game in every picture of the screen (1: as it is), when the player's speed in
+// the menu is the board's (a faster or slower choice of theirs goes first). Seen and heard, as the menu's faster speeds.
+void SetFastMotion(int times);
+int FastMotion();
 
 // The launcher's Multi game page starts each game it plays in turn with --multi MODE:CHOICES (fight/battle.h has
 // "endless"): what this one was started with ("": none). When the game's sources are done with it, they end the
