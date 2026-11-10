@@ -21,8 +21,8 @@ the contribution.
 
 `GAME=mvsc FIRST_TO=2 bash tools/check_set_finish.sh` plays a full FT10 set with made-up controls, packet loss,
 delay and rollback. It requires both peers to exit successfully before the frame limit with matching final results,
-score events and confirmed hashes. Use `GAME=xmvsf FIRST_TO=1` for FT5. These headless runs check session termination;
-also check the return to an existing launcher and to a launcher started after terminal play in a windowed run.
+score events and confirmed hashes. Use `GAME=xmvsf FIRST_TO=1` for FT5. These headless runs check the end of the set;
+also check, in two windows started from the launcher, that both close and the launcher is back.
 
 ## Run modes (`--cpu`)
 

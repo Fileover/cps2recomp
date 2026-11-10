@@ -67,11 +67,10 @@ public:
     static constexpr int kDefaultPort = 7845;
     // The packets' layout (2: the host's state sent at the start); two copies must have the same to play, and the
     // lobby shows only matches of this one (the launcher asks with it too)
-    static constexpr int kProtocol = 9; // (3: the version said in the hello and to the service; 4: the welcome's flags;
+    static constexpr int kProtocol = 7; // (3: the version said in the hello and to the service; 4: the welcome's flags;
                                         // 5: the welcome's program words, so two regions' sets play together;
                                         // 6: each player's name in the hello and the welcome, and the chat;
-                                        // 8: host-selected first-to sets; 9: agreed set completion;
-                                        // 7 reserved for the online test-switch contribution)
+                                        // 7: the host's first-to set, and both games agreeing on its end)
     static constexpr int kMostAhead = 8;   // frames run on guessed controls at most
     static constexpr int kKept = 16;       // states kept (more than the most a rollback goes back)
     static constexpr int kInputs = 128;    // controls kept, each side's

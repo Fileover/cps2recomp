@@ -1281,9 +1281,13 @@ bool Netplay::Ready(uint64_t frame) {
                 ended = "The two games disagree on the final set score.";
                 failed = true;
             } else {
-                if (!setAgreed) setAgreed = now;
+                if (!setAgreed) {
+                    setAgreed = now;
+                }
                 SendInputs(); // keep the final controls available while the winner is shown
-                if (now - setAgreed >= 2000) FinishSet();
+                if (now - setAgreed >= 2000) {
+                    FinishSet();
+                }
                 return false; // freeze the game during the result, but keep receiving and sending packets
             }
         }

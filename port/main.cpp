@@ -3278,7 +3278,7 @@ bool ParseArgs(int argc, char **argv, port::Options &o) {
 // their ROM set in it before (its --play), or at its first page to choose one. The launcher is the game's own, or
 // the collection's (cps2recomp-launcher: then at this game's page, or --play ID). True: it was started.
 #ifndef __ANDROID__
-bool StartLauncher(bool play = true) {
+bool StartLauncher() {
     const char *base = SDL_GetBasePath();
     if (!base) {
         return false;
@@ -3295,32 +3295,6 @@ bool StartLauncher(bool play = true) {
         }
     }
     bool setUp = false;
-#ifdef _WIN32
-    if (!play) {
-        struct Existing { std::filesystem::path exe; HWND window = nullptr; } existing{std::filesystem::u8path(launcher)};
-        EnumWindows([](HWND window, LPARAM value) -> BOOL {
-            auto &found = *reinterpret_cast<Existing *>(value);
-            if (!IsWindowVisible(window)) return TRUE;
-            DWORD id = 0;
-            GetWindowThreadProcessId(window, &id);
-            HANDLE process = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, FALSE, id);
-            if (!process) return TRUE;
-            wchar_t path[32768];
-            DWORD length = static_cast<DWORD>(std::size(path));
-            std::error_code error;
-            const bool same = QueryFullProcessImageNameW(process, 0, path, &length) &&
-                              std::filesystem::equivalent(found.exe, std::filesystem::path(path), error);
-            CloseHandle(process);
-            if (same) { found.window = window; return FALSE; }
-            return TRUE;
-        }, reinterpret_cast<LPARAM>(&existing));
-        if (existing.window) {
-            ShowWindow(existing.window, SW_RESTORE);
-            SetForegroundWindow(existing.window);
-            return true;
-        }
-    }
-#endif
     // (the launcher's own folder and file; the collection's keeps each game's file in a section of its own. In
     // portable mode the folder is in user/ beside the launcher, as the launcher has it: recomp-common/folders.h)
     const std::string name = recomp::FolderName(collection ? "CPS-2 Recomp" : GAME_NAME);  // (as the launcher names it)
@@ -3336,8 +3310,8 @@ bool StartLauncher(bool play = true) {
         prefs.load();
         setUp = !prefs.get(collection ? "game." GAME_ID : "game", "rom").empty();
     }
-    const char *own[] = {launcher.c_str(), play && setUp ? "--play" : nullptr, nullptr};
-    const char *theirs[] = {launcher.c_str(), play && setUp ? "--play" : "--page", GAME_ID, nullptr};
+    const char *own[] = {launcher.c_str(), setUp ? "--play" : nullptr, nullptr};
+    const char *theirs[] = {launcher.c_str(), setUp ? "--play" : "--page", GAME_ID, nullptr};
     SDL_Process *process = SDL_CreateProcess(collection ? theirs : own, false);
     if (!process) {
         return false;
@@ -3569,15 +3543,11 @@ int main(int argc, char **argv) {
             return 5;
         }
         fprintf(stderr, "online: %s\n", p.net->ended.c_str());
+        // (a finished set closes quietly: the launcher that started the game is still there, waiting for it)
         if (!p.opt.headless && !p.net->SetFinished()) {
             SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_INFORMATION, GAME_NAME, p.net->ended.c_str(), nullptr);
         }
     }
-#ifndef __ANDROID__
-    if (!p.opt.headless && p.net && p.net->SetFinished() && !StartLauncher(false)) {
-        fprintf(stderr, "online: set finished; the launcher could not be opened.\n");
-    }
-#endif
     if (p.opt.checkRewrites && !ReportRewrites()) {
         return 4;
     }
