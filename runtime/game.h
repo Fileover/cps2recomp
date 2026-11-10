@@ -97,6 +97,9 @@ struct Game {
     // For a game whose sources can ask for a wider picture (video.h, Video::wide): how many columns the
     // widest will have with the player's choices as they are, so that the window starts in its shape
     int (*widestPicture)() = nullptr;
+    // The board's monitor stood on end (a vertical game, drawn lying on its side: ROT270, the top of its picture at the
+    // right): the port turns the picture upright unless the Display page says otherwise (port.h, Turned)
+    bool vertical = false;
     // For the port's camera (its zoom, port/zoom.h): where to look to see player `player`'s fighter (0: player 1's
     // side), in the picture's pixels; false when there is none to look at now (no fight on). Not given: no zoom.
     bool (*focus)(int player, int &x, int &y) = nullptr;
@@ -245,8 +248,11 @@ using PointerLoadFn = uint32_t (*)(uint32_t address, uint32_t value);
 void SetPointerLoads(PointerLoadFn fn, uint32_t low, uint32_t high);
 PointerLoadFn PointerLoads(uint32_t &low, uint32_t &high);
 
-// Work RAM as the game's sources see it: by the 68000's address (FF0000-FFFFFF). Values are big-endian.
-void SetRam(uint8_t *ram);
+// Work RAM as the game's sources see it: by the 68000's address (FF0000-FFFFFF). Values are big-endian. The video
+// memory (900000-92FFFF) is reached the same way, for a game that keeps its variables there (Dimahoo's base register
+// points at 928000).
+constexpr uint32_t kVideoRamLow = 0x900000, kVideoRamHigh = 0x930000;
+void SetRam(uint8_t *ram, uint8_t *videoRam = nullptr);
 uint8_t *Ram(uint32_t address);
 inline uint8_t Ram8(uint32_t address) {
     return *Ram(address);

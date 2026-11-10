@@ -22,11 +22,18 @@ Game &TheGame() {
 
 namespace {
     uint8_t *g_ram = nullptr;
+    uint8_t *g_videoRam = nullptr;
 } // namespace
-void SetRam(uint8_t *ram) {
+void SetRam(uint8_t *ram, uint8_t *videoRam) {
     g_ram = ram;
+    g_videoRam = videoRam;
 }
 uint8_t *Ram(uint32_t address) {
+    // (a game that keeps its variables in the video memory, as Raizing's do: its address as the 68000 has it)
+    const uint32_t at = address & 0xFFFFFF;
+    if (at >= kVideoRamLow && at < kVideoRamHigh && g_videoRam) {
+        return g_videoRam + (at - kVideoRamLow);
+    }
     return g_ram + (address & 0xFFFF);
 }
 

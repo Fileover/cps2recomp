@@ -32,6 +32,7 @@ the build tells you which one is missing or different.
 | [Super Puzzle Fighter II Turbo](../games/puzzle_fighter/README.md) | `puzzle_fighter` | `spf2t` (Europe 960529) |
 | [Giga Wing](../games/gigawing/README.md) | `gigawing` | `gigawing` (USA 990222) |
 | [Progear](../games/progear/README.md) | `progear` | `progearu` (USA 010117) |
+| [Dimahoo](../games/dimahoo/README.md) | `dimahoo` | `dimahoou` (USA 000121) |
 
 ## macOS
 

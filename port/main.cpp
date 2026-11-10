@@ -545,6 +545,13 @@ void RegisterPortFeatures() {
                                   "4:3: as the arcade's monitor showed it. Square pixels: each pixel as wide as it is tall, "
                                   "a little wider than 4:3. Fill: the whole window or screen, stretched to it.",
                                   0, {"4:3", "Square pixels", "Fill"}});
+    // (display_turn: a vertical game only, Turned)
+    if (TheGame().vertical) {
+        TheGame().features.push_back({"display_turn", "Display", "Picture turned",
+                                      "The game was made for a monitor stood on end. Upright: its picture stood up in the window, as "
+                                      "the cabinet showed it. On its side: as the board draws it, for a screen turned on its side.",
+                                      0, {"Upright", "On its side"}});
+    }
     // (display_shader: Port::ShaderPreset, shading.h; the presets are in shaders/ beside the program, kShaderPresets.
     // librashader is in each release, tools/librashader.sh; on Android the presets are unpacked by GameActivity.java)
     TheGame().features.push_back({"display_shader", "Display", "Shader",
@@ -627,6 +634,20 @@ Scaling DisplayScaling() {
 }
 Shape DisplayShape() {
     return static_cast<Shape>(std::clamp(FeatureValue("display_shape"), 0, 2));
+}
+bool Turned() {
+    return TheGame().vertical && FeatureValue("display_turn") == 0;
+}
+void TurnPicture(const uint32_t *pixels, int across, std::vector<uint32_t> &out) {
+    // (a quarter to the left: the picture's right edge becomes its top)
+    const int rows = Video::kHeight;
+    out.resize(static_cast<size_t>(across) * rows);
+    for (int y = 0; y < rows; y++) {
+        const uint32_t *from = pixels + static_cast<size_t>(y) * across;
+        for (int x = 0; x < across; x++) {
+            out[static_cast<size_t>(across - 1 - x) * rows + y] = from[x];
+        }
+    }
 }
 int WindowSize() {
     static const int kTimes[] = {3, 2, 4, 5, 6};
@@ -768,7 +789,7 @@ bool Port::Init(std::string &error) {
 #endif
     machine = std::make_unique<Machine>(roms);
     machine->cpuSpeed = opt.cpuSpeed > 0 ? opt.cpuSpeed : 1;
-    SetRam(machine->ram.data());
+    SetRam(machine->ram.data(), machine->videoRam.data());
     SetProgram(roms.program.data(), static_cast<uint32_t>(roms.program.size()));
     SetProgramOpcodes(roms.opcodes.data());
 #ifdef GAME_EXTRA_SET
@@ -1443,12 +1464,22 @@ void Port::Shown(std::vector<uint32_t> &pixels, std::vector<SDL_Rect> *panels, b
     } else {
         pixels.assign(machine->Picture(), machine->Picture() + across * Video::kHeight);
     }
-    DrawHud(pixels.data(), across, Video::kHeight, panels);
+    // (a vertical game's picture turned upright, port::Turned: its boxes drawn on the board's picture, as they belong to the
+    // game's, and the text upright on the picture turned, which is turned back at the end, to be turned again as it is shown)
+    const bool turned = port::Turned();
+    std::vector<uint32_t> upright;
+    if (turned) {
+        DrawHud(pixels.data(), across, Video::kHeight, nullptr, port::kHudBoxes);
+        port::TurnPicture(pixels.data(), across, upright);
+    }
+    uint32_t *const px = turned ? upright.data() : pixels.data();
+    const int W = turned ? +Video::kHeight : across, H = turned ? across : +Video::kHeight;
+    DrawHud(px, W, H, panels, turned ? +port::kHudText : port::kHudBoxes | port::kHudText);
     // A line at the bottom, in the middle (`up` lines higher)
     auto status = [&](const char *text, int up) {
-        const recomp::text::Canvas canvas{pixels.data(), across, Video::kHeight};
+        const recomp::text::Canvas canvas{px, W, H};
         const float width = recomp::text::TextWidth(text, 1);
-        const float x = (across - width) / 2, y = static_cast<float>(Video::kHeight - 11 - up);
+        const float x = (W - width) / 2, y = static_cast<float>(H - 11 - up);
         canvas.Fill(x - 3, y - 2, width + 6, 12, {20, 22, 30, 220});
         canvas.Text(x, y, 1, 0, {255, 255, 255, 255}, text);
         if (panels) {
@@ -1533,10 +1564,10 @@ void Port::Shown(std::vector<uint32_t> &pixels, std::vector<SDL_Rect> *panels, b
     }
     // (online: each player's name under their side's life bar, and under it a win streak of two or more)
     if (net && !connecting) {
-        const recomp::text::Canvas canvas{pixels.data(), across, Video::kHeight};
+        const recomp::text::Canvas canvas{px, W, H};
         auto under = [&](int side, float y, const std::string &text, recomp::text::Color colour) {
             const float width = recomp::text::TextWidth(text.c_str(), 1);
-            const float x = side == 0 ? 10.0f : across - 10.0f - width;
+            const float x = side == 0 ? 10.0f : W - 10.0f - width;
             canvas.Fill(x - 3, y - 2, width + 6, 12, {20, 22, 30, 220});
             canvas.Text(x, y, 1, 0, colour, text.c_str());
             if (panels) {
@@ -1555,7 +1586,7 @@ void Port::Shown(std::vector<uint32_t> &pixels, std::vector<SDL_Rect> *panels, b
             }
         }
         // The chat: its lines at the left, above the super gauges, the newest lowest, and the line being typed under them
-        float y = Video::kHeight - 44.0f;
+        float y = H - 44.0f;
         auto line = [&](const std::string &text, recomp::text::Color colour) {
             const float width = recomp::text::TextWidth(text.c_str(), 1);
             canvas.Fill(7, y - 2, width + 6, 12, {20, 22, 30, 200});
@@ -1584,7 +1615,7 @@ void Port::Shown(std::vector<uint32_t> &pixels, std::vector<SDL_Rect> *panels, b
     // (online: Esc's question, in the middle, over the game, which goes on; the port's own, not the readout, which the
     // game's sources set every frame. --net-arcade's wait: whether to stop hosting, the game stopped meanwhile)
     if (net && leaving) {
-        const recomp::text::Canvas canvas{pixels.data(), across, Video::kHeight};
+        const recomp::text::Canvas canvas{px, W, H};
         const bool hosting = connecting;
         const char *question = hostedFromMenu ? "Leave the match?" : hosting ? "Stop hosting and quit?" : "Leave the match?";
         const char *confirm = hostedFromMenu ? "Confirm (A, Enter): play alone" : hosting ? "Confirm (A, Enter): quit" : "Confirm (A, Enter): leave";
@@ -1594,16 +1625,24 @@ void Port::Shown(std::vector<uint32_t> &pixels, std::vector<SDL_Rect> *panels, b
         } lines[] = {{question, {255, 255, 255, 255}},
                      {confirm, {255, 130, 120, 255}},
                      {"Back (B, Backspace, Esc): stay", {255, 255, 255, 255}}};
-        float y = Video::kHeight / 2.0f - 30;
+        float y = H / 2.0f - 30;
         for (const auto &line : lines) {
             const float width = recomp::text::TextWidth(line.text, 1);
-            const float x = (across - width) / 2;
+            const float x = (W - width) / 2;
             canvas.Fill(x - 6, y - 4, width + 12, 16, {20, 22, 30, 235});
             canvas.Text(x, y, 1, 0, line.colour, line.text);
             if (panels) {
                 panels->push_back({static_cast<int>(x) - 6, static_cast<int>(y) - 4, static_cast<int>(width) + 13, 16});
             }
             y += 22;
+        }
+    }
+    if (turned) {
+        // (back as the board draws it: a quarter to the right)
+        for (int y = 0; y < Video::kHeight; y++) {
+            for (int x = 0; x < across; x++) {
+                pixels[static_cast<size_t>(y) * across + x] = upright[static_cast<size_t>(across - 1 - x) * Video::kHeight + y];
+            }
         }
     }
 }
@@ -1679,6 +1718,22 @@ void Port::MenuPicture(std::vector<uint32_t> &pixels, uint32_t &width, uint32_t 
     height = Video::kHeight * 3;
     width = height * 4 / 3 * across / Video::kWidth;
     pixels.resize(static_cast<size_t>(width) * height);
+    if (port::Turned()) {
+        // (the menu stays as it is, over the picture stood up in its middle at its shape, black beside it)
+        std::vector<uint32_t> turned;
+        port::TurnPicture(shown.data(), static_cast<int>(across), turned);
+        const uint32_t tall = height, wide = static_cast<uint32_t>(std::lround(tall * port::PictureShape(Video::kHeight, static_cast<int>(across), port::Shape::Arcade, 1.0f)));
+        const uint32_t left = (width - std::min(wide, width)) / 2;
+        std::fill(pixels.begin(), pixels.end(), 0xFF000000u);
+        for (uint32_t y = 0; y < tall; y++) {
+            const uint32_t *from = &turned[static_cast<size_t>(y * across / tall) * Video::kHeight];
+            uint32_t *to = &pixels[static_cast<size_t>(y) * width + left];
+            for (uint32_t x = 0; x < wide && left + x < width; x++) {
+                to[x] = from[x * Video::kHeight / wide];
+            }
+        }
+        return;
+    }
     for (uint32_t y = 0; y < height; y++) {
         const uint32_t *from = &shown[static_cast<size_t>(y / 3) * across];
         uint32_t *to = &pixels[static_cast<size_t>(y) * width];
@@ -2643,17 +2698,22 @@ void Port::RunFrame() {
         }
     }
     if (!opt.trace.empty()) {
-        // LOW-HIGH:FILE (hex addresses): those bytes of work RAM after every frame, one frame after another
+        // LOW-HIGH:FILE (hex addresses): those bytes of work RAM (or of the video memory, 900000-92FFFF) after every
+        // frame, one frame after another
         static FILE *file = nullptr;
         static uint32_t low = 0, high = 0;
         if (!file) {
             const size_t dash = opt.trace.find('-'), colon = opt.trace.find(':');
-            low = static_cast<uint32_t>(strtoul(opt.trace.c_str(), nullptr, 16)) & 0xFFFF;
-            high = static_cast<uint32_t>(strtoul(opt.trace.c_str() + dash + 1, nullptr, 16)) & 0xFFFF;
+            low = static_cast<uint32_t>(strtoul(opt.trace.c_str(), nullptr, 16)) & 0xFFFFFF;
+            high = static_cast<uint32_t>(strtoul(opt.trace.c_str() + dash + 1, nullptr, 16)) & 0xFFFFFF;
+            if (low < kVideoRamLow || low >= kVideoRamHigh) {
+                low &= 0xFFFF;
+                high &= 0xFFFF;
+            }
             file = fopen(opt.trace.c_str() + colon + 1, "wb");
         }
         if (file && high >= low) {
-            fwrite(&machine->ram[low], 1, high - low + 1, file);
+            fwrite(Ram(low), 1, high - low + 1, file);
             fflush(file);
         }
     }
@@ -2929,11 +2989,11 @@ void Usage() {
             "  --soundtrack DIR       the custom soundtrack's folder (its songs.txt names the files)\n"
             "  --list-songs           the songs the soundtrack's files are named for: name, number, what it is\n"
             "  --soundtrack-dump FILE (with --headless) write what the custom soundtrack plays to a WAV file\n"
-            "  --poke A=B,...         write byte B at RAM address A after every frame (hex)\n"
+            "  --poke A=B,...         write byte B at RAM (or video memory) address A after every frame (hex)\n"
             "  --dump-ram F:FILE      write work RAM after frame F (and FILE.video, .objects, .regs); more than once\n"
             "  --check-rewrites       run every rewritten routine and its original, and report differences\n"
             "  --no-rewrites          run the game's own routines where the sources have rewrites\n"
-            "  --trace LOW-HIGH:FILE  those bytes of work RAM after every frame, appended to FILE\n"
+            "  --trace LOW-HIGH:FILE  those bytes of work RAM (or video memory) after every frame, appended to FILE\n"
             "  --layer-log F:ADDR:FILE from frame F on, what each scroll screen drew on each line, and the word at ADDR\n"
             "  --watch LOW[-HIGH]     report the 68000's writes to these addresses (hex), with who made them\n"
             "  --keys TICK:KEY,...    keys pressed at those ticks of the screen: p (stop/go), o (a frame on),\n"
@@ -3301,16 +3361,25 @@ int main(int argc, char **argv) {
         int musicRate = 0;
         // A picture as the window draws it (--present-test, --present-every): through the GPU path, read back, written
         // to `path`; in a window --present-size big, or one the picture's shape at 3 times its lines
-        auto present = [&](const std::string &path, const std::vector<uint32_t> &shown, const port::Zoomed *zoomed) {
+        auto present = [&](const std::string &path, const std::vector<uint32_t> &board, const port::Zoomed *zoomed) {
             std::vector<uint32_t> drawn;
             std::string error;
-            const int across = p.ShownWidth();
-            const int outHeight = p.opt.presentHeight > 0 ? p.opt.presentHeight : 672;
+            // (a vertical game's picture turned upright, as the window shows it: port::Turned)
+            std::vector<uint32_t> upright;
+            const bool turned = port::Turned();
+            if (turned) {
+                port::TurnPicture(board.data(), p.ShownWidth(), upright);
+                zoomed = nullptr;
+            }
+            const std::vector<uint32_t> &shown = turned ? upright : board;
+            const int across = turned ? +Video::kHeight : p.ShownWidth();
+            const int lines = turned ? p.ShownWidth() : +Video::kHeight;
+            const int outHeight = p.opt.presentHeight > 0 ? p.opt.presentHeight : (turned ? 896 : 672);
             const int outWidth = p.opt.presentWidth > 0 ? p.opt.presentWidth
-                                                        : static_cast<int>(std::lround(outHeight * port::PictureShape(across, Video::kHeight, port::DisplayShape(), 4.0f / 3.0f)));
-            const SDL_FRect where = port::FitPicture(outWidth, outHeight, across, Video::kHeight, port::DisplayShape(), port::DisplayScaling());
+                                                        : static_cast<int>(std::lround(outHeight * port::PictureShape(across, lines, port::DisplayShape(), 4.0f / 3.0f)));
+            const SDL_FRect where = port::FitPicture(outWidth, outHeight, across, lines, port::DisplayShape(), port::DisplayScaling());
             if (SDL_Init(SDL_INIT_VIDEO) &&
-                port::Presenter::Render(shown.data(), across, Video::kHeight, outWidth, outHeight, where, port::DisplayScaling(), drawn, error, zoomed)) {
+                port::Presenter::Render(shown.data(), across, lines, outWidth, outHeight, where, port::DisplayScaling(), drawn, error, zoomed)) {
                 WritePng(path.c_str(), drawn.data(), outWidth, outHeight);
                 return true;
             }

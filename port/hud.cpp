@@ -15,8 +15,8 @@ namespace port {
 std::vector<HudPanel> HudPanels(int width, int height) {
     using namespace recomp::text;
     std::vector<HudPanel> panels;
-    // A font dot is a pixel of a 224-line picture
-    const float d = static_cast<float>(std::max((height + 112) / 224, 1));
+    // A font dot is a pixel of a 224-line picture (its shorter side: a picture turned upright is 224 across)
+    const float d = static_cast<float>(std::max((std::min(width, height) + 112) / 224, 1));
     const int pad = static_cast<int>(3 * d);
     for (const cps2recomp::HudLine &line : cps2recomp::Hud()) {
         if (line.text.empty()) {
@@ -43,10 +43,10 @@ std::vector<HudPanel> HudPanels(int width, int height) {
     return panels;
 }
 
-void DrawHud(uint32_t *pixels, int width, int height, std::vector<SDL_Rect> *panels) {
+void DrawHud(uint32_t *pixels, int width, int height, std::vector<SDL_Rect> *panels, unsigned parts) {
     // The boxes first, so that the text is over them
     const recomp::text::Canvas canvas{pixels, width, height};
-    for (const cps2recomp::HudBox &box : cps2recomp::Boxes()) {
+    for (const cps2recomp::HudBox &box : parts & kHudBoxes ? cps2recomp::Boxes() : std::vector<cps2recomp::HudBox>{}) {
         const float x = static_cast<float>(box.x), y = static_cast<float>(box.y);
         const float w = static_cast<float>(box.width), h = static_cast<float>(box.height);
         if (box.x >= width || box.y >= height || box.x + box.width <= 0 || box.y + box.height <= 0) {
@@ -62,7 +62,7 @@ void DrawHud(uint32_t *pixels, int width, int height, std::vector<SDL_Rect> *pan
         canvas.Fill(x, y, 1, h, line);
         canvas.Fill(x + w - 1, y, 1, h, line);
     }
-    for (const HudPanel &panel : HudPanels(width, height)) {
+    for (const HudPanel &panel : parts & kHudText ? HudPanels(width, height) : std::vector<HudPanel>{}) {
         if (panels) {
             panels->push_back({panel.x, panel.y, panel.width, panel.height});
         }

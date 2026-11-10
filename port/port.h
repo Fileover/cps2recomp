@@ -310,5 +310,9 @@ void StartOnAndroid();
 Scaling DisplayScaling();
 Shape DisplayShape();
 int WindowSize();
+// A vertical game's picture shown upright (Game::vertical, the Display page's "Picture turned"): the board's picture,
+// `across` columns by its 224 rows, turned a quarter to the left into `out` (224 columns by `across` rows)
+bool Turned();
+void TurnPicture(const uint32_t *pixels, int across, std::vector<uint32_t> &out);
 
 } // namespace port

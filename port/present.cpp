@@ -89,7 +89,11 @@ float PictureShape(int columns, int rows, Shape shape, float window) {
     case Shape::Fill: return window;
     case Shape::Arcade: break;
     }
-    // (4:3 for the board's 384 columns, and as much wider as a wider picture has more of them: 16:9 for 512)
+    // (4:3 for the board's 384 columns, and as much wider as a wider picture has more of them: 16:9 for 512; a picture
+    // stood on end, its 224 lines across: 3:4, and as much taller as it has more rows)
+    if (rows > columns) {
+        return 3.0f / 4.0f * 384.0f / rows;
+    }
     return 4.0f / 3.0f * columns / 384.0f;
 }
 

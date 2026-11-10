@@ -73,9 +73,9 @@ score attack, and the stage and model viewers.
 
 ### The shoot-'em-ups
 
-Giga Wing and Progear have a shooter's modes instead:
+Giga Wing, Progear and Dimahoo have a shooter's modes instead:
 
-- **Practice**: any stage, from its start or straight at its boss, with the fighter (in Progear the pilot and gunner),
+- **Practice**: any stage, from its start or straight at its boss, with the fighter (in Progear the pilot and gunner, in Dimahoo the character),
   ships, bombs and power you choose. Backspace (a gamepad's left shoulder) puts it back as it began at once; Backslash (the left trigger with the
   left shoulder) replays your last attempt, until you touch the controls. Its aids show each ship's true hit box, the
   point of every enemy shot and the enemies' bodies, the scoring or the power as it happens, and a summary at each boss and

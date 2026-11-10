@@ -1,9 +1,9 @@
 # Practice mode
 
-The shoot-'em-ups' counterpart of the fighting games' [training mode](TRAINING.md). Giga Wing and Progear have it; the
+The shoot-'em-ups' counterpart of the fighting games' [training mode](TRAINING.md). Giga Wing, Progear and Dimahoo have it; the
 shooters to come will share it (it lives in the toolkit, `shmup/`). The pictures here are Giga Wing's; Progear's
 aids are the same, but its readout has the shot's power, and its summaries count the points scored (it has no
-multiplier).
+multiplier). Dimahoo's readout has its magic gauge, and its summaries count the points scored too.
 
 **Alternative modes** in the in-game menu has a **Practice** page: choose where and with what, then **Start**. The game
 is taken there unseen in a moment (the board's start, the choice of fighter and the way to a boss are run as fast as
