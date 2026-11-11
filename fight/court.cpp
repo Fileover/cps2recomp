@@ -27,7 +27,7 @@ namespace {
     constexpr float kRadius = 15.0f;
     constexpr float kGravity = 0.13f;
     constexpr float kDrag = 0.997f;          // of its speed kept each frame in the air
-    constexpr float kMostSpeed = 13.0f;
+    constexpr float kMostSpeed = 15.0f;
     constexpr float kFloorBounce = 0.72f;    // of its speed down kept by a bounce off the floor
     constexpr float kFloorGrip = 0.9f;       //   and of its speed across
     constexpr float kRoll = 0.985f;          // ... rolling along the floor, each frame
@@ -39,7 +39,7 @@ namespace {
     constexpr float kBodyGentle = 4.0f; // (slower than this into a fighter, it rolls off towards the line) // (the least it goes off one sideways, and up off its top)
     // An attack: the ball's speed by its power, more for each hit of a side's in a row (the third: a power shot), and a
     // little more for each time the ball has crossed the line in the rally
-    constexpr float kSpeeds[5] = {4.4f, 5.7f, 7.0f, 8.0f, 10.5f};
+    constexpr float kSpeeds[5] = {4.4f, 5.7f, 7.0f, 10.0f, 12.5f}; // (a special well beyond any normal)
     constexpr float kThrownSpeed = 0.9f;     // (a fireball's of its power)
     constexpr float kStreakMore = 0.12f, kPowerShot = 1.3f;
     constexpr int kStreakApart = 10;         // frames at least between hits that count as more than one in a row
@@ -47,8 +47,8 @@ namespace {
     constexpr float kRallyMore = 0.02f, kRallyMost = 1.25f;
     // Which way: forward (towards the line), up or down by where on the ball the attack lands, and a lift
     constexpr float kForward = 1.0f, kUpDown = 1.1f, kLift = 0.25f;
-    constexpr int kFreezes[5] = {6, 9, 12, 13, 16};  // steps the attacker is frozen for, by power
-    constexpr int kBallFreezes[5] = {5, 7, 10, 11, 15}; // frames the ball is held for (the hit's weight)
+    constexpr int kFreezes[5] = {6, 9, 12, 16, 18};  // steps the attacker is frozen for, by power
+    constexpr int kBallFreezes[5] = {5, 7, 10, 14, 16}; // frames the ball is held for (the hit's weight)
     constexpr int kGauge[5] = {3, 5, 7, 8, 0};       // of a hundred of a gauge, filled by a hit
     // A ball this fast into a fighter, hit by the other side, knocks it down (a super, a power shot)
     constexpr float kKnockDownSpeed = 9.6f;
@@ -60,6 +60,9 @@ namespace {
     // A throw (towards or away and a hard punch or kick) with the ball at hand: it goes up high in front, for a follow-up
     constexpr float kTossReach = 55.0f, kTossUp = 8.2f, kTossOn = 0.7f;
     constexpr int kTossLetGo = 18;           // frames the thrower's attacks let the ball go up (the throw's own punch)
+    // Aftertouch (the page's option): up or down held by the striker while a hit holds the ball bends its flight, up to
+    // this much (radians), by how many of the hold's frames it was held
+    constexpr float kAftertouchMost = 0.44f;
     constexpr int kStrikeSlack = 5;          // pixels an attack's box reaches further for the ball
     constexpr int kComputerSlack[3] = {8, 14, 20}; // ... and more for the computer's, by its level (its play is not exact)
     constexpr int kBodyCool = 8;             // frames after a bounce off a fighter before it counts again
@@ -79,6 +82,8 @@ namespace {
         float spin = 0, turn = 0;            // radians a frame, and how far it has turned
         int32_t held = 0;                    // frames it is held for still (a hit's weight)
         int32_t floaty = 0;                  // frames it drifts slowly after a light or medium hit (time for the next)
+        int32_t holdFor = 0;                 // frames the hit's hold had in all (aftertouch: of them, up and down held)
+        int32_t bend = 0;                    //   up held less down held, frames
         int32_t squash = 0;                  // frames of being squashed by a bounce (drawn)
         bool hot = false;                    // a power shot or a super: it can knock a fighter down
     };
@@ -255,10 +260,12 @@ namespace {
         // Spin: struck above its middle, it turns forward (topspin: a bounce sends it on); below, back
         b.spin = std::clamp(-below * static_cast<float>(Forward(side)) * speed * 0.02f, -0.35f, 0.35f);
         Cap(b);
-        b.hot = powerShot || s.power == kSuper;
+        b.hot = powerShot || s.power == kSpecial || s.power == kSuper; // (a special, like a super, knocks down who it hits)
         b.held = kBallFreezes[power] + (b.hot ? 4 : 0);
         // (a light or medium hit, not a chip: the ball drifts a moment, for the next of a chain)
         b.floaty = !chip && !b.hot && (s.power == kLight || s.power == kMedium) ? kFloatFor : 0;
+        b.holdFor = b.held;
+        b.bend = 0;
         b.squash = 6;
         g.lastSide = side;
         g.lastId[side] = s.id;
@@ -280,7 +287,7 @@ namespace {
         }
         if (b.hot) {
             g.said = 50;
-            g.saidKind = powerShot ? 1 : 2;
+            g.saidKind = powerShot ? 1 : s.power == kSpecial ? 5 : 2;
         }
     }
 
@@ -388,6 +395,20 @@ namespace {
         }
         if (b.held > 0) {
             b.held--;
+            if (b.held == 0 && b.bend != 0 && b.holdFor > 0) {
+                // (aftertouch: its way turned up or down as the striker held, the speed kept)
+                // (its angle over the floor, the way it is going, bent and kept short of straight up or down: it never
+                // turns back)
+                const float way = b.vx >= 0 ? 1.0f : -1.0f, speed = Speed(b);
+                const float angle = std::clamp(std::atan2(b.vy, std::fabs(b.vx)) +
+                                                   kAftertouchMost * static_cast<float>(b.bend) / static_cast<float>(b.holdFor),
+                                               -1.3f, 1.35f);
+                b.vx = way * speed * std::cos(angle);
+                b.vy = speed * std::sin(angle);
+                if (Logging()) {
+                    fprintf(stderr, "court f%d aftertouch %d of %d: v %.1f,%.1f\n", g_frames, b.bend, b.holdFor, b.vx, b.vy);
+                }
+            }
             return;
         }
         // (drifting after a light or medium hit: everything slowed, gravity too, then the full flight)
@@ -726,6 +747,10 @@ void RegisterPage(const char *modes, void (*start)(Machine &machine), const std:
     // (the Display page's own widescreen: the same setting, here too because the court is so much better for it)
     game.features.push_back({"widescreen", kCourt, "Widescreen (recommended)",
                              "The court shown 16:9, not 4:3: more of it at once. The same as the Display page's Widescreen.", 0});
+    game.features.push_back({"court_aftertouch", kCourt, "Aftertouch",
+                             "On: hold up or down while your hit holds the ball (the moment it stands still) to send it higher or "
+                             "lower, the longer held the more.",
+                             0, {"Off", "On"}});
     game.features.push_back({"court_hits", kCourt, "Fighters hit each other",
                              "Off: the fighters' attacks are for the ball alone. On: they can hit each other too (near the line, "
                              "or with what they throw), and knock each other about; nobody loses health.",
@@ -800,6 +825,11 @@ void BeforeFrame(Machine &, uint16_t &one, uint16_t &two) {
     }
     if (g.computer) {
         two = Computer(1, g.ai[1]);
+    }
+    // Aftertouch (the page's option, off unless chosen): the striker's stick up or down while the hit holds the ball
+    if (g.ball.held > 0 && g.lastSide >= 0 && FeatureValue("court_aftertouch") != 0) {
+        const uint16_t controls = g.lastSide == 0 ? one : two;
+        g.ball.bend += (controls & kUp) ? 1 : (controls & kDown) ? -1 : 0;
     }
     // A throw with the ball at hand (towards or away, and a hard punch or kick pressed): the ball up high in front of the
     // thrower, for a follow-up; the button is not passed on (no attack comes out with it)
@@ -935,8 +965,10 @@ void Frame(Machine &machine, std::vector<HudLine> &lines, std::vector<HudBox> &b
         lines.push_back({0.5f, 0.42f, 0, g.winner == 0 ? "PLAYER 1 WINS" : (g.computer ? "CPU WINS" : "PLAYER 2 WINS")});
     }
     if (g.said > 0) {
-        static const char *const kSaid[5] = {"", "POWER SHOT!", "SUPER SHOT!", "KNOCK DOWN!", "DEAD BALL"};
-        lines.push_back({0.5f, 0.34f, 0, kSaid[std::clamp(g.saidKind, 0, 4)], 255, 200, 60});
+        static const char *const kSaid[6] = {"", "POWER SHOT!", "SUPER SHOT!", "KNOCK DOWN!", "", "SPECIAL!"};
+        if (*kSaid[std::clamp(g.saidKind, 0, 5)]) {
+            lines.push_back({0.5f, 0.34f, 0, kSaid[std::clamp(g.saidKind, 0, 5)], 255, 200, 60});
+        }
     }
 }
 

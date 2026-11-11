@@ -1758,51 +1758,57 @@ void Port::Framed(std::vector<uint32_t> &pixels, Zoomed &zoomed) {
     float viewY = viewHeight >= kLines ? kLines - viewHeight + std::min(kBelow * viewHeight / kLines, viewHeight - kLines)
                                        : std::clamp(cam.y - viewHeight / 2, 0.0f, kLines - viewHeight);
 
-    // The game's picture without its panel, with the boxes the sources draw over the fight (the ball), through the view
-    std::vector<uint32_t> fight(machine->Unpanelled(), machine->Unpanelled() + static_cast<size_t>(across) * kLines);
+    // The game's picture without its panel, with the boxes the sources draw over the fight (the ball), through the view:
+    // each pixel of the frame the nearest of the picture's (tables of which column and row, made once a frame: a frame
+    // every sixtieth of a second on a handheld's processor too)
+    std::vector<uint32_t> &fight = framedFight;
+    fight.assign(machine->Unpanelled(), machine->Unpanelled() + static_cast<size_t>(across) * kLines);
     port::DrawHud(fight.data(), across, kLines, nullptr, port::kHudBoxes);
-    pixels.assign(static_cast<size_t>(outWidth) * outHeight, 0xFF000000u);
-    auto at = [&](int x, int y) -> uint32_t { return x < 0 || y < 0 || x >= across || y >= kLines ? 0xFF000000u : fight[static_cast<size_t>(y) * across + x]; };
-    auto mix = [](uint32_t a, uint32_t b, float by) {
-        uint32_t mixed = 0xFF000000u;
-        for (int shift = 0; shift < 24; shift += 8) {
-            const float from = static_cast<float>((a >> shift) & 0xFF), to = static_cast<float>((b >> shift) & 0xFF);
-            mixed |= static_cast<uint32_t>(std::lround(from + (to - from) * by)) << shift;
-        }
-        return mixed;
-    };
+    pixels.resize(static_cast<size_t>(outWidth) * outHeight);
+    std::vector<int> &columnOf = framedColumnOf;
+    columnOf.resize(static_cast<size_t>(outWidth));
+    for (int x = 0; x < outWidth; x++) {
+        const int column = static_cast<int>(std::floor(viewX + (x + 0.5f) * viewWidth / outWidth));
+        columnOf[static_cast<size_t>(x)] = column >= 0 && column < across ? column : -1;
+    }
     for (int y = 0; y < outHeight; y++) {
-        const float down = viewY + (y + 0.5f) * viewHeight / outHeight - 0.5f;
-        const int row = static_cast<int>(std::floor(down));
-        const float below = down - row;
+        const int row = static_cast<int>(std::floor(viewY + (y + 0.5f) * viewHeight / outHeight));
         uint32_t *line = &pixels[static_cast<size_t>(y) * outWidth];
+        if (row < 0 || row >= kLines) {
+            std::fill(line, line + outWidth, 0xFF000000u);
+            continue;
+        }
+        const uint32_t *from = &fight[static_cast<size_t>(row) * across];
         for (int x = 0; x < outWidth; x++) {
-            const float acrossAt = viewX + (x + 0.5f) * viewWidth / outWidth - 0.5f;
-            const int column = static_cast<int>(std::floor(acrossAt));
-            const float right = acrossAt - column;
-            line[x] = mix(mix(at(column, row), at(column + 1, row), right), mix(at(column, row + 1), at(column + 1, row + 1), right), below);
+            const int column = columnOf[static_cast<size_t>(x)];
+            line[x] = column < 0 ? 0xFF000000u : from[column] | 0xFF000000u;
         }
     }
     // Over it, as a picture of the shape's columns shows them: the game's panel (in the middle of the picture, as the
-    // board's own), and the readout's text
-    std::vector<uint32_t> laid(static_cast<size_t>(columns) * kLines, 0);
+    // board's own), and the readout's text, each of their pixels kBy x kBy of the frame's
+    std::vector<uint32_t> &laid = framedLaid;
+    laid.assign(static_cast<size_t>(columns) * kLines, 0);
     const uint8_t *panel = machine->PanelPixels();
     const uint32_t *picture = machine->Picture();
     const int from = (across - columns) / 2;
-    for (int y = 0; y < kLines; y++) {
-        for (int x = 0; x < columns; x++) {
-            const size_t n = static_cast<size_t>(y) * across + x + from;
-            if (panel && panel[n]) {
-                laid[static_cast<size_t>(y) * columns + x] = picture[n] | 0xFF000000u;
+    if (panel) {
+        for (int y = 0; y < kLines; y++) {
+            for (int x = 0; x < columns; x++) {
+                const size_t n = static_cast<size_t>(y) * across + x + from;
+                if (panel[n]) {
+                    laid[static_cast<size_t>(y) * columns + x] = picture[n] | 0xFF000000u;
+                }
             }
         }
     }
     port::DrawHud(laid.data(), columns, kLines, nullptr, port::kHudText);
-    for (int y = 0; y < outHeight; y++) {
-        for (int x = 0; x < outWidth; x++) {
-            const uint32_t over = laid[static_cast<size_t>(y / kBy) * columns + x / kBy];
-            if (over >> 24) {
-                pixels[static_cast<size_t>(y) * outWidth + x] = over;
+    for (int y = 0; y < kLines; y++) {
+        const uint32_t *row = &laid[static_cast<size_t>(y) * columns];
+        for (int x = 0; x < columns; x++) {
+            if (const uint32_t over = row[x]; over >> 24) {
+                for (int dy = 0; dy < kBy; dy++) {
+                    std::fill_n(&pixels[static_cast<size_t>(y * kBy + dy) * outWidth + static_cast<size_t>(x * kBy)], kBy, over);
+                }
             }
         }
     }

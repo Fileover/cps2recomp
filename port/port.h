@@ -195,6 +195,8 @@ struct Port {
         float x = 0, y = 0, size = 0; // (the view's middle in the picture, and its size against the shape's)
         bool settled = false;
     } frameCamera;
+    std::vector<uint32_t> framedFight, framedLaid; // (Framed's, kept from frame to frame)
+    std::vector<int> framedColumnOf;
     // The picture drawn on the GPU from the native records (--video gpu: docs/NATIVE_VIDEO.md), when the window's
     // presenter draws with SDL_GPU
     GpuPicture gpuPicture;

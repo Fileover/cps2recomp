@@ -8,7 +8,10 @@ fighter and off their end of the court for a point. First to 3, 5 or 10 wins.
 ## Playing
 
 - **Hitting the ball.** Any attack that touches the ball hits it. Harder attacks send it faster: light, medium, hard,
-  then special moves, then moves made with a gauge (ES and EX moves, supers). Where the attack meets the ball decides
+  then special moves well beyond any of those (held longer, glowing, and knocking down whoever they hit), then moves
+  made with a gauge (ES and EX moves, supers).
+- **Aftertouch** (an option, off unless chosen): hold up or down while your hit holds the ball (the moment it stands
+  still) to send it higher or lower, up to about 25 degrees, the longer held the more; it never turns back. Where the attack meets the ball decides
   the angle: strike it below its middle and it goes up, above its middle and it goes down (a spike), squarely and it
   flies straight. It always goes toward the other half. Fireballs and other thrown attacks hit it too, a little softer.
 - **Chip it up.** A light attack low (a crouching light kick) under a ball on the floor pops it up gently, to about
@@ -45,6 +48,7 @@ The menu's **Court** page has Start and these choices:
 | CPU level | Easy, medium or hard |
 | Camera | **Whole court** (the default: the whole stage always) or **Follow the play** (as close as shows both fighters and the ball, to 1.3x a 16:9 picture; out to the whole stage, black above it, when they are apart) |
 | Widescreen (recommended) | The Display page's own Widescreen, here too: the court shown 16:9 (else 4:3) |
+| Aftertouch | Off (the default) or On |
 | Fighters hit each other | Off (the default) or On |
 | Fighter 1, Fighter 2 | Someone at random, or a character |
 | Stage | Random (of the game's own), or any stage: the game's own, then the other games' (guest stages, each needing that game's ROM set) |
@@ -80,7 +84,9 @@ knock-out), holds the camera in the middle of the stage, and calls the court bef
   on the CPU (the GPU's own picture is not used meanwhile), the panel and the readout laid over it where a 512-column
   picture has them. The camera eases to as close as shows both fighters (`Game::focus`) and the ball
   (`Game::focusAlso`), at most 1.3x, and out to the whole picture, its floor at the frame's bottom and black above. The
-  menu is drawn over the whole picture in that frame. Screenshots (`--shot-every`) are the whole 768-column picture;
+  menu is drawn over the whole picture in that frame. Each frame's pixel is the picture's nearest (tables of columns and
+  rows made once a frame): a blend of four was too slow on a Steam Machine. A guest stage's picture, put together from
+  the guest's own records (`PictureMade`), is not framed yet: it is shown whole, in its own 8:3 shape. Screenshots (`--shot-every`) are the whole 768-column picture;
   `--present-every` is the frame. and `Game::zoomWanted` (the court asks for the zoom by distance while it runs, unless its page says Whole
   court; the player's own zoom comes back after).
 - **Save states**: the court's state is one POD (`court::State`, in the battle's).
@@ -93,7 +99,7 @@ knock-out), holds the camera in the middle of the stage, and calls the court bef
 ### Tuning
 
 The feel is in the constants at the top of `fight/court.cpp`: `kRadius` 15, `kGravity` 0.13, `kSpeeds` (4.4, 5.7, 7.0,
-8.0, 10.5 by power), `kKnockDownSpeed` 9.6, the bounce and grip factors, `kStreak*`, `kRally*` (the ball gets a little
+10.0, 12.5 by power), `kKnockDownSpeed` 9.6, the bounce and grip factors, `kStreak*`, `kRally*` (the ball gets a little
 faster each time it crosses the line in a rally), `kFreezes` and `kBallFreezes` (how long the attacker and the ball
 are held when it is struck: the hit's weight), `kDeadBall`.
 
