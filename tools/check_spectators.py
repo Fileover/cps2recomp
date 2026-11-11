@@ -16,6 +16,11 @@ port = 10000 + os.getpid() % 20000
 service = os.environ.get("SERVICE", "off")
 join_frame = int(os.environ.get("JOIN_FRAME", "4300"))
 player_frames = join_frame + 2400
+# FIRST_TO=1|2: the players play a whole FT5 (FT10) set; the viewer, coming in partway, must count the same games
+first_to = os.environ.get("FIRST_TO", "")
+if first_to:
+    join_frame = int(os.environ.get("JOIN_FRAME", "20000"))
+    player_frames = 200000
 processes = []
 files = []
 
@@ -28,6 +33,7 @@ def start(name, args, frames):
     log = (work / (name + ".log")).open("w")
     files.append(log)
     p = subprocess.Popen([str(exe), "--rom", os.environ.get("ROM", "rom/" + game), "--headless",
+        *(["--unthrottled"] if first_to else []),
         "--frames", str(frames), "--settings", str(settings), "--eeprom", str(eeprom),
         "--net-service", service, "--hash-no-picture", "--hash-no-sound", "--hash-log", str(work / (name + ".hash")),
         "--net-fake", "20:10:5", *args], stdout=log, stderr=log)
@@ -38,7 +44,9 @@ def hashes(name):
     return dict(line.split() for line in (work / (name + ".hash")).read_text().splitlines())
 
 try:
-    host = start("host", ["--host", str(port), "--net-spectators", "--net-list", "--auto", "11:0:1", "--net-name", "Host"], player_frames)
+    set_features = ["--features", "online_set=" + first_to + ",free_play,skip_intro"] if first_to else []
+    host = start("host", ["--host", str(port), "--net-spectators", "--net-list", "--auto", "11:0:1", "--net-name", "Host",
+                          *set_features], player_frames)
     time.sleep(.5)
     address = "127.0.0.1:" + str(port)
     def lobby(watching):
@@ -56,7 +64,7 @@ try:
     guest = start("guest", ["--join", guest_address, "--auto", "12:0:1", "--net-name", "Guest"], player_frames)
     # Joining after the history window catches admission being mistaken for a slow viewer:
     # a new viewer's zero cursor must not be checked before its starting snapshot is assigned.
-    deadline = time.monotonic() + 180
+    deadline = time.monotonic() + (900 if first_to else 180)
     while True:
         assert host.poll() is None and guest.poll() is None, "player stopped before spectator admission"
         path = work / "host.hash"
@@ -68,6 +76,19 @@ try:
         time.sleep(.25)
     if service != "off":
         assert lobby(True) == address
+    if first_to:
+        watcher = start("watcher", ["--watch", address, "--auto", "99:0:1"], player_frames)
+        assert host.wait(timeout=1800) == 0 and guest.wait(timeout=60) == 0, "player failed"
+        assert watcher.wait(timeout=60) == 0, "spectator failed: inspect watcher.log"
+        def events(name):
+            return [line.split() for line in (work / (name + ".log")).read_text().splitlines() if line.startswith("online: set FT")]
+        w = events("watcher")
+        start_at = min(map(int, hashes("watcher")))
+        h = [e for e in events("host") if int(e[4]) >= start_at]
+        assert w and w == h, f"viewer's set differs: host {h}, viewer {w}"
+        assert w[-1][-1] == "complete", "the set did not finish while watched"
+        print(f"ok: viewer came in at frame {start_at} and counted the same {len(w)} games to {w[-1][6]}")
+        raise SystemExit(0)
     watcher = start("watcher", ["--watch", address, "--auto", "99:0:1"], join_frame + 1400)
     assert watcher.wait(timeout=45) == 0, "spectator failed: inspect watcher.log"
     assert host.poll() is None and guest.poll() is None, "viewer leaving stopped a player"

@@ -1418,7 +1418,11 @@ void Netplay::Frame(Port &port, uint16_t controls) {
         port.Step(players);
         if (set.Target()) {
             // (the viewer's frames are all confirmed ones: the set's score counted as the players count it)
-            set.Confirm(port.frame, {battle::RoundResultNow(), battle::RoundsToWin(), versus});
+            if (set.Confirm(port.frame, {battle::RoundResultNow(), battle::RoundsToWin(), versus}) >= 0) {
+                fprintf(stderr, "online: set FT%d frame %llu score %d-%d%s\n", set.Target(),
+                        static_cast<unsigned long long>(port.frame + 1), set.Score(0), set.Score(1),
+                        set.Winner() >= 0 ? " complete" : "");
+            }
         }
         if (f.hash || port.hashFile) {
             const uint32_t hash = port.StateHash();
