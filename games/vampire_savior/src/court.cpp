@@ -195,7 +195,13 @@ void RegisterCourt() {
     d.everyFrame = [] {
         SetRam8(kFirstAttackMade, 1);
         for (int side = 0; side < 2; side++) {
-            SetRam8(Player(side) + kNotHit, std::max<uint8_t>(Ram8(Player(side) + kNotHit), 8)); // (counted down each step: 029406 tests it)
+            if (court::FightersHit()) {
+                // (they may hit each other: nobody's health goes down)
+                SetRam16(Player(side) + kHealth, kHealthFull);
+                SetRam16(Player(side) + kHealthCeiling, kHealthFull);
+            } else {
+                SetRam8(Player(side) + kNotHit, std::max<uint8_t>(Ram8(Player(side) + kNotHit), 8)); // (counted down each step: 029406 tests it)
+            }
         }
     };
     court::Register(d);

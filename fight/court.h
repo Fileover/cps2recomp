@@ -91,6 +91,9 @@ void RegisterPage(const char *modes, void (*start)(Machine &machine), const std:
 // A court game is being played (the battle's kind), and its fight is on (the ball in play or about to be)
 bool On();
 bool Playing();
+// ... and its fighters may hit each other (the page's "Fighters hit each other"): the game's hit tests between them left
+// as they are, and nobody's health going down
+bool FightersHit();
 // Where the line down the middle is (the stage's x), and the room kept on either side of it: a fighter's middle is
 // kept at least its half width and this far from it (the game's sources: where it keeps the fighters apart)
 int Line();

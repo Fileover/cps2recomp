@@ -11,6 +11,12 @@ fighter and off their end of the court for a point. First to 3, 5 or 10 wins.
   then special moves, then moves made with a gauge (ES and EX moves, supers). Where the attack meets the ball decides
   the angle: strike it below its middle and it goes up, above its middle and it goes down (a spike), squarely and it
   flies straight. It always goes toward the other half. Fireballs and other thrown attacks hit it too, a little softer.
+- **Chip it up.** A light attack low (a crouching light kick) under a ball on the floor pops it up gently, to about
+  head height, to be struck again.
+- **Combos.** After a light or medium hit the ball drifts slowly for a moment (a quarter of a second), so the next
+  attack of a chain combo can catch it; a hard hit, a special or a gauge move sends it straight off.
+- **Throw it up.** A throw's input (towards or away, and a hard punch or kick) with the ball at your feet or in reach
+  throws it up high in front of you for a follow-up; no attack comes out with it. The CPU does it too.
 - **Spin.** A ball struck above its middle spins forward and kicks on when it bounces. Struck below, it spins back and
   checks up.
 - **Three in a row.** Three hits by the same fighter in a row (each more than a moment apart, and not too long) make a
@@ -24,8 +30,9 @@ fighter and off their end of the court for a point. First to 3, 5 or 10 wins.
   head) rolls off towards the line, never off the back to its own end.
 - **Points.** The ball off an end of the court is a point for the other fighter; a ball lying still stays in play
   until someone strikes it. The next serve drops on the half of whoever lost the point.
-- **Nobody is caught.** The fighters can be neither hit nor grabbed while the court runs: a command grab that reaches
-  across the court (Anakaris's coffin) catches nothing.
+- **Nobody is caught**, unless the page's **Fighters hit each other** is on: by default the fighters can be neither hit
+  nor grabbed (a command grab that reaches across the court, Anakaris's coffin, catches nothing). With it on, their
+  attacks and what they throw hit each other as in a fight, and nobody loses health.
 - **The gauge** fills as it always does when attacks are thrown, so supers come round.
 - Nobody loses health and the clock stands still.
 
@@ -36,7 +43,9 @@ The menu's **Court** page has Start and these choices:
 | First to | 3, 5 or 10 points |
 | Player 2 side | The CPU, or player 2 |
 | CPU level | Easy, medium or hard |
-| Camera | **Follow the play** (the default: as close as shows both fighters and the ball, to 1.3x a 16:9 picture; out to the whole stage, black above it, when they are apart) or **Whole court** (the whole stage always) |
+| Camera | **Whole court** (the default: the whole stage always) or **Follow the play** (as close as shows both fighters and the ball, to 1.3x a 16:9 picture; out to the whole stage, black above it, when they are apart) |
+| Widescreen (recommended) | The Display page's own Widescreen, here too: the court shown 16:9 (else 4:3) |
+| Fighters hit each other | Off (the default) or On |
 | Fighter 1, Fighter 2 | Someone at random, or a character |
 | Stage | Random (of the game's own), or any stage: the game's own, then the other games' (guest stages, each needing that game's ROM set) |
 

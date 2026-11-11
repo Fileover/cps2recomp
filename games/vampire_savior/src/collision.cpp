@@ -205,7 +205,7 @@ namespace {
             for (int victim = 0; victim < kPlayerRecords; victim++) {
                 // (the byte is read afresh each time: a hit can change it)
                 // (the court: the fighters' attacks are for the ball, never each other: court.cpp)
-                if (victim != attacker && !court::On() &&
+                if (victim != attacker && (!court::On() || court::FightersHit()) &&
                     (Mem8(c, c.a[5] + 0x400 * static_cast<uint32_t>(attacker + 1) + kCanHit) & (1u << victim))) {
                     c.a[1] = c.a[5] + 0x400 * static_cast<uint32_t>(victim + 1);
                     HitTest(c);
@@ -231,7 +231,7 @@ namespace {
             if (Mem8(c, c.a[6] + kActive) == 1 && !Mem8(c, c.a[6] + 0xB5)) {
                 // (its side: 0 is player 1's, 1 player 2's, anything else nobody's)
                 for (int player = 0; player < 2; player++) {
-                    if (Mem8(c, c.a[6] + kSide) == player || court::On()) {
+                    if (Mem8(c, c.a[6] + kSide) == player || (court::On() && !court::FightersHit())) {
                         continue;
                     }
                     ClearHit(c);

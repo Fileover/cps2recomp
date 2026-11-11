@@ -2186,8 +2186,13 @@ void battle::Register(const Description &description) {
         court::RegisterPage(kModes, StartCourt, d.fighterChoices, stages);
         game.focusAlso = court::Focus;
         // (the court's whole stage, wider than the wide picture, through its own camera: Port::Framed)
-        game.framedColumns = [] { return g.kind == Kind::Court && court::On() && d.wideSide && d.wideSide() > Video::kWideSide ? Video::kWidth + 2 * Video::kWideSide : 0; };
-        game.framedFollows = [] { return FeatureValue("court_camera") == 0; };
+        // (16:9 with the widescreen setting on, as recommended; 4:3 without)
+        game.framedColumns = [] {
+            return g.kind == Kind::Court && court::On() && d.wideSide && d.wideSide() > Video::kWideSide
+                       ? Video::kWidth + (FeatureOn("widescreen") ? 2 * Video::kWideSide : 0)
+                       : 0;
+        };
+        game.framedFollows = [] { return FeatureValue("court_camera") == 1; };
     }
     game.commands.push_back({"endless_start", kEndless, "Start",
                              "Two fighters played by the game: no bars, no clock, and the one knocked down is replaced. Press "
