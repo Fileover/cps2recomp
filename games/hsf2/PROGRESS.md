@@ -16,8 +16,8 @@ sockets (4 MB) and the graphics one row of four 8 MB files.
 - **Features**: free play (the game's own), straight to the title, the Board page, cheats, the custom soundtrack's
   names, the training session and its aids, the Alternative modes page (attract mode, the stage viewer, the model
   viewer, survival, endless battle, ring out, the tag team battle in both styles), custom colours and the colour
-  editor (the Super Turbo version's), widescreen and invisible walls, Akuma with no code, the other regions' sets
-  (`hsf2a`, `hsf2j`).
+  editor (the Super Turbo version's), widescreen and invisible walls, Akuma with no code, the difficulty fix, the
+  other regions' sets (`hsf2a`, `hsf2j`).
 
 ## How it was found: Super Turbo's program lined up with this one
 
@@ -101,6 +101,13 @@ All in `src/hsf2.h` with the routine or the experiment each came from. A5 is FF8
 - **Random number** FF0CB2 (A5-734E: 003276 steps it).
 - **The computer**: its step 06A142 (called at 06697E, returning to 066986); its set-up 06BD16, 06C922, 06A1C8, with
   two words a character from 316E3E.
+- **Difficulty by region** (`src/difficulty.cpp`): the computer's difficulty reads a row from a table at 005CB6, the
+  row the board's difficulty (FF82BC) times 64 plus a stage index times four. A0 holds the table: 0x315E00 (005C8A),
+  which a block at 005C90-005CB4 swaps for 0x316000 when the region word FF82FA is 2 (USA), 4, 6 or 8 (Asia), not for
+  Japan's 0 -- so those regions do not follow the setting. bankbank's ROM patch NOPs that block; the **Difficulty fix**
+  feature does the same by putting 0x315E00 back in A0 at 005CB6 when it is on (off by default). Only A0 is touched, so
+  it is identical to the patch; nothing is kept between frames, so no save state holds it, and online the host's choice
+  is used as any feature's is.
 - **The tag style's swap** (`src/livetag.cpp`): Super Turbo's, with the round's 0x300 bytes cleared but for what a
   round's start alone puts in; the objects the set-up makes (kinds 16 and 1A) given back to the pool (60 of 0xC0 from
   FFA754, its list A5+1342, its count A5+132B); the panel made again through 011B48; a character the player's version
