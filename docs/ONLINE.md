@@ -47,6 +47,24 @@ cps2recomp-launcher --play sfa3 -- --host --net-arcade     # ... playing the gam
 cps2recomp-launcher --play sfa3 -- --join CODE             # the other player: the host's code (or address)
 ```
 
+## First to five or ten
+
+Marvel vs. Capcom and X-Men vs. Street Fighter have **Online > Set format**: **Casual** (the default, and in Pure),
+**FT5** or **FT10**. The host's choice is the match's, as with its other settings.
+
+A strip at the top shows both names around the score (`2 FT5 1`). A game counts when one player wins it from the other:
+not a draw, not a fight with the computer, and only once both games have the real controls for it (a guess that a
+rollback replaced never counts). When a player reaches five (or ten), both games agree on the score, show the winner
+for two seconds and close, back to the launcher; host again there for a new set. A dropped connection ends the set
+unfinished, and coming back starts the score over. Nothing is kept or ranked.
+
+From a terminal, `--features online_set=1` is FT5 and `online_set=2` FT10, on the host:
+
+```sh
+build/mvsc/mvsc --rom rom/mvsc --host 7845 --net-service off --features online_set=1
+build/mvsc/mvsc --rom rom/mvsc --join 127.0.0.1:7845 --net-service off   # (the other player)
+```
+
 ## How it connects
 
 - **How the code works**: a small service of ours introduces the two games, telling each where the other can be

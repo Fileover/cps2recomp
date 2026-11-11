@@ -1404,7 +1404,9 @@ bool Port::Tick() {
             if (!net->ended.empty()) {
                 // (the other side gone: a window waits for them again; the host's leaving ends the joining side's)
                 const bool again = !opt.headless && (net->Hosting() ? net->left || net->lost : net->lost);
-                if (hostedFromMenu) {
+                if (net->SetFinished()) {
+                    quit = true;
+                } else if (hostedFromMenu) {
                     BackToSolo(again); // (the other side gone: still hosted, the player's own game again)
                 } else if (again) {
                     Again(net->ended);
@@ -1540,6 +1542,11 @@ void Port::Shown(std::vector<uint32_t> &pixels, std::vector<SDL_Rect> *panels, b
         if (!cameIn) {
             status("PRESS START TO JOIN", said++ * 14);
         }
+        if (net->Set().Winner() >= 0) {
+            const std::string result = "PLAYER " + std::to_string(net->Set().Winner() + 1) + " WINS THE FT" +
+                                       std::to_string(net->Set().Target()) + " SET";
+            status(result.c_str(), said++ * 14);
+        }
     }
     // (--net-arcade: the host playing while it waits; the wait, and the match's code to give, at the bottom)
     if (net && connecting && net->Arcade()) {
@@ -1581,7 +1588,42 @@ void Port::Shown(std::vector<uint32_t> &pixels, std::vector<SDL_Rect> *panels, b
                 panels->push_back({static_cast<int>(x) - 3, static_cast<int>(y) - 2, static_cast<int>(width) + 7, 12});
             }
         };
-        for (int side = 0; side < 2; side++) {
+        if (net->Set().Target()) {
+            // Keep the score centred even when the players' names have different lengths.
+            constexpr float size = 1;
+            // Whole font dots stay sharp; compact padding keeps the strip clear of the life bars.
+            auto smallText = [&](float x, const std::string &text, recomp::text::Color colour) {
+                canvas.Text(std::floor(x), 2, size, 0, colour, text.c_str());
+            };
+            const std::string left = std::to_string(net->Set().Score(0));
+            const std::string format = "FT" + std::to_string(net->Set().Target());
+            const std::string right = std::to_string(net->Set().Score(1));
+            const float leftWidth = recomp::text::TextWidth(left.c_str(), size);
+            const float formatWidth = recomp::text::TextWidth(format.c_str(), size);
+            const float rightWidth = recomp::text::TextWidth(right.c_str(), size);
+            const float centre = (across - formatWidth) / 2.0f;
+            const float leftAt = centre - 6 - leftWidth;
+            const float rightAt = centre + formatWidth + 6;
+            canvas.Fill(0, 0, across, 11, {20, 22, 30, 220});
+            smallText(leftAt, left, {0, 220, 220, 255});
+            smallText(centre, format, {255, 210, 80, 255});
+            smallText(rightAt, right, {0, 220, 220, 255});
+            if (!FeatureOn("online_hide_names")) {
+                for (int side = 0; side < 2; ++side) {
+                    std::string name = net->Name(side);
+                    if (name.empty()) {
+                        name = "Player " + std::to_string(side + 1);
+                    }
+                    const float width = recomp::text::TextWidth(name.c_str(), size);
+                    const float x = side == 0 ? leftAt - 9 - width : rightAt + rightWidth + 9;
+                    smallText(x, name, {255, 255, 255, 255});
+                }
+            }
+            if (panels) {
+                panels->push_back({0, 0, across, 11});
+            }
+        }
+        for (int side = 0; side < 2 && !net->Set().Target(); side++) {
             float y = 38.0f;
             const std::string name = net->Name(side);
             if (!FeatureOn("online_hide_names") && !name.empty()) {
@@ -2468,6 +2510,7 @@ void Port::ArcadeFrame() {
 
 void Port::Matched() {
     connecting = false;
+    net->BeginSet();
     chatHintUntil = tick + kChatTicks;
     // (the host's player, playing while it waited, is in already; the joining side is told so in the welcome)
     cameIn = net->Arcade() && cameIn;
@@ -3500,7 +3543,8 @@ int main(int argc, char **argv) {
             return 5;
         }
         fprintf(stderr, "online: %s\n", p.net->ended.c_str());
-        if (!p.opt.headless) {
+        // (a finished set closes quietly: the launcher that started the game is still there, waiting for it)
+        if (!p.opt.headless && !p.net->SetFinished()) {
             SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_INFORMATION, GAME_NAME, p.net->ended.c_str(), nullptr);
         }
     }

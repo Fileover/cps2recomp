@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- **Online: first to 5 or 10** (from liquidmetalxy-debug, #242): in Marvel vs. Capcom and X-Men vs. Street Fighter
+  the host chooses **Online > Set format**: Casual (the default, and in Pure), FT5 or FT10, for both players. A strip
+  at the top shows the score; only finished games between the two players count (not draws, not the computer). When a
+  player reaches it, both games agree on the score, show the winner for two seconds and close, back to the launcher.
+  Both players need this version (the online protocol is now 7).
 - **The shoot-'em-ups (Giga Wing, Progear, Dimahoo): tester feedback.**
   - **Training mode**: practice is now called training mode, as in the fighting games.
   - **Hit boxes in every mode**: Player hit boxes, Enemy hit boxes and Bullet hit boxes (the enemies' shots, apart from
@@ -89,7 +94,7 @@
   (their pool of objects was never run, so they stood unmade and undrawn).
 - **Windows** (from Fileover, #208): a parent set's zip is found beside a game's zip when the path is written with
   backslashes, and the launcher opens without a console window beside it (recomp-common #62).
-  
+
 - **Online: the settings the match decides stay put** (#195): during an online match, the in-game menu no longer changes
   the host's board settings (game speed, difficulty, timer...), the other features that change play, or the cheats.
   A change there reached only one player's game, so the two drifted apart and the match stopped. The rows say the host
