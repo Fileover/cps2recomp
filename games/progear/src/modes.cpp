@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 // Copyright (C) 2026 Tommy McLeroy
 //
-// Progear: the menu's "Alternative modes" and practice (the toolkit's shmup/shmup.h): what they need of the game.
+// Progear: the menu's "Alternative modes" and training mode (the toolkit's shmup/shmup.h): what they need of the game.
 //
 // A mode gets into a game the way a player does: a credit, Start, the choice of pilot and then of gunner (each put in the
 // choice's variable and its cursor and the shot button pressed, or the player's own choices in the scored modes), and
@@ -38,7 +38,7 @@ namespace {
     bool ToPlay(Machine &machine, const shmup::Begin &begin, int32_t frames) {
         const uint16_t mode = Ram16(kMode);
         // (played once player 1's ship is there and the take-off over: a ship's start puts its power and bombs back,
-        // so what practice sets is put in after it)
+        // so what training mode sets is put in after it)
         if (mode == kModePlay) {
             return (Ram16(Ship(0) + kShipFlags) & 0x8000) && Ram16(kTakeOff) == 0;
         }
@@ -62,8 +62,8 @@ namespace {
                 continue;
             }
             const int y = static_cast<int16_t>(Ram16(ship + kShipY)), x = static_cast<int16_t>(Ram16(ship + kShipX));
-            const int up = Ram16(ship + kShipBoxUp), down = Ram16(ship + kShipBoxDown), right = Ram16(ship + kShipBoxRight),
-                      left = Ram16(ship + kShipBoxLeft);
+            const int up = static_cast<int16_t>(Ram16(ship + kShipBoxUp)), down = static_cast<int16_t>(Ram16(ship + kShipBoxDown)),
+                      right = static_cast<int16_t>(Ram16(ship + kShipBoxRight)), left = static_cast<int16_t>(Ram16(ship + kShipBoxLeft));
             const int x0 = Column(x - left), x1 = Column(x + right), y0 = Row(y + up), y1 = Row(y - down);
             // (bright green in a black edge, to stand out from any ship)
             boxes.push_back({x0 - 1, y0 - 1, x1 - x0 + 2, y1 - y0 + 2, 0, 0, 0, 255});
@@ -103,11 +103,14 @@ namespace {
         return false;
     }
 
-    void EnemyBoxes(std::vector<HudBox> &boxes) {
+    void BodyBoxes(std::vector<HudBox> &boxes) {
         // The enemies' bodies, each a box the ships' boxes are tested against (04DFC4), as the hit test saw them
         if (g_seen.frame + 1 >= g_frame) {
             boxes.insert(boxes.end(), g_seen.bodies.begin(), g_seen.bodies.end());
         }
+    }
+
+    void ShotBoxes(std::vector<HudBox> &boxes) {
         // The enemies' shots, each a point tested against the ships' boxes (040B02)
         for (int n = 0; n < kShotCount; n++) {
             const uint32_t shot = kShots + kShotSize * static_cast<uint32_t>(n);
@@ -189,7 +192,11 @@ void RegisterModes() {
     d.readoutWords = "At the left: the shot's power (1 to 5) and, after a ship's start, the frames it is still out of harm.";
     d.maxBombs = kMostBombs;
     d.shipBoxes = ShipBoxes;
-    d.enemyBoxes = EnemyBoxes;
+    d.bodyBoxes = BodyBoxes;
+    d.shotBoxes = ShotBoxes;
+    // (the object list is made from the places of the frame before: the shots' points sit on their shots so, not a frame
+    // ahead of them; found by comparing pictures both ways, over thousands of shots)
+    d.listLag = 1;
     d.summaryWords = "When a boss comes and at a stage's end: how long the way to the boss took, and the boss, the points scored, the ships "
                      "lost and the bombs used.";
     d.ships = [](int player) { return static_cast<int>(Ram16(kShips + 2 * static_cast<uint32_t>(player))); };

@@ -10,16 +10,25 @@
 #include <map>
 #include <string>
 
+#include <zlib.h>
+
 namespace cps2recomp::shmup {
 
 namespace {
-    constexpr const char *kModes = "Alternative modes", *kPractice = "Practice", *kAttract = "Attract mode", *kScore = "Score attack",
+    constexpr const char *kModes = "Alternative modes", *kPractice = "Training mode", *kAttract = "Attract mode", *kScore = "Score attack",
                           *kCaravan = "Caravan", *kRush = "Boss rush", *kViewer = "Stage viewer";
     constexpr int kStartMost = 20000;  // frames after which getting to a game (or to a boss) is given up
     constexpr int kShownFor = 6 * 60;  // frames a mode's words stay up
     constexpr int kSnapshotEvery = 60; // frames between the snapshots kept while running unseen to a boss
     constexpr int kSnapshots = 4;      // ... how many (the boss is met from two or three seconds before its clock)
     constexpr int kFps = 60;
+    constexpr int kViewKeyEvery = 30; // the stage viewer: frames between the states it keeps for going back
+    constexpr int kViewKeys = 2400;   // ... how many at most (20 minutes of a stage)
+    constexpr int kViewBack = 2;      // ... frames it goes back for each picture while back is held
+    constexpr int kViewForward = 4;   // ... times as fast while forward is held
+    // The slowdown (the Game page): arcade perfect (the board's timing, Machine::SetBoardTiming), or none: every clock
+    // the 68000's and this many times as many (enough for the busiest screens: none of Progear's frames runs short)
+    constexpr int kOverclock = 4;
 
     Description d;
 
@@ -56,6 +65,10 @@ namespace {
         char summary[2][2][96] = {};
         // replay: where the last attempt's controls are shown from
         int32_t replayAt = 0;
+        // boss rush: a boss was on in the frame before (apart from the summary's, which counts only while a stage is
+        // played)
+        bool rushBossWas = false;
+        int32_t outOfGame = 0; // (frames on the way to a boss with no game on)
     } g;
     bool g_fast = false;
     // Kept apart from the save state (they are machines' save states, and the controls of an attempt): practice's start,
@@ -65,6 +78,27 @@ namespace {
     std::vector<uint32_t> g_attempt, g_replay;
     std::map<std::string, uint64_t> g_bests;
     bool g_bestsRead = false;
+    // The hit boxes go with the objects the board shows (drawing only: not in the state): the boxes of the frame before,
+    // the object list the board takes next (a hash of it: a new one is a list the game has made), and the boxes of the
+    // places that list was made from
+    std::vector<HudBox> g_boxesBefore, g_boxesListed;
+    uint32_t g_listed = 0;
+    // The stage viewer's own scrolling (kept apart from the save state, as practice's start: machines' save states and
+    // where the viewer is): the frames since the stage began, states kept every kViewKeyEvery (packed), going back (the
+    // states of the frames behind, from the frame g_viewBehindFrom on, and the frame they are being remade to: -1, not),
+    // stopped (the state it holds), and the controls of the frame before
+    struct ViewKey {
+        int32_t at;
+        uLongf size;
+        std::vector<uint8_t> packed;
+    };
+    std::vector<ViewKey> g_viewKeys;
+    int32_t g_viewAt = 0, g_viewBehindFrom = 0, g_viewRemaking = -1;
+    std::vector<std::vector<uint8_t>> g_viewBehind;
+    std::vector<uint8_t> g_viewHeld;
+    bool g_viewStopped = false, g_viewQuiet = false;
+    uint16_t g_viewControls = 0;
+    int g_cpuSpeedSet = 1; // (the 68000's speed this file last set: an option's --cpu-speed is left alone till then)
 
     void Fast(bool on) {
         if (on != g_fast) {
@@ -81,7 +115,17 @@ namespace {
         Fast(false);
         SetHud({});
         SetBoxes({});
+        g_boxesBefore.clear();
+        g_boxesListed.clear();
         g_snapshots.clear();
+        g_viewKeys.clear();
+        g_viewHeld.clear();
+        g_viewAt = g_viewBehindFrom = 0;
+        g_viewRemaking = -1;
+        g_viewBehind.clear();
+        g_viewStopped = g_viewQuiet = false;
+        SetFastMotion(1);
+        SetSlowMotion(1);
     }
 
     // --- the best scores, beside settings.ini ---
@@ -116,11 +160,13 @@ namespace {
             file << name << " = " << value << "\n";
         }
     }
+    // (a game with no slowdown is another game: its bests are kept apart)
     std::string BestName() {
+        const std::string less = FeatureValue("slowdown") ? "_no_slowdown" : "";
         switch (g.mode) {
-        case Mode::Score: return "score_attack";
-        case Mode::Caravan: return "caravan_" + std::to_string(g.caravanLength);
-        case Mode::Rush: return "boss_rush";
+        case Mode::Score: return "score_attack" + less;
+        case Mode::Caravan: return "caravan_" + std::to_string(g.caravanLength) + less;
+        case Mode::Rush: return "boss_rush" + less;
         default: return "";
         }
     }
@@ -247,7 +293,9 @@ namespace {
         }
         g_snapshots.clear();
         ResetSummary();
+        g.rushBossWas = d.bossOn && d.bossOn();
         g.shown = kShownFor;
+        g_viewAt = 0;
     }
 
     void RestartPractice(Machine &machine) {
@@ -283,6 +331,8 @@ namespace {
             held = 0;
         }
     }
+
+    void ScoreOver();
 
     // Unseen from the board's start to the game's first stage. In the scored modes the choice of fighter is the
     // player's, and seen.
@@ -329,8 +379,19 @@ namespace {
         Fast(true);
         ClearControls(machine);
         if (!d.inGame()) {
+            // (the game over on the way: a boss rush's last ship lost at the boss before, say. A moment out of a game is
+            // let by: a game's change of stage)
+            if (++g.outOfGame > 2 * kFps) {
+                if (g.mode == Mode::Rush) {
+                    Fast(false);
+                    ScoreOver();
+                } else {
+                    End();
+                }
+            }
             return;
         }
+        g.outOfGame = 0;
         if (d.bossOn()) {
             // (met from a snapshot two or three seconds before, as the boss comes on)
             if (!g_snapshots.empty() && !RunningAhead()) {
@@ -419,7 +480,7 @@ namespace {
             g.best = g.score;
             g_bests[BestName()] = g.score;
             if (g.mode == Mode::Rush) {
-                g_bests["boss_rush_frames"] = static_cast<uint64_t>(g.rushFrames);
+                g_bests[BestName() + "_frames"] = static_cast<uint64_t>(g.rushFrames);
             }
             WriteBests();
         }
@@ -442,6 +503,9 @@ namespace {
             if (g.mode == Mode::Caravan) {
                 lines.push_back({0.5f, 0.06f, 0, Clock(g.caravanFrames), 255, g.caravanFrames < 10 * kFps ? uint8_t(80) : uint8_t(255),
                                  g.caravanFrames < 10 * kFps ? uint8_t(80) : uint8_t(255)});
+            }
+            if (g.shown > 0 && g.mode == Mode::Viewer) {
+                lines.push_back({0.5f, 0.88f, 0, "Up or right: faster   Down or left: back   Shot: stop, go on"});
             }
             if (g.shown > 0 && g.mode != Mode::Practice && g.mode != Mode::Viewer) {
                 lines.push_back({0.5f, 0.88f, 0, std::string(g.mode == Mode::Caravan ? "Caravan" : g.mode == Mode::Rush ? "Boss rush" : "Score attack") + ": best " + Grouped(g.best)});
@@ -468,17 +532,161 @@ namespace {
         SetHud(lines);
     }
 
-    void Boxes() {
+    // The hit boxes (the Cheats page), wherever a stage is played but the stage viewer and the frames run unseen. They
+    // are shown with the objects: the picture just made has the object list the board took as the frame before ended,
+    // so the boxes shown are those of the places that list was made from. A game makes its list from the places of the
+    // frame it makes it in, or of the frame before (Description::listLag); and not always every frame (Giga Wing makes
+    // one every other frame): the boxes of a list are taken when a new list is seen, and kept with it.
+    void Boxes(const Machine &machine) {
         std::vector<HudBox> boxes;
-        if (InPractice() && g.phase != Phase::Starting) {
-            if (FeatureValue("practice_shots") && d.enemyBoxes) {
-                d.enemyBoxes(boxes);
+        if (d.playing && d.playing() && g.mode != Mode::Viewer && !Starting()) {
+            if (FeatureValue("enemy_hitboxes") && d.bodyBoxes) {
+                d.bodyBoxes(boxes);
             }
-            if (FeatureValue("practice_hitbox") && d.shipBoxes) {
+            if (FeatureValue("bullet_hitboxes") && d.shotBoxes) {
+                d.shotBoxes(boxes);
+            }
+            if (FeatureValue("player_hitboxes") && d.shipBoxes) {
                 d.shipBoxes(boxes);
             }
         }
-        SetBoxes(boxes);
+        if (boxes.empty() && g_boxesBefore.empty() && g_boxesListed.empty() && cps2recomp::Boxes().empty()) {
+            return;
+        }
+        // (the list the board shows in the next picture: a new one is made from these places, or those of the frame before)
+        const std::vector<HudBox> shown = g_boxesListed;
+        const uint32_t listed = static_cast<uint32_t>(crc32(0, machine.ObjectsToCome(), 0x2000));
+        if (listed != g_listed) {
+            g_listed = listed;
+            g_boxesListed = d.listLag ? g_boxesBefore : boxes;
+        }
+        g_boxesBefore = std::move(boxes);
+        SetBoxes(shown);
+    }
+
+    // The slowdown (the Game page): with none, the 68000 overclocked (only what this file set is put back: an option's
+    // --cpu-speed is left as it is till the choice is made). The board's timing goes with it (BoardTiming, below).
+    void Slowdown(Machine &machine) {
+        const int speed = FeatureValue("slowdown") ? kOverclock : 1;
+        if (speed != g_cpuSpeedSet) {
+            g_cpuSpeedSet = speed;
+            machine.cpuSpeed = speed;
+        }
+    }
+    bool BoardTiming() {
+        return FeatureValue("slowdown") == 0;
+    }
+
+    // --- the stage viewer's own scrolling ---
+
+    void Pack(Machine &machine, ViewKey &key) {
+        std::vector<uint8_t> state;
+        Snapshot(machine, state);
+        key.size = static_cast<uLongf>(state.size());
+        uLongf packed = compressBound(key.size);
+        key.packed.resize(packed);
+        compress2(key.packed.data(), &packed, state.data(), key.size, 1);
+        key.packed.resize(packed);
+    }
+    void Unpack(Machine &machine, const ViewKey &key) {
+        std::vector<uint8_t> state(key.size);
+        uLongf size = key.size;
+        if (uncompress(state.data(), &size, key.packed.data(), static_cast<uLong>(key.packed.size())) == Z_OK) {
+            Restore(machine, state);
+        }
+    }
+
+    // The viewer's frame: the controls (taken from the game: nobody plays) scroll it. Forward (up or right) is faster.
+    // Back (down or left) goes back the way it came, kViewBack frames a picture: each frame shown is run from the state
+    // kept before it (g_viewBehind: the states of the frames back to the last kept one, remade from it unseen, the run
+    // ending at the frame to be shown, so that only those are seen). The shot button stops it and starts it again;
+    // stopped, the frame it stopped at is run again and again. (g_viewAt: the frame about to be run, from the stage's
+    // start.)
+    void ViewerBeforeFrame(Machine &machine) {
+        uint16_t controls = 0;
+        for (const uint16_t held : machine.players) {
+            controls |= held;
+        }
+        ClearControls(machine);
+        if (RunningAhead()) {
+            return;
+        }
+        if (g_viewRemaking >= 0) {
+            // (remaking the states behind, unseen: from the kept state, to the frame to be shown, which is run seen)
+            if (g_viewBehind.empty()) {
+                auto key = std::find_if(g_viewKeys.rbegin(), g_viewKeys.rend(), [&](const ViewKey &k) { return k.at <= g_viewRemaking; });
+                if (key == g_viewKeys.rend()) {
+                    g_viewRemaking = -1;
+                    Fast(false);
+                    return;
+                }
+                Unpack(machine, *key);
+                g_viewAt = g_viewBehindFrom = key->at;
+            }
+            g_viewBehind.emplace_back();
+            Snapshot(machine, g_viewBehind.back());
+            if (g_viewAt >= g_viewRemaking) {
+                g_viewRemaking = -1;
+                Fast(false);
+            }
+            g_viewAt++;
+            return;
+        }
+        const uint16_t pressed = controls & ~g_viewControls;
+        g_viewControls = controls;
+        if (pressed & kPunch1) {
+            g_viewStopped = !g_viewStopped;
+        }
+        if (g_viewAt % kViewKeyEvery == 0 && (g_viewKeys.empty() || g_viewKeys.back().at < g_viewAt) &&
+            static_cast<int>(g_viewKeys.size()) < kViewKeys) {
+            g_viewKeys.push_back({g_viewAt, 0, {}});
+            Pack(machine, g_viewKeys.back());
+        }
+        const bool forward = controls & (kUp | kRight), back = (controls & (kDown | kLeft)) && !forward;
+        // (the speed chosen: Normal, Stopped, a half, a quarter, twice, four times)
+        const int speed = FeatureValue("viewer_speed");
+        const bool stopped = !forward && !back && (g_viewStopped || speed == 1);
+        SetSlowMotion(!forward && !back ? (speed == 2 ? 2 : speed == 3 ? 4 : 1) : 1);
+        SetFastMotion(forward ? kViewForward : !back && speed == 4 ? 2 : !back && speed == 5 ? 4 : 1);
+        g_viewQuiet = stopped || back;
+        if (!back) {
+            g_viewBehind.clear();
+        } else if (g_viewAt > 1) {
+            g_viewHeld.clear();
+            const int32_t to = std::max(0, g_viewAt - 1 - kViewBack);
+            const int32_t had = g_viewBehindFrom + static_cast<int32_t>(g_viewBehind.size());
+            if (to >= g_viewBehindFrom && to < had) {
+                // (the frame shown: run from the state before it)
+                Restore(machine, g_viewBehind[static_cast<size_t>(to - g_viewBehindFrom)]);
+                g_viewBehind.resize(static_cast<size_t>(to - g_viewBehindFrom));
+                g_viewAt = to + 1;
+                if (to - kViewBack < g_viewBehindFrom && to > 0) {
+                    // (none behind for the next: remade in the next picture's time, unseen)
+                    g_viewBehind.clear();
+                    g_viewRemaking = std::max(0, to - kViewBack);
+                    Fast(true);
+                }
+                return;
+            }
+            // (the first frame going back: this one is run forward, and the states behind are remade in the next)
+            g_viewBehind.clear();
+            g_viewRemaking = to;
+            Fast(true);
+            g_viewAt++;
+            return;
+        }
+        if (stopped || (back && g_viewAt <= 1)) {
+            // (the frame it stopped at, again)
+            if (g_viewHeld.empty()) {
+                Snapshot(machine, g_viewHeld);
+                g_viewAt++;
+            } else {
+                Restore(machine, g_viewHeld);
+            }
+            return;
+        }
+        g_viewHeld.clear();
+        g_viewAt++;
     }
 
     bool HideAll(uint32_t, uint16_t) {
@@ -530,6 +738,7 @@ void EndModes() {
 }
 
 void BeforeFrame(Machine &machine) {
+    Slowdown(machine);
     switch (g.mode) {
     case Mode::None: return;
     case Mode::Attract:
@@ -551,7 +760,7 @@ void BeforeFrame(Machine &machine) {
         return;
     }
     if (g.mode == Mode::Viewer) {
-        ClearControls(machine);
+        ViewerBeforeFrame(machine);
         return;
     }
     // (one player only: the others' Starts and coins are not taken)
@@ -575,6 +784,9 @@ void BeforeFrame(Machine &machine) {
 }
 
 void Frame(Machine &machine) {
+    if (g.mode == Mode::None || g.mode == Mode::Attract) {
+        Boxes(machine);
+    }
     if (g.mode == Mode::None) {
         return;
     }
@@ -622,13 +834,18 @@ void Frame(Machine &machine) {
             }
             if (g.mode == Mode::Rush) {
                 g.rushFrames++;
+                // (its own flag: the summary's counts only while a stage is played, and a boss's flag goes as the next
+                // stage begins. A boss is beaten when its flag goes with the stage still played: the last ship lost
+                // takes the flag too, and the game over follows)
                 const bool boss = d.bossOn();
-                if (g.bossWas && !boss) {
-                    g.bosses++;
-                    g.phase = Phase::ToBoss;
-                    g.frames = 0;
+                if (d.playing()) {
+                    if (g.rushBossWas && !boss) {
+                        g.bosses++;
+                        g.phase = Phase::ToBoss;
+                        g.frames = 0;
+                    }
+                    g.rushBossWas = boss;
                 }
-                g.bossWas = boss;
             }
         }
     } else if (g.phase == Phase::Over) {
@@ -639,7 +856,11 @@ void Frame(Machine &machine) {
         }
     }
     Hud();
-    Boxes();
+    Boxes(machine);
+    // (the viewer stopped or going back: the frame run again is not heard again)
+    if (g.mode == Mode::Viewer && g_viewQuiet) {
+        machine.audio.clear();
+    }
     // (nobody shown while viewing: and only what this file set is put back)
     static bool hid = false;
     const bool viewing = g.mode == Mode::Viewer && g.phase == Phase::Playing;
@@ -665,23 +886,23 @@ void State(Archive &ar) {
 void Register(const Description &description) {
     d = description;
     Game &game = TheGame();
-    game.pages.push_back({kModes, "", "Other ways to play: practice, attract mode, score attack, caravan, boss rush, the stage viewer.", true});
+    game.pages.push_back({kModes, "", "Other ways to play: training mode, attract mode, score attack, caravan, boss rush, the stage viewer.", true});
     game.pages.push_back({kPractice, kModes, "Any stage, or straight at its boss, with what you choose; back to the start with one button."});
     game.commands.push_back({"practice_start", kPractice, "Start",
-                             "Starts practice: the stage chosen below, with the fighter, ships, bombs and power chosen. Backspace (a gamepad's "
+                             "Starts training mode: the stage chosen below, with the fighter, ships, bombs and power chosen. Backspace (a gamepad's "
                              "left shoulder) puts it back as it began; Reset ends it.",
                              StartPractice});
     game.commands.push_back({"practice_restart", kPractice, "Start over",
-                             "Practice put back as it began, at once. Backspace or a gamepad's left shoulder does this while playing.",
+                             "Training mode put back as it began, at once. Backspace or a gamepad's left shoulder does this while playing.",
                              RestartPractice, kKeyRestart});
     game.commands.push_back({"practice_replay", kPractice, "Replay",
                              "The last attempt shown again from the start, the controls as they were pressed; touch the controls to take "
                              "over. Backslash, or a gamepad's left trigger held with the left shoulder, does this while playing.",
                              ReplayPractice, kKeyExtra});
-    game.features.push_back({"practice_stage", kPractice, "Stage", "The stage practice begins at.", 0, d.stages});
+    game.features.push_back({"practice_stage", kPractice, "Stage", "The stage training mode begins at.", 0, d.stages});
     game.features.push_back({"practice_at", kPractice, "Begin at", "The stage's start, or its boss (the way there is run unseen, out of harm).", 0,
                              {"The stage's start", "The boss"}});
-    game.features.push_back({"practice_fighter", kPractice, "Fighter", "The fighter practice is played with.", 0, d.fighters});
+    game.features.push_back({"practice_fighter", kPractice, "Fighter", "The fighter training mode is played with.", 0, d.fighters});
     std::vector<const char *> ships = {"As the game has them"}, bombs = {"As the game has them"}, power = {"As the game has it"};
     static const char *const kNumbers[] = {"0", "1", "2", "3", "4", "5", "6", "7", "8", "9"};
     for (int n = 1; n <= d.maxShips && n < 10; n++) {
@@ -694,15 +915,11 @@ void Register(const Description &description) {
     for (int n = 0; n <= d.maxPower && n < 10; n++) {
         power.push_back(n == d.maxPower ? "Full" : kPowers[n]);
     }
-    game.features.push_back({"practice_ships", kPractice, "Ships", "The ships at practice's start (with the one in play).", 0, ships});
-    game.features.push_back({"practice_bombs", kPractice, "Bombs", "The bombs at practice's start.", 0, bombs});
+    game.features.push_back({"practice_ships", kPractice, "Ships", "The ships at training mode's start (with the one in play).", 0, ships});
+    game.features.push_back({"practice_bombs", kPractice, "Bombs", "The bombs at training mode's start.", 0, bombs});
     if (d.setPower) {
-        game.features.push_back({"practice_power", kPractice, "Power", "The shot's power at practice's start.", 0, power});
+        game.features.push_back({"practice_power", kPractice, "Power", "The shot's power at training mode's start.", 0, power});
     }
-    game.features.push_back({"practice_hitbox", kPractice, "Hit boxes", "Each ship's true hit box, the only part of it a shot or an enemy can hit "
-                                                                       "(far smaller than the ship).",
-                             kFeatureTraining});
-    game.features.push_back({"practice_shots", kPractice, "Enemy hit areas", "Where each enemy shot and enemy body can hit the ship.", kFeatureTraining});
     if (d.readout) {
         game.features.push_back({"practice_readout", kPractice, "Readout",
                                  d.readoutWords ? d.readoutWords
@@ -734,7 +951,7 @@ void Register(const Description &description) {
                              "Starts a game for player 1 alone: one credit and no continue, from the first stage, with free play and the "
                              "cheats left out. The best score is kept. The game over ends it.",
                              StartScore});
-    game.pages.push_back({kCaravan, kModes, "A few minutes from the first stage, as many ships as it takes: the best score in the time."});
+    game.pages.push_back({kCaravan, kModes, "A score attack against the clock: a few minutes from the first stage, as many ships as it takes."});
     game.commands.push_back({"caravan_start", kCaravan, "Start",
                              "Starts a caravan: player 1 alone from the first stage, for as long as chosen below, with a ship for every one "
                              "lost. The best score is kept for each length.",
@@ -745,12 +962,37 @@ void Register(const Description &description) {
                              "Starts a boss rush: player 1 alone, one credit and no continue; each boss is met as it comes on, the way to the "
                              "next run unseen and out of harm. The best score is kept, and how long it took.",
                              StartRush});
-    game.pages.push_back({kViewer, kModes, "A stage scrolling by with nobody on it."});
-    game.commands.push_back({"viewer_start", kViewer, "Start", "Shows the stage chosen below scrolling by, with no ships, enemies, shots or panel. Reset ends it.",
+    game.pages.push_back({kViewer, kModes, "A stage scrolling by with nobody on it, at the speed chosen, or as the controls take it."});
+    game.commands.push_back({"viewer_start", kViewer, "Start",
+                             "Shows the stage chosen below scrolling by, with no ships, enemies, shots or panel. Up or right scrolls it faster, "
+                             "down or left back the way it came, and the shot button stops it and starts it again. Reset ends it.",
                              StartViewer});
     game.features.push_back({"viewer_stage", kViewer, "Stage", "The stage the viewer shows.", 0, d.stages});
-    OwnFeatures({"attract_show", "viewer_stage"});
+    game.features.push_back({"viewer_speed", kViewer, "Scroll speed", "How fast the stage scrolls by when the controls are left alone.", 0,
+                             {"Normal", "Stopped", "Half", "A quarter", "Twice as fast", "Four times as fast"}});
+    OwnFeatures({"attract_show", "viewer_stage", "viewer_speed"});
     game.inTraining = InPractice;
+    // (the viewer goes back to states it kept: run-ahead's taking back frames would undo that)
+    game.noRunAhead = StageViewer;
+
+    // The slowdown, and the hit boxes (each game's sources register this after their own cheats, to come after them)
+    game.features.push_back({"slowdown", "Game", "Slowdown",
+                             "Arcade perfect: the processor runs as on the board, waiting for its memory and giving the bus to the "
+                             "video chip, so the game slows down where and as much as the board does (checked frame by frame against "
+                             "a cycle-exact model of the board). None: the processor overclocked, with every clock and four times as "
+                             "many, so the game never runs short of time. Score attack, caravan and boss rush keep their best scores "
+                             "apart for each.",
+                             0, {"Arcade perfect", "None (overclocked)"}});
+    game.boardTiming = BoardTiming;
+    game.features.push_back({"player_hitboxes", "Cheats", "Player hit boxes",
+                             "Each ship's true hit box, the only part of it an enemy shot can hit (far smaller than the ship). In every "
+                             "mode; drawn over the picture only, it changes nothing in the game."});
+    game.features.push_back({"enemy_hitboxes", "Cheats", "Enemy hit boxes",
+                             "Where each enemy's body can hit a ship (the faint orange boxes). In every mode; drawn over the picture "
+                             "only."});
+    game.features.push_back({"bullet_hitboxes", "Cheats", "Bullet hit boxes",
+                             "Where each enemy shot can hit a ship: the point the game tests against the ships' hit boxes (the yellow "
+                             "dots). In every mode; drawn over the picture only."});
 }
 
 } // namespace cps2recomp::shmup

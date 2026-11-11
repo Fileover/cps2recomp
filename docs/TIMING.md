@@ -13,7 +13,8 @@ them, and seldom slow down.
   and the object RAM are not waited for (`M68K::busWait`, `WaitedFor`). The port counts a clock for each word of an
   instruction (as the 68000 fetches them), each byte or word of data it reads or writes, a word more where a one-word
   instruction goes elsewhere (a taken short branch, `rts`, `jmp (an)`, `rte`, `trap`: the 68000 fetches two words
-  there in place of the one it had fetched ahead), and three for an interrupt (its acknowledge and the handler's
+  there in place of the one it had fetched ahead; all but the branch always do, even to the next word, as a jump
+  table's first entry is), and three for an interrupt (its acknowledge and the handler's
   first two words). The interpreter counts them as it goes; translated code adds them up over each run of
   instructions and charges them before one that may go elsewhere (`tools/recomp.py`), so the two stay alike cycle
   for cycle (`make check-blocks` with `ARGS="--features arcade_timing"`).

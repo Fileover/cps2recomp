@@ -495,6 +495,11 @@ bool ReadDeclaredFeatures(std::string& error) {
 
 // Every game's features that come from the port itself (after the game's own: RegisterGame), for the game and
 // for the list the launcher asks for (--list-features)
+// The board's timing: the port's arcade_timing feature, or what the game's sources say (Game::boardTiming)
+bool BoardTimingWanted() {
+    return TheGame().boardTiming ? TheGame().boardTiming() : FeatureOn("arcade_timing");
+}
+
 void RegisterPortFeatures() {
     // (the board's settings from game.cfg: ReadBoardOptions)
     if (!g_boardOptions.empty()) {
@@ -522,15 +527,17 @@ void RegisterPortFeatures() {
                                   "on the board (input lag taken away). The game runs as it does without it; it takes two or three "
                                   "times the processor. Off by itself in the game's own modes beyond fights and training.",
                                   0, {"Off", "1 frame", "2 frames"}});
-    // (arcade_timing: machine.h, SetBoardTiming; docs/TIMING.md)
-    TheGame().features.push_back({"arcade_timing", "Game", "Arcade timing",
-                                  "The processor runs as on the arcade board, waiting for its memory and giving the bus to the "
-                                  "video chip, so the game slows down where and as much as the board does (big supers, busy "
-                                  "screens). Off: it has every clock, and the game seldom slows. Checked frame by frame against "
-                                  "a cycle-exact model of the board. In training mode, the game's other modes, widescreen and "
-                                  "with cheats on, the port's own code for some routines runs, and the timing there is close "
-                                  "but not exact.",
-                                  0});
+    // (arcade_timing: machine.h, SetBoardTiming; docs/TIMING.md. Not for a game whose sources decide it: Game::boardTiming)
+    if (!TheGame().boardTiming) {
+        TheGame().features.push_back({"arcade_timing", "Game", "Arcade timing",
+                                      "The processor runs as on the arcade board, waiting for its memory and giving the bus to the "
+                                      "video chip, so the game slows down where and as much as the board does (big supers, busy "
+                                      "screens). Off: it has every clock, and the game seldom slows. Checked frame by frame against "
+                                      "a cycle-exact model of the board. In training mode, the game's other modes, widescreen and "
+                                      "with cheats on, the port's own code for some routines runs, and the timing there is close "
+                                      "but not exact.",
+                                      0});
+    }
     // (rapid_fire: Port::RapidFire)
     TheGame().features.push_back({"rapid_fire", "Game", "Rapid fire",
                                   "A button held down is pressed again and again (fifteen times a second), for the first button or "
@@ -990,7 +997,7 @@ bool Port::Init(std::string &error) {
                                             TheGame().songAddresses, TheGame().songEntry);
     }
     SoundtrackFollow();
-    machine->SetBoardTiming(FeatureOn("arcade_timing"));
+    machine->SetBoardTiming(BoardTimingWanted());
     return true;
 }
 
@@ -1397,7 +1404,9 @@ bool Port::Tick() {
             if (!net->ended.empty()) {
                 // (the other side gone: a window waits for them again; the host's leaving ends the joining side's)
                 const bool again = !opt.headless && !net->Watching() && (net->Hosting() ? net->left || net->lost : net->lost);
-                if (hostedFromMenu) {
+                if (net->SetFinished()) {
+                    quit = true;
+                } else if (hostedFromMenu) {
                     BackToSolo(again); // (the other side gone: still hosted, the player's own game again)
                 } else if (again) {
                     Again(net->ended);
@@ -1534,6 +1543,11 @@ void Port::Shown(std::vector<uint32_t> &pixels, std::vector<SDL_Rect> *panels, b
         if (!cameIn) {
             status("PRESS START TO JOIN", said++ * 14);
         }
+        if (net->Set().Winner() >= 0) {
+            const std::string result = "PLAYER " + std::to_string(net->Set().Winner() + 1) + " WINS THE FT" +
+                                       std::to_string(net->Set().Target()) + " SET";
+            status(result.c_str(), said++ * 14);
+        }
     }
     // (--net-arcade: the host playing while it waits; the wait, and the match's code to give, at the bottom)
     if (net && connecting && net->Arcade()) {
@@ -1575,7 +1589,42 @@ void Port::Shown(std::vector<uint32_t> &pixels, std::vector<SDL_Rect> *panels, b
                 panels->push_back({static_cast<int>(x) - 3, static_cast<int>(y) - 2, static_cast<int>(width) + 7, 12});
             }
         };
-        for (int side = 0; side < 2; side++) {
+        if (net->Set().Target()) {
+            // Keep the score centred even when the players' names have different lengths.
+            constexpr float size = 1;
+            // Whole font dots stay sharp; compact padding keeps the strip clear of the life bars.
+            auto smallText = [&](float x, const std::string &text, recomp::text::Color colour) {
+                canvas.Text(std::floor(x), 2, size, 0, colour, text.c_str());
+            };
+            const std::string left = std::to_string(net->Set().Score(0));
+            const std::string format = "FT" + std::to_string(net->Set().Target());
+            const std::string right = std::to_string(net->Set().Score(1));
+            const float leftWidth = recomp::text::TextWidth(left.c_str(), size);
+            const float formatWidth = recomp::text::TextWidth(format.c_str(), size);
+            const float rightWidth = recomp::text::TextWidth(right.c_str(), size);
+            const float centre = (across - formatWidth) / 2.0f;
+            const float leftAt = centre - 6 - leftWidth;
+            const float rightAt = centre + formatWidth + 6;
+            canvas.Fill(0, 0, across, 11, {20, 22, 30, 220});
+            smallText(leftAt, left, {0, 220, 220, 255});
+            smallText(centre, format, {255, 210, 80, 255});
+            smallText(rightAt, right, {0, 220, 220, 255});
+            if (!FeatureOn("online_hide_names")) {
+                for (int side = 0; side < 2; ++side) {
+                    std::string name = net->Name(side);
+                    if (name.empty()) {
+                        name = "Player " + std::to_string(side + 1);
+                    }
+                    const float width = recomp::text::TextWidth(name.c_str(), size);
+                    const float x = side == 0 ? leftAt - 9 - width : rightAt + rightWidth + 9;
+                    smallText(x, name, {255, 255, 255, 255});
+                }
+            }
+            if (panels) {
+                panels->push_back({0, 0, across, 11});
+            }
+        }
+        for (int side = 0; side < 2 && !net->Set().Target(); side++) {
             float y = 38.0f;
             const std::string name = net->Name(side);
             if (!FeatureOn("online_hide_names") && !name.empty()) {
@@ -2368,7 +2417,7 @@ void Port::BackToSolo(bool stillHosting) {
     }
     ownFeatures.clear();
     zoom.Forbid(false);
-    machine->SetBoardTiming(FeatureOn("arcade_timing"));
+    machine->SetBoardTiming(BoardTimingWanted());
     hostedFromMenu = false;
     if (!stillHosting) {
         fprintf(stderr, "online: playing alone again\n");
@@ -2462,6 +2511,7 @@ void Port::ArcadeFrame() {
 
 void Port::Matched() {
     connecting = false;
+    net->BeginSet();
     chatHintUntil = net->Watching() ? 0 : tick + kChatTicks;
     // (the host's player, playing while it waited, is in already; the joining side is told so in the welcome)
     cameIn = net->Watching() || (net->Arcade() && cameIn);
@@ -2480,7 +2530,7 @@ void Port::Matched() {
     if (net->Local() != 0) {
         opt.eepromPath.clear(); // (the board settings are the host's, for this match: the player's own are left as they are)
     }
-    machine->SetBoardTiming(FeatureOn("arcade_timing"));
+    machine->SetBoardTiming(BoardTimingWanted());
     SoundtrackFollow();
 }
 
@@ -2572,7 +2622,7 @@ void Port::RunFrame() {
     }
     ClearSpareRan();
     SoundtrackFollow();
-    machine->SetBoardTiming(FeatureOn("arcade_timing"));
+    machine->SetBoardTiming(BoardTimingWanted());
     if (!opt.moviePlay.empty()) {
         auto it = playMovie.changes.find(frame);
         if (it != playMovie.changes.end()) {
@@ -3501,7 +3551,8 @@ int main(int argc, char **argv) {
             return 5;
         }
         fprintf(stderr, "online: %s\n", p.net->ended.c_str());
-        if (!p.opt.headless) {
+        // (a finished set closes quietly: the launcher that started the game is still there, waiting for it)
+        if (!p.opt.headless && !p.net->SetFinished()) {
             SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_INFORMATION, GAME_NAME, p.net->ended.c_str(), nullptr);
         }
     }

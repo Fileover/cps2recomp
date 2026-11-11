@@ -2065,10 +2065,34 @@ int battle::RoundsToWin() {
     return d.roundsToWin;
 }
 
+bool battle::OnlineSets() {
+    return g_described && d.onlineSets;
+}
+
+bool battle::TwoPeopleNow() {
+    if (!OnlineSets()) {
+        return false;
+    }
+    for (int side = 0; side < 2; ++side) {
+        const uint32_t player = Player(side);
+        if (!Ram8(player + d.active) || (Ram8(player + d.computer) != 0) != d.computerIsZero) {
+            return false;
+        }
+    }
+    return true;
+}
+
 void battle::Register(const Description &description) {
     d = description;
     g_described = true;
     Game &game = TheGame();
+    if (d.onlineSets) {
+        game.features.push_back({"online_set", "Online", "Set format",
+                                 "The host chooses Casual, first to 5 games or first to 10 games before connecting. "
+                                 "Both players see the score. After both confirm the winner, the result is shown briefly, "
+                                 "then both return to the launcher. Offline play is unchanged.",
+                                 0, {"Casual", "FT5", "FT10"}});
+    }
     // (the zoom that keeps the panel where it is: port/zoom.h)
     game.panel = d.thePanel;
     game.panelLayers = d.panelLayers;

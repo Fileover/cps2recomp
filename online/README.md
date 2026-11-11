@@ -61,8 +61,8 @@ in-memory development server; it is not a replacement for a production deploymen
 building Marvel vs. Capcom. With no SERVICE, that test connects by local address instead. It checks a late
 viewer against confirmed hashes and verifies that viewer input and departure do not affect the players.
 
-The public Watch flow needs this service update deployed by its operator and the companion recomp-common
-launcher update released. Developing or testing this branch does not deploy anything.
+Watch from the lobby needs this service deployed (below); a copy of the game on an older service still hosts and
+joins as before.
 
 ```sh
 cd online

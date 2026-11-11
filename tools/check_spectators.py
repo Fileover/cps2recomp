@@ -43,7 +43,7 @@ try:
     address = "127.0.0.1:" + str(port)
     def lobby(watching):
         for _ in range(30):
-            with urlopen(service + "/v1/lobby?protocol=10", timeout=5) as r:
+            with urlopen(service + "/v1/lobby?protocol=8", timeout=5) as r:
                 matches = json.load(r)["matches"]
             found = [m for m in matches if m["name"] == "Host" and m.get("watching", False) == watching]
             if found:

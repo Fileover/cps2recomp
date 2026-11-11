@@ -15,7 +15,7 @@ const env = { LOBBIES: stub((url, init) => lobby.fetch(new Request(url, init))),
 const match = new Match({ storage }, env);
 const request = (path, body) => match.fetch(new Request('https://match/' + path,
   body ? { method:'POST', body: JSON.stringify(body) } : undefined));
-const info = { game:'example', build:'123', version:'test', protocol:10 };
+const info = { game:'example', build:'123', version:'test', protocol:8 };
 const host = await (await request('host?code=ABC234', { ...info, listed:true, spectators:true, name:'Host', addresses:['127.0.0.1:7845'] })).json();
 const viewer = { ...info, addresses:['127.0.0.1:9000'] };
 assert.equal((await request('watch', viewer)).status, 409, 'waiting hosts are not watchable');
@@ -23,7 +23,7 @@ assert.equal((await request('join', { ...info, addresses:['127.0.0.1:8000'] })).
 assert.equal((await request('poll?secret=wrong&active=1')).status, 404);
 match.told = 0;
 await request('poll?secret=' + host.secret + '&active=1');
-const list = await (await lobby.fetch(new Request('https://lobby/list?protocol=10'))).json();
+const list = await (await lobby.fetch(new Request('https://lobby/list?protocol=8'))).json();
 assert.equal(list.matches.length, 1);
 assert.equal(list.matches[0].watching, true);
 assert.equal(JSON.stringify(list).includes('127.0.0.1'), false, 'lobby never exposes peer addresses');
@@ -46,7 +46,7 @@ const direct = await (await request('host?code=ABC234', { ...info, secret:host.s
   listed:true, spectators:true, addresses:['127.0.0.1:7845'] })).json();
 match.told = 0;
 await request('poll?secret=' + direct.secret + '&active=1');
-const directList = await (await lobby.fetch(new Request('https://lobby/list?protocol=10'))).json();
+const directList = await (await lobby.fetch(new Request('https://lobby/list?protocol=8'))).json();
 assert.equal(directList.matches[0].watching, true, 'direct-address player still produces a Watch listing');
 assert.equal((await request('watch', viewer)).status, 200);
 assert.equal((await request('join', viewer)).status, 409, 'active direct match cannot accept another player');
