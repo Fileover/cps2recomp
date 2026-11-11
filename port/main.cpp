@@ -1752,8 +1752,11 @@ void Port::Framed(std::vector<uint32_t> &pixels, Zoomed &zoomed) {
     cam.y += (wantedY - cam.y) * kEase;
     const float viewWidth = columns / cam.size, viewHeight = kLines / cam.size;
     float viewX = viewWidth >= across ? (across - viewWidth) / 2 : std::clamp(cam.x - viewWidth / 2, 0.0f, across - viewWidth);
-    // (taller than the picture: the floor kept at the bottom, the black above, where the panel goes)
-    float viewY = viewHeight >= kLines ? kLines - viewHeight : std::clamp(cam.y - viewHeight / 2, 0.0f, kLines - viewHeight);
+    // (taller than the picture: the black above, where the panel goes, and as far as there is room the picture raised clear
+    // of the panel's bottom lines (the gauges), which would else cover the fighters' feet)
+    constexpr float kBelow = 26.0f;
+    float viewY = viewHeight >= kLines ? kLines - viewHeight + std::min(kBelow * viewHeight / kLines, viewHeight - kLines)
+                                       : std::clamp(cam.y - viewHeight / 2, 0.0f, kLines - viewHeight);
 
     // The game's picture without its panel, with the boxes the sources draw over the fight (the ball), through the view
     std::vector<uint32_t> fight(machine->Unpanelled(), machine->Unpanelled() + static_cast<size_t>(across) * kLines);
