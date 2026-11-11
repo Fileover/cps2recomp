@@ -56,6 +56,8 @@ struct Description {
     // ... and put where it stands (a game begun: each in the middle of its half)
     void (*place)(int side, int x) = nullptr;
     bool (*canAct)(int side) = nullptr;
+    // ... and guarding now: holding back, free to guard (the "Ball hits you" option's block)
+    bool (*guarding)(int side) = nullptr;
     // The floor's height (the game's y of a fighter standing)
     int floor = 0;
     // The picture's line that height 0 is on with the camera at the bottom (as session.h's), and the wide picture's
@@ -100,9 +102,13 @@ int Line();
 constexpr int kLineRoom = 6;
 // The fighter of side `side` (0 player 1, on the left) at `x` kept on its half: the x it may have
 int KeepToHalf(int side, int x, int halfWidth);
-// A knock-down the ball has made, for the game's sources at the fighter's step: true once, when it is to be knocked down
-// (away from the ball: `away` -1 to the left, 1 to the right)
-bool KnockDownWanted(int side, int &away);
+// What the ball has done to a fighter, for the game's sources at the fighter's step: once, the reaction it is to be put
+// in (away from the ball: `away` -1 to the left, 1 to the right). A knock-down by a hot or fast ball always; with the
+// page's "Ball hits you" on, a guard (the fighter holding back: Description::guarding) or a reel by the ball's speed.
+enum Reaction : uint8_t { kNoReaction, kGuard, kReelLight, kReelMedium, kReelHard, kKnockDown };
+Reaction ReactionWanted(int side, int &away);
+// The page's "Ball hits you" is on
+bool BallHits();
 
 // The battle's match: begun (the camera's place, the fighters standing), each frame before and after the machine's
 // (`one`, `two`: the controls, the computer's side made here), the score and the ball drawn (`lines` and the boxes),

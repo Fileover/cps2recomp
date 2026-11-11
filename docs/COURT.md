@@ -33,6 +33,9 @@ fighter and off their end of the court for a point. First to 3, 5 or 10 wins.
   head) rolls off towards the line, never off the back to its own end.
 - **Points.** The ball off an end of the court is a point for the other fighter; a ball lying still stays in play
   until someone strikes it. The next serve drops on the half of whoever lost the point.
+- **Ball hits you** (an option, off unless chosen): a ball the other fighter sent that hits you makes you reel, light,
+  medium or hard by its speed, unless you are blocking (holding back): then you guard it, and a hot ball guarded does not
+  knock you down either. Nobody loses health. The CPU blocks too, at the medium and hard levels.
 - **Nobody is caught**, unless the page's **Fighters hit each other** is on: by default the fighters can be neither hit
   nor grabbed (a command grab that reaches across the court, Anakaris's coffin, catches nothing). With it on, their
   attacks and what they throw hit each other as in a fight, and nobody loses health.
@@ -49,6 +52,7 @@ The menu's **Court** page has Start and these choices:
 | Camera | **Whole court** (the default: the whole stage always) or **Follow the play** (as close as shows both fighters and the ball, to 1.3x a 16:9 picture; out to the whole stage, black above it, when they are apart) |
 | Widescreen (recommended) | The Display page's own Widescreen, here too: the court shown 16:9 (else 4:3) |
 | Aftertouch | Off (the default) or On |
+| Ball hits you | Off (the default) or On |
 | Fighters hit each other | Off (the default) or On |
 | Fighter 1, Fighter 2 | Someone at random, or a character |
 | Stage | Random (of the game's own), or any stage: the game's own, then the other games' (guest stages, each needing that game's ROM set) |
@@ -140,10 +144,12 @@ A game needs the battle modes first (`battle::Register`, [FIGHT.md](FIGHT.md#the
 3. **Keep their attacks off each other.** In the game's hit tests (vsav's `PlayersAgainstPlayers` and
    `ThrownAgainstPlayers` rewrites), test nothing between the players while `court::On()`. Throws need no change: the
    two never stand close enough.
-4. **The knock-down.** At the player's step (vsav: the `PlayerStep` hook, `CourtStep`), when
-   `court::KnockDownWanted(side, away)`: put the fighter in the state a hit that knocks down leaves (vsav: state
-   `02020000`, reaction byte `+54` = 4, `+117` = 1 so it lands lying) and let the game's own reeling run from there.
-   The game throws it the way its (here missing) attacker faced, so turn its speed across to `away` while it flies.
+4. **What the ball does to a fighter.** At the player's step (vsav: the `PlayerStep` hook, `CourtStep`), when
+   `court::ReactionWanted(side, away)` gives one: put the fighter in the state a hit leaves (vsav: state `02020000`, the
+   reaction byte `+54`: 0, 1, 2 a reel on its feet, 4 a knock-down with `+117` = 1 so it lands lying, FF a guard) and
+   let the game's own reeling run from there. The game pushes or throws it the way its (here missing) attacker faced,
+   so turn its speed across to `away` while it reels. `Description::guarding` (vsav: `+12B` bit 0, holding back, and
+   free to guard) is the block for "Ball hits you".
 5. Build, and check with the test switches below: rallies, a knock-down (`CPS2RECOMP_COURT_SHOT`), the zoom
    (`--present-every`).
 

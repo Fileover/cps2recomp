@@ -52,6 +52,8 @@ namespace {
     constexpr int kGauge[5] = {3, 5, 7, 8, 0};       // of a hundred of a gauge, filled by a hit
     // A ball this fast into a fighter, hit by the other side, knocks it down (a super, a power shot)
     constexpr float kKnockDownSpeed = 9.6f;
+    // "Ball hits you": a ball from the other side at least this fast makes a fighter reel, light, medium, then hard from these
+    constexpr float kHurtSpeed = 3.5f, kReelMediumSpeed = 6.0f, kReelHardSpeed = 8.5f;
     // A light or medium hit leaves the ball drifting for a moment, slowly, so a chain combo can follow it up
     constexpr int kFloatFor = 14;
     constexpr float kFloatRate = 0.3f;
@@ -106,8 +108,8 @@ namespace {
         int32_t still = 0;                   // frames it has lain still
         int32_t bodyCool[2] = {0, 0};
         int32_t leaving[2] = {0, 0};          // frames the ball is leaving a side's striker (its body let through)
-        bool knockDown[2] = {false, false};
-        int32_t knockAway[2] = {0, 0};
+        Reaction react[2] = {kNoReaction, kNoReaction};
+        int32_t reactAway[2] = {0, 0};
         int32_t placeFor = 0;                // frames the fighters are still put at their starting places
         uint16_t held[2] = {0, 0};           // each side's controls the frame before (a press: a throw of the ball)
         uint16_t swallow[2] = {0, 0};        //   and a throw's button, kept from the game while it is held
@@ -352,13 +354,31 @@ namespace {
             if (into >= 0 || g.bodyCool[s.side] > 0) {
                 continue;
             }
-            // (hit by the other side: a hot ball, or one fast enough, knocks the fighter down)
+            // (hit by the other side: a hot ball, or one fast enough, knocks the fighter down; with "Ball hits you", any
+            // that is not slow makes it reel, by how fast, unless it is guarding, which blocks even a knock-down)
             const float speed = Speed(b);
-            if (g.lastSide >= 0 && g.lastSide != s.side && (speed >= kKnockDownSpeed || (b.hot && speed >= kKnockDownSpeed * 0.8f))) {
-                g.knockDown[s.side] = true;
-                g.knockAway[s.side] = b.vx >= 0 ? 1 : -1;
+            const bool other = g.lastSide >= 0 && g.lastSide != s.side;
+            const bool knocks = other && (speed >= kKnockDownSpeed || (b.hot && speed >= kKnockDownSpeed * 0.8f));
+            const bool hits = BallHits() && other && speed >= kHurtSpeed;
+            Reaction reaction = kNoReaction;
+            if ((knocks || hits) && BallHits() && d.guarding && d.guarding(s.side)) {
+                reaction = kGuard;
+            } else if (knocks) {
+                reaction = kKnockDown;
                 g.said = 50;
                 g.saidKind = 3;
+            } else if (hits) {
+                reaction = speed < kReelMediumSpeed ? kReelLight : speed < kReelHardSpeed ? kReelMedium : kReelHard;
+            }
+            if (reaction != kNoReaction) {
+                if (Logging()) {
+                    fprintf(stderr, "court f%d reaction side %d %d speed %.1f\n", g_frames, s.side, reaction, speed);
+                }
+                g.react[s.side] = reaction;
+                g.reactAway[s.side] = b.vx >= 0 ? 1 : -1;
+                if (reaction != kGuard && reaction != kKnockDown) {
+                    Sound(d.hitSounds[reaction == kReelLight ? kLight : reaction == kReelMedium ? kMedium : kHard]);
+                }
             }
             // Out again: what went into the body, less what a soft body takes; along it, a little slowed
             const float tx = b.vx - into * nx, ty = b.vy - into * ny;
@@ -601,6 +621,14 @@ namespace {
             out |= a.jumpWay;
             return out;
         }
+        // "Ball hits you": a fast ball coming at it that it is not striking, blocked (held back) at the medium and hard levels
+        if (BallHits() && level > 0 && a.pressFor == 0) {
+            const float toward = -b.vx * static_cast<float>(forward); // (its speed towards this fighter)
+            const float distance = (b.x - static_cast<float>(me)) * static_cast<float>(forward);
+            if (toward > kHurtSpeed && distance > 0 && distance < 70 + toward * 6 && b.y - static_cast<float>(meY) < 130) {
+                return static_cast<uint16_t>(out | (forward > 0 ? kLeft : kRight));
+            }
+        }
         // A ball low at its feet in front: thrown up for itself now and then (Throw, BeforeFrame)
         if (std::fabs(b.x - static_cast<float>(me)) < kTossReach - 10 && b.y - static_cast<float>(d.floor) < 45 && ours(b.x) &&
             Speed(b) < 2.0f && a.pressFor == 0 && Random() % 4 == 0) {
@@ -751,6 +779,10 @@ void RegisterPage(const char *modes, void (*start)(Machine &machine), const std:
                              "On: hold up or down while your hit holds the ball (the moment it stands still) to send it higher or "
                              "lower, the longer held the more.",
                              0, {"Off", "On"}});
+    game.features.push_back({"court_ball_hits", kCourt, "Ball hits you",
+                             "On: a ball the other fighter sent that hits you makes you reel (the faster, the harder), unless you "
+                             "are blocking (holding back); a hot ball blocked does not knock you down. Off: it only bounces off.",
+                             0, {"Off", "On"}});
     game.features.push_back({"court_hits", kCourt, "Fighters hit each other",
                              "Off: the fighters' attacks are for the ball alone. On: they can hit each other too (near the line, "
                              "or with what they throw), and knock each other about; nobody loses health.",
@@ -778,13 +810,17 @@ int KeepToHalf(int side, int x, int halfWidth) {
     const int room = halfWidth + kLineRoom;
     return side == 0 ? std::min(x, g.line - room) : std::max(x, g.line + room);
 }
-bool KnockDownWanted(int side, int &away) {
-    if (side < 0 || side > 1 || !g.knockDown[side]) {
-        return false;
+Reaction ReactionWanted(int side, int &away) {
+    if (side < 0 || side > 1 || g.react[side] == kNoReaction) {
+        return kNoReaction;
     }
-    g.knockDown[side] = false;
-    away = g.knockAway[side];
-    return true;
+    const Reaction reaction = g.react[side];
+    g.react[side] = kNoReaction;
+    away = g.reactAway[side];
+    return reaction;
+}
+bool BallHits() {
+    return g.phase != kOff && FeatureValue("court_ball_hits") != 0;
 }
 
 void Begin(int cameraX, int cameraY, int left, int right, int points, bool computer, int level) {

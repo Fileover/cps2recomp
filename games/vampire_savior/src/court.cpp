@@ -41,6 +41,8 @@ namespace {
     // In an attack's entry: its strength, 1 light to 3 hard for a button's attack (as the buttons are), more for a
     // special move
     constexpr uint32_t kAttackStrength = 0x12;
+    // A hit guarded leaves +54 so; and frames a fighter the ball has hit stands frozen for
+    constexpr uint8_t kReactionGuarded = 0xFF, kStruckStop = 8;
     // A byte: not zero once a round's first hit has landed (its "FIRST ATTACK" said)
     constexpr uint32_t kFirstAttackMade = At(0xFF8135);
     constexpr uint8_t kStrengthSpecial = 4;
@@ -138,34 +140,37 @@ namespace {
     int g_knocked[2] = {0, 0}; // a side knocked down by the ball: the way it is thrown (-1 left, 1 right), while it flies
 } // namespace
 
-// A knock-down the ball has made (court.h, KnockDownWanted), at the fighter's step (A6; frames.cpp's PlayerStep): the
-// fighter put as a hit that knocks down leaves it (a hit has just landed, its reaction a knock-down: 02383C reads it),
-// and the game's own code does the rest from this step on: thrown back, falling, lying, getting up.
+// What the ball has done to a fighter (court.h, ReactionWanted), at the fighter's step (A6; frames.cpp's PlayerStep): the
+// fighter put as a hit leaves it (a hit has just landed: 02383C reads its reaction, +54, and sets the reeling up), and the
+// game's own code does the rest from this step on: a reel on its feet, a knock-down (thrown back, falling, lying, getting
+// up), or a guard (+54 FF, as a hit guarded leaves it).
 bool CourtStep(M68K &c) {
     const uint32_t player = c.a[6] & 0xFFFFFF;
     const int side = player == Player(0) ? 0 : player == Player(1) ? 1 : -1;
     if (side < 0) {
         return false;
     }
-    // (thrown back as the game throws one knocked down, but away from the ball: the game's way is the attacker's, and
-    // there is none; its speed across turned about while it flies)
-    if (g_knocked[side] && (Ram32(player + kState) & 0xFFFF0000) == kReeling && Ram8(player + kAirborne)) {
+    // (pushed or thrown back as the game does it, but away from the ball: the game's way is the attacker's, and there is
+    // none; its speed across turned about while it reels)
+    if (g_knocked[side] && (Ram32(player + kState) & 0xFFFF0000) == kReeling) {
         const int32_t speed = static_cast<int32_t>(Ram32(player + kSpeedX));
         if ((speed < 0 ? -1 : 1) != g_knocked[side] && speed != 0) {
             SetRam32(player + kSpeedX, static_cast<uint32_t>(-speed));
             SetRam32(player + kPullX, static_cast<uint32_t>(-static_cast<int32_t>(Ram32(player + kPullX))));
         }
-    } else if (g_knocked[side] && (Ram32(player + kState) & 0xFFFF0000) != kReeling) {
+    } else if (g_knocked[side]) {
         g_knocked[side] = 0;
     }
     int away = 0;
-    if (!court::KnockDownWanted(side, away)) {
+    const court::Reaction reaction = court::ReactionWanted(side, away);
+    if (reaction == court::kNoReaction) {
         return false;
     }
+    static constexpr uint8_t kReactions[] = {0, kReactionGuarded, 0x00, 0x01, 0x02, kReactionKnockDown};
     SetRam32(player + kState, kReeling);
-    SetRam8(player + kGuarded, kReactionKnockDown);
-    SetRam8(player + kLiesDown, 1); // (it lands lying and gets up, not straight onto its feet)
-    SetRam8(player + kHitStop, 0);
+    SetRam8(player + kGuarded, kReactions[reaction]);
+    SetRam8(player + kLiesDown, reaction == court::kKnockDown ? 1 : 0); // (a knock-down lands lying and gets up)
+    SetRam8(player + kHitStop, reaction == court::kKnockDown ? 0 : kStruckStop);
     SetRam8(player + kAttacking, 0);
     g_knocked[side] = away;
     return false; // (the game's routine for the player runs on: its reeling begins)
@@ -179,6 +184,12 @@ void RegisterCourt() {
     d.place = [](int side, int x) { SetRam32(Player(side) + kX, static_cast<uint32_t>(x) << 16); };
     d.halfWidth = [](int side) { return static_cast<int>(static_cast<int16_t>(Ram16(Player(side) + kHalfWidth))); };
     d.canAct = [](int side) { return CanAct(side); };
+    // (holding back, free to guard, or guarding already: the ball blocked)
+    d.guarding = [](int side) {
+        const uint32_t player = Player(side);
+        const bool back = Ram8(player + kHeld) & 1;
+        return back && (CanAct(side) || Ram8(player + kAction) == kActionJump || Ram8(player + kGuarded) == kReactionGuarded);
+    };
     d.floor = kGround;
     d.pictureFloor = 239;
     d.pictureTop = 40; // (under the health bars and the clock, which the zoom by distance leaves where they are)
