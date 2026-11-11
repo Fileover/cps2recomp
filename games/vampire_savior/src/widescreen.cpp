@@ -47,15 +47,26 @@
 
 namespace cps2recomp {
 
+int BattleStage(); // (fight/battle.h)
+
 using namespace vsav;
 
 namespace {
     constexpr int kSide = Video::kWideSide;
-    // The court's (fight/court.h): its whole stage in the picture, 192 columns more each side (the camera's ends on the
-    // board are 384 apart: 256 to 640, so the picture is 256 to 1024, all the stage there is)
-    constexpr int kCourtSide = Video::kMaxSide;
+    // The court's (fight/court.h): the camera held in the stage's middle, and as much of the stage to each side of the
+    // board's picture as is drawn there. The floor goes 192 further each way (the camera's ends on the board are 384
+    // apart: 256 to 640, so the floor is 256 to 1024), but the planes behind it go by more slowly and their pictures are
+    // only as wide as the board's camera needs: on most stages one of them ends (black past it, or its picture again)
+    // before the floor does. So each stage's own, as far as all of its planes are drawn (each the same both ways, for
+    // halves alike; measured from the court's picture of each with its side at 192), and the court is as wide as that:
+    // the fighters walk and the ball goes out at its edges. (Another game's stage is drawn by that game, to 64 a side.)
+    constexpr int kCourtSides[] = {140, 170, 64, 136, 120, 192, 160, 154, 192, 152, 192, 192, 140};
     int Side() {
-        return court::On() ? kCourtSide : kSide;
+        if (!court::On()) {
+            return kSide;
+        }
+        const unsigned stage = Ram16(kStage) / 2;
+        return BattleStage() > kStages || stage >= std::size(kCourtSides) ? kSide : kCourtSides[stage];
     }
 
     // What the picture being made was asked to be: the columns added on each side, and how far to the right

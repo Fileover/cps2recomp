@@ -4,8 +4,8 @@
 // Vampire Savior: the court (the toolkit's ball game, fight/court.h; docs/COURT.md): where the game keeps what the
 // ball needs (the fighters' boxes and their attacks, how strong each is), and what is done to a fighter (frozen by a
 // hit on the ball, knocked down by the ball, its gauge filled). The fighters are kept on their halves where the game
-// pushes them apart (collision.cpp, PushApart), their attacks off each other where it tests its hits (the same), and a
-// knock-down is made at the fighter's step (frames.cpp, PlayerStep: CourtStep).
+// pushes them apart (collision.cpp, PushApart), nobody is caught (CourtNoCatch), and what the ball does to a fighter
+// is made at its step (frames.cpp, PlayerStep: CourtStep).
 #include "boxes.h"
 #include "court.h"
 #include "modes.h"
@@ -137,6 +137,19 @@ namespace {
 } // namespace
 
 namespace {
+    // 029406: whether the fighter at A6 can catch the other now (a throw, a command grab), D0 and the flags 1 for yes. On
+    // the court, never: a grab that reaches across it (Anakaris's coffin) would take the other from its half
+    bool NoCatch(M68K &c) {
+        if (!court::On()) {
+            return false;
+        }
+        c.d[0] = 0;
+        c.flagZ = true;
+        c.flagN = c.flagV = c.flagC = false;
+        Return(c);
+        return true;
+    }
+
     int g_knocked[2] = {0, 0}; // a side knocked down by the ball: the way it is thrown (-1 left, 1 right), while it flies
 } // namespace
 
@@ -200,22 +213,17 @@ void RegisterCourt() {
     d.hitSounds[court::kLight] = 0x0100;
     d.hitSounds[court::kMedium] = 0x0101;
     d.hitSounds[court::kHard] = d.hitSounds[court::kSpecial] = d.hitSounds[court::kSuper] = 0x0102;
-    // (each frame: the round's first hit taken as made, or the game says "FIRST ATTACK" when the ball knocks one down)
-    // ... and neither fighter can be hit or caught (their attacks are for the ball: a command grab that reaches across the
-    // court, Anakaris's coffin, would catch the other, as would a throw)
+    // (each frame: the round's first hit taken as made, or the game says "FIRST ATTACK" when the ball knocks one down;
+    // and the fighters, who may hit each other, never lose health)
     d.everyFrame = [] {
         SetRam8(kFirstAttackMade, 1);
         for (int side = 0; side < 2; side++) {
-            if (court::FightersHit()) {
-                // (they may hit each other: nobody's health goes down)
-                SetRam16(Player(side) + kHealth, kHealthFull);
-                SetRam16(Player(side) + kHealthCeiling, kHealthFull);
-            } else {
-                SetRam8(Player(side) + kNotHit, std::max<uint8_t>(Ram8(Player(side) + kNotHit), 8)); // (counted down each step: 029406 tests it)
-            }
+            SetRam16(Player(side) + kHealth, kHealthFull);
+            SetRam16(Player(side) + kHealthCeiling, kHealthFull);
         }
     };
     court::Register(d);
+    AddHook(At(0x029406), "CourtNoCatch", NoCatch);
 }
 
 } // namespace cps2recomp

@@ -10,16 +10,14 @@ fighter and off their end of the court for a point. First to 3, 5 or 10 wins.
 - **Hitting the ball.** Any attack that touches the ball hits it. Harder attacks send it faster: light, medium, hard,
   then special moves well beyond any of those (held longer, glowing, and knocking down whoever they hit), then moves
   made with a gauge (ES and EX moves, supers).
-- **Aftertouch** (an option, off unless chosen): hold up or down while your hit holds the ball (the moment it stands
-  still) to send it higher or lower, up to about 25 degrees, the longer held the more; it never turns back. Where the attack meets the ball decides
+- **Aftertouch**: hold up or down while your hit holds the ball (the moment it stands still) to send it higher or
+  lower, up to about 25 degrees, the longer held the more; it never turns back. Where the attack meets the ball decides
   the angle: strike it below its middle and it goes up, above its middle and it goes down (a spike), squarely and it
   flies straight. It always goes toward the other half. Fireballs and other thrown attacks hit it too, a little softer.
-- **Chip it up.** A light attack low (a crouching light kick) under a ball on the floor pops it up gently, to about
-  head height, to be struck again.
+- **Chip it up.** A light kick low (a crouching light kick) under a ball on the floor pops it up gently, to about
+  head height, to be struck again. Only the light kick does it (the button pressed last tells it from a light punch).
 - **Combos.** After a light or medium hit the ball drifts slowly for a moment (a quarter of a second), so the next
   attack of a chain combo can catch it; a hard hit, a special or a gauge move sends it straight off.
-- **Throw it up.** A throw's input (towards or away, and a hard punch or kick) with the ball at your feet or in reach
-  throws it up high in front of you for a follow-up; no attack comes out with it. The CPU does it too.
 - **Spin.** A ball struck above its middle spins forward and kicks on when it bounces. Struck below, it spins back and
   checks up.
 - **Three in a row.** Three hits by the same fighter in a row (each more than a moment apart, and not too long) make a
@@ -28,17 +26,17 @@ fighter and off their end of the court for a point. First to 3, 5 or 10 wins.
   fast enough, hit by the other fighter, **knocks down** whoever it hits.
 - **The line.** The line only separates the fighters: the ball flies over it. A fighter only hits the ball over their
   own half, never reaching across for it; but fireballs and other thrown attacks hit it anywhere.
-- **The court** is the whole stage: in Vampire Savior 768 columns, twice the board's picture, from 256 to 1024 (the
-  camera held in the middle), and the fighters start in the middles of their halves. A gentle ball dropping on a fighter (a serve on a
+- **The court** is as much of the stage as is drawn, edge to edge: the fighters walk to its ends and the ball goes out
+  there. In Vampire Savior that is up to 768 columns (twice the board's picture, the camera held in the middle), less
+  where a stage's back planes end sooner (Tower of Arrogance and the other games' stages 512); the fighters start in the middles of their halves. A gentle ball dropping on a fighter (a serve on a
   head) rolls off towards the line, never off the back to its own end.
 - **Points.** The ball off an end of the court is a point for the other fighter; a ball lying still stays in play
   until someone strikes it. The next serve drops on the half of whoever lost the point.
-- **Ball hits you** (an option, off unless chosen): a ball the other fighter sent that hits you makes you reel, light,
-  medium or hard by its speed, unless you are blocking (holding back): then you guard it, and a hot ball guarded does not
-  knock you down either. Nobody loses health. The CPU blocks too, at the medium and hard levels.
-- **Nobody is caught**, unless the page's **Fighters hit each other** is on: by default the fighters can be neither hit
-  nor grabbed (a command grab that reaches across the court, Anakaris's coffin, catches nothing). With it on, their
-  attacks and what they throw hit each other as in a fight, and nobody loses health.
+- **The ball hits you**: a ball the other fighter sent that hits you makes you reel, light, medium or hard by its
+  speed, unless you are blocking (holding back): then you guard it, and a hot ball guarded does not knock you down
+  either. The CPU blocks too, at the medium and hard levels.
+- **The fighters hit each other** (near the line, or with what they throw), as in a fight, but nobody loses health.
+  **Nobody is caught**: throws and command grabs take no one (Anakaris's coffin reaches across the court).
 - **The gauge** fills as it always does when attacks are thrown, so supers come round.
 - Nobody loses health and the clock stands still.
 
@@ -49,11 +47,8 @@ The menu's **Court** page has Start and these choices:
 | First to | 3, 5 or 10 points |
 | Player 2 side | The CPU, or player 2 |
 | CPU level | Easy, medium or hard |
-| Camera | **Whole court** (the default: the whole stage always) or **Follow the play** (as close as shows both fighters and the ball, to 1.3x a 16:9 picture; out to the whole stage, black above it, when they are apart) |
+| Camera | **Whole court** (the default: the whole court always) or **Follow the play** (as close as shows both fighters and the ball, to 1.3x a 16:9 picture; out to the whole stage, black above it, when they are apart) |
 | Widescreen (recommended) | The Display page's own Widescreen, here too: the court shown 16:9 (else 4:3) |
-| Aftertouch | Off (the default) or On |
-| Ball hits you | Off (the default) or On |
-| Fighters hit each other | Off (the default) or On |
 | Fighter 1, Fighter 2 | Someone at random, or a character |
 | Stage | Random (of the game's own), or any stage: the game's own, then the other games' (guest stages, each needing that game's ROM set) |
 
@@ -78,9 +73,14 @@ knock-out), holds the camera in the middle of the stage, and calls the court bef
 - **Drawn** as round boxes over the picture (`HudBox::round`, `port/hud.cpp`), a frame behind like the game's sprites
   (`shown`). The overlay is zoomed with the picture, the zoom by distance too: `Port::Windowed` draws the boxes on the
   panel-less picture it zooms.
-- **The court's width**: the game's wide picture, forced while the court runs and as wide as the stage (vsav's
-  `widescreen.cpp`: `court::On()` counts as the feature on and played in, its side `Video::kMaxSide`, 192 columns, where
-  the widescreen feature's is `Video::kWideSide`, 64; the camera's ends both put in the middle). The renderer draws up to
+- **The court's width**: the game's wide picture, forced while the court runs and as wide as the stage is drawn (vsav's
+  `widescreen.cpp`: `court::On()` counts as the feature on and played in, its side each stage's own from `kCourtSides`,
+  up to `Video::kMaxSide`, 192 columns, where the widescreen feature's is `Video::kWideSide`, 64; the camera's ends both
+  put in the middle). The floor reaches 192 a side on every stage, but the planes behind it go by more slowly and their
+  pictures are only as wide as the board's camera needs, so on most stages one ends first (black past it, or its
+  picture again). Each stage's side was measured from its court picture at 192 (`--present-every`, the columns where
+  every plane is drawn) and made the same both ways for halves alike: 140, 170, 64, 136, 120, 192, 160, 154, 192, 152,
+  192, 192. A guest stage is drawn by its own game to 64 a side, so its court is 512. The renderer draws up to
   192 columns a side (`kMaxSide`: its line buffers and the GPU's textures sized to match); the stage's far plane that
   is drawn as the camera moves comes from the stage's plan (vsav's `SideTile`), as for widescreen.
 - **The picture shown** (`Game::framedColumns`, `framedFollows`; `Port::Framed`): a picture wider than the window's
@@ -89,8 +89,8 @@ knock-out), holds the camera in the middle of the stage, and calls the court bef
   picture has them. The camera eases to as close as shows both fighters (`Game::focus`) and the ball
   (`Game::focusAlso`), at most 1.3x, and out to the whole picture, its floor at the frame's bottom and black above. The
   menu is drawn over the whole picture in that frame. Each frame's pixel is the picture's nearest (tables of columns and
-  rows made once a frame): a blend of four was too slow on a Steam Machine. A guest stage's picture, put together from
-  the guest's own records (`PictureMade`), is not framed yet: it is shown whole, in its own 8:3 shape. Screenshots (`--shot-every`) are the whole 768-column picture;
+  rows made once a frame): a blend of four was too slow on a Steam Machine. A court of 512 columns (a guest stage's, Tower
+  of Arrogance) is the widescreen picture itself and needs no frame. Screenshots (`--shot-every`) are the whole picture;
   `--present-every` is the frame. and `Game::zoomWanted` (the court asks for the zoom by distance while it runs, unless its page says Whole
   court; the player's own zoom comes back after).
 - **Save states**: the court's state is one POD (`court::State`, in the battle's).
@@ -112,7 +112,7 @@ are held when it is struck: the hit's weight), `kDeadBall`.
 A game needs the battle modes first (`battle::Register`, [FIGHT.md](FIGHT.md#the-fighting-modes)). Then:
 
 0. **The wide picture forced while the court runs, as wide as the stage** (the game's widescreen code: `court::On()` as
-   the feature on, its side `Video::kMaxSide` or what the stage needs, the camera's ends both in the middle; then
+   the feature on, its side as far as the stage is drawn (measure each stage: the court picture at `Video::kMaxSide`), the camera's ends both in the middle; then
    `Game::framedColumns` shows it in a 16:9 frame).
 1. **`games/<id>/src/court.cpp`** with a `RegisterCourt()` filling `court::Description` and calling `court::Register`.
    Call it before `RegisterBattle()` in the game's `game.cpp`: the battle makes the court's page only for a game that
@@ -136,20 +136,20 @@ A game needs the battle modes first (`battle::Register`, [FIGHT.md](FIGHT.md#the
      place in its `family.h` table (`tools/places.py`, or by hand: FF8135 was added so, between two neighbours that
      stayed put); the build stops on a place a table lacks.
    - `everyFrame`: anything to keep set while the court runs. Vampire Savior's "first attack made" byte (FF8135),
-     else the game says FIRST ATTACK when the ball knocks someone down; and each fighter's "cannot be hit" counter
-     (+147) held up, which the game's grab test (029406) checks, or Anakaris's coffin catches the other fighter across
-     the court (`--watch` on the victim's control byte found the routine: 029482 writes the caught state).
+     else the game says FIRST ATTACK when the ball knocks someone down; and both fighters' health kept full.
+   - No catches: hook the game's catch test to say no while `court::On()` (vsav: 029406, D0 0 and Z set, the
+     `CourtNoCatch` hook), or Anakaris's coffin catches the other fighter across the court (`--watch` on the victim's
+     control byte found the routine: 029482 writes the caught state). Vampire Savior 2 and Hunter 2 have it in their
+     `family.h` tables by hand (028708, 028736).
 2. **Keep the fighters apart.** Where the game pushes the two players apart (vsav's `PushApart` rewrite), while
    `court::On()`: put each one's x through `court::KeepToHalf(side, x, halfWidth)` and push nothing.
-3. **Keep their attacks off each other.** In the game's hit tests (vsav's `PlayersAgainstPlayers` and
-   `ThrownAgainstPlayers` rewrites), test nothing between the players while `court::On()`. Throws need no change: the
-   two never stand close enough.
+3. **Their attacks hit each other** as the game has them: no change (nobody's health goes down: `everyFrame`).
 4. **What the ball does to a fighter.** At the player's step (vsav: the `PlayerStep` hook, `CourtStep`), when
    `court::ReactionWanted(side, away)` gives one: put the fighter in the state a hit leaves (vsav: state `02020000`, the
    reaction byte `+54`: 0, 1, 2 a reel on its feet, 4 a knock-down with `+117` = 1 so it lands lying, FF a guard) and
    let the game's own reeling run from there. The game pushes or throws it the way its (here missing) attacker faced,
    so turn its speed across to `away` while it reels. `Description::guarding` (vsav: `+12B` bit 0, holding back, and
-   free to guard) is the block for "Ball hits you".
+   free to guard) is the block.
 5. Build, and check with the test switches below: rallies, a knock-down (`CPS2RECOMP_COURT_SHOT`), the zoom
    (`--present-every`).
 
@@ -177,8 +177,6 @@ CPS2RECOMP_COURT_CPU=1 CPS2RECOMP_BATTLE_SEED=7 build/vampire_savior/vampire_sav
 
 ## Next
 
-- **Guest stages' ends**: a guest stage narrower than 768 columns leaves black at the picture's edges (its art ends
-  there); the court's ends could stop where the art does.
 - **Tall stages**: the Marvel games' stages (as guests) with the ball going up past the picture's top and the camera
   following, past the board's picture vertically (the renderer drawing more of the stage than the game asks for).
 - **The panel**: hide the health bars and clock, keep the gauge (`court::Description::hidden`, which the battle puts

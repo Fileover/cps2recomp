@@ -4,12 +4,13 @@
 
 - **Court** (the Vampire Savior games: Vampire Savior, Definitive, Vampire Savior 2, Vampire Hunter 2; Alternative modes > Court): a ball game. A line splits the
   stage and each fighter keeps to a half; attacks strike a big ball (light, medium, hard, special and gauge moves each
-  faster, the place struck deciding the angle and the spin), bodies turn it away softly, three hits in a row make a
-  power shot, and a power shot or a gauge move knocks down whoever it hits. A ball off an end of the court is the
-  other fighter's point, a ball left lying a point against that half; first to 3, 5 or 10, against the CPU (easy,
-  medium, hard) or player 2. The camera's zoom by distance keeps the ball in the picture (`Game::focusAlso`, and a mode
-  can ask for a zoom while it runs: `Game::zoomWanted`). The toolkit's part is `fight/court.h`; a game describes its
-  boxes and its attacks' power ([docs/COURT.md](docs/COURT.md), with the steps for the next game).
+  faster, the place struck deciding the angle and the spin, up or down held bending it), a crouching light kick chips
+  it up, three hits in a row make a power shot, and the ball makes whoever it hits reel or fall unless they block. The
+  fighters can hit each other too, and nobody loses health or is caught. A ball off an end of the court is the other
+  fighter's point; first to 3, 5 or 10, against the CPU (easy, medium, hard) or player 2. The court is as wide as each
+  stage is drawn (up to 768 columns), shown whole in a 16:9 frame or followed by its own camera. The toolkit's part
+  is `fight/court.h`; a game describes its boxes and its attacks' power ([docs/COURT.md](docs/COURT.md), with the
+  steps for the next game).
 - **The overlay's boxes under the zoom by distance**: hit boxes (and the court's ball) are drawn on the picture that is
   zoomed, where they were drawn on the panel's layer and left out of it. Boxes can be round (`HudBox::round`).
 

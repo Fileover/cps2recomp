@@ -2188,7 +2188,7 @@ void battle::Register(const Description &description) {
         // (the court's whole stage, wider than the wide picture, through its own camera: Port::Framed)
         // (16:9 with the widescreen setting on, as recommended; 4:3 without)
         game.framedColumns = [] {
-            return g.kind == Kind::Court && court::On() && d.wideSide && d.wideSide() > Video::kWideSide
+            return g.kind == Kind::Court && court::On() && d.wideSide && d.wideSide() > 0
                        ? Video::kWidth + (FeatureOn("widescreen") ? 2 * Video::kWideSide : 0)
                        : 0;
         };

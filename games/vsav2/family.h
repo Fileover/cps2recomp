@@ -172,6 +172,7 @@ inline constexpr Place kPlaceList[] = {
     {0x027F70, 0x0271C4}, // the animation on a step (battle.cpp), found by its instructions: subq.b #1,0x20(a6) and the frame's flags by hand
     {0x028192, 0x0273E6}, // an instruction, 24 on alike
     {0x02824C, 0x0274A8}, // an instruction, 24 on alike
+    {0x029406, 0x028708}, // by hand: the catch test (court.cpp: no catches on the court), the same routine
     {0x02B7FA, 0x02AFD4}, // an instruction, 8 on alike
     {0x02C7C0, 0x02BF9C}, // an instruction, 3 on alike
     {0x02CE44, 0x02C620}, // an instruction, 19 on alike

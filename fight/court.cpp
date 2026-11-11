@@ -52,17 +52,14 @@ namespace {
     constexpr int kGauge[5] = {3, 5, 7, 8, 0};       // of a hundred of a gauge, filled by a hit
     // A ball this fast into a fighter, hit by the other side, knocks it down (a super, a power shot)
     constexpr float kKnockDownSpeed = 9.6f;
-    // "Ball hits you": a ball from the other side at least this fast makes a fighter reel, light, medium, then hard from these
+    // A ball from the other side at least this fast makes a fighter reel, light, medium, then hard from these
     constexpr float kHurtSpeed = 3.5f, kReelMediumSpeed = 6.0f, kReelHardSpeed = 8.5f;
     // A light or medium hit leaves the ball drifting for a moment, slowly, so a chain combo can follow it up
     constexpr int kFloatFor = 14;
     constexpr float kFloatRate = 0.3f;
-    // A light attack low under a ball on the floor chips it up, gently, to be struck again
+    // A light kick low under a ball on the floor chips it up, gently, to be struck again
     constexpr float kChipLow = 36.0f, kChipUp = 4.8f, kChipOn = 1.0f; // (up to about head height)
-    // A throw (towards or away and a hard punch or kick) with the ball at hand: it goes up high in front, for a follow-up
-    constexpr float kTossReach = 55.0f, kTossUp = 8.2f, kTossOn = 0.7f;
-    constexpr int kTossLetGo = 18;           // frames the thrower's attacks let the ball go up (the throw's own punch)
-    // Aftertouch (the page's option): up or down held by the striker while a hit holds the ball bends its flight, up to
+    // Aftertouch: up or down held by the striker while a hit holds the ball bends its flight, up to
     // this much (radians), by how many of the hold's frames it was held
     constexpr float kAftertouchMost = 0.44f;
     constexpr int kStrikeSlack = 5;          // pixels an attack's box reaches further for the ball
@@ -111,9 +108,8 @@ namespace {
         Reaction react[2] = {kNoReaction, kNoReaction};
         int32_t reactAway[2] = {0, 0};
         int32_t placeFor = 0;                // frames the fighters are still put at their starting places
-        uint16_t held[2] = {0, 0};           // each side's controls the frame before (a press: a throw of the ball)
-        uint16_t swallow[2] = {0, 0};        //   and a throw's button, kept from the game while it is held
-        int32_t tossed[2] = {0, 0};          // frames since a side threw the ball up for itself (its attacks let it go)
+        uint16_t controls[2] = {0, 0};       // each side's controls the frame before
+        uint16_t button[2] = {0, 0};         //   and the attack button it pressed last (a light kick chips: Strike)
         int32_t said = 0;                    // frames a hit's word ("POWER SHOT") is shown for
         int32_t saidKind = 0;
         // The court: the picture's ends in the stage, the line, the camera's place, the floor
@@ -250,8 +246,9 @@ namespace {
         wy /= length;
         b.vx = wx * speed;
         b.vy = wy * speed;
-        // A light attack low under a ball on the floor: chipped up, gently, to be struck again
-        const bool chip = s.power == kLight && !s.thrown && static_cast<float>(s.y - d.floor) < kChipLow && b.y < Floor() + kRadius + 10;
+        // A light kick low under a ball on the floor: chipped up, gently, to be struck again (the kick told by the button
+        // last pressed)
+        const bool chip = s.power == kLight && !s.thrown && g.button[side] == kKick1 && static_cast<float>(s.y - d.floor) < kChipLow && b.y < Floor() + kRadius + 10;
         if (chip) {
             b.vx = forward * kChipOn;
             b.vy = kChipUp;
@@ -323,7 +320,7 @@ namespace {
         float bestX = 0, bestY = 0;
         for (const Shape &s : shapes) {
             float nx = 0, ny = 0, depth = 0;
-            if (s.kind != Shape::kAttack || s.id == g.lastId[s.side] || g.tossed[s.side] < kTossLetGo || !Touches(s, b, nx, ny, depth)) {
+            if (s.kind != Shape::kAttack || s.id == g.lastId[s.side] || !Touches(s, b, nx, ny, depth)) {
                 continue;
             }
             // (a fighter strikes the ball over its own half, not reaching over the line for it)
@@ -354,14 +351,14 @@ namespace {
             if (into >= 0 || g.bodyCool[s.side] > 0) {
                 continue;
             }
-            // (hit by the other side: a hot ball, or one fast enough, knocks the fighter down; with "Ball hits you", any
-            // that is not slow makes it reel, by how fast, unless it is guarding, which blocks even a knock-down)
+            // (hit by the other side: a hot ball, or one fast enough, knocks the fighter down; any other that is not slow
+            // makes it reel, by how fast; unless it is guarding, which blocks even a knock-down)
             const float speed = Speed(b);
             const bool other = g.lastSide >= 0 && g.lastSide != s.side;
             const bool knocks = other && (speed >= kKnockDownSpeed || (b.hot && speed >= kKnockDownSpeed * 0.8f));
-            const bool hits = BallHits() && other && speed >= kHurtSpeed;
+            const bool hits = other && speed >= kHurtSpeed;
             Reaction reaction = kNoReaction;
-            if ((knocks || hits) && BallHits() && d.guarding && d.guarding(s.side)) {
+            if ((knocks || hits) && d.guarding && d.guarding(s.side)) {
                 reaction = kGuard;
             } else if (knocks) {
                 reaction = kKnockDown;
@@ -621,20 +618,13 @@ namespace {
             out |= a.jumpWay;
             return out;
         }
-        // "Ball hits you": a fast ball coming at it that it is not striking, blocked (held back) at the medium and hard levels
-        if (BallHits() && level > 0 && a.pressFor == 0) {
+        // A fast ball coming at it that it is not striking, blocked (held back) at the medium and hard levels
+        if (level > 0 && a.pressFor == 0) {
             const float toward = -b.vx * static_cast<float>(forward); // (its speed towards this fighter)
             const float distance = (b.x - static_cast<float>(me)) * static_cast<float>(forward);
             if (toward > kHurtSpeed && distance > 0 && distance < 70 + toward * 6 && b.y - static_cast<float>(meY) < 130) {
                 return static_cast<uint16_t>(out | (forward > 0 ? kLeft : kRight));
             }
-        }
-        // A ball low at its feet in front: thrown up for itself now and then (Throw, BeforeFrame)
-        if (std::fabs(b.x - static_cast<float>(me)) < kTossReach - 10 && b.y - static_cast<float>(d.floor) < 45 && ours(b.x) &&
-            Speed(b) < 2.0f && a.pressFor == 0 && Random() % 4 == 0) {
-            a.press = static_cast<uint16_t>((forward > 0 ? kRight : kLeft) | kPunch3);
-            a.pressFor = 2;
-            return static_cast<uint16_t>(out | a.press);
         }
         // A ball low behind it, on its half: over it with a jump back (walking back into it, its body would push it
         // off its own end)
@@ -775,18 +765,6 @@ void RegisterPage(const char *modes, void (*start)(Machine &machine), const std:
     // (the Display page's own widescreen: the same setting, here too because the court is so much better for it)
     game.features.push_back({"widescreen", kCourt, "Widescreen (recommended)",
                              "The court shown 16:9, not 4:3: more of it at once. The same as the Display page's Widescreen.", 0});
-    game.features.push_back({"court_aftertouch", kCourt, "Aftertouch",
-                             "On: hold up or down while your hit holds the ball (the moment it stands still) to send it higher or "
-                             "lower, the longer held the more.",
-                             0, {"Off", "On"}});
-    game.features.push_back({"court_ball_hits", kCourt, "Ball hits you",
-                             "On: a ball the other fighter sent that hits you makes you reel (the faster, the harder), unless you "
-                             "are blocking (holding back); a hot ball blocked does not knock you down. Off: it only bounces off.",
-                             0, {"Off", "On"}});
-    game.features.push_back({"court_hits", kCourt, "Fighters hit each other",
-                             "Off: the fighters' attacks are for the ball alone. On: they can hit each other too (near the line, "
-                             "or with what they throw), and knock each other about; nobody loses health.",
-                             0, {"Off", "On"}});
     game.features.push_back({"court_one", kCourt, "Fighter 1", "Player 1's fighter: someone at random, or this one.", 0, fighters});
     game.features.push_back({"court_two", kCourt, "Fighter 2", "Player 2's (or the CPU's) fighter: someone at random, or this one.", 0, fighters});
     game.features.push_back({"court_stage", kCourt, "Stage", "Where the court is.", kFeatureFavourites, stages});
@@ -796,9 +774,6 @@ void RegisterPage(const char *modes, void (*start)(Machine &machine), const std:
 
 bool On() {
     return g.phase != kOff;
-}
-bool FightersHit() {
-    return g.phase != kOff && FeatureValue("court_hits") != 0;
 }
 bool Playing() {
     return g.phase == kServe || g.phase == kPlay;
@@ -819,9 +794,6 @@ Reaction ReactionWanted(int side, int &away) {
     away = g.reactAway[side];
     return reaction;
 }
-bool BallHits() {
-    return g.phase != kOff && FeatureValue("court_ball_hits") != 0;
-}
 
 void Begin(int cameraX, int cameraY, int left, int right, int points, bool computer, int level) {
     const uint32_t random = g.random;
@@ -838,7 +810,6 @@ void Begin(int cameraX, int cameraY, int left, int right, int points, bool compu
     Serve(0);
     g.shown = g.ball;
     g.placeFor = kPlaceFor;
-    g.tossed[0] = g.tossed[1] = 999;
 }
 
 void BeforeFrame(Machine &, uint16_t &one, uint16_t &two) {
@@ -862,48 +833,22 @@ void BeforeFrame(Machine &, uint16_t &one, uint16_t &two) {
     if (g.computer) {
         two = Computer(1, g.ai[1]);
     }
-    // Aftertouch (the page's option, off unless chosen): the striker's stick up or down while the hit holds the ball
-    if (g.ball.held > 0 && g.lastSide >= 0 && FeatureValue("court_aftertouch") != 0) {
+    // The attack button each side pressed last
+    for (int side = 0; side < 2; side++) {
+        const uint16_t controls = side == 0 ? one : two;
+        const uint16_t pressed = static_cast<uint16_t>(controls & ~g.controls[side]);
+        g.controls[side] = controls;
+        for (const uint16_t button : {kPunch1, kPunch2, kPunch3, kKick1, kKick2, kKick3}) {
+            if (pressed & button) {
+                g.button[side] = button;
+            }
+        }
+    }
+    // Aftertouch: the striker's stick up or down while the hit holds the ball
+    if (g.ball.held > 0 && g.lastSide >= 0) {
         const uint16_t controls = g.lastSide == 0 ? one : two;
         g.ball.bend += (controls & kUp) ? 1 : (controls & kDown) ? -1 : 0;
     }
-    // A throw with the ball at hand (towards or away, and a hard punch or kick pressed): the ball up high in front of the
-    // thrower, for a follow-up; the button is not passed on (no attack comes out with it)
-    for (int side = 0; side < 2; side++) {
-        uint16_t &controls = side == 0 ? one : two;
-        const uint16_t pressed = static_cast<uint16_t>(controls & ~g.held[side]);
-        g.held[side] = controls;
-        // (a throw's button kept from the game for as long as it is held: else its attack would come out a frame on)
-        g.swallow[side] &= controls;
-        controls &= static_cast<uint16_t>(~g.swallow[side]);
-        if (!(pressed & (kPunch3 | kKick3)) || !(controls & (kLeft | kRight)) || !Playing() || !d.fighterX) {
-            continue;
-        }
-        Ball &b = g.ball;
-        const float me = static_cast<float>(d.fighterX(side)), meY = static_cast<float>(d.fighterY ? d.fighterY(side) : d.floor);
-        const bool ours = side == 0 ? b.x < static_cast<float>(g.line) : b.x > static_cast<float>(g.line);
-        if (!ours || std::fabs(b.x - me) > kTossReach || b.y - meY > 110.0f || (d.canAct && !d.canAct(side))) {
-            continue;
-        }
-        const float forward = static_cast<float>(Forward(side));
-        b = {};
-        b.x = me + forward * 22.0f;
-        b.y = meY + 70.0f;
-        b.vx = forward * kTossOn;
-        b.vy = kTossUp;
-        b.squash = 4;
-        g.phase = kPlay;
-        g.lastSide = side;
-        g.tossed[side] = 0;
-        g.leaving[side] = kTossLetGo;
-        g.swallow[side] = static_cast<uint16_t>(pressed & (kPunch3 | kKick3));
-        if (Logging()) {
-            fprintf(stderr, "court f%d toss side %d at %.0f\n", g_frames, side, b.x);
-        }
-        controls &= static_cast<uint16_t>(~g.swallow[side]);
-        Sound(d.hitSounds[kLight]);
-    }
-
 }
 
 void Frame(Machine &machine, std::vector<HudLine> &lines, std::vector<HudBox> &boxes, int cameraX, int cameraY, int left, int right) {
@@ -926,7 +871,6 @@ void Frame(Machine &machine, std::vector<HudLine> &lines, std::vector<HudBox> &b
         g.sinceHit[side] = std::min(g.sinceHit[side] + 1, 999);
         g.bodyCool[side] = std::max(g.bodyCool[side] - 1, 0);
         g.leaving[side] = std::max(g.leaving[side] - 1, 0);
-        g.tossed[side] = std::min(g.tossed[side] + 1, 999);
     }
     if (g.said > 0) {
         g.said--;

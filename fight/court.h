@@ -4,7 +4,7 @@
 // Court: the "Alternative modes" page's ball game (docs/COURT.md). The stage is a court cut in two by a line down the
 // middle of the picture; each fighter stays on its own half, and the two hit a large ball that flies about the whole
 // picture. A ball that leaves the picture past a fighter's end is the other's point; first to 3, 5 or 10 wins. The
-// fighters' attacks never touch each other: they hit the ball, harder attacks sending it faster, and where on the
+// fighters' attacks hit the ball (and each other, nobody's health going down), harder attacks sending it faster, and where on the
 // ball an attack lands says which way it goes. The ball bounces off a fighter like a soft body; one hit hard enough
 // (a super, or a third hit in a row) knocks the fighter it hits down. The camera keeps both fighters and the ball in
 // the picture (the zoom by distance, the ball counted: port/zoom.h).
@@ -14,7 +14,7 @@
 // It runs in the battle modes' match (battle.h: who fights where, the game's computer kept out, no clock, no
 // knock-out) as one of their kinds. A game's sources describe the rest (Description): the boxes of its fighters and
 // what they throw, how strong an attack is, and the few things done to a fighter (frozen by a hit, knocked down, its
-// gauge filled); they keep the fighters on their halves (KeepToHalf) and their attacks off each other (On).
+// gauge filled); they keep the fighters on their halves (KeepToHalf).
 #pragma once
 
 #include "game.h"
@@ -56,7 +56,7 @@ struct Description {
     // ... and put where it stands (a game begun: each in the middle of its half)
     void (*place)(int side, int x) = nullptr;
     bool (*canAct)(int side) = nullptr;
-    // ... and guarding now: holding back, free to guard (the "Ball hits you" option's block)
+    // ... and guarding now: holding back, free to guard (a ball blocked)
     bool (*guarding)(int side) = nullptr;
     // The floor's height (the game's y of a fighter standing)
     int floor = 0;
@@ -93,9 +93,6 @@ void RegisterPage(const char *modes, void (*start)(Machine &machine), const std:
 // A court game is being played (the battle's kind), and its fight is on (the ball in play or about to be)
 bool On();
 bool Playing();
-// ... and its fighters may hit each other (the page's "Fighters hit each other"): the game's hit tests between them left
-// as they are, and nobody's health going down
-bool FightersHit();
 // Where the line down the middle is (the stage's x), and the room kept on either side of it: a fighter's middle is
 // kept at least its half width and this far from it (the game's sources: where it keeps the fighters apart)
 int Line();
@@ -103,12 +100,10 @@ constexpr int kLineRoom = 6;
 // The fighter of side `side` (0 player 1, on the left) at `x` kept on its half: the x it may have
 int KeepToHalf(int side, int x, int halfWidth);
 // What the ball has done to a fighter, for the game's sources at the fighter's step: once, the reaction it is to be put
-// in (away from the ball: `away` -1 to the left, 1 to the right). A knock-down by a hot or fast ball always; with the
-// page's "Ball hits you" on, a guard (the fighter holding back: Description::guarding) or a reel by the ball's speed.
+// in (away from the ball: `away` -1 to the left, 1 to the right). A knock-down by a hot or fast ball, a reel by the
+// ball's speed, or a guard (the fighter holding back: Description::guarding).
 enum Reaction : uint8_t { kNoReaction, kGuard, kReelLight, kReelMedium, kReelHard, kKnockDown };
 Reaction ReactionWanted(int side, int &away);
-// The page's "Ball hits you" is on
-bool BallHits();
 
 // The battle's match: begun (the camera's place, the fighters standing), each frame before and after the machine's
 // (`one`, `two`: the controls, the computer's side made here), the score and the ball drawn (`lines` and the boxes),
