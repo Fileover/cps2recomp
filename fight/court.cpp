@@ -11,7 +11,6 @@
 #include <cmath>
 #include <cstdio>
 #include <cstdlib>
-#include <cstring>
 
 namespace cps2recomp::court {
 
@@ -19,6 +18,10 @@ namespace {
     Description d;
     bool g_described = false;
     int g_frames = 0; // (the machine's frames, for the tests' logs: the --shot-every pictures' numbers)
+    bool Logging() {
+        static const bool log = getenv("CPS2RECOMP_COURT_LOG") != nullptr;
+        return log;
+    }
 
     // --- the ball (pixels and frames: the picture's sixtieths of a second) ---
     constexpr float kRadius = 15.0f;
@@ -41,7 +44,7 @@ namespace {
     constexpr int kStreakApart = 10;         // frames at least between hits that count as more than one in a row
     constexpr int kStreakFor = 70;           //   and at most
     constexpr float kRallyMore = 0.02f, kRallyMost = 1.25f;
-    // Which way: the way from the attack's middle to the ball's, the fighter's forward (towards the line), and a lift
+    // Which way: forward (towards the line), up or down by where on the ball the attack lands, and a lift
     constexpr float kForward = 1.0f, kUpDown = 1.1f, kLift = 0.25f;
     constexpr int kFreezes[5] = {6, 9, 12, 13, 16};  // steps the attacker is frozen for, by power
     constexpr int kBallFreezes[5] = {5, 7, 10, 11, 15}; // frames the ball is held for (the hit's weight)
@@ -50,8 +53,8 @@ namespace {
     constexpr float kKnockDownSpeed = 9.6f;
     constexpr int kStrikeSlack = 5;          // pixels an attack's box reaches further for the ball
     constexpr int kComputerSlack[3] = {8, 14, 20}; // ... and more for the computer's, by its level (its play is not exact)
-    constexpr int kBodyCool = 8;
-    constexpr int kOwnBodyCool = 14;             // frames after a bounce off a fighter before it counts again
+    constexpr int kBodyCool = 8;             // frames after a bounce off a fighter before it counts again
+    constexpr int kOwnBodyCool = 14;         // frames a ball just struck passes through its striker's body
     constexpr int kDeadBall = 120;           // frames a ball lies still on a half before that half loses the point
 
     // --- the game ---
@@ -246,7 +249,7 @@ namespace {
         if (d.hitSounds[power]) {
             Sound(d.hitSounds[power]);
         }
-        if (getenv("CPS2RECOMP_COURT_LOG")) {
+        if (Logging()) {
             fprintf(stderr, "court f%d hit side %d power %d thrown %d streak %d speed %.1f way %.2f,%.2f at %.0f,%.0f\n", g_frames, side, power, s.thrown, g.streak,
                     Speed(b), wx, wy, b.x, b.y);
         }
@@ -272,6 +275,15 @@ namespace {
             fprintf(stderr, "court f%d shapes %zu attacks %d ball %.0f,%.0f cam %d,%d\n", g_frames, shapes.size(), attacks, g.ball.x, g.ball.y, g.cameraX, g.cameraY);
         }
         Ball &b = g.ball;
+        // (an attack hits the ball once while it is out: the same button again, a new attack, hits it again)
+        for (int side = 0; side < 2; side++) {
+            const bool out = std::any_of(shapes.begin(), shapes.end(), [&](const Shape &s) {
+                return s.kind == Shape::kAttack && s.side == side && s.id == g.lastId[side];
+            });
+            if (!out) {
+                g.lastId[side] = 0;
+            }
+        }
         // The strongest attack touching it, of a side that has not hit it with that attack already
         const Shape *best = nullptr;
         float bestX = 0, bestY = 0;
@@ -332,7 +344,7 @@ namespace {
             b.squash = 5;
             b.hot = false;
             g.bodyCool[s.side] = kBodyCool;
-            if (getenv("CPS2RECOMP_COURT_LOG")) {
+            if (Logging()) {
                 fprintf(stderr, "court f%d body side %d speed %.1f -> %.1f,%.1f\n", g_frames, s.side, speed, b.vx, b.vy);
             }
             if (d.bodySound) {
@@ -491,7 +503,7 @@ namespace {
                     a.press = static_cast<uint16_t>(kDown | kButtons[3 + strength]);
                 }
                 a.pressFor = 3;
-                if (getenv("CPS2RECOMP_COURT_LOG")) {
+                if (Logging()) {
                     fprintf(stderr, "court f%d press side %d %04X ahead %.0f above %.0f air %d\n", g_frames, side, a.press, ahead, above, air);
                 }
                 return static_cast<uint16_t>(out | a.press);
@@ -802,8 +814,7 @@ void Frame(Machine &machine, std::vector<HudLine> &lines, std::vector<HudBox> &b
     }
     g.shown = g.ball;
     // (for tests, CPS2RECOMP_COURT_LOG=1: the ball and the fighters, every few frames)
-    static const bool log = getenv("CPS2RECOMP_COURT_LOG") != nullptr;
-    if (log && g.since % 6 == 0) {
+    if (Logging() && g.since % 6 == 0) {
         fprintf(stderr, "court t %d phase %d ball %.0f,%.0f v %.1f,%.1f fighters %d %d target %d %d line %d court %d-%d floor %d cam %d,%d score %d-%d\n",
                 g.since, g.phase, g.ball.x, g.ball.y, g.ball.vx, g.ball.vy, d.fighterX(0), d.fighterX(1), g.ai[0].targetX, g.ai[1].targetX,
                 g.line, g.left, g.right, d.floor, cameraX, cameraY, g.score[0], g.score[1]);
