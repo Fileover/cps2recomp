@@ -9,7 +9,8 @@ Deck and Windows can play each other.
 
 Each player needs the game and its ROM set. The launcher's **Online** page (in the sidebar) has it all:
 
-- **Open matches**: the matches other players are hosting in the lobby, in every game, each with **Join**. A match in a
+- **Online matches**: the matches other players are hosting in the lobby, in every game, each with **Join** (or
+  **Watch**, for one under way: [watching a match](#watching-a-match)). A match in a
   game whose ROM set you haven't added is greyed, with **Add…** to add it.
 - **Join with a code**: type the code a host gave you and press **Join**. The launcher starts the game the match is in.
 - **Host a match**: choose a game and press **Host**. The game shows the match's code to give the other player. If
@@ -33,7 +34,7 @@ Each player needs the game and its ROM set. The launcher's **Online** page (in t
   into your game as it is and press Start to challenge you. Esc asks whether to stop hosting.
 
 Both players need the **same version** of CPS-2 Recomp; the launcher shows its version at the top of the sidebar.
-A match on another version is greyed in Open matches, and a code for one says so. Your ROM sets can be different
+A match on another version is greyed in Online matches, and a code for one says so. Your ROM sets can be different
 regions of the same game (`mvscj` against `mvsc`, say): the match is played as the host's region. That is best
 effort: if the game reads a part of its program where the two sets still differ, the match stops as a desync does
 (the same set is surest).
@@ -46,6 +47,19 @@ cps2recomp-launcher --play sfa3 -- --host                  # the host: shows a c
 cps2recomp-launcher --play sfa3 -- --host --net-arcade     # ... playing the game meanwhile
 cps2recomp-launcher --play sfa3 -- --join CODE             # the other player: the host's code (or address)
 ```
+
+## Watching a match
+
+A host who switches on **Allow spectators** (on the launcher's Online page, off unless chosen) lets others watch. Once
+the match is under way, its lobby entry says **Match in progress** and offers **Watch** in place of Join. A viewer needs
+the game, a ROM set and the same version as the players, and can come in at any point: the game shows **SPECTATING**,
+a moment behind the players, from the host's game as both players' controls have it. An FT5 or FT10 set's score
+comes along too.
+
+A viewer's controls and chat never reach the match, and the players never wait for a viewer. Up to eight can watch; one
+who falls too far behind is let go and can choose Watch again. Esc asks **Stop watching?**; leaving changes nothing for
+the players. A match that isn't in the lobby can't be watched by code. From a terminal: `--net-spectators` when hosting,
+`--watch CODE` to watch (or `--watch ADDRESS:PORT`, with `--net-service off`, on the same network).
 
 ## First to five or ten
 

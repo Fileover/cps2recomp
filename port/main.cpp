@@ -1403,7 +1403,7 @@ bool Port::Tick() {
         if (!ready) {
             if (!net->ended.empty()) {
                 // (the other side gone: a window waits for them again; the host's leaving ends the joining side's)
-                const bool again = !opt.headless && (net->Hosting() ? net->left || net->lost : net->lost);
+                const bool again = !opt.headless && !net->Watching() && (net->Hosting() ? net->left || net->lost : net->lost);
                 if (net->SetFinished()) {
                     quit = true;
                 } else if (hostedFromMenu) {
@@ -1539,6 +1539,7 @@ void Port::Shown(std::vector<uint32_t> &pixels, std::vector<SDL_Rect> *panels, b
         if (*text) {
             status(text, said++ * 14);
         }
+        if (net->Watching()) status("SPECTATING", said++ * 14);
         if (!cameIn) {
             status("PRESS START TO JOIN", said++ * 14);
         }
@@ -1666,7 +1667,7 @@ void Port::Shown(std::vector<uint32_t> &pixels, std::vector<SDL_Rect> *panels, b
     if (net && leaving) {
         const recomp::text::Canvas canvas{px, W, H};
         const bool hosting = connecting;
-        const char *question = hostedFromMenu ? "Leave the match?" : hosting ? "Stop hosting and quit?" : "Leave the match?";
+        const char *question = net->Watching() ? "Stop watching?" : hostedFromMenu ? "Leave the match?" : hosting ? "Stop hosting and quit?" : "Leave the match?";
         const char *confirm = hostedFromMenu ? "Confirm (A, Enter): play alone" : hosting ? "Confirm (A, Enter): quit" : "Confirm (A, Enter): leave";
         const struct {
             const char *text;
@@ -2511,10 +2512,10 @@ void Port::ArcadeFrame() {
 void Port::Matched() {
     connecting = false;
     net->BeginSet();
-    chatHintUntil = tick + kChatTicks;
+    chatHintUntil = net->Watching() ? 0 : tick + kChatTicks;
     // (the host's player, playing while it waited, is in already; the joining side is told so in the welcome)
-    cameIn = net->Arcade() && cameIn;
-    otherIn = !net->Hosting() && net->HostIn();
+    cameIn = net->Watching() || (net->Arcade() && cameIn);
+    otherIn = net->Watching() || (!net->Hosting() && net->HostIn());
     fprintf(stderr, "online: player 1 %s, player 2 %s\n", net->Name(0).empty() ? "(no name)" : net->Name(0).c_str(),
             net->Name(1).empty() ? "(no name)" : net->Name(1).c_str());
     if (net->Arcade()) {
@@ -2523,7 +2524,7 @@ void Port::Matched() {
     streak[0] = streak[1] = roundsWon[0] = roundsWon[1] = 0;
     roundCounted = false;
     rejoin.clear();
-    frame = 0; // (the match's frames count from its start, on both sides)
+    frame = net->Watching() ? net->WatchStart() : 0; // viewers begin at a confirmed snapshot
     // (the hashes compared leave out the picture: frames run again are not drawn)
     opt.hashNoPicture = true;
     if (net->Local() != 0) {
@@ -3010,6 +3011,8 @@ void Usage() {
             "  --auto SEED[:FROM[:N]] made-up input (from frame FROM; for N players, 2 unless said)\n"
             "  --rollback-test SEED   each frame run as online play's rollback would: the other players' controls late\n"
             "                         and guessed, and the frames guessed wrong run again (--hash-log must not change)\n"
+            "  --watch CODE          watch a running match without controlling either player\n"
+            "  --net-spectators      hosting: allow spectators (off by default)\n"
             "  --host [PORT]          online play: wait for the other player (on UDP port PORT, 7845 unless said);\n"
             "                         the host is player 1, and its board settings and play features are the match's\n"
             "  --join ADDRESS[:PORT]  online play: go to the host at ADDRESS (player 2), or CODE: the match the host's\n"
@@ -3158,6 +3161,11 @@ bool ParseArgs(int argc, char **argv, port::Options &o) {
             if (i + 1 < argc && argv[i + 1][0] >= '0' && argv[i + 1][0] <= '9') {
                 o.net.port = atoi(next());
             }
+        } else if (a == "--watch") {
+            o.online = o.net.watching = true;
+            o.net.address = next();
+        } else if (a == "--net-spectators") {
+            o.net.spectators = true;
         } else if (a == "--join") {
             o.online = true;
             o.net.address = next();

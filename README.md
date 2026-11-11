@@ -83,7 +83,7 @@ each other.
 
 - **Host** a match from the launcher, or from the game you're playing (its menu's **Online** page: you play on until
   someone joins), and give the other player its **code**: they type it on the launcher's **Online** page. If you've
-  set your name, the match is also listed in the **lobby**, where anyone can pick it from **Open matches**. Nothing
+  set your name, the match is also listed in the **lobby**, where anyone can pick it from **Online matches**. Nothing
   needs setting up on either router.
 - The **waiting room** lists the players whose Online page is open: **Invite** one to a match in any game, and they
   **Accept** from their launcher.
@@ -97,6 +97,8 @@ each other.
 - **FT5 / FT10:** in Marvel vs. Capcom and X-Men vs. Street Fighter, the host can choose **Set format** on the
   **Online** page before connecting. Both players see the game score and the first player to reach the target wins
   the set. After both players confirm the result, it is shown for two seconds and both return to the launcher.
+- **Watch** a match: a host who allows spectators has **Watch** on its lobby entry once the match is under way. Up to
+  eight viewers follow it, a moment behind, without touching it.
 - **Chat** with the other player during a match: press T (or a gamepad's right stick, or the touch screen's Chat) and
   type, on a keyboard or your system's on-screen keyboard. It goes straight between the two games.
 - A dropped connection waits for the other player to come back with the same code.

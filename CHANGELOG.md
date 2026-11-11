@@ -2,11 +2,16 @@
 
 ## Unreleased
 
+- **Online: watching a match** (from liquidmetalxy-debug, #331; recomp-common #64): a host who switches on **Allow
+  spectators** lets up to eight others watch. Once the match is under way its lobby entry offers **Watch**; the viewer
+  comes in at any point, from the host's game and both players' confirmed controls, a moment behind (an FT5 or FT10
+  set's score too). Viewers never reach the match, and the players never wait for them. The lobby list is now
+  **Online matches**. The online protocol is now 8, and the online service has a `/v1/watch` route.
 - **Online: first to 5 or 10** (from liquidmetalxy-debug, #242): in Marvel vs. Capcom and X-Men vs. Street Fighter
   the host chooses **Online > Set format**: Casual (the default, and in Pure), FT5 or FT10, for both players. A strip
   at the top shows the score; only finished games between the two players count (not draws, not the computer). When a
   player reaches it, both games agree on the score, show the winner for two seconds and close, back to the launcher.
-  Both players need this version (the online protocol is now 7).
+  Both players need this version.
 - **The shoot-'em-ups (Giga Wing, Progear, Dimahoo): tester feedback.**
   - **Training mode**: practice is now called training mode, as in the fighting games.
   - **Hit boxes in every mode**: Player hit boxes, Enemy hit boxes and Bullet hit boxes (the enemies' shots, apart from

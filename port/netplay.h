@@ -20,6 +20,7 @@
 
 #include <array>
 #include <cstdint>
+#include <cstdlib>
 #include <deque>
 #include <future>
 #include <map>
@@ -67,10 +68,10 @@ public:
     static constexpr int kDefaultPort = 7845;
     // The packets' layout (2: the host's state sent at the start); two copies must have the same to play, and the
     // lobby shows only matches of this one (the launcher asks with it too)
-    static constexpr int kProtocol = 7; // (3: the version said in the hello and to the service; 4: the welcome's flags;
+    static constexpr int kProtocol = 8; // (3: the version said in the hello and to the service; 4: the welcome's flags;
                                         // 5: the welcome's program words, so two regions' sets play together;
                                         // 6: each player's name in the hello and the welcome, and the chat;
-                                        // 7: the host's first-to set, and both games agreeing on its end)
+                                        // 7: the host's first-to set, and both games agreeing on its end; 8: spectators)
     static constexpr int kMostAhead = 8;   // frames run on guessed controls at most
     static constexpr int kKept = 16;       // states kept (more than the most a rollback goes back)
     static constexpr int kInputs = 128;    // controls kept, each side's
@@ -80,13 +81,19 @@ public:
     // the host is, and the host where they are; the two then reach each other directly
     static constexpr const char *kService = "https://cps2recomp-online.tmcleroy.workers.dev";
 
+    static const char *Service() {
+        const char *value = std::getenv("CPS2RECOMP_NET_SERVICE");
+        return value && *value ? value : kService;
+    }
+
     // What --host, --join and the --net-* options asked for
     struct Settings {
         bool hosting = false;
+        bool watching = false, spectators = false;
         std::string address; // (joining: the host's)
         int port = kDefaultPort;
         int delay = kDefaultDelay;
-        std::string service = kService; // (--net-service URL; "off": none, the host's address only)
+        std::string service = Service(); // (--net-service URL; "off": none, the host's address only)
         std::string renewCode, renewSecret; // (hosting again after the other player left: the code they know, kept)
         bool listed = false;  // (--net-list) the match in the lobby: on the Online card's list of open matches
         std::string name;     // (--net-name) ... under this name
@@ -114,6 +121,8 @@ public:
     const std::string &Secret() const {
         return secret;
     }
+    bool Watching() const { return settings.watching; }
+    uint64_t WatchStart() const { return watchStart; }
     bool Hosting() const {
         return settings.hosting;
     }
@@ -186,6 +195,26 @@ private:
     uint64_t setSent = 0, setAgreed = 0;
     bool setFinished = false;
     void FinishSet();
+    static constexpr size_t kWatchFrames = 4096;
+    struct WatchInput { uint16_t first = 0, second = 0; uint32_t hash = 0; };
+    struct Viewer {
+        NetAddress address;
+        std::string token;
+        std::vector<uint8_t> welcome, state;
+        uint32_t pieces = 0, start = 0, ack = 0;
+        uint64_t heard = 0, sent = 0;
+    };
+    std::vector<Viewer> viewers;
+    std::vector<std::pair<std::string, NetAddress>> invitedViewers;
+    std::array<WatchInput, kWatchFrames> watchInputs{};
+    uint64_t watchStart = 0, watchUpTo = 0, watchSent = 0;
+    std::string watchToken, watchNames[2];
+
+    uint64_t watchAsked = 0;
+    void WatchPacket(const uint8_t *data, size_t size, const NetAddress &from);
+    void WatchSend();
+    void WatchCapture(Port &port);
+    void WatchService();
     UdpSocket socket;
     // (the handshake: the hello or the welcome, sent again until answered)
     std::vector<uint8_t> greeting;
@@ -193,7 +222,7 @@ private:
     uint64_t began = 0, sent = 0;
     bool found = false; // (hosting: the other player has said hello)
     bool hostIn = false;
-    void Welcome(Port &port); // (hosting: the welcome, and the game as it is, for the one who has come)
+    void Welcome(Port &port, const std::vector<uint8_t> *snapshot = nullptr, uint32_t start = 0); // (hosting: the welcome, and the game as it is, for the one who has come)
     int joinPort = 0;
     void StartAt(int frames);
     // The game as the match begins: the host's, sent to the joining side in pieces (compressed), which it takes as
@@ -220,7 +249,7 @@ private:
     std::array<uint8_t, 12> stunId{};
     uint64_t stunBegan = 0, stunSent = 0;
     std::string seenAs; // ("IP:PORT")
-    std::future<HttpAnswer> asking;
+    std::future<HttpAnswer> asking, watchAsking;
     uint64_t askedAt = 0;
     uint64_t codeAt = 0; // (hosting: when the code was had, for how often it is asked about: Introduce)
     std::string secret;

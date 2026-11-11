@@ -8,6 +8,7 @@
 // compile definitions set by launcher.cmake: LAUNCHER_GAME_NAME, LAUNCHER_GAME_EXE, LAUNCHER_APP_ID,
 // LAUNCHER_HOME_ENV, LAUNCHER_DISCLAIMER.
 #pragma once
+#define RECOMP_LAUNCHER_SPECTATORS 1
 
 #include <SDL3/SDL.h>
 
@@ -97,6 +98,8 @@ struct Online {
     // The game's id as the online service knows it (the invitations a game hosts say it), for a launcher of one game:
     // its game in the waiting room. A collection's games have theirs (CollectionGame::id).
     const char *game = nullptr;
+    const char *watch_argument = nullptr; // watch a running match by code
+    const char *spectators_argument = nullptr; // host opt-in to spectators
 };
 
 struct InfoRow {
@@ -231,7 +234,7 @@ const Description &describe();
 // ends, if they have it.
 struct CollectionGame {
     const char *id;          // short name: --play ID, --page ID, and its sections of the launcher.ini
-    const char *name;        // as the player reads it; its folder too (as LAUNCHER_GAME_NAME is a port's)
+    const char *name;        // as the player reads it; its folder too, unless `folder` says (as LAUNCHER_GAME_NAME is a port's)
     const char *exe;         // its program, beside the launcher (as LAUNCHER_GAME_EXE)
     const char *home_env;    // a variable naming a folder to use instead of its own, for tests (LAUNCHER_HOME_ENV)
     Description description; // what a launcher of its own is told (its pages, if any, are not shown)
@@ -239,6 +242,9 @@ struct CollectionGame {
     // with a page of their own are under one row of the sidebar, which opens and closes and has a page of the series'
     // games, and are kept together in the player's order and on the Games page.
     const char *series = nullptr;
+    // Its folder's name, when that is not `name` (a game given another name on the page, whose folder, with the
+    // player's settings and saves in it, stays the one it had); nullptr: `name`.
+    const char *folder = nullptr;
 };
 
 // A choice of a multi-game mode's: a row of its card on the Multi game page, kept in launcher.ini under
