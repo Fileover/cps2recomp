@@ -31,6 +31,8 @@
 // board shows. The wide picture's sides are read from that plan here instead (StagePlanTile).
 #include "widescreen.h"
 
+#include "court.h"
+
 #include "game.h"
 #include "machine.h"
 #include "modes.h"
@@ -225,8 +227,10 @@ void WidescreenBeforeFrame(Machine &machine) {
     g_cameraBefore = camera;
     g_side = g_shift = 0;
     // (with invisible walls the picture is wide and the game is played as on the board)
-    const bool shownWide = FeatureOn("widescreen");
-    g_play = shownWide && !FeatureOn("widescreen_walls");
+    // (the court, fight/court.h: always the wide picture, played in it, for the room)
+    const bool court = court::On();
+    const bool shownWide = FeatureOn("widescreen") || court;
+    g_play = shownWide && (!FeatureOn("widescreen_walls") || court);
     // (the modes that put their picture together from more than one machine's keep the board's)
     if (shownWide && OnStage(camera) && OnStage(shown) && !CurtainDrawn(machine)) {
         g_side = kSide;

@@ -53,6 +53,8 @@ struct Description {
     int (*fighterX)(int side) = nullptr;
     int (*fighterY)(int side) = nullptr; // (its height: `floor` standing)
     int (*halfWidth)(int side) = nullptr;
+    // ... and put where it stands (a game begun: each in the middle of its half)
+    void (*place)(int side, int x) = nullptr;
     bool (*canAct)(int side) = nullptr;
     // The floor's height (the game's y of a fighter standing)
     int floor = 0;

@@ -18,7 +18,10 @@ fighter and off their end of the court for a point. First to 3, 5 or 10 wins.
 - **Knock-downs.** The ball bounces off a fighter softly. A hot ball (a power shot or a super) or one that is simply
   fast enough, hit by the other fighter, **knocks down** whoever it hits.
 - **The line.** The line only separates the fighters: the ball flies over it. A fighter only hits the ball over their
-  own half, never reaching across for it.
+  own half, never reaching across for it; but fireballs and other thrown attacks hit it anywhere.
+- **The court** is always the widescreen picture (512 columns: a third wider than the board's), whatever the Display
+  setting, and the fighters start in the middles of their halves. A gentle ball dropping on a fighter (a serve on a
+  head) rolls off towards the line, never off the back to its own end.
 - **Points.** The ball off an end of the court is a point for the other fighter. A ball left lying still on one half
   for two seconds is a point against that half (**dead ball**). The next serve drops on the half of whoever lost the
   point.
@@ -32,7 +35,7 @@ The menu's **Court** page has Start and these choices:
 | First to | 3, 5 or 10 points |
 | Player 2 side | The CPU, or player 2 |
 | CPU level | Easy, medium or hard |
-| Camera | **Follow the play** (the default: the zoom by distance with the ball counted, so tight when the fighters and the ball are close together and the whole court when they are apart) or **Whole court** |
+| Camera | **Follow the play** (the default: as close as shows both fighters and the ball, never more than 1.3x, so the whole court when they are apart) or **Whole court** |
 | Fighter 1, Fighter 2 | Someone at random, or a character |
 | Stage | Random, or a stage of the game's own |
 
@@ -57,8 +60,11 @@ knock-out), holds the camera in the middle of the stage, and calls the court bef
 - **Drawn** as round boxes over the picture (`HudBox::round`, `port/hud.cpp`), a frame behind like the game's sprites
   (`shown`). The overlay is zoomed with the picture, the zoom by distance too: `Port::Windowed` draws the boxes on the
   panel-less picture it zooms.
-- **The camera**: `Game::focusAlso` (the ball, which the both/by-distance zoom keeps in the picture and counts in the
-  distance) and `Game::zoomWanted` (the court asks for the zoom by distance while it runs, unless its page says Whole
+- **The court's width**: the game's wide picture, forced while the court runs (vsav's `widescreen.cpp`: `court::On()`
+  counts as the feature on, played in, walls or not). Wider than 512 columns needs the renderer to draw more of the
+  stage than its 64 extra columns a side (`Video::kMaxSide`): see Next.
+- **The camera**: `Game::focusAlso` (the ball, which the both/by-distance zoom keeps in the picture; by distance with
+  it, the zoom is as close as shows the fighters and the ball, to `kAlsoMost` 1.3x) and `Game::zoomWanted` (the court asks for the zoom by distance while it runs, unless its page says Whole
   court; the player's own zoom comes back after).
 - **Save states**: the court's state is one POD (`court::State`, in the battle's).
 - **The CPU's side** (`Computer`): where the ball will come down on its half (a copy of the ball flown on, no
@@ -78,6 +84,7 @@ are held when it is struck: the hit's weight), `kDeadBall`.
 
 A game needs the battle modes first (`battle::Register`, [FIGHT.md](FIGHT.md#the-fighting-modes)). Then:
 
+0. **The wide picture forced while the court runs** (the game's widescreen code: `court::On()` as the feature on).
 1. **`games/<id>/src/court.cpp`** with a `RegisterCourt()` filling `court::Description` and calling `court::Register`.
    Call it before `RegisterBattle()` in the game's `game.cpp`: the battle makes the court's page only for a game that
    described one. Vampire Savior's (`games/vampire_savior/src/court.cpp`) is the model.
@@ -90,6 +97,7 @@ A game needs the battle modes first (`battle::Register`, [FIGHT.md](FIGHT.md#the
      player's stock byte going down marks the move under way as a super until the fighter can act again. Find the
      byte by logging entries as attacks come out (the `VSAV_COURT_LOG=1` log in vsav's file) while a movie or the CPU
      presses each button and a few specials.
+   - `place`: a fighter put at x (its record's place), for the start of a game.
    - `fighterX`, `fighterY`, `halfWidth`, `canAct`, `floor`, `pictureFloor`, `pictureTop`, `wideStage`: as the
      training session's description has them.
    - `freeze`: the attacker's hitstop byte. `playSound` and `hitSounds`: the game's own hit sounds. Find them by
@@ -136,6 +144,10 @@ CPS2RECOMP_COURT_CPU=1 CPS2RECOMP_BATTLE_SEED=7 build/vampire_savior/vampire_sav
 
 ## Next
 
+- **A court wider than the picture can be**: the playtest's first wish (2026-11-11: "too tight for fun gameplay"). The
+  renderer's wide picture stops at 64 columns a side (`Video::kMaxSide`, the GPU's textures sized to match), and a
+  stage's far planes that are drawn into their maps as the camera moves (vsav's back layer) have nothing past that. A
+  zoom out to the whole stage (vsav's 720 pixels a fighter can stand over) needs both: the same work as tall stages.
 - **Tall stages**: the Marvel games' stages (as guests) with the ball going up past the picture's top and the camera
   following, past the board's picture vertically (the renderer drawing more of the stage than the game asks for).
 - **The panel**: hide the health bars and clock, keep the gauge (`court::Description::hidden`, which the battle puts

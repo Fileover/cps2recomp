@@ -37,6 +37,9 @@ namespace {
     constexpr float kTogetherGap = 56.0f, kStartGap = 180.0f, kEndRoom = 40.0f;
     // ... the whole picture from this part of the way from the start's distance to the furthest on
     constexpr float kOutFrom = 0.8f;
+    // ... and by distance with something else kept in (Game::focusAlso: the court's ball), as close as shows them all,
+    // to at most this
+    constexpr float kAlsoMost = 1.3f;
     float ByDistance(float gap, int width) {
         const float apart = kStartGap + (std::max(width - 2 * kEndRoom, kStartGap + 1) - kStartGap) * kOutFrom;
         if (gap <= kTogetherGap) {
@@ -180,7 +183,8 @@ void Zoom::Follow(int width, int height) {
             // (and what else the game wants kept in the picture: a mode's ball, counted in their distance)
             float gap = static_cast<float>(std::abs(x2 - x));
             int ax = 0, ay = 0, reach = 0;
-            if (game.focusAlso && game.focusAlso(ax, ay, reach)) {
+            const bool also = game.focusAlso && game.focusAlso(ax, ay, reach);
+            if (also) {
                 left = std::min(left, static_cast<float>(ax - reach));
                 right = std::max(right, static_cast<float>(ax + reach));
                 top = std::min(top, static_cast<float>(ay - reach));
@@ -188,7 +192,10 @@ void Zoom::Follow(int width, int height) {
                 gap = static_cast<float>(std::max({x, x2, ax}) - std::min({x, x2, ax}));
             }
             const float fits = std::clamp(std::min(width / (right - left), height / (bottom - top)), 1.0f, kSizes[kSizeCount - 1]);
-            if (m_player == kDistance) {
+            if (m_player == kDistance && also) {
+                // (the fighters and something else, a ball: as close as shows them all, in as far as kAlsoMost)
+                wanted = std::min(fits, kAlsoMost);
+            } else if (m_player == kDistance) {
                 wanted = std::min(ByDistance(gap, width), fits);
             } else {
                 if (fits < m_bothSize || fits > m_bothSize + kBothCloser || fits == kSizes[kSizeCount - 1]) {

@@ -35,7 +35,8 @@ namespace {
     constexpr float kSpinGrip = 0.35f;       // of its spin turned into speed across at a bounce
     // A fighter's body is soft: of the speed into it kept (out again), and of the speed along it
     constexpr float kBodyBounce = 0.35f, kBodySlide = 0.8f;
-    constexpr float kBodyRollOff = 1.6f, kBodyLift = 2.2f; // (the least it goes off one sideways, and up off its top)
+    constexpr float kBodyRollOff = 1.6f, kBodyLift = 2.2f;
+    constexpr float kBodyGentle = 4.0f; // (slower than this into a fighter, it rolls off towards the line) // (the least it goes off one sideways, and up off its top)
     // An attack: the ball's speed by its power, more for each hit of a side's in a row (the third: a power shot), and a
     // little more for each time the ball has crossed the line in the rally
     constexpr float kSpeeds[5] = {4.4f, 5.7f, 7.0f, 8.0f, 10.5f};
@@ -62,6 +63,7 @@ namespace {
     constexpr float kServeHeight = 150.0f;   //   above the floor
     constexpr int kPointFor = 80;            // frames the point is shown before the next serve
     constexpr int kWonFor = 300;             // frames the winner is shown before another game
+    constexpr int kPlaceFor = 3;             // frames the fighters are put at their places as a game begins
 
     enum Phase : int32_t { kOff, kServe, kPlay, kPoint, kWon };
 
@@ -93,6 +95,7 @@ namespace {
         int32_t leaving[2] = {0, 0};          // frames the ball is leaving a side's striker (its body let through)
         bool knockDown[2] = {false, false};
         int32_t knockAway[2] = {0, 0};
+        int32_t placeFor = 0;                // frames the fighters are still put at their starting places
         int32_t said = 0;                    // frames a hit's word ("POWER SHOT") is shown for
         int32_t saidKind = 0;
         // The court: the picture's ends in the stage, the line, the camera's place, the floor
@@ -293,8 +296,9 @@ namespace {
                 continue;
             }
             // (a fighter strikes the ball over its own half, not reaching over the line for it)
+            // (but what it has thrown hits the ball anywhere)
             const float over = (b.x - static_cast<float>(g.line)) * static_cast<float>(Forward(s.side));
-            if (over > kRadius) {
+            if (!s.thrown && over > kRadius) {
                 continue;
             }
             if (!best || s.power > best->power) {
@@ -331,9 +335,10 @@ namespace {
             const float tx = b.vx - into * nx, ty = b.vy - into * ny;
             b.vx = tx * kBodySlide - into * kBodyBounce * nx;
             b.vy = ty * kBodySlide - into * kBodyBounce * ny;
-            // ... never left lying on a fighter: rolled off, away from its middle (or towards the line), and lifted
+            // ... never left lying on a fighter: rolled off and lifted. A gentle one (a serve dropped on a head) goes
+            // towards the line, never off the back of the fighter to its own end; a fast one away from its middle
             const float off = b.x - static_cast<float>(s.x);
-            const float way = std::fabs(off) > 2.0f ? (off > 0 ? 1.0f : -1.0f) : static_cast<float>(Forward(s.side));
+            const float way = speed < kBodyGentle || std::fabs(off) <= 2.0f ? static_cast<float>(Forward(s.side)) : (off > 0 ? 1.0f : -1.0f);
             if (b.vx * way < kBodyRollOff) {
                 b.vx = way * kBodyRollOff;
             }
@@ -542,6 +547,14 @@ namespace {
             out |= a.jumpWay;
             return out;
         }
+        // A ball low behind it, on its half: over it with a jump back (walking back into it, its body would push it
+        // off its own end)
+        const float behind = (static_cast<float>(me) - b.x) * static_cast<float>(forward);
+        if (a.jumpFor == 0 && behind > 8 && behind < 75 && b.y - static_cast<float>(d.floor) < 70 && ours(b.x)) {
+            a.jumpWay = static_cast<uint16_t>(kUp | (forward > 0 ? kLeft : kRight));
+            a.jumpFor = 4;
+            return static_cast<uint16_t>(out | a.jumpWay);
+        }
         if (me < a.targetX - 8) {
             out |= kRight;
         } else if (me > a.targetX + 8) {
@@ -713,12 +726,19 @@ void Begin(int cameraX, int cameraY, int left, int right, int points, bool compu
     g.level = level;
     Serve(0);
     g.shown = g.ball;
+    g.placeFor = kPlaceFor;
 }
 
 void BeforeFrame(Machine &, uint16_t &one, uint16_t &two) {
     (void)one;
     if (g.phase == kOff) {
         return;
+    }
+    // A game begun: each fighter in the middle of its half (the round's own places are a screen's middle apart)
+    if (g.placeFor > 0 && d.place) {
+        g.placeFor--;
+        d.place(0, (g.left + g.line) / 2);
+        d.place(1, (g.line + g.right) / 2);
     }
     // (for tests, CPS2RECOMP_COURT_CPU=1: player 1's side the computer's too)
     static const bool both = getenv("CPS2RECOMP_COURT_CPU") != nullptr;
@@ -759,6 +779,10 @@ void Frame(Machine &machine, std::vector<HudLine> &lines, std::vector<HudBox> &b
     }
     switch (g.phase) {
     case kServe:
+        // (over the middle of its half as the court is now: the court can widen as a game begins)
+        if (g.ball.held > 0) {
+            g.ball.x = static_cast<float>(g.serveTo == 0 ? (g.left + g.line) / 2 : (g.line + g.right) / 2);
+        }
         Fly();
         Contacts(machine);
         if (g.since >= kServeFor || g.ball.held == 0) {
@@ -841,6 +865,7 @@ int Over() {
 }
 
 void Again() {
+    g.placeFor = kPlaceFor;
     g.score[0] = g.score[1] = 0;
     g.winner = -1;
     Serve(g.pointTo >= 0 ? 1 - g.pointTo : 0);
