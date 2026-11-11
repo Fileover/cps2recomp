@@ -176,7 +176,8 @@ struct Port {
     // The picture with the readout over it (runtime/game.h, SetHud), as the window and screenshots show it; and
     // where on it the readout's panels went (none: not asked)
     // (`over`: drawn over a picture all of `base` instead of the game's: for the readouts alone, Readouts)
-    void Shown(std::vector<uint32_t> &pixels, std::vector<SDL_Rect> *panels = nullptr, bool over = false, uint32_t base = 0) const;
+    void Shown(std::vector<uint32_t> &pixels, std::vector<SDL_Rect> *panels = nullptr, bool over = false, uint32_t base = 0,
+               bool boxes = true) const;
     // The readouts alone (all Shown draws over the game's picture), for the GPU's picture (gpu_picture.h): red, green,
     // blue, alpha bytes, the colours times the alpha; from Shown over black and over white, whose difference is what
     // the readouts leave of what is under them

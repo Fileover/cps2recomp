@@ -1466,7 +1466,7 @@ bool Port::Tick() {
     return true;
 }
 
-void Port::Shown(std::vector<uint32_t> &pixels, std::vector<SDL_Rect> *panels, bool over, uint32_t base) const {
+void Port::Shown(std::vector<uint32_t> &pixels, std::vector<SDL_Rect> *panels, bool over, uint32_t base, bool boxes) const {
     const int across = ShownWidth();
     if (over) {
         pixels.assign(static_cast<size_t>(across) * Video::kHeight, base);
@@ -1477,13 +1477,14 @@ void Port::Shown(std::vector<uint32_t> &pixels, std::vector<SDL_Rect> *panels, b
     // game's, and the text upright on the picture turned, which is turned back at the end, to be turned again as it is shown)
     const bool turned = port::Turned();
     std::vector<uint32_t> upright;
+    const unsigned boxParts = boxes ? +port::kHudBoxes : 0u;
     if (turned) {
-        DrawHud(pixels.data(), across, Video::kHeight, nullptr, port::kHudBoxes);
+        DrawHud(pixels.data(), across, Video::kHeight, nullptr, boxParts);
         port::TurnPicture(pixels.data(), across, upright);
     }
     uint32_t *const px = turned ? upright.data() : pixels.data();
     const int W = turned ? +Video::kHeight : across, H = turned ? across : +Video::kHeight;
-    DrawHud(px, W, H, panels, turned ? +port::kHudText : port::kHudBoxes | port::kHudText);
+    DrawHud(px, W, H, panels, turned ? +port::kHudText : boxParts | port::kHudText);
     // A line at the bottom, in the middle (`up` lines higher)
     auto status = [&](const char *text, int up) {
         const recomp::text::Canvas canvas{px, W, H};
@@ -1747,13 +1748,18 @@ bool Port::Windowed(std::vector<uint32_t> &pixels, Zoomed &zoomed, bool readouts
         return true;
     }
     // (the game's own picture above, the one with the readout below)
-    Shown(pixels, &zoomed.keep);
-    const uint32_t *above = machine->Picture();
     // (not where the game's sources put the picture together from other frames: the last frame run is not the one shown)
-    if (zoom.KeepsPanel() && machine->Unpanelled() && machine->PictureWidth() == across && !cps2recomp::PictureMade()) {
-        // The panel left where it is (zoom.h, by distance): above, the game's picture without it; below, of the one with
-        // the readout, only the panel's pixels and the readout's panels, the rest clear
-        above = machine->Unpanelled();
+    const bool apart = zoom.KeepsPanel() && machine->Unpanelled() && machine->PictureWidth() == across && !cps2recomp::PictureMade();
+    Shown(pixels, &zoomed.keep, false, 0, !apart);
+    const uint32_t *above = machine->Picture();
+    static std::vector<uint32_t> unpanelled;
+    if (apart) {
+        // The panel left where it is (zoom.h, by distance): above, the game's picture without it, with the boxes the game's
+        // sources draw over the fight (zoomed with it: hit boxes, a mode's ball); below, of the one with the readout,
+        // only the panel's pixels and the readout's panels, the rest clear
+        unpanelled.assign(machine->Unpanelled(), machine->Unpanelled() + across * Video::kHeight);
+        DrawHud(unpanelled.data(), across, Video::kHeight, nullptr, port::kHudBoxes);
+        above = unpanelled.data();
         const uint8_t *panel = machine->PanelPixels();
         std::vector<uint8_t> kept(pixels.size(), 0);
         for (const SDL_Rect &keep : zoomed.keep) {

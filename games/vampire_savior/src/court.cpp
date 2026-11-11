@@ -179,7 +179,7 @@ void RegisterCourt() {
     d.canAct = [](int side) { return CanAct(side); };
     d.floor = kGround;
     d.pictureFloor = 239;
-    d.pictureTop = 30; // (under the health bars)
+    d.pictureTop = 40; // (under the health bars and the clock, which the zoom by distance leaves where they are)
     d.wideStage = WideStage;
     d.freeze = [](int side, int steps) { SetRam8(Player(side) + kHitStop, static_cast<uint8_t>(steps)); };
     d.playSound = PlaySound;

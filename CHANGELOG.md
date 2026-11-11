@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+- **Court** (Vampire Savior and Vampire Savior Definitive; Alternative modes > Court): a ball game. A line splits the
+  stage and each fighter keeps to a half; attacks strike a big ball (light, medium, hard, special and gauge moves each
+  faster, the place struck deciding the angle and the spin), bodies turn it away softly, three hits in a row make a
+  power shot, and a power shot or a gauge move knocks down whoever it hits. A ball off an end of the court is the
+  other fighter's point, a ball left lying a point against that half; first to 3, 5 or 10, against the CPU (easy,
+  medium, hard) or player 2. The camera's zoom by distance keeps the ball in the picture (`Game::focusAlso`, and a mode
+  can ask for a zoom while it runs: `Game::zoomWanted`). The toolkit's part is `fight/court.h`; a game describes its
+  boxes and its attacks' power ([docs/COURT.md](docs/COURT.md), with the steps for the next game).
+- **The overlay's boxes under the zoom by distance**: hit boxes (and the court's ball) are drawn on the picture that is
+  zoomed, where they were drawn on the panel's layer and left out of it. Boxes can be round (`HudBox::round`).
+
 - **Online: first to 5 or 10** (from liquidmetalxy-debug, #242): in Marvel vs. Capcom and X-Men vs. Street Fighter
   the host chooses **Online > Set format**: Casual (the default, and in Pure), FT5 or FT10, for both players. A strip
   at the top shows the score; only finished games between the two players count (not draws, not the computer). When a
