@@ -2,7 +2,7 @@
 
 ## Unreleased
 
-- **Court** (Vampire Savior and Vampire Savior Definitive; Alternative modes > Court): a ball game. A line splits the
+- **Court** (the Vampire Savior games: Vampire Savior, Definitive, Vampire Savior 2, Vampire Hunter 2; Alternative modes > Court): a ball game. A line splits the
   stage and each fighter keeps to a half; attacks strike a big ball (light, medium, hard, special and gauge moves each
   faster, the place struck deciding the angle and the spin), bodies turn it away softly, three hits in a row make a
   power shot, and a power shot or a gauge move knocks down whoever it hits. A ball off an end of the court is the

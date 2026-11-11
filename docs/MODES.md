@@ -34,7 +34,7 @@ computer plays it as a ring out too.
 
 ### Court
 
-In Vampire Savior and Vampire Savior Definitive. A ball game: a line splits the stage in two and each fighter keeps to
+In the Vampire Savior games (Vampire Savior, its Definitive version, Vampire Savior 2, Vampire Hunter 2). A ball game: a line splits the stage in two and each fighter keeps to
 a half. Hit the big ball with your attacks, harder ones sending it faster and where you strike it deciding the angle,
 past the other fighter and off their end for a point. Three hits in a row make a power shot; a power shot or a super
 into a fighter knocks them down. First to 3, 5 or 10, against the CPU or player 2, and the camera follows the play

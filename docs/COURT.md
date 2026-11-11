@@ -1,7 +1,7 @@
 # Court
 
-A ball game for the fighting games, on the in-game menu's **Alternative modes** page (first in Vampire Savior and
-Vampire Savior Definitive). The stage is a court cut in two by a line down the middle of the picture. Each fighter keeps
+A ball game for the fighting games, on the in-game menu's **Alternative modes** page (first in the Vampire Savior
+games: Vampire Savior, Vampire Savior Definitive, Vampire Savior 2 and Vampire Hunter 2, which share its sources). The stage is a court cut in two by a line down the middle of the picture. Each fighter keeps
 to its own half, and the two of them hit a big ball that flies over the whole court. Get the ball past the other
 fighter and off their end of the court for a point. First to 3, 5 or 10 wins.
 
@@ -95,6 +95,9 @@ A game needs the battle modes first (`battle::Register`, [FIGHT.md](FIGHT.md#the
    - `freeze`: the attacker's hitstop byte. `playSound` and `hitSounds`: the game's own hit sounds. Find them by
      tracing the sound queue (`--trace` of the ring) while hits land in training: Vampire Savior's are 0100, 0101, 0102
      for light, medium, hard.
+   - A game that builds another's sources through a family (vsav2 and vhunt2 build vsav's) needs each new `At(...)`
+     place in its `family.h` table (`tools/places.py`, or by hand: FF8135 was added so, between two neighbours that
+     stayed put); the build stops on a place a table lacks.
    - `everyFrame`: anything to keep set while the court runs. Vampire Savior's "first attack made" byte (FF8135),
      else the game says FIRST ATTACK when the ball knocks someone down.
 2. **Keep the fighters apart.** Where the game pushes the two players apart (vsav's `PushApart` rewrite), while

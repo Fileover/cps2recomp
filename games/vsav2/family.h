@@ -614,6 +614,7 @@ inline constexpr Place kPlaceList[] = {
     {0xFF8131, 0xFF8131}, // a variable the code names so (6/6)
     {0xFF8133, 0xFF8165}, // a variable the code names so (7/10)
     {0xFF8134, 0xFF8134}, // a variable the code names so (75/75)
+    {0xFF8135, 0xFF8135}, // by hand: the round's first hit made (court.cpp), between FF8134 and FF8137, both where they were
     {0xFF8137, 0xFF8137}, // a variable the code names so (12/12)
     {0xFF813E, 0xFF813E}, // a variable the code names so (16/16)
     {0xFF8140, 0xFF8140}, // a variable the code names so (15/15)
