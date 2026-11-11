@@ -1080,8 +1080,9 @@ namespace {
                 g.characters[1] = AnyCharacter(g.characters[0]);
             }
             g.computer[0] = g.computer[1] = false;
+            // (another game's stage, after the game's own: fought on its first, the other drawn behind: BattleStage)
             const int stage = FeatureValue("court_stage");
-            g.stage = stage >= 1 && stage <= d.stages ? stage : AnyStage(0);
+            g.stage = stage >= 1 && stage <= d.stages ? stage : stage > d.stages ? 1 : AnyStage(0);
         } else if (kind != Kind::Endless) {
             g.characters[0] = -1; // (the player's choice)
             g.characters[1] = AnyCharacter();
@@ -1893,8 +1894,8 @@ int BattleStage() {
         const int choice = FeatureValue("endless_stage");
         return choice >= 2 + d.stages ? choice - 1 : 0;
     }
-    if (g.kind == Kind::Team) {
-        const int choice = FeatureValue("team_stage");
+    if (g.kind == Kind::Team || g.kind == Kind::Court) {
+        const int choice = FeatureValue(g.kind == Kind::Team ? "team_stage" : "court_stage");
         return choice > d.stages ? choice : 0;
     }
     return 0;
@@ -2179,10 +2180,9 @@ void battle::Register(const Description &description) {
         game.features.push_back({"ringout_best", kRingOut, "Best", "The most ring outs in one go. (Left puts it back.)", 0, choices});
     }
     if (court::Described()) {
-        // (the stages: the game's own, after "Random")
+        // (the stages: the game's own, then other games', after "Random")
         static std::vector<const char *> stages = {"Random"};
-        stages.insert(stages.end(), d.stageChoices.begin() + std::min<size_t>(2, d.stageChoices.size()),
-                      d.stageChoices.begin() + std::min<size_t>(2 + d.stages, d.stageChoices.size()));
+        stages.insert(stages.end(), d.stageChoices.begin() + std::min<size_t>(2, d.stageChoices.size()), d.stageChoices.end());
         court::RegisterPage(kModes, StartCourt, d.fighterChoices, stages);
         game.focusAlso = court::Focus;
         game.zoomWanted = [] { return g.kind == Kind::Court && court::On() && FeatureValue("court_camera") == 0 ? 4 : 0; };

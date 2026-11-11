@@ -11,6 +11,7 @@
 #include "modes.h"
 #include "widescreen.h"
 
+#include <algorithm>
 #include <cstdio>
 #include <cstdlib>
 
@@ -189,7 +190,14 @@ void RegisterCourt() {
     d.hitSounds[court::kMedium] = 0x0101;
     d.hitSounds[court::kHard] = d.hitSounds[court::kSpecial] = d.hitSounds[court::kSuper] = 0x0102;
     // (each frame: the round's first hit taken as made, or the game says "FIRST ATTACK" when the ball knocks one down)
-    d.everyFrame = [] { SetRam8(kFirstAttackMade, 1); };
+    // ... and neither fighter can be hit or caught (their attacks are for the ball: a command grab that reaches across the
+    // court, Anakaris's coffin, would catch the other, as would a throw)
+    d.everyFrame = [] {
+        SetRam8(kFirstAttackMade, 1);
+        for (int side = 0; side < 2; side++) {
+            SetRam8(Player(side) + kNotHit, std::max<uint8_t>(Ram8(Player(side) + kNotHit), 8)); // (counted down each step: 029406 tests it)
+        }
+    };
     court::Register(d);
 }
 

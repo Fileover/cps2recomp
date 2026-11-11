@@ -56,7 +56,6 @@ namespace {
     constexpr int kComputerSlack[3] = {8, 14, 20}; // ... and more for the computer's, by its level (its play is not exact)
     constexpr int kBodyCool = 8;             // frames after a bounce off a fighter before it counts again
     constexpr int kOwnBodyCool = 14;         // frames a ball just struck passes through its striker's body
-    constexpr int kDeadBall = 120;           // frames a ball lies still on a half before that half loses the point
 
     // --- the game ---
     constexpr int kServeFor = 50;            // frames the served ball hangs before it drops
@@ -816,16 +815,8 @@ void Frame(Machine &machine, std::vector<HudLine> &lines, std::vector<HudBox> &b
             Point(1);
         } else if (b.x - kRadius > static_cast<float>(g.right)) {
             Point(0);
-        } else if (Speed(b) < 0.3f && b.y <= Floor() + 0.5f) {
-            // Lying still on a half: that half's fighter has let it die
-            if (++g.still >= kDeadBall) {
-                g.said = 60;
-                g.saidKind = 4;
-                Point(1 - half);
-            }
-        } else {
-            g.still = 0;
         }
+        // (a ball lying still is left to lie: a fighter walks up to it and strikes it)
         break;
     }
     case kPoint:

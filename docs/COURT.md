@@ -22,9 +22,10 @@ fighter and off their end of the court for a point. First to 3, 5 or 10 wins.
 - **The court** is always the widescreen picture (512 columns: a third wider than the board's), whatever the Display
   setting, and the fighters start in the middles of their halves. A gentle ball dropping on a fighter (a serve on a
   head) rolls off towards the line, never off the back to its own end.
-- **Points.** The ball off an end of the court is a point for the other fighter. A ball left lying still on one half
-  for two seconds is a point against that half (**dead ball**). The next serve drops on the half of whoever lost the
-  point.
+- **Points.** The ball off an end of the court is a point for the other fighter; a ball lying still stays in play
+  until someone strikes it. The next serve drops on the half of whoever lost the point.
+- **Nobody is caught.** The fighters can be neither hit nor grabbed while the court runs: a command grab that reaches
+  across the court (Anakaris's coffin) catches nothing.
 - **The gauge** fills as it always does when attacks are thrown, so supers come round.
 - Nobody loses health and the clock stands still.
 
@@ -37,7 +38,7 @@ The menu's **Court** page has Start and these choices:
 | CPU level | Easy, medium or hard |
 | Camera | **Follow the play** (the default: as close as shows both fighters and the ball, never more than 1.3x, so the whole court when they are apart) or **Whole court** |
 | Fighter 1, Fighter 2 | Someone at random, or a character |
-| Stage | Random, or a stage of the game's own |
+| Stage | Random (of the game's own), or any stage: the game's own, then the other games' (guest stages, each needing that game's ROM set) |
 
 ## How it is made
 
@@ -107,7 +108,9 @@ A game needs the battle modes first (`battle::Register`, [FIGHT.md](FIGHT.md#the
      place in its `family.h` table (`tools/places.py`, or by hand: FF8135 was added so, between two neighbours that
      stayed put); the build stops on a place a table lacks.
    - `everyFrame`: anything to keep set while the court runs. Vampire Savior's "first attack made" byte (FF8135),
-     else the game says FIRST ATTACK when the ball knocks someone down.
+     else the game says FIRST ATTACK when the ball knocks someone down; and each fighter's "cannot be hit" counter
+     (+147) held up, which the game's grab test (029406) checks, or Anakaris's coffin catches the other fighter across
+     the court (`--watch` on the victim's control byte found the routine: 029482 writes the caught state).
 2. **Keep the fighters apart.** Where the game pushes the two players apart (vsav's `PushApart` rewrite), while
    `court::On()`: put each one's x through `court::KeepToHalf(side, x, halfWidth)` and push nothing.
 3. **Keep their attacks off each other.** In the game's hit tests (vsav's `PlayersAgainstPlayers` and
