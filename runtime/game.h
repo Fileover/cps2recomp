@@ -106,6 +106,12 @@ struct Game {
     // ... how far above the feet that place is, and how tall a fighter stands from its feet, so that the camera keeping
     // both in the picture shows them whole
     int focusLift = 44, focusTall = 120;
+    // ... and something else the camera keeping both in the picture keeps in it too (a mode's ball: fight/court.h), in
+    // the picture's pixels, with how far it reaches from there; false when there is none now
+    bool (*focusAlso)(int &x, int &y, int &reach) = nullptr;
+    // A mode that wants the zoom while it runs: the in-game menu's Zoom row's choice (4: by distance), or 0 for none (the
+    // player's own choice put back when it ends)
+    int (*zoomWanted)() = nullptr;
     // ... and the game's panel (its health bars, clock and names), which the zoom that follows the fight's distance leaves
     // where it is: its objects (true for an object of the panel, by its tile's number and attributes, as
     // Video::hideObject has them), and the scroll screens it is drawn on (Video::layerMask's bits). Not given: that
@@ -224,6 +230,7 @@ struct HudBox {
     int x, y, width, height;
     uint8_t r, g, b;
     uint8_t fill = 56;
+    bool round = false; // (an ellipse filling the rectangle, with no outline: a ball and the like)
     bool operator==(const HudBox &) const = default;
 };
 void SetBoxes(std::vector<HudBox> boxes);

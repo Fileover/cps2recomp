@@ -42,6 +42,7 @@ void ModelFrame(Machine &machine);
 void ModelState(Archive &ar);
 bool ModelViewer();
 void RegisterMachines(); // machines.cpp
+void RegisterCourt();    // court.cpp (before the battle's: its page is among theirs)
 void RegisterBattle();   // battle.cpp
 void BattleBeforeFrame(Machine &machine);
 void BattleFrame(Machine &machine);
@@ -65,6 +66,7 @@ bool WidePlay();     // widescreen.cpp
 void RegisterGame() {
     RegisterMusic();
     RegisterModes();
+    RegisterCourt();
     RegisterBattle();
     RegisterModel();
     RegisterMachines();

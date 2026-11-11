@@ -6,6 +6,8 @@
 // Fighter Alpha 2.
 #include "battle.h"
 
+#include "court.h"
+
 #include "spare.h"
 #include "state.h"
 #include "tag.h"
@@ -168,7 +170,7 @@ namespace {
         return (CameraLeft() + CameraRight()) / 2;
     }
 
-    enum class Kind : int32_t { None, Survival, Endless, RingOut, Team };
+    enum class Kind : int32_t { None, Survival, Endless, RingOut, Team, Court };
     enum class Phase : int32_t { Starting, Fighting, Decided, Over, Falling, Dropping };
     // (the menu's choices can be changed while the battle goes on: read each frame)
     int ShuffleAfter() {
@@ -339,6 +341,7 @@ namespace {
         g_dropBack.Clear();
         g_atChoice.clear();
         g_open = false;
+        court::End();
         Wanted() = MatchWanted();
         CameraAt() = CameraWanted();
         Fast(false);
@@ -1065,6 +1068,20 @@ namespace {
         g.coachRandom = g.random * 2654435761u | 1;
         if (kind == Kind::Team) {
             StartTeams();
+        } else if (kind == Kind::Court) {
+            // The fighters and the stage the menu's rows say (or at random); nobody the game's: the CPU's side is the
+            // court's own (court.cpp), as the game's computer knows nothing of a ball
+            g.characters[0] = ChosenCharacter("court_one");
+            g.characters[1] = ChosenCharacter("court_two");
+            if (g.characters[0] < 0) {
+                g.characters[0] = AnyCharacter(g.characters[1]);
+            }
+            if (g.characters[1] < 0) {
+                g.characters[1] = AnyCharacter(g.characters[0]);
+            }
+            g.computer[0] = g.computer[1] = false;
+            const int stage = FeatureValue("court_stage");
+            g.stage = stage >= 1 && stage <= d.stages ? stage : AnyStage(0);
         } else if (kind != Kind::Endless) {
             g.characters[0] = -1; // (the player's choice)
             g.characters[1] = AnyCharacter();
@@ -1116,6 +1133,16 @@ namespace {
     }
     void StartRingOut(Machine &machine) {
         Start(machine, Kind::RingOut);
+    }
+    void StartCourt(Machine &machine) {
+        Start(machine, Kind::Court);
+    }
+    // The court's game begun, at the round's start: the camera held in the middle of the stage, the court the picture
+    void BeginCourt() {
+        static constexpr int kPoints[3] = {3, 5, 10};
+        CameraAt().x = Arena();
+        court::Begin(Arena(), CameraY(), SeenLeft(), SeenRight(), kPoints[std::clamp(FeatureValue("court_points"), 0, 2)],
+                     FeatureValue("court_opponent") == 0, std::clamp(FeatureValue("court_level"), 0, 2));
     }
     bool Chooses() {
         return (g.kind == Kind::Survival || g.kind == Kind::RingOut) && !g.computer[0]; // (the player chooses a character)
@@ -1197,6 +1224,9 @@ namespace {
                 if (Layered()) {
                     d.playSound(d.tuneOff); // (the music is the stage's, from its own machine)
                 }
+                if (g.kind == Kind::Court) {
+                    BeginCourt();
+                }
                 if (g.kind == Kind::RingOut) {
                     g.characters[1] = AnyCharacter(g.characters[1]); // (from here: who the next match is against)
                     Begin(g_next);
@@ -1241,6 +1271,10 @@ namespace {
         }
         if (g.kind == Kind::RingOut && g.phase == Phase::Fighting) {
             RingOutCoach(one, two);
+        }
+        if (g.kind == Kind::Court && g.phase == Phase::Fighting) {
+            CameraAt().x = Arena(); // (the whole court in the picture: the zoom closes in on the play)
+            court::BeforeFrame(machine, one, two);
         }
         if (g.kind == Kind::Team && g.tag && g.phase == Phase::Fighting) {
             TagBeforeFrame(one, two);
@@ -1677,6 +1711,7 @@ namespace {
             return;
         }
         std::vector<HudLine> lines;
+        std::vector<HudBox> boxes;
         int dark = 0;         // how far the fighters (or, with one stage, the whole picture) are faded, of 256
         bool layered = false; // the picture and sound have been put together already
         if (g.kind == Kind::RingOut && g.phase != Phase::Starting && g.phase != Phase::Over) {
@@ -1704,6 +1739,14 @@ namespace {
             } else if (g.phase == Phase::Dropping) {
                 g.since++;
                 HandOver();
+            }
+        } else if (g.kind == Kind::Court) {
+            // (no knock-out: the ball decides; a game won is shown, then the next begins where they stand)
+            if (g.phase == Phase::Fighting) {
+                court::Frame(machine, lines, boxes, CameraX(), CameraY(), SeenLeft(), SeenRight());
+                if (court::Over()) {
+                    court::Again();
+                }
             }
         } else if (g.phase == Phase::Fighting) {
             const uint8_t result = d.resultNow ? d.resultNow() : Ram8(d.result);
@@ -1838,7 +1881,7 @@ namespace {
             TeamLines(lines);
         }
         SetHud(std::move(lines));
-        SetBoxes({});
+        SetBoxes(std::move(boxes));
     }
 } // namespace
 
@@ -1860,10 +1903,10 @@ void EndBattle() {
     End();
 }
 bool BattleNoClock() {
-    return g.kind == Kind::Endless || g.kind == Kind::RingOut;
+    return g.kind == Kind::Endless || g.kind == Kind::RingOut || g.kind == Kind::Court;
 }
 bool BattleNoKnockOut() {
-    return g.kind == Kind::RingOut;
+    return g.kind == Kind::RingOut || g.kind == Kind::Court;
 }
 bool TeamBattle() {
     return g.kind == Kind::Team;
@@ -1942,6 +1985,7 @@ void BattleFrame(Machine &machine) {
 void BattleState(Archive &ar) {
     ar.Mark(0x42415454);
     ar.Pod(g);
+    court::State(ar);
     ar.Vec(g_next.state);
     ar.Pod(g_next.ready);
     ar.Pod(g_next.frames);
@@ -2130,6 +2174,15 @@ void battle::Register(const Description &description) {
             choices.push_back(number.c_str());
         }
         game.features.push_back({"ringout_best", kRingOut, "Best", "The most ring outs in one go. (Left puts it back.)", 0, choices});
+    }
+    if (court::Described()) {
+        // (the stages: the game's own, after "Random")
+        static std::vector<const char *> stages = {"Random"};
+        stages.insert(stages.end(), d.stageChoices.begin() + std::min<size_t>(2, d.stageChoices.size()),
+                      d.stageChoices.begin() + std::min<size_t>(2 + d.stages, d.stageChoices.size()));
+        court::RegisterPage(kModes, StartCourt, d.fighterChoices, stages);
+        game.focusAlso = court::Focus;
+        game.zoomWanted = [] { return g.kind == Kind::Court && court::On() && FeatureValue("court_camera") == 0 ? 4 : 0; };
     }
     game.commands.push_back({"endless_start", kEndless, "Start",
                              "Two fighters played by the game: no bars, no clock, and the one knocked down is replaced. Press "

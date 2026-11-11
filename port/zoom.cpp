@@ -175,11 +175,21 @@ void Zoom::Follow(int width, int height) {
             const float across = game.focusTall * kAcrossOfTall;
             const float above = static_cast<float>(game.focusTall - game.focusLift) + kRoomTop;
             const float below = static_cast<float>(game.focusLift) + kRoomFeet;
-            const float left = std::min(x, x2) - across, right = std::max(x, x2) + across;
-            const float top = std::min(y, y2) - above, bottom = std::max(y, y2) + below;
+            float left = std::min(x, x2) - across, right = std::max(x, x2) + across;
+            float top = std::min(y, y2) - above, bottom = std::max(y, y2) + below;
+            // (and what else the game wants kept in the picture: a mode's ball, counted in their distance)
+            float gap = static_cast<float>(std::abs(x2 - x));
+            int ax = 0, ay = 0, reach = 0;
+            if (game.focusAlso && game.focusAlso(ax, ay, reach)) {
+                left = std::min(left, static_cast<float>(ax - reach));
+                right = std::max(right, static_cast<float>(ax + reach));
+                top = std::min(top, static_cast<float>(ay - reach));
+                bottom = std::max(bottom, static_cast<float>(ay + reach));
+                gap = static_cast<float>(std::max({x, x2, ax}) - std::min({x, x2, ax}));
+            }
             const float fits = std::clamp(std::min(width / (right - left), height / (bottom - top)), 1.0f, kSizes[kSizeCount - 1]);
             if (m_player == kDistance) {
-                wanted = std::min(ByDistance(static_cast<float>(std::abs(x2 - x)), width), fits);
+                wanted = std::min(ByDistance(gap, width), fits);
             } else {
                 if (fits < m_bothSize || fits > m_bothSize + kBothCloser || fits == kSizes[kSizeCount - 1]) {
                     m_bothSize = fits;

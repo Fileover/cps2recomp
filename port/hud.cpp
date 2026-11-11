@@ -9,6 +9,7 @@
 #include "../recomp-common/text.h"
 
 #include <algorithm>
+#include <cmath>
 
 namespace port {
 
@@ -50,6 +51,22 @@ void DrawHud(uint32_t *pixels, int width, int height, std::vector<SDL_Rect> *pan
         const float x = static_cast<float>(box.x), y = static_cast<float>(box.y);
         const float w = static_cast<float>(box.width), h = static_cast<float>(box.height);
         if (box.x >= width || box.y >= height || box.x + box.width <= 0 || box.y + box.height <= 0) {
+            continue;
+        }
+        if (box.round) {
+            // (row by row, the ellipse's span on each)
+            const float rx = w / 2, ry = h / 2, cx = x + rx;
+            for (int row = 0; row < box.height; row++) {
+                const float dy = (static_cast<float>(row) + 0.5f - ry) / ry;
+                if (dy * dy >= 1.0f) {
+                    continue;
+                }
+                const float half = rx * std::sqrt(1.0f - dy * dy);
+                const float from = std::round(cx - half), to = std::round(cx + half);
+                if (to > from) {
+                    canvas.Fill(from, y + static_cast<float>(row), to - from, 1, {box.r, box.g, box.b, box.fill});
+                }
+            }
             continue;
         }
         canvas.Fill(x, y, w, h, {box.r, box.g, box.b, box.fill});

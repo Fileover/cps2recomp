@@ -1709,6 +1709,18 @@ void Port::Readouts(std::vector<uint32_t> &rgba, std::vector<SDL_Rect> *panels) 
 
 bool Port::Windowed(std::vector<uint32_t> &pixels, Zoomed &zoomed, bool readouts) {
     const int across = ShownWidth();
+    // A mode that wants the zoom while it runs (Game::zoomWanted): its choice, and the player's put back after
+    {
+        static int wantedBefore = 0, choiceBefore = 0;
+        const int wanted = TheGame().zoomWanted && Zoom::Possible() ? TheGame().zoomWanted() : 0;
+        if (wanted != wantedBefore) {
+            if (wantedBefore == 0) {
+                choiceBefore = zoom.Choice();
+            }
+            zoom.Choose(wanted ? wanted : choiceBefore);
+            wantedBefore = wanted;
+        }
+    }
     zoom.Follow(across, Video::kHeight);
     const Menu::Rate rate = menu.GameRate();
     if (rate.frames != saidRate.frames || rate.ticks != saidRate.ticks) {
