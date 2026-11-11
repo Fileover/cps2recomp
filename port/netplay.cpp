@@ -330,6 +330,9 @@ bool UdpSocket::Resolve(const std::string &host, int port, NetAddress &address, 
     if (use->ai_family == AF_INET) {
         sockaddr_in6 mapped{};
         mapped.sin6_family = AF_INET6;
+#ifdef SIN6_LEN
+        mapped.sin6_len = sizeof(mapped); // (as received addresses have it, so the two compare equal)
+#endif
         mapped.sin6_port = reinterpret_cast<const sockaddr_in *>(use->ai_addr)->sin_port;
         mapped.sin6_addr.s6_addr[10] = 0xFF;
         mapped.sin6_addr.s6_addr[11] = 0xFF;
