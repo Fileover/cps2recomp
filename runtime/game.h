@@ -109,6 +109,12 @@ struct Game {
     // ... and something else the camera keeping both in the picture keeps in it too (a mode's ball: fight/court.h), in
     // the picture's pixels, with how far it reaches from there; false when there is none now
     bool (*focusAlso)(int &x, int &y, int &reach) = nullptr;
+    // A mode whose picture is wider than the shape it is shown in (the court's whole stage, fight/court.h): the columns of
+    // that shape (0: none), and whether its camera follows the play (else it shows all of the picture). The port looks at
+    // the picture through that camera (port/main.cpp, Port::Framed): from all of it (bars above) to closer than a picture
+    // of those columns, as the fighters (focus) and focusAlso need.
+    int (*framedColumns)() = nullptr;
+    bool (*framedFollows)() = nullptr;
     // A mode that wants the zoom while it runs: the in-game menu's Zoom row's choice (4: by distance), or 0 for none (the
     // player's own choice put back when it ends)
     int (*zoomWanted)() = nullptr;

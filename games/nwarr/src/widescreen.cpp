@@ -33,7 +33,7 @@ namespace cps2recomp {
 namespace {
     using namespace nwarr;
 
-    constexpr int kSide = Video::kMaxSide;
+    constexpr int kSide = Video::kWideSide;
     constexpr uint32_t kCameraLeftEnd = At(0xFF8D98), kCameraRightEnd = At(0xFF8D9A);
     // The camera object's (FF8F08): its place across (kCameraX), the step it last took, and which way (0 left, 4 right)
     constexpr uint32_t kCameraObject = At(0xFF8F08), kCameraStep = 0x34, kCameraWay = 0x2C;

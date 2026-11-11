@@ -187,6 +187,14 @@ struct Port {
     // The picture for the window, a step of the zoom on: as Shown, or zoomed (true), as `zoomed` says (present.h)
     // (`readouts`: the readouts alone, as Readouts, and not stacked when zoomed: the GPU's picture stacks them)
     bool Windowed(std::vector<uint32_t> &pixels, Zoomed &zoomed, bool readouts = false);
+    // A mode that frames a picture wider than it is shown (Game::framedColumns): the columns of the shape shown (0: none),
+    // and the picture made through its camera, at three times that shape's size (Windowed, with `zoomed`'s size)
+    int FramedColumns() const;
+    void Framed(std::vector<uint32_t> &pixels, Zoomed &zoomed);
+    struct FrameCamera {
+        float x = 0, y = 0, size = 0; // (the view's middle in the picture, and its size against the shape's)
+        bool settled = false;
+    } frameCamera;
     // The picture drawn on the GPU from the native records (--video gpu: docs/NATIVE_VIDEO.md), when the window's
     // presenter draws with SDL_GPU
     GpuPicture gpuPicture;

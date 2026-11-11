@@ -57,7 +57,7 @@ struct TileOverride {
 
 class Raster {
 public:
-    static constexpr int kWidth = 384, kMaxSide = 64, kMaxWidth = kWidth + 2 * kMaxSide;
+    static constexpr int kWidth = 384, kWideSide = 64, kMaxSide = 192, kMaxWidth = kWidth + 2 * kMaxSide;
 
     void SetGraphics(const uint8_t *graphics, size_t size) {
         m_graphics = graphics;

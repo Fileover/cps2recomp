@@ -19,8 +19,8 @@ fighter and off their end of the court for a point. First to 3, 5 or 10 wins.
   fast enough, hit by the other fighter, **knocks down** whoever it hits.
 - **The line.** The line only separates the fighters: the ball flies over it. A fighter only hits the ball over their
   own half, never reaching across for it; but fireballs and other thrown attacks hit it anywhere.
-- **The court** is always the widescreen picture (512 columns: a third wider than the board's), whatever the Display
-  setting, and the fighters start in the middles of their halves. A gentle ball dropping on a fighter (a serve on a
+- **The court** is the whole stage: in Vampire Savior 768 columns, twice the board's picture, from 256 to 1024 (the
+  camera held in the middle), and the fighters start in the middles of their halves. A gentle ball dropping on a fighter (a serve on a
   head) rolls off towards the line, never off the back to its own end.
 - **Points.** The ball off an end of the court is a point for the other fighter; a ball lying still stays in play
   until someone strikes it. The next serve drops on the half of whoever lost the point.
@@ -36,7 +36,7 @@ The menu's **Court** page has Start and these choices:
 | First to | 3, 5 or 10 points |
 | Player 2 side | The CPU, or player 2 |
 | CPU level | Easy, medium or hard |
-| Camera | **Follow the play** (the default: as close as shows both fighters and the ball, never more than 1.3x, so the whole court when they are apart) or **Whole court** |
+| Camera | **Follow the play** (the default: as close as shows both fighters and the ball, to 1.3x a 16:9 picture; out to the whole stage, black above it, when they are apart) or **Whole court** (the whole stage always) |
 | Fighter 1, Fighter 2 | Someone at random, or a character |
 | Stage | Random (of the game's own), or any stage: the game's own, then the other games' (guest stages, each needing that game's ROM set) |
 
@@ -61,11 +61,18 @@ knock-out), holds the camera in the middle of the stage, and calls the court bef
 - **Drawn** as round boxes over the picture (`HudBox::round`, `port/hud.cpp`), a frame behind like the game's sprites
   (`shown`). The overlay is zoomed with the picture, the zoom by distance too: `Port::Windowed` draws the boxes on the
   panel-less picture it zooms.
-- **The court's width**: the game's wide picture, forced while the court runs (vsav's `widescreen.cpp`: `court::On()`
-  counts as the feature on, played in, walls or not). Wider than 512 columns needs the renderer to draw more of the
-  stage than its 64 extra columns a side (`Video::kMaxSide`): see Next.
-- **The camera**: `Game::focusAlso` (the ball, which the both/by-distance zoom keeps in the picture; by distance with
-  it, the zoom is as close as shows the fighters and the ball, to `kAlsoMost` 1.3x) and `Game::zoomWanted` (the court asks for the zoom by distance while it runs, unless its page says Whole
+- **The court's width**: the game's wide picture, forced while the court runs and as wide as the stage (vsav's
+  `widescreen.cpp`: `court::On()` counts as the feature on and played in, its side `Video::kMaxSide`, 192 columns, where
+  the widescreen feature's is `Video::kWideSide`, 64; the camera's ends both put in the middle). The renderer draws up to
+  192 columns a side (`kMaxSide`: its line buffers and the GPU's textures sized to match); the stage's far plane that
+  is drawn as the camera moves comes from the stage's plan (vsav's `SideTile`), as for widescreen.
+- **The picture shown** (`Game::framedColumns`, `framedFollows`; `Port::Framed`): a picture wider than the window's
+  shape is looked at through the court's own camera into a 16:9 frame at three times a 512-column picture's size, made
+  on the CPU (the GPU's own picture is not used meanwhile), the panel and the readout laid over it where a 512-column
+  picture has them. The camera eases to as close as shows both fighters (`Game::focus`) and the ball
+  (`Game::focusAlso`), at most 1.3x, and out to the whole picture, its floor at the frame's bottom and black above. The
+  menu is drawn over the whole picture in that frame. Screenshots (`--shot-every`) are the whole 768-column picture;
+  `--present-every` is the frame. and `Game::zoomWanted` (the court asks for the zoom by distance while it runs, unless its page says Whole
   court; the player's own zoom comes back after).
 - **Save states**: the court's state is one POD (`court::State`, in the battle's).
 - **The CPU's side** (`Computer`): where the ball will come down on its half (a copy of the ball flown on, no
@@ -85,7 +92,9 @@ are held when it is struck: the hit's weight), `kDeadBall`.
 
 A game needs the battle modes first (`battle::Register`, [FIGHT.md](FIGHT.md#the-fighting-modes)). Then:
 
-0. **The wide picture forced while the court runs** (the game's widescreen code: `court::On()` as the feature on).
+0. **The wide picture forced while the court runs, as wide as the stage** (the game's widescreen code: `court::On()` as
+   the feature on, its side `Video::kMaxSide` or what the stage needs, the camera's ends both in the middle; then
+   `Game::framedColumns` shows it in a 16:9 frame).
 1. **`games/<id>/src/court.cpp`** with a `RegisterCourt()` filling `court::Description` and calling `court::Register`.
    Call it before `RegisterBattle()` in the game's `game.cpp`: the battle makes the court's page only for a game that
    described one. Vampire Savior's (`games/vampire_savior/src/court.cpp`) is the model.
@@ -147,10 +156,8 @@ CPS2RECOMP_COURT_CPU=1 CPS2RECOMP_BATTLE_SEED=7 build/vampire_savior/vampire_sav
 
 ## Next
 
-- **A court wider than the picture can be**: the playtest's first wish (2026-11-11: "too tight for fun gameplay"). The
-  renderer's wide picture stops at 64 columns a side (`Video::kMaxSide`, the GPU's textures sized to match), and a
-  stage's far planes that are drawn into their maps as the camera moves (vsav's back layer) have nothing past that. A
-  zoom out to the whole stage (vsav's 720 pixels a fighter can stand over) needs both: the same work as tall stages.
+- **Guest stages' ends**: a guest stage narrower than 768 columns leaves black at the picture's edges (its art ends
+  there); the court's ends could stop where the art does.
 - **Tall stages**: the Marvel games' stages (as guests) with the ball going up past the picture's top and the camera
   following, past the board's picture vertically (the renderer drawing more of the stage than the game asks for).
 - **The panel**: hide the health bars and clock, keep the gauge (`court::Description::hidden`, which the battle puts

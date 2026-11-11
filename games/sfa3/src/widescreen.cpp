@@ -33,7 +33,7 @@ bool TagIsOff(uint32_t player); // livetag.cpp
 namespace {
     using namespace sfa3;
 
-    constexpr int kWideSide = Video::kMaxSide;
+    constexpr int kWideSide = Video::kWideSide;
     // The camera's record (the stage's own scroll screen, FF8280), and in it: where it is to be (the picture's left
     // edge and bottom, before its shake), its shake, its ends
     constexpr uint32_t kCamera = 0xFF8280;

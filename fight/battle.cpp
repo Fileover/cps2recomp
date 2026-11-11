@@ -2185,7 +2185,9 @@ void battle::Register(const Description &description) {
         stages.insert(stages.end(), d.stageChoices.begin() + std::min<size_t>(2, d.stageChoices.size()), d.stageChoices.end());
         court::RegisterPage(kModes, StartCourt, d.fighterChoices, stages);
         game.focusAlso = court::Focus;
-        game.zoomWanted = [] { return g.kind == Kind::Court && court::On() && FeatureValue("court_camera") == 0 ? 4 : 0; };
+        // (the court's whole stage, wider than the wide picture, through its own camera: Port::Framed)
+        game.framedColumns = [] { return g.kind == Kind::Court && court::On() && d.wideSide && d.wideSide() > Video::kWideSide ? Video::kWidth + 2 * Video::kWideSide : 0; };
+        game.framedFollows = [] { return FeatureValue("court_camera") == 0; };
     }
     game.commands.push_back({"endless_start", kEndless, "Start",
                              "Two fighters played by the game: no bars, no clock, and the one knocked down is replaced. Press "

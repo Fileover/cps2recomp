@@ -50,7 +50,13 @@ namespace cps2recomp {
 using namespace vsav;
 
 namespace {
-    constexpr int kSide = Video::kMaxSide;
+    constexpr int kSide = Video::kWideSide;
+    // The court's (fight/court.h): its whole stage in the picture, 192 columns more each side (the camera's ends on the
+    // board are 384 apart: 256 to 640, so the picture is 256 to 1024, all the stage there is)
+    constexpr int kCourtSide = Video::kMaxSide;
+    int Side() {
+        return court::On() ? kCourtSide : kSide;
+    }
 
     // What the picture being made was asked to be: the columns added on each side, and how far to the right
     // the stage is drawn
@@ -185,12 +191,12 @@ bool WidePlay() {
     return g_play;
 }
 int WideMargin() {
-    return g_play ? kSide : 0;
+    return g_play ? Side() : 0;
 }
 void WideEnds(int &left, int &right) {
     const wide::Ends ends = StageEnds();
-    left = g_play ? kSide + ends.left : 0;
-    right = g_play ? kSide + ends.right : 0;
+    left = g_play ? Side() + ends.left : 0;
+    right = g_play ? Side() + ends.right : 0;
 }
 
 // The camera. Its place is the board's picture's left edge, and the wide picture's is 64 left of that: so
@@ -201,9 +207,16 @@ void WideCameraEnds(uint32_t camera) {
     // a little further in: kEnds)
     const int boardLeft = CameraLeftEnd(), boardRight = CameraRightEnd();
     const wide::Ends ends = StageEnds();
-    if ((left == boardLeft || left == boardLeft + kSide + ends.left) && (right == boardRight || right == boardRight - kSide - ends.right)) {
-        SetRam16(camera + kCameraEndLeft, static_cast<uint16_t>(boardLeft + (g_play ? kSide + ends.left : 0)));
-        SetRam16(camera + kCameraEndRight, static_cast<uint16_t>(boardRight - (g_play ? kSide + ends.right : 0)));
+    // (the court's whole stage: the camera held in the middle, both ends there; else the widescreen's ends)
+    const bool court = court::On();
+    const int inLeft = court ? (boardRight - boardLeft) / 2 : Side() + ends.left;
+    const int inRight = court ? (boardRight - boardLeft) / 2 : Side() + ends.right;
+    auto ours = [&](int at, int board, int way) {
+        return at == board || at == board + way * (kSide + (way > 0 ? ends.left : ends.right)) || at == board + way * (boardRight - boardLeft) / 2;
+    };
+    if (ours(left, boardLeft, 1) && ours(right, boardRight, -1)) {
+        SetRam16(camera + kCameraEndLeft, static_cast<uint16_t>(boardLeft + (g_play ? inLeft : 0)));
+        SetRam16(camera + kCameraEndRight, static_cast<uint16_t>(boardRight - (g_play ? inRight : 0)));
     }
 }
 
@@ -233,12 +246,12 @@ void WidescreenBeforeFrame(Machine &machine) {
     g_play = shownWide && (!FeatureOn("widescreen_walls") || court);
     // (the modes that put their picture together from more than one machine's keep the board's)
     if (shownWide && OnStage(camera) && OnStage(shown) && !CurtainDrawn(machine)) {
-        g_side = kSide;
+        g_side = Side();
         // (the view's left edge is 64 left of the camera, and no further left than the camera's own end:
         // nearer the end than that, the stage is drawn to the side by what is missing. Played in the wide
         // picture the camera never goes there; with invisible walls it does, and the board's picture is
         // then to one side of the wide one)
-        g_shift = wide::ViewShift(shown, CameraLeftEnd(), CameraRightEnd(), kSide, StageEnds());
+        g_shift = wide::ViewShift(shown, CameraLeftEnd(), CameraRightEnd(), Side(), StageEnds());
     }
     Video::Wide &wide = machine.video.wide;
     wide.side = g_side;
@@ -255,7 +268,7 @@ void WidescreenBeforeFrame(Machine &machine) {
 // stage's end its view could be a frame late; in the wide picture the camera does not go there.)
 void WideForSpare(Machine &machine) {
     const int camera = static_cast<int16_t>(Ram16(kCameraX));
-    g_shift = g_side && OnStage(camera) ? wide::ViewShift(camera, CameraLeftEnd(), CameraRightEnd(), kSide, StageEnds()) : 0;
+    g_shift = g_side && OnStage(camera) ? wide::ViewShift(camera, CameraLeftEnd(), CameraRightEnd(), Side(), StageEnds()) : 0;
     Video::Wide &wide = machine.video.wide;
     wide.side = g_side;
     wide.scroll[0] = wide.scroll[1] = wide.scroll[2] = g_shift;
