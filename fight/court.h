@@ -67,6 +67,9 @@ struct Description {
     // A fighter's special gauge filled by so much (the game's own units: `gaugeFull` a gauge)
     void (*addGauge)(int side, int amount) = nullptr;
     int gaugeFull = 0;
+    // The panel's objects not drawn while a court game is played (the health bars and the clock: not the gauge), as
+    // Video::hideObject has them (nullptr: the panel as it is)
+    bool (*hidden)(uint32_t tile, uint16_t attributes) = nullptr;
     // Each frame of a court game, before the ball moves: anything the game's sources keep so while it is played
     void (*everyFrame)() = nullptr;
     // A sound asked for as the game asks (the battle's playSound)
@@ -106,6 +109,9 @@ int Over();
 void Again();
 void End();
 void State(Archive &ar);
+// The game's objects not drawn while a court game is played (Description::hidden), for the battle
+using Hide = bool (*)(uint32_t tile, uint16_t attributes);
+Hide Hidden();
 // For the camera's zoom (runtime/game.h, Game::focusAlso): where the ball is in the picture, and how far it reaches
 bool Focus(int &x, int &y, int &reach);
 

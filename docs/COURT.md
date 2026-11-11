@@ -135,8 +135,10 @@ CPS2RECOMP_COURT_CPU=1 CPS2RECOMP_BATTLE_SEED=7 build/vampire_savior/vampire_sav
 
 - **Tall stages**: the Marvel games' stages (as guests) with the ball going up past the picture's top and the camera
   following, past the board's picture vertically (the renderer drawing more of the stage than the game asks for).
-- **The panel**: hide the health bars and clock, keep the gauge (the game's panel objects told apart by more than their
-  palette).
+- **The panel**: hide the health bars and clock, keep the gauge (`court::Description::hidden`, which the battle puts
+  in as `Video::hideObject` while the court runs). In Vampire Savior palette 0 is the bars' frames top and bottom
+  alike and palette 2 the clock's digits, so it takes tile numbers: about 13E00-13E98 for the bars and 13C90-13CCA for
+  the clock against 13C50-13C70, 13CD0-13CF0 and 13DE6 for the gauge, checked on every character's panel.
 - **Power-ups** (more power, other physics) and **combos with properties** (three specials in a row giving the ball a
   property of its own), a tip-off or face-off serve.
 - **The CPU**: smarter positioning (a lob over a fighter near the line, waiting for a ball to drop), specials of each

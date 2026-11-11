@@ -1976,6 +1976,9 @@ void BattleFrame(Machine &machine) {
         const bool fighting = (g.kind == Kind::Endless || g.kind == Kind::RingOut) && g.phase != Phase::Starting;
         const bool layered = fighting && Layered();
         machine.video.hideObject = layered ? d.notTheFighters : fighting ? d.thePanel : nullptr;
+        if (g.kind == Kind::Court && g.phase != Phase::Starting && court::Hidden()) {
+            machine.video.hideObject = court::Hidden(); // (the court's: the health bars and the clock, the gauge kept)
+        }
         machine.video.layerMask = layered ? 1 | d.panelLayers : 0xF;
         machine.video.markObjects = layered;
         machine.video.markLayers = layered ? d.panelLayers : 0;

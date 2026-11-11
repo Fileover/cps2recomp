@@ -855,6 +855,10 @@ void State(Archive &ar) {
     ar.Pod(g);
 }
 
+Hide Hidden() {
+    return g.phase != kOff ? d.hidden : nullptr;
+}
+
 bool Focus(int &x, int &y, int &reach) {
     if (!Playing()) {
         return false;
