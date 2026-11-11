@@ -22,7 +22,8 @@ fighter and off their end of the court for a point. First to 3, 5 or 10 wins.
   checks up.
 - **Three in a row.** Three hits by the same fighter in a row (each more than a moment apart, and not too long) make a
   **power shot**: much faster, glowing orange.
-- **Knock-downs.** The ball bounces off a fighter softly. A hot ball (a power shot or a super) or one that is simply
+- **Knock-downs.** The ball bounces off a fighter softly, but passes through one in hitstun (reeling from a hit, or
+  knocked down) until they recover. A hot ball (a power shot or a super) or one that is simply
   fast enough, hit by the other fighter, **knocks down** whoever it hits.
 - **The line.** The line only separates the fighters: the ball flies over it. A fighter only hits the ball over their
   own half, never reaching across for it; but fireballs and other thrown attacks hit it anywhere.
@@ -67,7 +68,7 @@ knock-out), holds the camera in the middle of the stage, and calls the court bef
 - **Contacts** come once a frame from the game's sources (`Description::shapes`): every attack box that is out (the
   fighters' and what they threw, each with its power and an id that stays the same while the same attack is out) and
   the fighters' bodies (the boxes they can be hit in). The strongest attack touching the ball strikes it, once per
-  attack (`id`). Bodies bounce it softly and never let it rest on them. Attack boxes reach `kStrikeSlack` pixels
+  attack (`id`). Bodies bounce it softly and never let it rest on them. Attack boxes reach `kStrikeSlack` (14) pixels
   further for the ball than for a fighter, and the CPU's reach further still by level (`kComputerSlack`): a big ball is
   met generously, and the CPU's play is not exact.
 - **Drawn** as round boxes over the picture (`HudBox::round`, `port/hud.cpp`), a frame behind like the game's sprites
@@ -149,7 +150,8 @@ A game needs the battle modes first (`battle::Register`, [FIGHT.md](FIGHT.md#the
    reaction byte `+54`: 0, 1, 2 a reel on its feet, 4 a knock-down with `+117` = 1 so it lands lying, FF a guard) and
    let the game's own reeling run from there. The game pushes or throws it the way its (here missing) attacker faced,
    so turn its speed across to `away` while it reels. `Description::guarding` (vsav: `+12B` bit 0, holding back, and
-   free to guard) is the block.
+   free to guard) is the block, and `Description::stunned` (vsav: the reeling state, not a guard's) lets the ball
+   through a fighter in hitstun.
 5. Build, and check with the test switches below: rallies, a knock-down (`CPS2RECOMP_COURT_SHOT`), the zoom
    (`--present-every`).
 

@@ -62,8 +62,8 @@ namespace {
     // Aftertouch: up or down held by the striker while a hit holds the ball bends its flight, up to
     // this much (radians), by how many of the hold's frames it was held
     constexpr float kAftertouchMost = 0.44f;
-    constexpr int kStrikeSlack = 5;          // pixels an attack's box reaches further for the ball
-    constexpr int kComputerSlack[3] = {8, 14, 20}; // ... and more for the computer's, by its level (its play is not exact)
+    constexpr int kStrikeSlack = 14;         // pixels an attack's box reaches further for the ball (a big ball, met generously)
+    constexpr int kComputerSlack[3] = {2, 6, 10}; // ... and more for the computer's, by its level (its play is not exact)
     constexpr int kBodyCool = 8;             // frames after a bounce off a fighter before it counts again
     constexpr int kOwnBodyCool = 14;         // frames a ball just struck passes through its striker's body
 
@@ -342,7 +342,8 @@ namespace {
         // Bodies: soft, the ball sent off them, and fast enough from the other side, knocked down
         for (const Shape &s : shapes) {
             float nx = 0, ny = 0, depth = 0;
-            if (s.kind != Shape::kBody || g.leaving[s.side] > 0 || !Touches(s, b, nx, ny, depth)) {
+            // (a fighter in hitstun is passed through: hit, it is out of the play until it recovers)
+            if (s.kind != Shape::kBody || g.leaving[s.side] > 0 || (d.stunned && d.stunned(s.side)) || !Touches(s, b, nx, ny, depth)) {
                 continue;
             }
             b.x += nx * depth;

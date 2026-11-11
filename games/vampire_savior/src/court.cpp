@@ -203,6 +203,11 @@ void RegisterCourt() {
         const bool back = Ram8(player + kHeld) & 1;
         return back && (CanAct(side) || Ram8(player + kAction) == kActionJump || Ram8(player + kGuarded) == kReactionGuarded);
     };
+    // (reeling from a hit, not a guard: the state a hit leaves, its reaction not a guard's)
+    d.stunned = [](int side) {
+        const uint32_t player = Player(side);
+        return (Ram32(player + kState) & 0xFFFF0000) == kReeling && Ram8(player + kGuarded) != kReactionGuarded;
+    };
     d.floor = kGround;
     d.pictureFloor = 239;
     d.pictureTop = 40; // (under the health bars and the clock, which the zoom by distance leaves where they are)

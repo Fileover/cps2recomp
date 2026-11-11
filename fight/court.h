@@ -58,6 +58,8 @@ struct Description {
     bool (*canAct)(int side) = nullptr;
     // ... and guarding now: holding back, free to guard (a ball blocked)
     bool (*guarding)(int side) = nullptr;
+    // ... and in hitstun (reeling from a hit, knocked down and flying): the ball passes through it
+    bool (*stunned)(int side) = nullptr;
     // The floor's height (the game's y of a fighter standing)
     int floor = 0;
     // The picture's line that height 0 is on with the camera at the bottom (as session.h's), and the wide picture's
