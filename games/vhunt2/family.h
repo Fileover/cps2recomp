@@ -170,6 +170,7 @@ inline constexpr Place kPlaceList[] = {
     {0x027F70, 0x0271F2}, // the animation on a step (battle.cpp), found by its instructions: subq.b #1,0x20(a6) and the frame's flags by hand
     {0x028192, 0x027414}, // an instruction, 24 on alike
     {0x02824C, 0x0274D6}, // an instruction, 24 on alike
+    {0x029406, 0x028736}, // by hand: the catch test (court.cpp: no catches on the court), the same routine
     {0x02B7FA, 0x02B002}, // an instruction, 8 on alike
     {0x02C7C0, 0x02BFCA}, // an instruction, 3 on alike
     {0x02CE44, 0x02C64E}, // an instruction, 19 on alike
@@ -612,6 +613,7 @@ inline constexpr Place kPlaceList[] = {
     {0xFF8131, 0xFF8131}, // a variable the code names so (6/6)
     {0xFF8133, 0xFF8165}, // a variable the code names so (7/10)
     {0xFF8134, 0xFF8134}, // a variable the code names so (75/75)
+    {0xFF8135, 0xFF8135}, // by hand: the round's first hit made (court.cpp), between FF8134 and FF8137, both where they were
     {0xFF8137, 0xFF8137}, // a variable the code names so (12/12)
     {0xFF813E, 0xFF813E}, // a variable the code names so (16/16)
     {0xFF8140, 0xFF8140}, // a variable the code names so (15/15)

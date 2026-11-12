@@ -90,6 +90,10 @@ stages, and hooks for its own: getting a machine to a round, a sound, what is wa
 objects are the stage's, the panel's and the fighters') and calls `battle::Register`; the menu's pages, commands and
 features are the same in every game.
 
+The court (`fight/court.h`), a ball game, is one of the battle's kinds, made only for a game that also fills in a
+`court::Description` (its attack and body boxes and each attack's power, a fighter's hitstop and its hit sounds) and
+keeps its fighters on their halves and their attacks off each other: [COURT.md](COURT.md), with the steps for a new game.
+
 The team battle (`Description::teams`; the Vampire Savior games first) is survival on both sides: each knock-down
 ends a match, as in Vampire Savior, which has no rounds, and the next is made ready on the spare machine with the
 loser's next fighter and the winner's health put back. A game can give each fighter one health bar, whatever its

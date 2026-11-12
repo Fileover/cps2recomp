@@ -32,7 +32,7 @@ namespace cps2recomp {
 namespace {
     using namespace sfa;
 
-    constexpr int kSide = Video::kMaxSide;
+    constexpr int kSide = Video::kWideSide;
     // The camera's record (the stage's own scroll screen, FF8280), and in it
     constexpr uint32_t kCamera = 0xFF8280;
     constexpr uint32_t kCameraPlaceX = 0x20, kCameraShake = 0x50, kCameraBefore = 0x28, kCameraGoing = 0x3B;

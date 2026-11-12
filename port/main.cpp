@@ -1466,7 +1466,7 @@ bool Port::Tick() {
     return true;
 }
 
-void Port::Shown(std::vector<uint32_t> &pixels, std::vector<SDL_Rect> *panels, bool over, uint32_t base) const {
+void Port::Shown(std::vector<uint32_t> &pixels, std::vector<SDL_Rect> *panels, bool over, uint32_t base, bool boxes) const {
     const int across = ShownWidth();
     if (over) {
         pixels.assign(static_cast<size_t>(across) * Video::kHeight, base);
@@ -1477,13 +1477,14 @@ void Port::Shown(std::vector<uint32_t> &pixels, std::vector<SDL_Rect> *panels, b
     // game's, and the text upright on the picture turned, which is turned back at the end, to be turned again as it is shown)
     const bool turned = port::Turned();
     std::vector<uint32_t> upright;
+    const unsigned boxParts = boxes ? +port::kHudBoxes : 0u;
     if (turned) {
-        DrawHud(pixels.data(), across, Video::kHeight, nullptr, port::kHudBoxes);
+        DrawHud(pixels.data(), across, Video::kHeight, nullptr, boxParts);
         port::TurnPicture(pixels.data(), across, upright);
     }
     uint32_t *const px = turned ? upright.data() : pixels.data();
     const int W = turned ? +Video::kHeight : across, H = turned ? across : +Video::kHeight;
-    DrawHud(px, W, H, panels, turned ? +port::kHudText : port::kHudBoxes | port::kHudText);
+    DrawHud(px, W, H, panels, turned ? +port::kHudText : boxParts | port::kHudText);
     // A line at the bottom, in the middle (`up` lines higher)
     auto status = [&](const char *text, int up) {
         const recomp::text::Canvas canvas{px, W, H};
@@ -1708,8 +1709,134 @@ void Port::Readouts(std::vector<uint32_t> &rgba, std::vector<SDL_Rect> *panels) 
     }
 }
 
+int Port::FramedColumns() const {
+    const int columns = TheGame().framedColumns && !port::Turned() ? TheGame().framedColumns() : 0;
+    return columns > 0 && columns < ShownWidth() && machine->Unpanelled() ? columns : 0;
+}
+
+void Port::Framed(std::vector<uint32_t> &pixels, Zoomed &zoomed) {
+    const int across = ShownWidth(), columns = FramedColumns();
+    constexpr int kBy = 3, kLines = Video::kHeight;
+    const int outWidth = columns * kBy, outHeight = kLines * kBy;
+    zoomed.width = outWidth;
+    zoomed.height = outHeight;
+    zoomed.columns = columns;
+    // The camera: as close as shows both fighters and what else is kept in (a ball), to kFramedMost of the shape; out to
+    // all of the picture's width (above it then, black); eased
+    constexpr float kFramedMost = 1.3f, kEase = 0.06f;
+    constexpr float kRoomAcross = 0.62f, kRoomTop = 8.0f, kRoomFeet = 14.0f;
+    const float least = static_cast<float>(columns) / static_cast<float>(across);
+    Game &game = TheGame();
+    float wantedSize = least, wantedX = across / 2.0f, wantedY = kLines / 2.0f;
+    int x0 = 0, y0 = 0, x1 = 0, y1 = 0;
+    if (game.framedFollows && game.framedFollows() && game.focus && game.focus(0, x0, y0) && game.focus(1, x1, y1)) {
+        const float roomAcross = game.focusTall * kRoomAcross;
+        float left = std::min(x0, x1) - roomAcross, right = std::max(x0, x1) + roomAcross;
+        float top = std::min(y0, y1) - (game.focusTall - game.focusLift) - kRoomTop, bottom = std::max(y0, y1) + game.focusLift + kRoomFeet;
+        int ax = 0, ay = 0, reach = 0;
+        if (game.focusAlso && game.focusAlso(ax, ay, reach)) {
+            left = std::min(left, static_cast<float>(ax - reach));
+            right = std::max(right, static_cast<float>(ax + reach));
+            top = std::min(top, static_cast<float>(ay - reach));
+            bottom = std::max(bottom, static_cast<float>(ay + reach));
+        }
+        wantedSize = std::clamp(std::min(columns / (right - left), kLines / (bottom - top)), least, kFramedMost);
+        wantedX = (left + right) / 2;
+        wantedY = (top + bottom) / 2;
+    }
+    FrameCamera &cam = frameCamera;
+    if (!cam.settled) {
+        cam = {wantedX, wantedY, wantedSize, true};
+    }
+    cam.size += (wantedSize - cam.size) * kEase;
+    cam.x += (wantedX - cam.x) * kEase;
+    cam.y += (wantedY - cam.y) * kEase;
+    const float viewWidth = columns / cam.size, viewHeight = kLines / cam.size;
+    float viewX = viewWidth >= across ? (across - viewWidth) / 2 : std::clamp(cam.x - viewWidth / 2, 0.0f, across - viewWidth);
+    // (taller than the picture: the black above, where the panel goes, and as far as there is room the picture raised clear
+    // of the panel's bottom lines (the gauges), which would else cover the fighters' feet)
+    constexpr float kBelow = 26.0f;
+    float viewY = viewHeight >= kLines ? kLines - viewHeight + std::min(kBelow * viewHeight / kLines, viewHeight - kLines)
+                                       : std::clamp(cam.y - viewHeight / 2, 0.0f, kLines - viewHeight);
+
+    // The game's picture without its panel, with the boxes the sources draw over the fight (the ball), through the view:
+    // each pixel of the frame the nearest of the picture's (tables of which column and row, made once a frame: a frame
+    // every sixtieth of a second on a handheld's processor too)
+    std::vector<uint32_t> &fight = framedFight;
+    fight.assign(machine->Unpanelled(), machine->Unpanelled() + static_cast<size_t>(across) * kLines);
+    port::DrawHud(fight.data(), across, kLines, nullptr, port::kHudBoxes);
+    pixels.resize(static_cast<size_t>(outWidth) * outHeight);
+    std::vector<int> &columnOf = framedColumnOf;
+    columnOf.resize(static_cast<size_t>(outWidth));
+    for (int x = 0; x < outWidth; x++) {
+        const int column = static_cast<int>(std::floor(viewX + (x + 0.5f) * viewWidth / outWidth));
+        columnOf[static_cast<size_t>(x)] = column >= 0 && column < across ? column : -1;
+    }
+    for (int y = 0; y < outHeight; y++) {
+        const int row = static_cast<int>(std::floor(viewY + (y + 0.5f) * viewHeight / outHeight));
+        uint32_t *line = &pixels[static_cast<size_t>(y) * outWidth];
+        if (row < 0 || row >= kLines) {
+            std::fill(line, line + outWidth, 0xFF000000u);
+            continue;
+        }
+        const uint32_t *from = &fight[static_cast<size_t>(row) * across];
+        for (int x = 0; x < outWidth; x++) {
+            const int column = columnOf[static_cast<size_t>(x)];
+            line[x] = column < 0 ? 0xFF000000u : from[column] | 0xFF000000u;
+        }
+    }
+    // Over it, as a picture of the shape's columns shows them: the game's panel (in the middle of the picture, as the
+    // board's own), and the readout's text, each of their pixels kBy x kBy of the frame's
+    std::vector<uint32_t> &laid = framedLaid;
+    laid.assign(static_cast<size_t>(columns) * kLines, 0);
+    const uint8_t *panel = machine->PanelPixels();
+    const uint32_t *picture = machine->Picture();
+    const int from = (across - columns) / 2;
+    if (panel) {
+        for (int y = 0; y < kLines; y++) {
+            for (int x = 0; x < columns; x++) {
+                const size_t n = static_cast<size_t>(y) * across + x + from;
+                if (panel[n]) {
+                    laid[static_cast<size_t>(y) * columns + x] = picture[n] | 0xFF000000u;
+                }
+            }
+        }
+    }
+    port::DrawHud(laid.data(), columns, kLines, nullptr, port::kHudText);
+    for (int y = 0; y < kLines; y++) {
+        const uint32_t *row = &laid[static_cast<size_t>(y) * columns];
+        for (int x = 0; x < columns; x++) {
+            if (const uint32_t over = row[x]; over >> 24) {
+                for (int dy = 0; dy < kBy; dy++) {
+                    std::fill_n(&pixels[static_cast<size_t>(y * kBy + dy) * outWidth + static_cast<size_t>(x * kBy)], kBy, over);
+                }
+            }
+        }
+    }
+}
+
 bool Port::Windowed(std::vector<uint32_t> &pixels, Zoomed &zoomed, bool readouts) {
+    // (a mode that frames a picture wider than it is shown: its own camera, not the zoom)
+    if (FramedColumns() && !readouts) {
+        zoomed.keep.clear();
+        zoomed.panel = false;
+        Framed(pixels, zoomed);
+        return false;
+    }
+    frameCamera.settled = false;
     const int across = ShownWidth();
+    // A mode that wants the zoom while it runs (Game::zoomWanted): its choice, and the player's put back after
+    {
+        static int wantedBefore = 0, choiceBefore = 0;
+        const int wanted = TheGame().zoomWanted && Zoom::Possible() ? TheGame().zoomWanted() : 0;
+        if (wanted != wantedBefore) {
+            if (wantedBefore == 0) {
+                choiceBefore = zoom.Choice();
+            }
+            zoom.Choose(wanted ? wanted : choiceBefore);
+            wantedBefore = wanted;
+        }
+    }
     zoom.Follow(across, Video::kHeight);
     const Menu::Rate rate = menu.GameRate();
     if (rate.frames != saidRate.frames || rate.ticks != saidRate.ticks) {
@@ -1736,13 +1863,18 @@ bool Port::Windowed(std::vector<uint32_t> &pixels, Zoomed &zoomed, bool readouts
         return true;
     }
     // (the game's own picture above, the one with the readout below)
-    Shown(pixels, &zoomed.keep);
-    const uint32_t *above = machine->Picture();
     // (not where the game's sources put the picture together from other frames: the last frame run is not the one shown)
-    if (zoom.KeepsPanel() && machine->Unpanelled() && machine->PictureWidth() == across && !cps2recomp::PictureMade()) {
-        // The panel left where it is (zoom.h, by distance): above, the game's picture without it; below, of the one with
-        // the readout, only the panel's pixels and the readout's panels, the rest clear
-        above = machine->Unpanelled();
+    const bool apart = zoom.KeepsPanel() && machine->Unpanelled() && machine->PictureWidth() == across && !cps2recomp::PictureMade();
+    Shown(pixels, &zoomed.keep, false, 0, !apart);
+    const uint32_t *above = machine->Picture();
+    static std::vector<uint32_t> unpanelled;
+    if (apart) {
+        // The panel left where it is (zoom.h, by distance): above, the game's picture without it, with the boxes the game's
+        // sources draw over the fight (zoomed with it: hit boxes, a mode's ball); below, of the one with the readout,
+        // only the panel's pixels and the readout's panels, the rest clear
+        unpanelled.assign(machine->Unpanelled(), machine->Unpanelled() + across * Video::kHeight);
+        DrawHud(unpanelled.data(), across, Video::kHeight, nullptr, port::kHudBoxes);
+        above = unpanelled.data();
         const uint8_t *panel = machine->PanelPixels();
         std::vector<uint8_t> kept(pixels.size(), 0);
         for (const SDL_Rect &keep : zoomed.keep) {
@@ -1767,6 +1899,21 @@ void Port::MenuPicture(std::vector<uint32_t> &pixels, uint32_t &width, uint32_t 
     const uint32_t across = static_cast<uint32_t>(ShownWidth());
     height = Video::kHeight * 3;
     width = height * 4 / 3 * across / Video::kWidth;
+    if (const int columns = FramedColumns()) {
+        // (a framed picture, Port::Framed: the menu in the shape of its columns, over all of the picture at the bottom of it,
+        // as wide as that shape and as much shorter, black above)
+        width = height * 4 / 3 * static_cast<uint32_t>(columns) / Video::kWidth;
+        pixels.assign(static_cast<size_t>(width) * height, 0xFF000000u);
+        const uint32_t tall = height * static_cast<uint32_t>(columns) / across;
+        for (uint32_t y = 0; y < tall; y++) {
+            const uint32_t *from = &shown[static_cast<size_t>(y * Video::kHeight / tall) * across];
+            uint32_t *to = &pixels[static_cast<size_t>(height - tall + y) * width];
+            for (uint32_t x = 0; x < width; x++) {
+                to[x] = from[x * across / width];
+            }
+        }
+        return;
+    }
     pixels.resize(static_cast<size_t>(width) * height);
     if (port::Turned()) {
         // (the menu stays as it is, over the picture stood up in its middle at its shape, black beside it)
@@ -2084,7 +2231,9 @@ void Port::Step(const uint16_t *players) {
         TheGame().beforeFrame(*machine);
     }
     // (the zoom by distance leaves the game's panel where it is: the frame drawn with it apart, zoom.h)
-    machine->panel = zoom.KeepsPanel() ? Machine::Panel{TheGame().panel, TheGame().panelLayers} : Machine::Panel{};
+    machine->panel = zoom.KeepsPanel() || (TheGame().framedColumns && TheGame().framedColumns() > 0)
+                         ? Machine::Panel{TheGame().panel, TheGame().panelLayers}
+                         : Machine::Panel{};
     machine->RunFrame();
     if (opt.musicTest) {
         MusicTest();
@@ -3430,12 +3579,21 @@ int main(int argc, char **argv) {
                 zoomed = nullptr;
             }
             const std::vector<uint32_t> &shown = turned ? upright : board;
-            const int across = turned ? +Video::kHeight : p.ShownWidth();
-            const int lines = turned ? p.ShownWidth() : +Video::kHeight;
+            int across = turned ? +Video::kHeight : p.ShownWidth();
+            int lines = turned ? p.ShownWidth() : +Video::kHeight;
+            // (a framed picture: its own size, in the shape of its columns)
+            int shapeColumns = across, shapeLines = lines;
+            if (zoomed && zoomed->columns) {
+                across = zoomed->width;
+                lines = zoomed->height;
+                shapeColumns = zoomed->columns;
+                shapeLines = Video::kHeight;
+                zoomed = nullptr;
+            }
             const int outHeight = p.opt.presentHeight > 0 ? p.opt.presentHeight : (turned ? 896 : 672);
             const int outWidth = p.opt.presentWidth > 0 ? p.opt.presentWidth
-                                                        : static_cast<int>(std::lround(outHeight * port::PictureShape(across, lines, port::DisplayShape(), 4.0f / 3.0f)));
-            const SDL_FRect where = port::FitPicture(outWidth, outHeight, across, lines, port::DisplayShape(), port::DisplayScaling());
+                                                        : static_cast<int>(std::lround(outHeight * port::PictureShape(shapeColumns, shapeLines, port::DisplayShape(), 4.0f / 3.0f)));
+            const SDL_FRect where = port::FitPicture(outWidth, outHeight, shapeColumns, shapeLines, port::DisplayShape(), port::DisplayScaling());
             if (SDL_Init(SDL_INIT_VIDEO) &&
                 port::Presenter::Render(shown.data(), across, lines, outWidth, outHeight, where, port::DisplayScaling(), drawn, error, zoomed)) {
                 WritePng(path.c_str(), drawn.data(), outWidth, outHeight);
@@ -3463,7 +3621,7 @@ int main(int argc, char **argv) {
                 if (p.frame % p.opt.presentEvery == 0) {
                     char path[512];
                     snprintf(path, sizeof(path), "%s%06llu.png", p.opt.presentPrefix.c_str(), static_cast<unsigned long long>(p.frame));
-                    present(path, shown, isZoomed ? &zoomed : nullptr);
+                    present(path, shown, isZoomed || zoomed.columns ? &zoomed : nullptr);
                 }
             }
             if (!p.opt.audioDump.empty()) {
@@ -3486,7 +3644,7 @@ int main(int argc, char **argv) {
             std::vector<uint32_t> shown;
             port::Zoomed zoomed;
             const bool isZoomed = p.Windowed(shown, zoomed);
-            if (!present(p.opt.presentTest, shown, isZoomed ? &zoomed : nullptr)) {
+            if (!present(p.opt.presentTest, shown, isZoomed || zoomed.columns ? &zoomed : nullptr)) {
                 result = 1;
             }
         }

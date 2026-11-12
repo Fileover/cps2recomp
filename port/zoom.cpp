@@ -37,6 +37,9 @@ namespace {
     constexpr float kTogetherGap = 56.0f, kStartGap = 180.0f, kEndRoom = 40.0f;
     // ... the whole picture from this part of the way from the start's distance to the furthest on
     constexpr float kOutFrom = 0.8f;
+    // ... and by distance with something else kept in (Game::focusAlso: the court's ball), as close as shows them all,
+    // to at most this
+    constexpr float kAlsoMost = 1.3f;
     float ByDistance(float gap, int width) {
         const float apart = kStartGap + (std::max(width - 2 * kEndRoom, kStartGap + 1) - kStartGap) * kOutFrom;
         if (gap <= kTogetherGap) {
@@ -175,11 +178,25 @@ void Zoom::Follow(int width, int height) {
             const float across = game.focusTall * kAcrossOfTall;
             const float above = static_cast<float>(game.focusTall - game.focusLift) + kRoomTop;
             const float below = static_cast<float>(game.focusLift) + kRoomFeet;
-            const float left = std::min(x, x2) - across, right = std::max(x, x2) + across;
-            const float top = std::min(y, y2) - above, bottom = std::max(y, y2) + below;
+            float left = std::min(x, x2) - across, right = std::max(x, x2) + across;
+            float top = std::min(y, y2) - above, bottom = std::max(y, y2) + below;
+            // (and what else the game wants kept in the picture: a mode's ball, counted in their distance)
+            float gap = static_cast<float>(std::abs(x2 - x));
+            int ax = 0, ay = 0, reach = 0;
+            const bool also = game.focusAlso && game.focusAlso(ax, ay, reach);
+            if (also) {
+                left = std::min(left, static_cast<float>(ax - reach));
+                right = std::max(right, static_cast<float>(ax + reach));
+                top = std::min(top, static_cast<float>(ay - reach));
+                bottom = std::max(bottom, static_cast<float>(ay + reach));
+                gap = static_cast<float>(std::max({x, x2, ax}) - std::min({x, x2, ax}));
+            }
             const float fits = std::clamp(std::min(width / (right - left), height / (bottom - top)), 1.0f, kSizes[kSizeCount - 1]);
-            if (m_player == kDistance) {
-                wanted = std::min(ByDistance(static_cast<float>(std::abs(x2 - x)), width), fits);
+            if (m_player == kDistance && also) {
+                // (the fighters and something else, a ball: as close as shows them all, in as far as kAlsoMost)
+                wanted = std::min(fits, kAlsoMost);
+            } else if (m_player == kDistance) {
+                wanted = std::min(ByDistance(gap, width), fits);
             } else {
                 if (fits < m_bothSize || fits > m_bothSize + kBothCloser || fits == kSizes[kSizeCount - 1]) {
                     m_bothSize = fits;

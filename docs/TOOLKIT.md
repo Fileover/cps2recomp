@@ -36,7 +36,8 @@ This page is for people making or working on ports. To play, see the [main page]
   put in the place of the last, the fighters drawn over a stage another machine shows. A game describes where it
   keeps the players, the camera and the round's result, and makes the ring out's two movements at its players'
   step: one knocked out thrown back and falling through the floor, the winner put in the next match in the air
-  as it was ([docs/FIGHT.md](FIGHT.md)).
+  as it was ([docs/FIGHT.md](FIGHT.md)). The court, a ball game, is one of their kinds, its ball and rules
+  `fight/court.h`: a game says where its attacks and bodies are and how strong each attack is ([docs/COURT.md](COURT.md)).
 - **The beat-'em-up modes.** Attract mode (all of a game's show, or only some of its parts), a score attack (one
   credit, no continue or cheats, the best score kept), a stage viewer (a game taken unseen to a stage and its camera
   moved along the stage's way, a few pixels a frame so that the game draws as it goes) and a model viewer (a

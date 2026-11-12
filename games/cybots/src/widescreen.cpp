@@ -28,7 +28,7 @@ namespace cps2recomp {
 namespace {
     using namespace cybots;
 
-    constexpr int kSide = Video::kMaxSide;
+    constexpr int kSide = Video::kWideSide;
     constexpr uint32_t kCameraLeftEnd = 0xFFEB1E, kCameraRightEnd = 0xFFEB20;
     // The camera's object (A6 at 017F88; A5+6B1C points to it): its place across (+1A), the step it last took (+50)
     // and which way (+44: 0 left, 4 right), which the far planes' objects follow (01803E on)

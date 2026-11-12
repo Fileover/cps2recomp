@@ -38,7 +38,7 @@ bool TagIsOff(uint32_t player);       // livetag.cpp
 namespace {
     using namespace sfa2;
 
-    constexpr int kSide = Video::kMaxSide;
+    constexpr int kSide = Video::kWideSide;
     // The camera's record (a scroll screen's: the stage's own plane), and in it
     constexpr uint32_t kCamera = At(0xFF8280);
     constexpr uint32_t kCameraX = 0x20, kCameraShake = 0x50, kCameraBefore = 0x28, kCameraGoing = 0x3B;

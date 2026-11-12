@@ -117,7 +117,9 @@ public:
     // edge is at (for telling apart two columns of the picture that are the same column of the map). True:
     // the tile's two words are the ones it gave; false: the map's.
     // Not part of a save state: who sets it sets it before every frame. All zero is the board's picture.
-    static constexpr int kMaxSide = 64, kMaxWidth = kWidth + 2 * kMaxSide;
+    // (kWideSide: a widescreen picture's, 16:9; kMaxSide: the most, for a mode that shows more of a stage than that: the
+    // court's whole stage, fight/court.h)
+    static constexpr int kWideSide = 64, kMaxSide = 192, kMaxWidth = kWidth + 2 * kMaxSide;
     struct Wide {
         int side = 0;
         int scroll[3] = {0, 0, 0};

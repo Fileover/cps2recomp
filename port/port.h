@@ -176,7 +176,8 @@ struct Port {
     // The picture with the readout over it (runtime/game.h, SetHud), as the window and screenshots show it; and
     // where on it the readout's panels went (none: not asked)
     // (`over`: drawn over a picture all of `base` instead of the game's: for the readouts alone, Readouts)
-    void Shown(std::vector<uint32_t> &pixels, std::vector<SDL_Rect> *panels = nullptr, bool over = false, uint32_t base = 0) const;
+    void Shown(std::vector<uint32_t> &pixels, std::vector<SDL_Rect> *panels = nullptr, bool over = false, uint32_t base = 0,
+               bool boxes = true) const;
     // The readouts alone (all Shown draws over the game's picture), for the GPU's picture (gpu_picture.h): red, green,
     // blue, alpha bytes, the colours times the alpha; from Shown over black and over white, whose difference is what
     // the readouts leave of what is under them
@@ -186,6 +187,16 @@ struct Port {
     // The picture for the window, a step of the zoom on: as Shown, or zoomed (true), as `zoomed` says (present.h)
     // (`readouts`: the readouts alone, as Readouts, and not stacked when zoomed: the GPU's picture stacks them)
     bool Windowed(std::vector<uint32_t> &pixels, Zoomed &zoomed, bool readouts = false);
+    // A mode that frames a picture wider than it is shown (Game::framedColumns): the columns of the shape shown (0: none),
+    // and the picture made through its camera, at three times that shape's size (Windowed, with `zoomed`'s size)
+    int FramedColumns() const;
+    void Framed(std::vector<uint32_t> &pixels, Zoomed &zoomed);
+    struct FrameCamera {
+        float x = 0, y = 0, size = 0; // (the view's middle in the picture, and its size against the shape's)
+        bool settled = false;
+    } frameCamera;
+    std::vector<uint32_t> framedFight, framedLaid; // (Framed's, kept from frame to frame)
+    std::vector<int> framedColumnOf;
     // The picture drawn on the GPU from the native records (--video gpu: docs/NATIVE_VIDEO.md), when the window's
     // presenter draws with SDL_GPU
     GpuPicture gpuPicture;

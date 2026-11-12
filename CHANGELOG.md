@@ -2,6 +2,18 @@
 
 ## Unreleased
 
+- **Court** (the Vampire Savior games: Vampire Savior, Definitive, Vampire Savior 2, Vampire Hunter 2; Alternative modes > Court): a ball game. A line splits the
+  stage and each fighter keeps to a half; attacks strike a big ball (light, medium, hard, special and gauge moves each
+  faster, the place struck deciding the angle and the spin, up or down held bending it), a crouching light kick chips
+  it up, three hits in a row make a power shot, and the ball makes whoever it hits reel or fall unless they block. The
+  fighters can hit each other too, and nobody loses health or is caught. A ball off an end of the court is the other
+  fighter's point; first to 3, 5 or 10, against the CPU (easy, medium, hard) or player 2. The court is as wide as each
+  stage is drawn (up to 768 columns), shown whole in a 16:9 frame or followed by its own camera. The toolkit's part
+  is `fight/court.h`; a game describes its boxes and its attacks' power ([docs/COURT.md](docs/COURT.md), with the
+  steps for the next game).
+- **The overlay's boxes under the zoom by distance**: hit boxes (and the court's ball) are drawn on the picture that is
+  zoomed, where they were drawn on the panel's layer and left out of it. Boxes can be round (`HudBox::round`).
+
 - **Online: watching a match** (from liquidmetalxy-debug, #331; recomp-common #64): a host who switches on **Allow
   spectators** lets up to eight others watch. Once the match is under way its lobby entry offers **Watch**; the viewer
   comes in at any point, from the host's game and both players' confirmed controls, a moment behind (an FT5 or FT10
