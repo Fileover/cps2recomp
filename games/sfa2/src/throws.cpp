@@ -4,6 +4,7 @@
 // Street Fighter Alpha 2: the throw test, written again as C++ (a rewrite: lift.h). A throw's move asks it with
 // D0 (how far in front of the thrower its reach is measured from: -20 for the usual throws) and D1 (how far that
 // reach goes: 20); the training mode's throw range (training.cpp) draws the same.
+#include "court.h"
 #include "sfa2.h"
 
 namespace cps2recomp {
@@ -99,6 +100,9 @@ namespace {
     // 0260E8. Can the player at A6 throw the other now? D0 1 (and the other is held) or 0.
     void ThrowTest(M68K &c) {
         const uint32_t thrower = c.a[6];
+        if (court::On()) {
+            return Answer(c, false); // (the court: nobody is thrown, the other being across the line)
+        }
         if (Mem8(c, thrower + 0x3E)) {
             // A helper's throw (02604C): only from its own move
             if (Mem16(c, thrower + kState) != 0x0200 || Mem8(c, thrower + kAction) != 0x0E) {

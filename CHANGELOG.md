@@ -11,6 +11,8 @@
   stage is drawn (up to 768 columns), shown whole in a 16:9 frame or followed by its own camera. The toolkit's part
   is `fight/court.h`; a game describes its boxes and its attacks' power ([docs/COURT.md](docs/COURT.md), with the
   steps for the next game).
+- **Court in Street Fighter Alpha 2 and Zero 2 Alpha** (Alternative modes > Court): the ball game, as in the
+  Vampire Savior games. The court is as wide as each stage is drawn (512 to 768 columns).
 - **The overlay's boxes under the zoom by distance**: hit boxes (and the court's ball) are drawn on the picture that is
   zoomed, where they were drawn on the panel's layer and left out of it. Boxes can be round (`HudBox::round`).
 

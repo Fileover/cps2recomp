@@ -1,7 +1,8 @@
 # Court
 
-A ball game for the fighting games, on the in-game menu's **Alternative modes** page (first in the Vampire Savior
-games: Vampire Savior, Vampire Savior Definitive, Vampire Savior 2 and Vampire Hunter 2, which share its sources). The stage is a court cut in two by a line down the middle of the picture. Each fighter keeps
+A ball game for the fighting games, on the in-game menu's **Alternative modes** page (the Vampire Savior games:
+Vampire Savior, Vampire Savior Definitive, Vampire Savior 2 and Vampire Hunter 2, which share its sources; and Street
+Fighter Alpha 2 and Street Fighter Zero 2 Alpha, which share Alpha 2's). The stage is a court cut in two by a line down the middle of the picture. Each fighter keeps
 to its own half, and the two of them hit a big ball that flies over the whole court. Get the ball past the other
 fighter and off their end of the court for a point. First to 3, 5 or 10 wins.
 
@@ -159,6 +160,28 @@ A game whose players are not on a fixed 384-column picture (a tag game's partner
 not the picture's left edge) needs those cases in its `shapes` and in the battle's camera facts. The toolkit does
 not care what the fighters are, only where their boxes are.
 
+### Street Fighter Alpha 2
+
+The second game, and the shortest port: the routines the court changes were already rewritten for the game's other
+modes (`games/sfa2/src/court.cpp`). What it took:
+
+- **The push** (`collision.cpp`, `PushApart`), **the throw test** (`throws.cpp`, `ThrowTest`: no while `court::On()`;
+  whether every command grab asks it is not checked yet) and **the player's step** (`player.cpp`, `PlayerStepOne` calls `CourtStep`): each
+  a line or a few in a routine already in C++.
+- **Power**: an attack's entry has the button's strength in `+09`'s low four bits (0 light, 1 medium, 2 hard: what
+  `HitLands` keeps at the victim's `+56`), and bit 7 of `+08` set for a special move's. A super is told by the gauge
+  (`+9E`) dropping by half a level or more at once, or a Custom Combo running (`+142`). Found with `SFA2_COURT_LOG=1`.
+- **What the ball does**: the state a hit leaves (`+04` 02 02 00 00, as `HitLands` writes it), the reaction `+55` (0
+  a reel, 4 a knock-down with `+134` set, FF a guard), the strength `+56` (how far `023C0C`'s table pushes it), and the
+  way it is pushed `+66` (0 left, 1 right) set away from the ball: no turning its speed about as in Vampire Savior.
+- **Sounds**: 0200, 0205, 0206 for light, medium, hard and 0203 for specials and supers, the sounds queued on the frame
+  a hit lands (`SFA2_SOUND_LOG` against the health going down in the endless battle).
+- **The court's width** (`widescreen.cpp`, `kCourtSides`): no stage shows black past its planes (the game's own
+  `fillHoles` and the far planes' plans fill them), so each was judged by eye at 192 a side for stretched, cut or
+  repeated pictures: 64, 168, 192, 120, 192, 192, 192, 136, 140, 192, 96, 192, 192, 64, 72, 192, 192, 192 (Ryu's
+  mountains are filled stripes past 64, Sakura's tower and Rolento's mural come round again). `SFA2_COURT_SIDE=N`
+  forces a side, for measuring. The stage's own `kEnds` are not used on the court.
+
 ### Test switches
 
 | Variable | What it does |
@@ -189,4 +212,4 @@ CPS2RECOMP_COURT_CPU=1 CPS2RECOMP_BATTLE_SEED=7 build/vampire_savior/vampire_sav
   property of its own), a tip-off or face-off serve.
 - **The CPU**: smarter positioning (a lob over a fighter near the line, waiting for a ball to drop), specials of each
   character's own.
-- More games: Alpha 2 next (its collision is rewritten), then the Marvel games.
+- More games: the other Alphas (Alpha and Alpha 3, built like Alpha 2), then the Marvel games.

@@ -7,6 +7,7 @@
 // An attack hits when the attacker's attack box (named by the animation frame it is showing) overlaps one of the
 // three boxes the victim can be hit in: head, body, legs (named by the victim's frame too). The test notes which
 // parts were hit and where, and then the game's code for a hit that landed takes over (010564 on).
+#include "court.h"
 #include "sfa2.h"
 
 namespace cps2recomp {
@@ -440,6 +441,18 @@ namespace {
         uint32_t one = c.a[6] = Var(c, AtA5(0x400)), two = c.a[4] = Var(c, AtA5(0x800));
         SetRam8(one + 0x298, 0);
         SetRam8(two + 0x298, 0);
+        if (court::On()) {
+            // The court: each kept on its half, short of the line down the middle (they never meet to be pushed apart)
+            for (int side = 0; side < 2; side++) {
+                const uint32_t player = Player(side);
+                const int x = static_cast<int16_t>(Ram16(player + kX));
+                const int kept = court::KeepToHalf(side, x, static_cast<int16_t>(Ram16(player + 0x12A))); // (its half width)
+                if (kept != x) {
+                    SetRam32(player + kX, static_cast<uint32_t>(kept) << 16);
+                }
+            }
+            return;
+        }
         // (a byte of player 1's that has the two looked at the other way about, once: family.h)
         if (family::kPushOtherWay && Ram8(one + family::kPushOtherWay)) {
             SetRam8(one + family::kPushOtherWay, 0);
