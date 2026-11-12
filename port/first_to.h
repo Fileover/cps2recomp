@@ -65,6 +65,17 @@ public:
         return side;
     }
 
+    // The whole counter as numbers, and back: a viewer who comes in mid-set starts from the host's (Netplay::Welcome)
+    static constexpr int kSaved = 10;
+    std::array<uint32_t, kSaved> Saved() const {
+        return {uint32_t(target), uint32_t(winner), uint32_t(score[0]), uint32_t(score[1]), uint32_t(rounds[0]),
+                uint32_t(rounds[1]), uint32_t(quiet), armed, haveFrame, uint32_t(lastFrame)};
+    }
+    void Load(const std::array<uint32_t, kSaved> &v) {
+        target = int(v[0]), winner = int(v[1]), score = {int(v[2]), int(v[3])}, rounds = {int(v[4]), int(v[5])};
+        quiet = int(v[6]), armed = v[7] != 0, haveFrame = v[8] != 0, lastFrame = v[9];
+    }
+
 private:
     int target = 0, winner = -1;
     std::array<int, 2> score{}, rounds{};
