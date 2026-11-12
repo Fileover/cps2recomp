@@ -98,7 +98,8 @@ knock-out), holds the camera in the middle of the stage, and calls the court bef
 - **Save states**: the court's state is one POD (`court::State`, in the battle's).
 - **The CPU's side** (`Computer`): where the ball will come down on its half (a copy of the ball flown on, no
   fighters), standing a little behind that spot. It tries each button strength, with that strength's startup frames
-  and reach, against where the ball will be when the attack comes out. It jumps only for a ball over its own half,
+  and reach, against where the ball will be when the attack comes out. A fast ball coming at it is blocked (held back) rather than met, decided once for each ball by chance (medium 15% of
+  slower balls and 45% of fast or hot ones, hard 40% and 85%). It jumps only for a ball over its own half,
   crouches for a ball on the floor, and now and then (medium and hard) does a quarter-circle-forward special. It plays
   from the court's own controls, never the game's computer, which knows nothing of a ball.
 
