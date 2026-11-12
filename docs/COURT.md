@@ -2,7 +2,7 @@
 
 A ball game for the fighting games, on the in-game menu's **Alternative modes** page (the Vampire Savior games:
 Vampire Savior, Vampire Savior Definitive, Vampire Savior 2 and Vampire Hunter 2, which share its sources; and Street
-Fighter Alpha 2 and Street Fighter Zero 2 Alpha, which share Alpha 2's). The stage is a court cut in two by a line down the middle of the picture. Each fighter keeps
+Fighter Alpha, Alpha 2 (with Zero 2 Alpha, which shares its sources) and Alpha 3). The stage is a court cut in two by a line down the middle of the picture. Each fighter keeps
 to its own half, and the two of them hit a big ball that flies over the whole court. Get the ball past the other
 fighter and off their end of the court for a point. First to 3, 5 or 10 wins.
 
@@ -182,6 +182,29 @@ modes (`games/sfa2/src/court.cpp`). What it took:
   mountains are filled stripes past 64, Sakura's tower and Rolento's mural come round again). `SFA2_COURT_SIDE=N`
   forces a side, for measuring. The stage's own `kEnds` are not used on the court.
 
+### Street Fighter Alpha and Alpha 3
+
+Neither has the push or the throw test rewritten, and neither needs it: a hook at a routine's start (or anywhere in
+it: `HookAt`, written in the `AddHook` call itself so that the translator finds it) can do the court's part and
+return, or send the routine to its own "no" (`c.pc`).
+
+- **Alpha** (`games/sfa/src/court.cpp`): the players' push `00F2FC` hooked (each kept on its half, then `Return`); a
+  throw's catch, the two places that write the caught state (`020F80`, `021032`), sent to the test's "no" (`020FBE`);
+  the hit's fields as `00F646` leaves them: the reaction `+45`, the strength `+46`, the way pushed `+4D`, hitstop
+  `+4F`, knock-down `+134`. An attack's entry is sixteen bytes (a box of four bytes, then `+04` bit 7 special, `+05`
+  strength). Hit sounds 0205-0208 (0206 medium, 0207 hard, 0208 specials, as queued by `012BEE` on the frame `00F646`
+  lands). **The bars, names and clock are the first scroll screen's**, which past 64 a side shows its map again:
+  `court::Description::hiddenLayers` keeps that screen out of the court's picture (health stays full, and there is no
+  clock; the gauges are objects and stay). Sides: 176, 192, 128, 192, 128, 192, 80, 176, 192, 192, 80, 192, 192 (the
+  train yard's far sheds come round again 558 apart; the Great Wall's mountains are mirrored fill past 128).
+- **Alpha 3** (`games/sfa3/src/court.cpp`): the players' push `0249E0` hooked; the throw test `02E3FE` (already
+  hooked for the training's throw ranges) sent to its "no" `02E52A`; the hit's fields: reaction `+55` (0D a sweep's
+  knock-down), the reel's time `+26A` (0C, 12, 18 by strength), the way pushed `+66`. Strength is the entry's `+09`; a
+  special is told by the move (`+06` not 0A or 06). Hit sounds 0204, 0205, 0206 and 0203, queued (`003168`) a frame or
+  three after the hit (`023278`). Sides: each stage's painting measured with `SFA3_NO_FILL` (holes left black) at 192,
+  and kept within half of each plane's range in `kPlaneEnds`, past which a plane that is a map going round shows
+  its picture again (the black alone missed those).
+
 ### Test switches
 
 | Variable | What it does |
@@ -212,4 +235,4 @@ CPS2RECOMP_COURT_CPU=1 CPS2RECOMP_BATTLE_SEED=7 build/vampire_savior/vampire_sav
   property of its own), a tip-off or face-off serve.
 - **The CPU**: smarter positioning (a lob over a fighter near the line, waiting for a ball to drop), specials of each
   character's own.
-- More games: the other Alphas (Alpha and Alpha 3, built like Alpha 2), then the Marvel games.
+- More games: the Marvel games.
