@@ -2,6 +2,25 @@
 
 ## Unreleased
 
+## 1.5.0
+
+**Ball battle, five more games, and modes online.** Ball battle, a new ball game mode, comes to the Vampire Savior
+games and the Street Fighter Alphas, and the host of an online match can switch to it or the tag team battle at any
+time. Five more games: Super Street Fighter II: The New Challengers, Street Fighter II: The World Warrior and Champion
+Edition on the classic CPS-1 board, Cyberbots, and two shoot-'em-ups with training mode, Progear and Dimahoo (the
+first vertical game, its picture shown upright). Also a Stage page for every way of playing, watching online matches
+and first-to-5 or 10 sets, a camera zoom that follows the distance between the fighters, the picture drawn on the GPU
+by default, and Hyper Street Fighter II's difficulty fix.
+
+**Known issue:** in Vampire Savior 2 and Vampire Hunter 2, widescreen shows a blank strip at one end of ten of the other
+games' stages: the nine of 1.4.0 (Darkstalkers' and Night Warriors' Demitri's, Night Warriors' Donovan's, Alpha 2's
+Dan's, Alpha 3's Ken's, Sodom's, Guy's and Dhalsim's, and Super Turbo's Dee Jay's) and Cyberbots' space stage. Their own
+stages, and every other game, are not affected.
+
+- **Hyper Street Fighter II: Difficulty fix** (from danielhuebert, #341; Game page, off unless chosen): every region
+  follows the difficulty setting. The USA and Asia sets otherwise take a harder table for their region (the CPU's stage
+  ramp at its top from the first fight, and its lowest setting where the Japanese set's fifth begins); the fix keeps
+  the standard one, as bankbank's ROM patch does, without changing the ROM.
 - **Stage select, in every mode (the fighting games).** The in-game menu's first page has a **Stage** page, after
   Game: the game's own choice, or a stage by name, the game's own or another game's (with its favourites, as before).
   It now holds whatever is played: the board's one- and two-player games, training, survival, the team battle and the
