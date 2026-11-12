@@ -69,6 +69,10 @@ the same program ([how it was made](PROGRESS.md)).
   the warning, the anniversary's mark and the introduction) runs unseen; the picture comes back with the title.
 - The board's operator settings (difficulty, game speed, rounds, continue, demo sound) on the Board page (launcher's Features,
   in-game menu), each as the board is set unless you choose; or the game's own test menu from the in-game menu.
+- **Difficulty fix** (Game page, off unless chosen): make every region follow the difficulty setting. The USA and
+  Asia sets otherwise fight on a harder curve than the setting asks for (the code swaps in another table for their
+  region), as Japan's does not; the fix keeps the standard table for all. The same as bankbank's difficulty patch
+  for the ROM, done switchably without touching it.
 - Cheats: no damage (each player), one-hit knockouts, infinite time.
 - **Hidden character** (Game page): Akuma with no code. Press the three punches at once as you choose a Super Turbo
   character. (His face and name on the panel are blank, as when the game's own code gives him.)
