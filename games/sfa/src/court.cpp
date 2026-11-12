@@ -231,6 +231,7 @@ void RegisterCourt() {
     // (the bars, names and clock are the first scroll screen's, which shows its map again past 64 a side: not drawn on
     // the court, where health stays full and there is no clock; the gauges are objects and stay)
     d.hiddenLayers = 0xF & ~kLayersWithoutPanel;
+    d.panel = ThePanel; // (and the panel's objects at the top)
     d.wideStage = WideStage;
     d.freeze = [](int side, int steps) { SetRam8(Player(side) + kHitStop, static_cast<uint8_t>(steps)); };
     d.playSound = modes::PlaySound;

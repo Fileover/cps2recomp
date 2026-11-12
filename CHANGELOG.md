@@ -2,7 +2,7 @@
 
 ## Unreleased
 
-- **Court** (the Vampire Savior games: Vampire Savior, Definitive, Vampire Savior 2, Vampire Hunter 2; Alternative modes > Court): a ball game. A line splits the
+- **Ball battle** (the Vampire Savior games: Vampire Savior, Definitive, Vampire Savior 2, Vampire Hunter 2; Alternative modes > Ball battle): a ball game. A line splits the
   stage and each fighter keeps to a half; attacks strike a big ball (light, medium, hard, special and gauge moves each
   faster, the place struck deciding the angle and the spin, up or down held bending it), a crouching light kick chips
   it up, three hits in a row make a power shot, and the ball makes whoever it hits reel or fall unless they block. The
@@ -11,9 +11,10 @@
   stage is drawn (up to 768 columns), shown whole in a 16:9 frame or followed by its own camera. The toolkit's part
   is `fight/court.h`; a game describes its boxes and its attacks' power ([docs/COURT.md](docs/COURT.md), with the
   steps for the next game).
-- **Court in the Street Fighter Alphas** (Alpha, Alpha 2, Zero 2 Alpha, Alpha 3; Alternative modes > Court): the ball
-  game, as in the Vampire Savior games. The court is as wide as each stage is drawn (512 to 768 columns). In Alpha the
-  bars, names and clock are not shown on the court (a scroll screen that would repeat across the wider picture).
+- **Ball battle in the Street Fighter Alphas** (Alpha, Alpha 2, Zero 2 Alpha, Alpha 3; Alternative modes > Ball battle): the ball
+  game, as in the Vampire Savior games. The court is as wide as each stage is drawn (512 to 768 columns). In every game the
+  health bars, names and clock are not shown in a ball battle (health stays full and there is no clock); the super
+  gauges stay.
 - **The overlay's boxes under the zoom by distance**: hit boxes (and the court's ball) are drawn on the picture that is
   zoomed, where they were drawn on the panel's layer and left out of it. Boxes can be round (`HudBox::round`).
 

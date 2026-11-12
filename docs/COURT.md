@@ -1,4 +1,6 @@
-# Court
+# Ball battle
+
+(Called "the court" in the sources: `fight/court.h`.)
 
 A ball game for the fighting games, on the in-game menu's **Alternative modes** page (the Vampire Savior games:
 Vampire Savior, Vampire Savior Definitive, Vampire Savior 2 and Vampire Hunter 2, which share its sources; and Street
@@ -42,7 +44,7 @@ fighter and off their end of the court for a point. First to 3, 5 or 10 wins.
 - **The gauge** fills as it always does when attacks are thrown, so supers come round.
 - Nobody loses health and the clock stands still.
 
-The menu's **Court** page has Start and these choices:
+The menu's **Ball battle** page has Start and these choices:
 
 | Row | Choices |
 | --- | --- |
@@ -95,6 +97,10 @@ knock-out), holds the camera in the middle of the stage, and calls the court bef
   of Arrogance) is the widescreen picture itself and needs no frame. Screenshots (`--shot-every`) are the whole picture;
   `--present-every` is the frame. and `Game::zoomWanted` (the court asks for the zoom by distance while it runs, unless its page says Whole
   court; the player's own zoom comes back after).
+- **The panel**: its health bars, names and clock (the objects at its top) are taken out of the object list while
+  the court runs (`Description::panel`, the game's own test of a panel object, and `panelTop`, the list's y above
+  which they are: `court::TakeObjects` as `Video::objectsTaken`); the gauges, below, stay. A panel that is a scroll
+  screen is left out by `hiddenLayers` (Street Fighter Alpha's).
 - **Save states**: the court's state is one POD (`court::State`, in the battle's).
 - **The CPU's side** (`Computer`): where the ball will come down on its half (a copy of the ball flown on, no
   fighters), standing a little behind that spot. It tries each button strength, with that strength's startup frames
@@ -228,10 +234,6 @@ CPS2RECOMP_COURT_CPU=1 CPS2RECOMP_BATTLE_SEED=7 build/vampire_savior/vampire_sav
 
 - **Tall stages**: the Marvel games' stages (as guests) with the ball going up past the picture's top and the camera
   following, past the board's picture vertically (the renderer drawing more of the stage than the game asks for).
-- **The panel**: hide the health bars and clock, keep the gauge (`court::Description::hidden`, which the battle puts
-  in as `Video::hideObject` while the court runs). In Vampire Savior palette 0 is the bars' frames top and bottom
-  alike and palette 2 the clock's digits, so it takes tile numbers: about 13E00-13E98 for the bars and 13C90-13CCA for
-  the clock against 13C50-13C70, 13CD0-13CF0 and 13DE6 for the gauge, checked on every character's panel.
 - **Power-ups** (more power, other physics) and **combos with properties** (three specials in a row giving the ball a
   property of its own), a tip-off or face-off serve.
 - **The CPU**: smarter positioning (a lob over a fighter near the line, waiting for a ball to drop), specials of each

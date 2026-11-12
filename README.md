@@ -113,7 +113,7 @@ each other.
   stage viewer, the endless and team battles, and (an option) arcade matches. Each needs that game's ROM set.
 - **Alternative modes** in the fighting games: survival, ring out, an endless battle the game plays itself, and in
   most a tag team battle; plus a stage viewer and a model viewer ([more](docs/MODES.md)).
-- **Court**, a ball game in the Vampire Savior games: each fighter on a half of the stage, hitting a big ball past the other with
+- **Ball battle**, a ball game in the Vampire Savior games and the Street Fighter Alphas: each fighter on a half of the stage, hitting a big ball past the other with
   their attacks, first to 3, 5 or 10 ([more](docs/COURT.md)).
 - **Shoot-'em-up training mode** in Giga Wing, Progear and Dimahoo: any stage or straight at its boss, back to the start with one
   button ([more](docs/PRACTICE.md)); the ships' true hit boxes, the enemies' and their shots' in any mode; a score attack,

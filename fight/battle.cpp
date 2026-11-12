@@ -1984,6 +1984,12 @@ void BattleFrame(Machine &machine) {
         if (g.kind == Kind::Court && g.phase != Phase::Starting) {
             machine.video.layerMask &= ~court::HiddenLayers(); // (the court's: a panel that is a scroll screen)
         }
+        // (the court's: the panel's bars, names and clock taken out of the object list; another's change left alone)
+        if (g.kind == Kind::Court && g.phase != Phase::Starting && court::HidesPanel()) {
+            machine.video.objectsTaken = court::TakeObjects;
+        } else if (machine.video.objectsTaken == court::TakeObjects) {
+            machine.video.objectsTaken = nullptr;
+        }
         machine.video.markObjects = layered;
         machine.video.markLayers = layered ? d.panelLayers : 0;
     }

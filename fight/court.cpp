@@ -770,7 +770,7 @@ void RegisterPage(const char *modes, void (*start)(Machine &machine), const std:
         return;
     }
     Game &game = TheGame();
-    static constexpr const char *kCourt = "Court";
+    static constexpr const char *kCourt = "Ball battle"; // (the menu page's name: "the court" in these sources)
     game.pages.push_back({kCourt, modes, "A ball game: each fighter on a half of the court, hitting a big ball past the other."});
     game.commands.push_back({"court_start", kCourt, "Start",
                              "A line splits the stage in two and each fighter keeps to a half. Hit the ball with your attacks "
@@ -996,6 +996,20 @@ void State(Archive &ar) {
     ar.Pod(g);
 }
 
+bool HidesPanel() {
+    return g.phase != kOff && d.panel;
+}
+void TakeObjects(uint16_t *list, int &last) {
+    if (!HidesPanel()) {
+        return;
+    }
+    for (int i = 0; i <= last; i += 4) {
+        const uint32_t tile = list[i + 2] + ((list[i + 1] & 0x6000u) << 3);
+        if ((list[i + 1] & 0x3FF) < d.panelTop && d.panel(tile, list[i + 3])) {
+            list[i + 1] = static_cast<uint16_t>((list[i + 1] & ~0x3FFu) | 0x300); // (a line the picture never shows)
+        }
+    }
+}
 unsigned HiddenLayers() {
     return g.phase != kOff ? d.hiddenLayers : 0;
 }
