@@ -994,6 +994,9 @@ void End() {
 void State(Archive &ar) {
     ar.Mark(0x434F5254);
     ar.Pod(g);
+    if (d.state && (ar.version == 0 || ar.version >= 11)) { // (a save state from before has none)
+        d.state(ar);
+    }
 }
 
 bool HidesPanel() {

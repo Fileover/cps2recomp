@@ -12,6 +12,7 @@
 //
 // For tests, VSAV_SWAP=FRAME:PLAYER:CHARACTER,... (hex character) swaps outside the team battle, at that frame or, with
 // VSAV_SWAP_FREE, as soon after as the player can act.
+#include "state.h"
 #include "machine.h"
 #include "vsav.h"
 
@@ -282,6 +283,19 @@ void LiveTagBeforeFrame(Machine &machine) {
             break;
         }
     }
+}
+
+// The swaps under way, in a save state (online play's rollback puts frames back in the middle of one)
+void LiveTagState(Archive &ar) {
+    if (ar.version != 0 && ar.version < 11) { // (a save state from before has none)
+        return;
+    }
+    ar.Pod(g_colours);
+    ar.Pod(g_place);
+    ar.Pod(g_placeX);
+    ar.Pod(g_placeY);
+    ar.Pod(g_off);
+    ar.Pod(g_lying);
 }
 
 } // namespace cps2recomp

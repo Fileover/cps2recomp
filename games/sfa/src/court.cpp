@@ -8,6 +8,7 @@
 // 021032) goes to its test's "no", and what the ball does to a fighter is made at its step (training.cpp, PlayerStep:
 // CourtStep).
 #include "court.h"
+#include "state.h"
 #include "alternative.h"
 #include "sfa.h"
 
@@ -246,6 +247,11 @@ void RegisterCourt() {
             SetRam16(Player(side) + kHealth, kHealthFull);
             SetRam16(Player(side) + kHealthShown, kHealthFull);
         }
+    };
+    d.state = [](Archive &ar) { // (in a save state, for rollback)
+        ar.Pod(g_spent);
+        ar.Pod(g_thrownSide);
+        ar.Pod(g_thrownFrame);
     };
     court::Register(d);
     AddHook(HookAt(0x00F2FC), "CourtPushApart", PushApart);

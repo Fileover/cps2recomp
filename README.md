@@ -92,6 +92,8 @@ each other.
   (best effort: the same set is surest).
 - Each player presses Start to come in, as at the arcade. The match uses the host's board settings (difficulty,
   timer, rounds); cheats are off.
+- **Ball battle and tag team online**: the host switches the match to either from Esc's overlay (and back to
+  versus), and each player picks their own fighters there.
 - **On screen:** both players' **names**, the ping (and the input delay, if you like), and the **win streak** of a
   player who keeps winning.
 - **FT5 / FT10:** in Marvel vs. Capcom and X-Men vs. Street Fighter, the host can choose **Set format** on the

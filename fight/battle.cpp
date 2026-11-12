@@ -1056,15 +1056,18 @@ namespace {
         }
     }
 
+    uint32_t g_onlineSeed = 0; // (StartOnline's, for the Start it makes)
     void Start(Machine &machine, Kind kind) {
         d.endModes();
         End();
         SetFeature("training_mode", false);
         g.kind = kind;
         g.phase = Phase::Starting;
-        // (for tests, CPS2RECOMP_BATTLE_SEED=N: the same choices at random every time, so that a movie plays back)
+        // (for tests, CPS2RECOMP_BATTLE_SEED=N: the same choices at random every time, so that a movie plays back; online,
+        // the seed both sides were given: StartOnline)
         static const char *seed = getenv("CPS2RECOMP_BATTLE_SEED");
-        g.random = (seed ? static_cast<uint32_t>(strtoul(seed, nullptr, 10)) : std::random_device()()) | 1;
+        g.random = (g_onlineSeed ? g_onlineSeed : seed ? static_cast<uint32_t>(strtoul(seed, nullptr, 10)) : std::random_device()()) | 1;
+        g_onlineSeed = 0;
         g.coachRandom = g.random * 2654435761u | 1;
         if (kind == Kind::Team) {
             StartTeams();
@@ -2124,6 +2127,29 @@ int battle::RoundsToWin() {
 
 bool battle::OnlineSets() {
     return g_described && d.onlineSets;
+}
+
+bool battle::StartOnline(Machine &machine, int mode, uint32_t seed) {
+    if (!g_described) {
+        return false;
+    }
+    if (mode == 0) {
+        End();
+        machine.Reset();
+        return true;
+    }
+    if (mode == 1 && !court::Described()) {
+        return false;
+    }
+    // (each side a person; the game's own stages only, as another game's is drawn by a machine of that game's)
+    const char *stage = mode == 1 ? "court_stage" : "team_stage";
+    if (FeatureValue(stage) > d.stages) {
+        SetFeatureForNow(stage, 0);
+    }
+    SetFeatureForNow(mode == 1 ? "court_opponent" : "team_opponent", 1);
+    g_onlineSeed = seed | 1;
+    Start(machine, mode == 1 ? Kind::Court : Kind::Team);
+    return true;
 }
 
 bool battle::TwoPeopleNow() {

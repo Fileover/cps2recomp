@@ -87,6 +87,9 @@ struct Description {
     int panelTop = 80;
     // Each frame of a court game, before the ball moves: anything the game's sources keep so while it is played
     void (*everyFrame)() = nullptr;
+    // What the game's own court sources keep from frame to frame (a gauge's last value, a knock-back's way...), in a
+    // save state with the court's own: online play's rollback puts frames back and runs them again
+    void (*state)(Archive &ar) = nullptr;
     // A sound asked for as the game asks (the battle's playSound)
     void (*playSound)(uint16_t code) = nullptr;
     // Sounds: a hit of each power, the ball bouncing off a fighter, a point won (0: none)

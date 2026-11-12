@@ -241,6 +241,10 @@ int RoundResultNow();
 int RoundsToWin();
 bool OnlineSets();
 bool TwoPeopleNow(); // both active player records belong to people, not the computer
+// Online (port.h, OnlineEvent): a mode begun on both sides at the same frame, its choices at random from `seed` (so both
+// make the same), each side a person: 0 the game as it is (the battle ended, the board reset), 1 the ball battle (the
+// court: fight/court.h), 2 the tag team battle. False for one this game has not got.
+bool StartOnline(Machine &machine, int mode, uint32_t seed);
 // The tag-team modes (tag.h) for the team battle: each fighter of a side played by a person of its own, the side's
 // panel whoever's fighter is on (no tagging in: the next comes on at a knock-down). `labelY`: where the labels go.
 void RegisterTeamTag(float labelY);

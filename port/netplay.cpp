@@ -39,6 +39,17 @@ using namespace cps2recomp;
 namespace port {
 
 namespace {
+    // The pages of the modes that can be played online (fight/court.cpp's, fight/battle.cpp's)
+    constexpr const char *kBallBattle = "Ball battle", *kTagTeamBattle = "Tag team battle";
+    bool HasFeature(const char *name) {
+        for (const Feature &feature : TheGame().features) {
+            if (std::string(feature.name) == name) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     uint64_t NowMs() {
         return static_cast<uint64_t>(
             std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now().time_since_epoch()).count());
@@ -129,6 +140,11 @@ namespace {
         }
         if (name == "online_set" || name.rfind("widescreen", 0) == 0 || category == "Game" || category == "Board") {
             return Share::Host;
+        }
+        // (the modes played online, Port::OnlineEvent: their pages as the host has them, each player's own fighters
+        // then sent by them; how the court is looked at, each player's own)
+        if (category == std::string(kBallBattle) || category == std::string(kTagTeamBattle)) {
+            return name == "court_camera" ? Share::Own : Share::Host;
         }
         if (name.size() > 9 && name.compare(name.size() - 9, 9, "_hitboxes") == 0) {
             return Share::Own; // (a shooting game's hit boxes, on its Cheats page: drawn over the picture only)
@@ -447,6 +463,9 @@ bool Netplay::MatchDecides(const Feature &feature) {
 void Netplay::StartAt(int frames) {
     delay = std::clamp(frames, 0, kMostAhead); // (the first `delay` frames: nobody's controls)
     localUpTo = remoteUpTo = static_cast<uint64_t>(delay);
+    events[0].clear();
+    events[1].clear();
+    eventFrom = UINT64_MAX;
 }
 
 // The welcome for the one who has come: the delay, the board settings, the features that change play, and the game
@@ -1087,7 +1106,16 @@ int Netplay::Waiting(Port &port, std::string &error) {
             }
             at = comma + 1;
         }
+        // (this player's own fighters for player 2's side of the modes played online, as they had them: sent as this
+        // side's first event, after the host's pages are taken)
+        std::string mine;
+        for (const char *row : {"court_two", "team_2_1", "team_2_2", "team_2_3"}) {
+            if (HasFeature(row)) {
+                mine += (mine.empty() ? "" : ",") + std::string(row) + "=" + std::to_string(FeatureSetting(row));
+            }
+        }
         Settle(false, host);
+        Command("hello," + mine); // ("hello": not said on the screen, Port::HearEvents)
         stateSize = in.U32();
         state.assign(in.U32(), 0);
         if (!in.ok || stateSize == 0 || state.empty() || state.size() > (16u << 20)) {
@@ -1196,6 +1224,16 @@ void Netplay::SendInputs() {
     out.U32(static_cast<uint32_t>(now));
     out.U32(echo);
     out.U32(static_cast<uint32_t>(echoAt ? now - echoAt : 0));
+    // (this side's events for the frames whose controls go with this packet)
+    std::vector<std::pair<uint64_t, const std::string *>> going;
+    for (auto it = events[local].lower_bound(first); it != events[local].end() && it->first < localUpTo; ++it) {
+        going.push_back({it->first, &it->second});
+    }
+    out.U8(static_cast<uint8_t>(going.size()));
+    for (const auto &[at, text] : going) {
+        out.U32(static_cast<uint32_t>(at));
+        out.Text(*text);
+    }
     Send(out.out);
 }
 
@@ -1273,8 +1311,24 @@ void Netplay::Take(const uint8_t *data, size_t size) {
     const uint64_t hashFrame = in.U32();
     const uint32_t hash = in.U32();
     const uint32_t sentAt = in.U32(), echoed = in.U32(), held = in.U32();
+    const unsigned eventCount = in.U8();
+    std::vector<std::pair<uint64_t, std::string>> came;
+    for (unsigned n = 0; n < eventCount; n++) {
+        const uint64_t at = in.U32();
+        came.push_back({at, in.Text()});
+    }
     if (!in.ok) {
         return;
+    }
+    // (the other side's events, each once: one for a frame run already on guessed controls sends this side back to it)
+    for (const auto &[at, text] : came) {
+        if (at >= confirmed && !events[remote].count(at)) {
+            events[remote][at] = text;
+            told.push_back({remote, text});
+            if (at < current + 1) {
+                eventFrom = std::min(eventFrom, at);
+            }
+        }
     }
     lastHeard = NowMs();
     remoteFrame = std::max(remoteFrame, frame);
@@ -1397,6 +1451,12 @@ void Netplay::Run(Port &port, uint64_t at, bool drawing) {
     // (the other side's, or guessed as the last that came)
     k.used = at < remoteUpTo ? remoteInput[at % kInputs] : remoteUpTo ? remoteInput[(remoteUpTo - 1) % kInputs] : 0;
     players[remote] = k.used;
+    for (int player = 0; player < 2; player++) {
+        const auto it = events[player].find(at);
+        if (it != events[player].end()) {
+            port.OnlineEvent(player, it->second);
+        }
+    }
     // Read who is playing before the result frame can retire a defeated player's record.
     const bool versus = set.Target() && battle::TwoPeopleNow();
     port.machine->drawing = drawing;
@@ -1436,6 +1496,14 @@ void Netplay::Frame(Port &port, uint16_t controls) {
     const uint64_t frame = port.frame;
     localInput[(frame + delay) % kInputs] = controls;
     localUpTo = frame + delay + 1;
+    if (!commanded.empty()) {
+        std::string &line = events[local][frame + delay];
+        for (const std::string &text : commanded) {
+            line += (line.empty() ? "" : ",") + text;
+            told.push_back({local, text});
+        }
+        commanded.clear();
+    }
     // How far ahead of the other side this side is: the frame it is on, over what the other side said last
     ahead = ahead * 0.95 + (static_cast<double>(frame) - static_cast<double>(remoteFrame)) * 0.05;
     SendInputs();
@@ -1449,6 +1517,11 @@ void Netplay::Frame(Port &port, uint16_t controls) {
             break;
         }
     }
+    // (an event of the other side's for a frame run already: back to it too)
+    if (eventFrom < upTo && eventFrom >= confirmed) {
+        wrong = std::min(wrong, eventFrom);
+    }
+    eventFrom = UINT64_MAX;
     if (wrong < upTo) {
         const size_t sound = port.machine->audio.size();
         port.PutBackState(kept[wrong % kKept].state);
@@ -1499,6 +1572,18 @@ void Netplay::Frame(Port &port, uint16_t controls) {
     worst = std::max(worst, took);
     over += took > 1 / Machine::kFramesPerSecond;
     Report();
+}
+
+void Netplay::Command(const std::string &text) {
+    if (!text.empty() && !settings.watching) {
+        commanded.push_back(text);
+    }
+}
+
+std::vector<std::pair<int, std::string>> Netplay::TakeEvents() {
+    std::vector<std::pair<int, std::string>> out;
+    out.swap(told);
+    return out;
 }
 
 void Netplay::BeginSet() {
