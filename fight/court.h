@@ -76,6 +76,10 @@ struct Description {
     // The panel's objects not drawn while a court game is played (the health bars and the clock: not the gauge), as
     // Video::hideObject has them (nullptr: the panel as it is)
     bool (*hidden)(uint32_t tile, uint16_t attributes) = nullptr;
+    // The scroll screens not drawn while a court game is played (Video::layerMask's bits: 1 the objects, 2-8 the scroll
+    // screens): a game whose bars and clock are a scroll screen of their own, which past the board's picture and 64 more
+    // a side shows its map again (Street Fighter Alpha's)
+    unsigned hiddenLayers = 0;
     // Each frame of a court game, before the ball moves: anything the game's sources keep so while it is played
     void (*everyFrame)() = nullptr;
     // A sound asked for as the game asks (the battle's playSound)
@@ -120,6 +124,7 @@ void State(Archive &ar);
 // The game's objects not drawn while a court game is played (Description::hidden), for the battle
 using Hide = bool (*)(uint32_t tile, uint16_t attributes);
 Hide Hidden();
+unsigned HiddenLayers(); // (Description::hiddenLayers, while a court game is played)
 // For the camera's zoom (runtime/game.h, Game::focusAlso): where the ball is in the picture, and how far it reaches
 bool Focus(int &x, int &y, int &reach);
 

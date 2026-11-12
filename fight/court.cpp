@@ -973,6 +973,9 @@ void State(Archive &ar) {
     ar.Pod(g);
 }
 
+unsigned HiddenLayers() {
+    return g.phase != kOff ? d.hiddenLayers : 0;
+}
 Hide Hidden() {
     return g.phase != kOff ? d.hidden : nullptr;
 }
