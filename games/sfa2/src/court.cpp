@@ -206,7 +206,8 @@ void RegisterCourt() {
     };
     d.floor = kGround;
     d.pictureFloor = 239;
-    d.pictureTop = 40; // (under the health bars and the clock)
+    d.pictureTop = 40; // (under where the health bars and the clock are)
+    d.panel = ThePanel; // (the bars, names and clock not shown: court.h)
     d.wideStage = WideStage;
     d.freeze = [](int side, int steps) { SetRam8(Player(side) + kHitStop, static_cast<uint8_t>(steps)); };
     d.playSound = PlaySound;

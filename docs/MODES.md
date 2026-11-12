@@ -32,7 +32,7 @@ computer plays it as a ring out too.
 
 ![Ring out in Street Fighter Alpha 2](screenshots/sfa2/ring-out.png)
 
-### Court
+### Ball battle
 
 In the Vampire Savior games (Vampire Savior, its Definitive version, Vampire Savior 2, Vampire Hunter 2). A ball game: a line splits the stage in two and each fighter keeps to
 a half. Hit the big ball with your attacks, harder ones sending it faster and where you strike it deciding the angle,
