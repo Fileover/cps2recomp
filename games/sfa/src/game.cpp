@@ -22,6 +22,7 @@ void TitleFrame(Machine &machine);
 void RegisterModes();    // modes.cpp
 void RegisterStages(); // stages.cpp
 void RegisterTraining(); // training.cpp
+void RegisterCourt();    // court.cpp (before the battle's: its page is among theirs)
 void RegisterBattle();   // battle.cpp
 void RegisterComputer(); // computer.cpp
 void RegisterModel();    // model.cpp
@@ -40,6 +41,7 @@ bool WidePlay();
 void RegisterGame() {
     RegisterModes();
     RegisterTraining();
+    RegisterCourt();
     RegisterBattle();
     RegisterComputer();
     RegisterModel();

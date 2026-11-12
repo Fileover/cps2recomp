@@ -122,6 +122,8 @@ namespace {
         struct Ai {
             bool on = false;                 // (this side is the computer's)
             int32_t think = 0, pressFor = 0, restFor = 0, jumpFor = 0, motion = 0;
+            int32_t blockFor = 0; // (frames it holds back yet, to block a ball coming at it)
+            bool decided = false; // (whether to block the ball coming at it has been decided)
             uint16_t press = 0, jumpWay = 0;
             int32_t targetX = 0;
         } ai[2];
@@ -558,6 +560,27 @@ namespace {
             ahead = (c.x - static_cast<float>(me)) * static_cast<float>(forward);
             above = c.y - static_cast<float>(meY);
         };
+        // A fast ball coming at it: at the medium and hard levels, often blocked rather than met (an attack that is slow to
+        // come out leaves the fighter hit in it; Alpha 2's are slower than kComes says), decided once for each ball that
+        // comes and held to while it comes
+        {
+            const float toward = -b.vx * static_cast<float>(forward); // (its speed towards this fighter)
+            const float distance = (b.x - static_cast<float>(me)) * static_cast<float>(forward);
+            const bool coming = toward > kHurtSpeed && distance > 0 && distance < 70 + toward * 8 && b.y - static_cast<float>(meY) < 130;
+            if (!coming) {
+                a.decided = false;
+                a.blockFor = 0;
+            } else if (!a.decided) {
+                a.decided = true;
+                const bool fast = b.hot || toward >= kKnockDownSpeed * 0.7f;
+                static constexpr int kBlockChance[3][2] = {{0, 0}, {15, 45}, {40, 85}}; // percent: by level, slower or fast
+                a.blockFor = static_cast<int>(Random() % 100) < kBlockChance[level][fast ? 1 : 0] ? 40 : 0;
+            }
+            if (a.blockFor > 0 && !air && a.pressFor == 0) {
+                a.blockFor--;
+                return static_cast<uint16_t>(out | (forward > 0 ? kLeft : kRight));
+            }
+        }
         // Striking: an attack whose button meets the ball as it comes out (a light one soonest, a hard one furthest), the
         // harder ones tried first at the harder levels
         static constexpr uint16_t kButtons[6] = {kPunch1, kPunch2, kPunch3, kKick1, kKick2, kKick3};
@@ -973,6 +996,9 @@ void State(Archive &ar) {
     ar.Pod(g);
 }
 
+unsigned HiddenLayers() {
+    return g.phase != kOff ? d.hiddenLayers : 0;
+}
 Hide Hidden() {
     return g.phase != kOff ? d.hidden : nullptr;
 }

@@ -26,6 +26,7 @@ void RegisterCheats();   // cheats.cpp
 void CheatsFrame(Machine &machine);
 void RegisterModes();    // modes.cpp
 void RegisterTraining(); // training.cpp
+void RegisterCourt();    // court.cpp (before the battle's: its page is among theirs)
 void RegisterBattle();   // battle.cpp
 void RegisterChoosing(); // choosing.cpp
 void ChoosingBeforeFrame(Machine &machine);
@@ -47,6 +48,7 @@ void LiveTagBeforeFrame(Machine &machine);
 void RegisterGame() {
     RegisterModes();
     RegisterTraining();
+    RegisterCourt();
     RegisterBattle();
     RegisterLiveTag();
     RegisterModel();

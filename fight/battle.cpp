@@ -1981,6 +1981,9 @@ void BattleFrame(Machine &machine) {
             machine.video.hideObject = court::Hidden(); // (the court's: the health bars and the clock, the gauge kept)
         }
         machine.video.layerMask = layered ? 1 | d.panelLayers : 0xF;
+        if (g.kind == Kind::Court && g.phase != Phase::Starting) {
+            machine.video.layerMask &= ~court::HiddenLayers(); // (the court's: a panel that is a scroll screen)
+        }
         machine.video.markObjects = layered;
         machine.video.markLayers = layered ? d.panelLayers : 0;
     }
