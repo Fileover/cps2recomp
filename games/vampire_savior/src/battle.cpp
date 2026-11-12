@@ -142,7 +142,6 @@ void RegisterBattle() {
     d.choosable = [](int number) { return Choosable(number); };
     d.rosterNumber = [](int choice) { return choice >= 1 && choice <= static_cast<int>(std::size(kRoster)) ? kRoster[choice - 1].number : -1; };
     d.fighterChoices = RosterChoices({"Random"});
-    d.stageChoices = StageChoices({"Shuffle", "Scroll"}, {}, true); // (other games' stages after its own: BattleStage)
     d.tuneOff = kTuneOff;
     d.inGame = [] { return Ram16(kMode) != 0; };
     d.choosing = [] { return Ram16(kMode) == 2 && Ram16(kGameStep) == kGameChoosing && Ram8(kPlayersIn) == 3; };

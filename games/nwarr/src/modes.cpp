@@ -46,6 +46,11 @@ namespace {
     // 0064D6: move.w d1,0xD88(a5), the next stage (and, in a game against the computer, the next opponent, whose
     // stage it is). A mode's stage is put in its place.
     bool StageSet(M68K &c) {
+        // (not in the board's own game against the computer: there the word is the next opponent too, so the player's
+        // stage, the menu's Stage page, is left out; another game's is drawn behind such a match all the same)
+        if (Ram8(kPlayersIn) != 3 && !modes::Wanted().stage && !BattleMode() && !session::InSession()) {
+            return false;
+        }
         const int stage = session::WantedStage();
         if (stage >= 1 && stage <= kStages) {
             c.d[1] = (c.d[1] & 0xFFFF0000) | static_cast<uint32_t>(stage - 1);

@@ -86,6 +86,17 @@ namespace {
         Return(c);
         return true;
     }
+
+    // 0070A0: the end of a one-player game's next opponent being chosen (00702E), its stage taken from its character
+    // (00709C): the matches after the first, which do not come by MatchMade's place. The player's stage (the menu's
+    // Stage page) is put in its place: the opponent stays.
+    bool NextStageChosen(M68K &) {
+        const int stage = session::WantedStage();
+        if (stage >= 1 && stage <= kStages) {
+            SetRam16(kStage, static_cast<uint16_t>((stage - 1) * 2));
+        }
+        return false;
+    }
 } // namespace
 
 void RegisterModes() {
@@ -134,6 +145,7 @@ void RegisterModes() {
                    "editor, survival, endless battle, ring out.";
     modes::Register(d);
     AddHook(HookAt(0x006FD0), "MatchMade", MatchMade);
+    AddHook(HookAt(0x0070A0), "NextStageChosen", NextStageChosen);
 }
 
 } // namespace cps2recomp

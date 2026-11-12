@@ -8,6 +8,19 @@ menu's Reset game. Which modes a game has is on its own page.
 
 ![The in-game menu's Alternative modes page](screenshots/sfa2/menu-alternative-modes.png)
 
+### The stage
+
+The in-game menu's **Stage** page (on its first page, after Game) says where the fights are: the game's own choice, or
+a stage by name, the game's own or another game's whose ROM set you have. It holds whatever is played: the board's own
+one- and two-player games, training, survival, the team battle and the endless battle's **One stage** (its **Shuffle**
+and **Scroll** go through the stages their own way, as the ring out does). Online the match is on the host's. Confirm
+on its row marks a favourite; the row under it goes through the favourites alone.
+
+A one-player game's opponents come as the board has them, on the stage chosen; a last opponent that is part of its
+stage keeps it (Apocalypse, Onslaught). In the Street Fighter II games, Night Warriors and Darkstalkers the stage is the
+opponent's own and the game goes by it, so their one-player game keeps its stages: only another game's stage is shown
+there.
+
 ### Training mode
 
 A fight with no clock that nobody loses, and the training aids: [training mode](TRAINING.md).

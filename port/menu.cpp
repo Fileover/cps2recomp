@@ -36,11 +36,16 @@ namespace {
 void Menu::Open(bool withStates) {
     const cps2recomp::Game &game = cps2recomp::TheGame();
     recomp::MenuConfig config;
-    // Online, Display and Game first (issue #196), then the game's pages that belong at the head; then three groups
+    // Online, Display, Game and Stage first (issue #196), then the game's pages that belong at the head; then three groups
     // with a line between them: the save states, what the game offers, and leaving. Under Game: the speed, Mute, and
     // the Board, Cheats and Sound pages (a first page of fewer rows).
     config.groups.push_back({{recomp::MenuRow::Page, 0, "Online"}, {recomp::MenuRow::Page, 0, "Display"},
                              {recomp::MenuRow::Page, 0, "Game"}});
+    // (and Stage, for a game with a choice of stage: where the fights are, whatever is played; fight/session.h)
+    if (std::any_of(game.features.begin(), game.features.end(),
+                    [](const cps2recomp::Feature &feature) { return !strcmp(feature.category, "Stage"); })) {
+        config.groups.back().push_back({recomp::MenuRow::Page, 0, "Stage"});
+    }
     config.pages.push_back({"Game", "", "", true, {recomp::MenuRow::Speed, recomp::MenuRow::Mute}});
     for (const char *under : {"Board", "Cheats", "Sound"}) {
         config.pages.push_back({under, "Game"});

@@ -67,7 +67,7 @@ another is started or with the menu's Reset.
 | --- | --- | --- |
 | Fighter 1 | `endless_one` | Who is on player 1's side: someone new each time, or always the same. Choices: Random, Ryu ... Gen (19). |
 | Fighter 2 | `endless_two` | Who is on player 2's side: someone new each time, or always the same. Choices: Random, Ryu ... Gen (19). |
-| Stage | `endless_stage` | Where they fight. Shuffle: a stage that fades into another every so often. Scroll: the stages go by, one after another, and the fighters are carried along. Or one stage. Choices: Shuffle, Scroll ... Gen's (the ruins) (20). |
+| Stages | `endless_stage` | Where they fight. Shuffle: a stage that fades into another every so often. Scroll: the stages go by, one after another, and the fighters are carried along. One stage: the one chosen on the menu's Stage page (with the game's choice there, another for each fight). Choices: Shuffle, Scroll, One stage. |
 | Shuffle every | `endless_shuffle` | Shuffle: how long they fight on a stage before it fades into another. Choices: 1 minute, 2 minutes, 3 minutes, 5 minutes, 10 minutes. |
 | Scroll speed | `endless_scroll` | Scroll: how fast the stages go by. Choices: Slow, Medium, Fast. |
 
@@ -124,12 +124,19 @@ own test menu instead.
 | Straight to the title | `skip_intro` | When the game starts, and when it is reset, goes straight to the title: the board's memory test, the notices and the introduction are run unseen, in a second or so. |
 | Run-ahead | `run_ahead` | Shows the game a frame or two further on than it is, so that what you press is seen sooner than on the board (input lag taken away). The game runs as it does without it; it takes two or three times the processor. Off by itself in the game's own modes beyond fights and training. Choices: Off, 1 frame, 2 frames. |
 
+## Stage
+
+Its own page on the in-game menu's first page. Online, the match is on the host's.
+
+| Feature | Name in `settings.ini` | What it does |
+| --- | --- | --- |
+| Stage | `stage` | Where the fights are, whatever is played (the game's own games, training, the other modes): the game's own choice (the stage of one of the two characters) or a stage named here. Takes effect when the characters are next chosen. Choices: The game's choice, Ryu's (moonlit snow) ... Gen's (the ruins) (19). |
+
 ## Training mode
 
 | Feature | Name in `settings.ini` | What it does |
 | --- | --- | --- |
 | Start over at | `restart_at` | Where "Start over" puts the players: the middle or a corner, player 1 on the left or (swapped) on the right. Choices: Middle, Left corner, Right corner, Middle, swapped, Left corner, swapped, Right corner, swapped. |
-| Stage | `training_stage` | Where a training session's fight is: the game's own choice (the stage of one of the two characters) or a stage named here. Takes effect when the characters are next chosen. Choices: The game's choice, Ryu's (moonlit snow) ... Gen's (the ruins) (19). |
 | Combo readout | `damage_readout` | Under the bar of the player hit: what the hit took off; for a combo (hits landing before the player is free again) the hits and the damage; the round's best. |
 | Stun readout | `stun_readout` | Under each bar: how much stun the player has taken and how much stuns them (it drains when they are left alone for a while). |
 | Custom Combo time | `custom_combo_readout` | While a player's Custom Combo goes on, how much of its time is left, under that player's bar. |

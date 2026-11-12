@@ -764,8 +764,7 @@ bool Described() {
     return g_described;
 }
 
-void RegisterPage(const char *modes, void (*start)(Machine &machine), const std::vector<const char *> &fighters,
-                  const std::vector<const char *> &stages) {
+void RegisterPage(const char *modes, void (*start)(Machine &machine), const std::vector<const char *> &fighters) {
     if (!g_described) {
         return;
     }
@@ -791,9 +790,8 @@ void RegisterPage(const char *modes, void (*start)(Machine &machine), const std:
                              "The court shown 16:9, not 4:3: more of it at once. The same as the Display page's Widescreen.", 0});
     game.features.push_back({"court_one", kCourt, "Fighter 1", "Player 1's fighter: someone at random, or this one.", 0, fighters});
     game.features.push_back({"court_two", kCourt, "Fighter 2", "Player 2's (or the CPU's) fighter: someone at random, or this one.", 0, fighters});
-    game.features.push_back({"court_stage", kCourt, "Stage", "Where the court is.", kFeatureFavourites, stages});
     // (the fighters' rows and the stage are this game's own: the collection's launcher is not to set another game's)
-    OwnFeatures({"court_one", "court_two", "court_stage"});
+    OwnFeatures({"court_one", "court_two"});
 }
 
 bool On() {

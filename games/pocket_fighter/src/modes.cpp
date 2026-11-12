@@ -52,6 +52,17 @@ namespace {
         }
         return false;
     }
+
+    // 0099DE: the end of the match making for a one-player game (009970), which has chosen the computer's next opponent
+    // and, from the list that goes with it, its stage (0099DA): every match's of such a game, where MatchMade above sees
+    // only the first. The player's stage (the menu's Stage page) is put in its place: the opponent stays.
+    bool StageChosenForOne(M68K &) {
+        const int stage = session::WantedStage();
+        if (stage >= 1) {
+            SetRam16(kStage, static_cast<uint16_t>(stage <= kStages ? (stage - 1) * 2 : 0));
+        }
+        return false;
+    }
 } // namespace
 
 void RegisterModes() {
@@ -96,6 +107,7 @@ void RegisterModes() {
                    "endless battle, ring out.";
     modes::Register(d);
     AddHook(HookAt(0x017790), "MatchMade", MatchMade);
+    AddHook(HookAt(0x0099DE), "StageChosenForOne", StageChosenForOne);
 }
 
 } // namespace cps2recomp

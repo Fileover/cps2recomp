@@ -40,10 +40,12 @@ namespace cps2recomp {
 class Archive;
 
 // What the machine that is running is to fight when the game next makes a match (the game's sources hook where
-// the game chooses them): the stage (1 the first; 0: the game's choice), the two characters and their colours
-// (-1: the ones chosen at the character choice). Whoever runs a machine sets this first.
+// the game chooses them): the stage (1 the first; 0: the player's own, the menu's Stage page, which is the game's
+// choice unless the player names one: session.h), the two characters and their colours (-1: the ones chosen at the
+// character choice). Whoever runs a machine sets this first.
 struct MatchWanted {
     int stage = 0;
+    bool gamesStage = false; // with no stage: the game's choice, whatever the player's own is (the ring out's fighters)
     int characters[2] = {-1, -1};
     int colours[2] = {-1, -1}; // which of a character's sets of colours (-1: as chosen)
     int partners[2] = {-1, -1}; // a tag-team game's second character of each side (-1: as chosen)
@@ -151,8 +153,8 @@ struct Description {
     bool (*choosable)(int number) = nullptr;
     // A choice of the menu's "Fighter" rows (0: at random) as a character's number (-1: none)
     int (*rosterNumber)(int choice) = nullptr;
-    // The menu's choices: who (first "Random"), and where (first "Shuffle", "Scroll", then the stages)
-    std::vector<const char *> fighterChoices, stageChoices;
+    // The menu's choices of who (first "Random")
+    std::vector<const char *> fighterChoices;
     uint16_t tuneOff = 0xFF05;      // a sound asked for before another tune
     bool teams = false;             // the team battle is on the menu
     float teamLinesY = 0.27f;       //   where the line of a team's others goes, as a part of the picture (under its bars)
@@ -253,10 +255,10 @@ void RegisterTeamTag(float labelY);
 
 // Whether one of these modes is on, and ending it
 bool BattleMode();
-// The stage chosen for the endless battle (one stage) or the team battle when it is another game's, after the game's
-// own in the lists (`stageChoices`, the game's `stages` first): its number in them, from 1 (0: none, or the game's own).
-// Such a match is fought on the game's first stage, and the other drawn behind it (fight/guest_stages.h, the game's
-// Host::wanted)
+// The player's stage (the menu's Stage page: session.h) in the survival, the team battle or the endless battle's one
+// stage when it is another game's, after the game's own in the list (the game's `stages` first): its number there, from
+// 1 (0: none, or the game's own). Such a match is fought on the game's first stage, and the other drawn behind it
+// (fight/guest_stages.h, the game's Host::wanted)
 int BattleStage();
 void EndBattle();
 bool BattleNoClock();    // the round's clock stands still

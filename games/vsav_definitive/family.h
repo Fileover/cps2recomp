@@ -64,7 +64,7 @@ inline constexpr const char *kStageNames[] = {
 };
 
 // Other games' stages, shown after these (fight/guest_stages.h; src/stages.cpp: their boards run beside this one), in
-// the lists a stage is chosen from by name (training's, the stage viewer's): the first Darkstalkers' (each character's,
+// the lists a stage is chosen from by name (the Stage page's, the stage viewer's): the first Darkstalkers' (each character's,
 // in that game's order), then Street Fighter Alpha 2's (game.cfg's guests, in the same order)
 template <size_t A, size_t B>
 constexpr std::array<const char *, A + B> Joined(const std::array<const char *, A> &a, const std::array<const char *, B> &b) {

@@ -7,7 +7,7 @@
 // (game.cfg's guests). Each game's src/stages.cpp gives its facts; its camera is read as its own guest.h reads it (the
 // record by the stage, its place and ends), its height the record's lowest place less its place down.
 //
-// Which: a stage chosen by name (training's, versus's, the stage viewer's, the endless and team battles': the guests'
+// Which: a stage chosen by name (the menu's Stage page's, the stage viewer's: the guests'
 // after the game's own), or, with the "Other games' stages" feature, an arcade match's stage is one of theirs, the same
 // one for the same match. Under one of theirs the game fights on its first (modes.cpp, where it takes the stage).
 #pragma once
@@ -72,7 +72,7 @@ inline int Wanted() {
     const Facts &f = TheFacts();
     const int stages = guest_stages::Stages();
     if (BattleMode()) {
-        // (the modes' stages are the game's own, but one chosen for the endless or the team battle from the guests')
+        // (a mode's stages are the game's own, but the player's stage when it is one of the guests': BattleStage)
         const int chosen = BattleStage();
         return chosen > f.stages && chosen <= f.stages + stages ? chosen - f.stages : 0;
     }
@@ -120,8 +120,8 @@ inline void Register(const Facts &facts) {
     game.features.push_back({"other_stages", "Display", "Other games' stages",
                              "An arcade match is fought on a stage of another game's, as that game shows it, its music too: "
                              "the other fighting games in the collection, those whose ROM sets are there (beside this "
-                             "game's, or chosen on their pages in the launcher). Training's, versus's, the stage viewer's and "
-                             "the endless and team battles' lists have them all after this game's own.",
+                             "game's, or chosen on their pages in the launcher). The menu's Stage page and the stage "
+                             "viewer's list have them all after this game's own.",
                              0});
     guest_stages::Host host;
     host.camera = Camera;

@@ -21,7 +21,7 @@
 GAME=$1
 port=${B:-build/$GAME}/$GAME
 play="--auto 5:400:1"
-stages=$(($($port --list-features 2>/dev/null | grep "^training_stage" | cut -f6 | tr '|' '\n' | wc -l) - 1))
+stages=$(($($port --list-features 2>/dev/null | grep "^stage" | cut -f6 | tr '|' '\n' | wc -l) - 1))
 status=0
 dir=$(mktemp -d)
 out=$(VSAV_WIDE_CHECK=1 $port --rom "${ROM:-rom/$GAME}" --headless --frames 39500 $play --features free_play,no_damage,one_hit,widescreen --stats 2>&1) || status=1
@@ -35,7 +35,7 @@ echo "$out" | grep -q "^0 instructions had no translation and ran in the interpr
 # Invisible walls: the stages' ends
 for stage in $(seq 1 $stages); do
     $port --rom "${ROM:-rom/$GAME}" --headless --frames 3500 --features free_play,widescreen,widescreen_walls \
-        --movie games/vampire_savior/movies/corners.txt --keys "5:ftraining_stage=$stage,10:ctraining_start" --shot-every 500:$dir/w${stage}_ > /dev/null 2>&1 &
+        --movie games/vampire_savior/movies/corners.txt --keys "5:fstage=$stage,10:ctraining_start" --shot-every 500:$dir/w${stage}_ > /dev/null 2>&1 &
     [ $((stage % 6)) -eq 0 ] && wait
 done
 wait

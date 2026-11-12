@@ -46,6 +46,10 @@ rm -f "$work/online-host.txt" "$work/online-join.txt" "$work/online-host.eeprom"
 play=$("build/$GAME/$GAME" --list-features 2>&1 | awk -F'\t' '($2=="Game"||$2=="Cheats"||$2=="Display") && NF==5 &&
     $1 !~ /^(display_|window_size|run_ahead|custom_soundtrack|widescreen_walls|custom_colours)/ {print $1}' | paste -sd, -)
 play="${play:+$play,}widescreen"
+# (and a stage of the player's choice, the menu's Stage page, where the game has one: the host's is the match's)
+if "build/$GAME/$GAME" --list-features 2>&1 | awk -F'\t' '$1=="stage" && $2=="Stage" {found=1} END {exit !found}'; then
+    play="$play,stage=2"
+fi
 if [ -n "$first_to" ]; then play="$play,online_set=$first_to"; fi
 # (the match has them but for the cheats, which are off on both sides: the replay is given the same)
 cheats=$("build/$GAME/$GAME" --list-features 2>&1 | awk -F'\t' '$2=="Cheats" {print $1}')

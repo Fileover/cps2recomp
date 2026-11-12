@@ -47,6 +47,7 @@ inline constexpr Place kPlaceList[] = {
     {0x00A4BA, 0x008CD2}, // an instruction, 24 on alike
     {0x00A60A, 0x008E2E}, // an instruction, 24 on alike
     {0x00AE7C, 0x0096BC}, // an instruction, 10 on alike
+    {0x00AF14, 0x009764}, // the end of the stage's choice for a one-player game (training.cpp's StageChosenForOne), found by its instructions by hand
     {0x00D560, 0x00BBAC}, // an instruction, 24 on alike
     {0x014E8A, 0x01357E}, // an instruction, 9 on alike
     {0x015030, 0x013724}, // an instruction, 10 on alike
@@ -702,7 +703,7 @@ inline constexpr const char *kStageNames[] = {
 
 
 // Other games' stages, shown after these (fight/guest_stages.h; src/stages.cpp: each run from its own stage code), in the
-// lists a stage is chosen from by name (training's, versus's, the stage viewer's): the first Darkstalkers' (each
+// lists a stage is chosen from by name (the menu's Stage page's, the stage viewer's): the first Darkstalkers' (each
 // character's, in that game's order), then Street Fighter Alpha 2's (game.cfg's guests, in the same order)
 template <size_t A, size_t B>
 constexpr std::array<const char *, A + B> Joined(const std::array<const char *, A> &a, const std::array<const char *, B> &b) {

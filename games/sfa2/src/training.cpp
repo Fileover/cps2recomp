@@ -62,6 +62,18 @@ namespace {
         return false;
     }
 
+    // 007AFA: the end of the match making, the first match's (007914) and each next opponent's of a one-player game
+    // (007A18 on, which does not come by ChooseStage's place), after the last opponent's own stage is put in (007AF6).
+    // The player's stage (the menu's Stage page) goes in its place: the opponent stays. Another game's is drawn over
+    // whichever stage the game has (stages.cpp).
+    bool StageChosen(M68K &) {
+        const int stage = session::WantedStage();
+        if (stage >= 1 && stage <= kStages) {
+            SetRam16(kStage, static_cast<uint16_t>((stage - 1) * 2));
+        }
+        return false;
+    }
+
     // The hidden characters: the other forms the board has of the characters on the screen they are chosen from, as
     // the "Hidden characters" feature gives them for one who chooses the first form (family.h)
     using family::kHiddenForms;
@@ -321,6 +333,7 @@ void RegisterTraining() {
     Game &game = TheGame();
     AddHook(kPlayerDispatch, "PlayerStep", PlayerStep);
     AddHook(At(0x00797C), "ChooseStage", ChooseStage);
+    AddHook(At(0x007AFA), "StageChosen", StageChosen);
     AddHook(At(0x007914), "ChooseCharacters", ChooseCharacters);
     AddHook(At(0x0628D8), "CharacterChosen", CharacterChosen);
     game.features.push_back({"hidden_forms", "Game", "Hidden characters",
@@ -371,8 +384,9 @@ void RegisterTraining() {
     d.wideMargin = WideMargin;
     d.wideEnds = WideEnds;
     d.stageChoices = modes::StageChoices({"The game's choice"});
-    d.stageWords = "Where a training session's fight is: the game's own choice (the stage of one of the two characters) or a stage "
-                   "named here. Takes effect when the characters are next chosen.";
+    d.stageWords = "Where the fights are, whatever is played (the game's own games, training, the other modes): the "
+                   "game's own choice (the stage of one of the two characters) or a stage named here. Takes effect "
+                   "when the characters are next chosen.";
     d.inputWords = "What each player presses and for how many frames: the stick as a keypad number from the player's side (6 forward, "
                    "4 back, 2 down), then the buttons.";
     d.framesPrintVariable = "SFA2_FRAMES";

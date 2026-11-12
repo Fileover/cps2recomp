@@ -32,7 +32,10 @@ facts and hooks.
   a sound asked for (`PlaySound`), the match and the camera a mode wants (`Wanted`, `CameraAt`), what is kept around a
   spare's frame (the game adds its own: `keep`, `fresh`, `putBack`).
 - `fight/session.h` (`session::`): the training session. Getting there from switching on, player 1's controls choosing
-  for both, the round kept as its fighting begins for "Start over" (the middle or a corner, sides swapped), the stage,
+  for both, the round kept as its fighting begins for "Start over" (the middle or a corner, sides swapped),
+  the stage (the menu's Stage page, `kStageFeature`: the player's choice for every fight, in a session or out of one,
+  which the game's hook where it takes its stage asks for with `WantedStage`; the modes of `fight/battle.h` go by it too,
+  online it is the host's: `port/netplay.cpp`),
   no clock and no knock-outs (`NoClock`, `NoKnockOut`, for the game's own clock and damage hooks), and the aids of
   `fight.h` put together on the HUD. The game tells it, from its own hooks, each player's step (`Step`, a `StepView`),
   a hit landing (`Contact`) and a hit's damage (`Hit`); the description says where the game keeps the rest (players,

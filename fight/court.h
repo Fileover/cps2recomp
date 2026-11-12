@@ -100,9 +100,9 @@ struct Description {
 // The game's description; the battle modes' page for it is made by battle::Register (the menu's rows: Register)
 void Register(const Description &description);
 bool Described();
-// The menu's page and its rows (battle.cpp, with its Start and the battle's choices of fighter and stage)
-void RegisterPage(const char *modes, void (*start)(Machine &machine), const std::vector<const char *> &fighters,
-                  const std::vector<const char *> &stages);
+// The menu's page and its rows (battle.cpp, with its Start and the battle's choices of fighter; the stage is the menu's
+// Stage page, as every way of playing's)
+void RegisterPage(const char *modes, void (*start)(Machine &machine), const std::vector<const char *> &fighters);
 
 // A court game is being played (the battle's kind), and its fight is on (the ball in play or about to be)
 bool On();

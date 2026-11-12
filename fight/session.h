@@ -110,8 +110,8 @@ struct Description {
     std::vector<const char *> ownAids;
     // The stage choices (first "The game's choice"), and the words for them
     std::vector<const char *> stageChoices;
-    const char *stageWords = "Where a training session's fight is: the game's own choice or a stage named here. Takes effect when the "
-                             "characters are next chosen.";
+    const char *stageWords = "Where the fights are, whatever is played (the game's own games, training, the other modes): the "
+                             "game's own choice or a stage named here. Takes effect when the characters are next chosen.";
     // A variable that prints every move's frame data to stderr too (besides CPS2RECOMP_FRAMES), or none
     const char *framesPrintVariable = nullptr;
 };
@@ -124,8 +124,11 @@ void StartSession(Machine &machine);
 // A session is on
 bool InSession();
 // The stage the machine that is running is to fight on, for the game's choice of stage (0: the game's choice):
-// what a mode wants (alternative.h), else the session's "Stage"
+// what a mode wants (alternative.h), else the player's choice on the menu's Stage page (kStageFeature), in a session or
+// out of one
 int WantedStage();
+// The menu's Stage page (at the head of the first page) and its one choice: 0 the game's choice, then the stages from 1
+inline constexpr const char *kStagePage = "Stage", *kStageFeature = "stage";
 // No clock, and nobody knocked out: a session, the stage viewer, or a fighting mode that wants it
 bool NoClock();
 bool NoKnockOut();

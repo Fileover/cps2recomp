@@ -54,14 +54,14 @@ The menu's **Ball battle** page has Start and these choices:
 | Camera | **Whole court** (the default: the whole court always) or **Follow the play** (as close as shows both fighters and the ball, to 1.3x a 16:9 picture; out to the whole stage, black above it, when they are apart) |
 | Widescreen (recommended) | The Display page's own Widescreen, here too: the court shown 16:9 (else 4:3) |
 | Fighter 1, Fighter 2 | Someone at random, or a character |
-| Stage | Random (of the game's own), or any stage: the game's own, then the other games' (guest stages, each needing that game's ROM set) |
+| Stage | The menu's **Stage** page, as for every way of playing: the game's choice (at random, of the game's own), or any stage, the game's own, then the other games' (guest stages, each needing that game's ROM set) |
 
 ## How it is made
 
 `fight/court.{h,cpp}` holds the game itself, the same for every fighting game: the ball's flight and bounces, what an
 attack does to it, the rules and the score, the CPU's side, the ball and the line drawn, the score shown, and the
 menu's page. It runs as one of the battle modes' kinds (`fight/battle.cpp`, `Kind::Court`). The battle starts the
-match (the fighters and stage from the page's rows, nobody played by the game's own computer, no clock, no
+match (the fighters from the page's rows and the stage from the Stage page, nobody played by the game's own computer, no clock, no
 knock-out), holds the camera in the middle of the stage, and calls the court before and after each frame.
 
 - **The court** is the picture: its left and right edges in the stage (wide or not) are the ends, and the line is

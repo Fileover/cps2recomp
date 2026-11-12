@@ -128,7 +128,8 @@ namespace {
         }
     };
 
-    // Which features the joining side takes from the host: those that change how the game plays. Each player's
+    // Which features the joining side takes from the host: those that change how the game plays, and the stage (the
+    // menu's Stage page). Each player's
     // own: how the picture is shown and the sound. Off for both: the cheats (a fair match), and the rest (the
     // alternative modes, training, the viewers: kept apart from the save state, or not worked out for two machines
     // yet), and run-ahead (rollback does what it does).
@@ -139,6 +140,11 @@ namespace {
             return Share::Off; // (custom colours: each player's own library, which the other side has not)
         }
         if (name == "online_set" || name.rfind("widescreen", 0) == 0 || category == "Game" || category == "Board") {
+            return Share::Host;
+        }
+        if (category == "Stage") {
+            // (the stage is the game's own choice made for it, the same on both machines or they part: the host's.
+            // Another game's stage is drawn by each side that has its ROM set; the fight is the same without)
             return Share::Host;
         }
         // (the modes played online, Port::OnlineEvent: their pages as the host has them, each player's own fighters

@@ -2,6 +2,20 @@
 
 ## Unreleased
 
+- **Stage select, in every mode (the fighting games).** The in-game menu's first page has a **Stage** page, after
+  Game: the game's own choice, or a stage by name, the game's own or another game's (with its favourites, as before).
+  It now holds whatever is played: the board's one- and two-player games, training, survival, the team battle and the
+  endless battle's one stage (and Ball battle's: its own Stage row is gone too); online, the match is fought on the host's. The Training page's Stage row and the team
+  battle's are gone (their settings, `training_stage` and `team_stage`, are no longer read: the one setting is
+  `stage`), and the endless battle's row is now **Stages**: Shuffle, Scroll or One stage, the Stage page's. The ring
+  out, Shuffle and Scroll and the stage viewer keep their own stages; with "Other games' stages" an arcade match with
+  the game's choice is still on another game's.
+  - In a one-player game the opponents come as the board has them, on the stage chosen; a last opponent that is part of
+    its stage keeps it (Apocalypse, Onslaught). The Street Fighter II games (Hyper too), Night Warriors and Darkstalkers
+    are the exception: their stage is the opponent's own and the game goes by it (who comes next, the last opponents,
+    the bonus stages), so a one-player game there keeps its stages, and only another game's stage is shown over them.
+  - In the games whose one-player game chose each next opponent's stage at a place the port did not watch (Vampire
+    Savior and the games made from it, Street Fighter Alpha and Alpha 2, Zero 2 Alpha, Pocket Fighter), it now does.
 - **Ball battle and tag team online**: in an online match the host can switch to Ball battle or the Tag team battle
   (and back to Versus) from Esc's overlay, and each player picks their own fighters there. The choices go with the
   players' controls, frame-exact on both sides, rolled back like the controls; the modes' state is all in the save

@@ -32,7 +32,7 @@ echo "$out" | grep -q "^0 instructions had no translation and ran in the interpr
 # Invisible walls: the stages' ends
 for stage in 1 2 3 4 5 6 7 8 9 10 11 12; do
     VAMPIRE_SAVIOR_HOME=$dir/home_w$stage $port --rom "${ROM:-rom/$GAME}" --headless --frames 3500 --features free_play,widescreen,widescreen_walls \
-        --movie games/$GAME/movies/corners.txt --keys "5:ftraining_stage=$stage,10:ctraining_start" --shot-every 500:$dir/w${stage}_ > /dev/null 2>&1 &
+        --movie games/$GAME/movies/corners.txt --keys "5:fstage=$stage,10:ctraining_start" --shot-every 500:$dir/w${stage}_ > /dev/null 2>&1 &
     [ $((stage % 6)) -eq 0 ] && wait
 done
 wait

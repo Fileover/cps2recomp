@@ -26,6 +26,10 @@ players=${players:-2}
 play=$("build/$GAME/$GAME" --list-features 2>&1 | awk -F'\t' '($2=="Game"||$2=="Cheats"||$2=="Display") && NF==5 &&
     $1 !~ /^(display_|window_size|run_ahead|rapid_fire|custom_soundtrack|widescreen_walls)/ {print $1}' | paste -sd, -)
 play="${play:+$play,}widescreen"
+# (and a stage of the player's choice, the menu's Stage page, where the game has one)
+if "build/$GAME/$GAME" --list-features 2>&1 | awk -F'\t' '$1=="stage" && $2=="Stage" {found=1} END {exit !found}'; then
+    play="$play,stage=2"
+fi
 run() { # name, then the program's arguments
     name=$1; shift
     rm -f "$work/rollback-eeprom.bin"
