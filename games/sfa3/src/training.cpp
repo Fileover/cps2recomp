@@ -14,10 +14,14 @@
 
 #include <algorithm>
 #include <cstdio>
+#include <cstdlib>
 #include <iterator>
 #include <string>
 
 namespace cps2recomp {
+
+void CourtStep(uint32_t player); // court.cpp
+bool CourtNoThrow(M68K &c);       // court.cpp
 
 bool RingOutStep(M68K &c);                    // battle.cpp
 bool AttackInRange(M68K &c, uint32_t player); // guard.cpp
@@ -54,6 +58,7 @@ namespace {
             Return(c);
             return true;
         }
+        CourtStep(c.a[6] & 0xFFFFFF); // (what the court's ball has done to it: court.cpp)
         const uint32_t player = c.a[6] & 0xFFFFFF;
         const int n = PlayerOf(player);
         if (n < 0 || Ram8(player + kState) != 2 || !modes::RoundFought()) {
@@ -138,6 +143,9 @@ namespace {
     // kept, by character, and drawn in front of each player who could throw (on the floor and free to act).
     uint8_t g_throwBox[kCharacters] = {};
     bool ThrowTested(M68K &c) {
+        if (CourtNoThrow(c)) { // (nobody is thrown on the court: court.cpp)
+            return true;
+        }
         const uint32_t player = c.a[6] & 0xFFFFFF;
         if (PlayerOf(player) >= 0) {
             const uint8_t who = Ram8(player + kCharacter);
