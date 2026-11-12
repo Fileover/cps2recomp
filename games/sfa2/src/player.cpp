@@ -14,6 +14,8 @@
 
 namespace cps2recomp {
 
+void CourtStep(uint32_t player); // court.cpp
+
 namespace {
     using namespace sfa2;
 
@@ -2010,6 +2012,7 @@ namespace {
     void PlayerStepOne(M68K &c, uint32_t player) {
         Spend(c, 500); // (its time: this runs inline, not as a rewrite of its own)
         c.a[6] = player;
+        CourtStep(player); // (what the court's ball has done to it: court.cpp)
         if (Ram8(player + kNoThrow)) {
             SetRam8(player + kNoThrow, static_cast<uint8_t>(Ram8(player + kNoThrow) - 1));
         }

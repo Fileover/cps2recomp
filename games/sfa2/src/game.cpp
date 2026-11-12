@@ -30,6 +30,7 @@ void RegisterModes(); // modes.cpp
 void ModesBeforeFrame(Machine &machine);
 void ModesFrame(Machine &machine);
 void ModesState(Archive &ar);
+void RegisterCourt();  // court.cpp (before the battle's: its page is among theirs)
 void RegisterBattle(); // battle.cpp
 void BattleBeforeFrame(Machine &machine);
 void BattleFrame(Machine &machine);
@@ -66,6 +67,7 @@ void RegisterGame() {
     RegisterMusic();
     RegisterMachines();
     RegisterModes();
+    RegisterCourt();
     RegisterBattle();
     RegisterLiveTag();
     RegisterModel();
