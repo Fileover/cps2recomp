@@ -68,10 +68,11 @@ public:
     static constexpr int kDefaultPort = 7845;
     // The packets' layout (2: the host's state sent at the start); two copies must have the same to play, and the
     // lobby shows only matches of this one (the launcher asks with it too)
-    static constexpr int kProtocol = 8; // (3: the version said in the hello and to the service; 4: the welcome's flags;
+    static constexpr int kProtocol = 9; // (3: the version said in the hello and to the service; 4: the welcome's flags;
                                         // 5: the welcome's program words, so two regions' sets play together;
                                         // 6: each player's name in the hello and the welcome, and the chat;
-                                        // 7: the host's first-to set, and both games agreeing on its end; 8: spectators)
+                                        // 7: the host's first-to set, and both games agreeing on its end; 8: spectators;
+                                        // 9: events with the controls, the modes played online: Command)
     static constexpr int kMostAhead = 8;   // frames run on guessed controls at most
     static constexpr int kKept = 16;       // states kept (more than the most a rollback goes back)
     static constexpr int kInputs = 128;    // controls kept, each side's
@@ -187,6 +188,13 @@ public:
     static constexpr size_t kChatMost = 60;
     void Say(const std::string &text);
     std::vector<std::string> TakeHeard();
+    // Events (the host's choice of a mode, a player's choice of their fighters, port.h's OnlineEvent): a line of
+    // this side's, to happen on both sides at the frame this side's controls are next given for, sent with those
+    // controls (again until the other side has them) so that it never comes without them; a side that has run past
+    // that frame on guessed controls goes back to it. Both sides run each frame's events before it, player 1's first.
+    void Command(const std::string &text);
+    // The events that have just come from the other side or been made on this one, once each (to be said on screen)
+    std::vector<std::pair<int, std::string>> TakeEvents();
 
 private:
     Settings settings;
@@ -306,6 +314,12 @@ private:
     uint64_t saidAt = 0;
     std::vector<std::string> heard;
     void SendChat(uint64_t now);
+    // (events: each player's, by the frame they happen before; this side's waiting for its next frame; the earliest
+    // frame an event came for that has been run already; those to say)
+    std::map<uint64_t, std::string> events[2];
+    std::vector<std::string> commanded;
+    uint64_t eventFrom = UINT64_MAX;
+    std::vector<std::pair<int, std::string>> told;
 
     void Send(const std::vector<uint8_t> &packet);
     void SendTo(const NetAddress &to, const std::vector<uint8_t> &packet);

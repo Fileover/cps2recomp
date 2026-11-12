@@ -8,6 +8,7 @@
 // is made at its step (frames.cpp, PlayerStep: CourtStep).
 #include "boxes.h"
 #include "court.h"
+#include "state.h"
 #include "modes.h"
 #include "widescreen.h"
 
@@ -227,6 +228,10 @@ void RegisterCourt() {
             SetRam16(Player(side) + kHealth, kHealthFull);
             SetRam16(Player(side) + kHealthCeiling, kHealthFull);
         }
+    };
+    d.state = [](Archive &ar) {
+        ar.Pod(g_spent);
+        ar.Pod(g_knocked);
     };
     court::Register(d);
     AddHook(At(0x029406), "CourtNoCatch", NoCatch);

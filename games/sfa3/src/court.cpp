@@ -8,6 +8,7 @@
 // ThrowTested) says no, and what the ball does to a fighter is made at its step (training.cpp, PlayerStep: CourtStep).
 #include "alternative.h"
 #include "court.h"
+#include "state.h"
 #include "sfa3.h"
 
 #include <cstdio>
@@ -227,6 +228,7 @@ void RegisterCourt() {
             SetRam16(Player(side) + kHealthShown, kHealthFull);
         }
     };
+    d.state = [](Archive &ar) { ar.Pod(g_spent); }; // (the gauges' last values: in a save state, for rollback)
     court::Register(d);
     AddHook(HookAt(0x0249E0), "CourtPushApart", PushApart);
 }

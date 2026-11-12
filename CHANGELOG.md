@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- **Ball battle and tag team online**: in an online match the host can switch to Ball battle or the Tag team battle
+  (and back to Versus) from Esc's overlay, and each player picks their own fighters there. The choices go with the
+  players' controls, frame-exact on both sides, rolled back like the controls; the modes' state is all in the save
+  state now (the court's per-game memory, the games' live tag). The online protocol is now 9
+  ([docs/ONLINE.md](docs/ONLINE.md#ball-battle-and-tag-team-online)).
 - **Ball battle** (the Vampire Savior games: Vampire Savior, Definitive, Vampire Savior 2, Vampire Hunter 2; Alternative modes > Ball battle): a ball game. A line splits the
   stage and each fighter keeps to a half; attacks strike a big ball (light, medium, hard, special and gauge moves each
   faster, the place struck deciding the angle and the spin, up or down held bending it), a crouching light kick chips

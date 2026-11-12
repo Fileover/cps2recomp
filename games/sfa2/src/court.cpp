@@ -7,6 +7,7 @@
 // pushes them apart (collision.cpp, PushApart), nobody is thrown (throws.cpp, ThrowTest), and what the ball does to a
 // fighter is made at its step (player.cpp, PlayerStepOne: CourtStep).
 #include "court.h"
+#include "state.h"
 #include "modes.h"
 #include "sfa2.h"
 
@@ -227,6 +228,7 @@ void RegisterCourt() {
             SetRam16(Player(side) + kHealthShown, kHealthFull);
         }
     };
+    d.state = [](Archive &ar) { ar.Pod(g_spent); }; // (the gauges' last values: in a save state, for rollback)
     court::Register(d);
 }
 

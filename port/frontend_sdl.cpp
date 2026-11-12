@@ -718,11 +718,10 @@ int RunWindowed(Port &port) {
                     heldAtClose = previousPad;
                 }
             } else if (port.leaving) {
-                // (online, "Leave the match?": Confirm leaves it, Back stays; this side's player stands still meanwhile)
-                if (menuPressed & recomp::kMenuConfirm) {
-                    port.LeaveOnline();
-                } else if (menuPressed & recomp::kMenuBack) {
-                    port.leaving = false;
+                // (online, Esc's overlay: the host's mode, this player's fighters, leaving: Port::OnlineMenu; this side's
+                // player stands still meanwhile)
+                if (menuPressed) {
+                    port.OnlineMenu(menuPressed);
                 }
                 heldAtClose = previousPad;
             }

@@ -41,6 +41,7 @@ void ModelFrame(Machine &machine);
 void ModelState(Archive &ar);
 bool ModelViewer();
 void RegisterColours(); // colours.cpp
+void LiveTagState(Archive &ar);
 void RegisterLiveTag(); // livetag.cpp
 void RegisterStages();  // stages.cpp
 void LiveTagBeforeFrame(Machine &machine);
@@ -99,6 +100,7 @@ void RegisterGame() {
         BattleState(ar);
         ModelState(ar);
         WidescreenState(ar);
+        LiveTagState(ar);
     };
     // With the arcade timing, the game's own code runs in place of the rewrites but where they carry what the port adds
     // (game.h, rewritesNeeded): the modes, widescreen

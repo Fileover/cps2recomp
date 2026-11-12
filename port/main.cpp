@@ -21,6 +21,7 @@
 #include "../runtime/guest.h"
 #include "port.h"
 #include "../recomp-common/folders.h"
+#include "../recomp-common/menu.h"
 #include "../recomp-common/proxy.h"
 #include "../recomp-common/settings.h"
 #include "../recomp-common/text.h"
@@ -33,6 +34,7 @@
 #include <chrono>
 #include <cmath>
 #include <map>
+#include <random>
 #include <cstdlib>
 #include <cstring>
 #include <ctime>
@@ -47,6 +49,26 @@
 using namespace cps2recomp;
 
 namespace port {
+
+namespace {
+    // The modes played online (battle::StartOnline), by number, and their pages' names
+    constexpr const char *kOnlineModes[] = {"Versus", "Ball battle", "Tag team battle"};
+    const Feature *FindFeature(const std::string &name) {
+        for (const Feature &feature : TheGame().features) {
+            if (name == feature.name) {
+                return &feature;
+            }
+        }
+        return nullptr;
+    }
+    bool OnlineModeHere(int mode) {
+        return mode == 0 || FindFeature(mode == 1 ? "court_points" : "team_size") != nullptr;
+    }
+    // A player's own fighters' rows on the modes' pages (player 1's the host's, player 2's the other side's)
+    bool OwnRow(int player, const std::string &row) {
+        return player == 0 ? row == "court_one" || row.rfind("team_1_", 0) == 0 : row == "court_two" || row.rfind("team_2_", 0) == 0;
+    }
+} // namespace
 
 bool Movie::Load(const std::string &path) {
     FILE *f = fopen(path.c_str(), "r");
@@ -94,9 +116,10 @@ namespace {
 } // namespace
 
 namespace {
-    constexpr uint32_t kStateVersion = 10; // (5: the 68000's wait kept; 6: the custom soundtrack's place; 7: the board timing's palette copy;
+    constexpr uint32_t kStateVersion = 11; // (5: the 68000's wait kept; 6: the custom soundtrack's place; 7: the board timing's palette copy;
                                           // 8: widescreen's camera a frame ago; 9: a guest board's, runtime/guest.h;
-                                          // 10: classic CPS-1 sound, machine/cps1_sound.h)
+                                          // 10: classic CPS-1 sound, machine/cps1_sound.h; 11: the tag team's swaps under
+                                          // way, the games' livetag.cpp, for online rollback)
 
     // (a path is UTF-8 text: by its wide name on Windows, where a folder with an accent is not in the system's code page)
     FILE *OpenFile(const std::string &path, const wchar_t *wideMode, const char *mode) {
@@ -1391,9 +1414,18 @@ bool Port::Tick() {
         // sources take it somewhere); no stopping, slowing or speeding up
         const bool ready = net->Ready(frame);
         HearChat();
+        HearEvents();
         if (!opt.netTyping.empty()) {
             typing = true;
             typed = opt.netTyping;
+        }
+        for (auto it = opt.netCommands.begin(); it != opt.netCommands.end();) {
+            if (frame >= it->first) {
+                net->Command(it->second);
+                it = opt.netCommands.erase(it);
+            } else {
+                ++it;
+            }
         }
         if (!opt.netSay.empty() && frame >= opt.netSayAt) {
             typed = opt.netSay;
@@ -1665,7 +1697,44 @@ void Port::Shown(std::vector<uint32_t> &pixels, std::vector<SDL_Rect> *panels, b
     }
     // (online: Esc's question, in the middle, over the game, which goes on; the port's own, not the readout, which the
     // game's sources set every frame. --net-arcade's wait: whether to stop hosting, the game stopped meanwhile)
-    if (net && leaving) {
+    if (net && leaving && !OnlineRows().empty()) {
+        // (a match: the rows, the chosen one marked; Left and Right change it, Confirm starts the mode or leaves)
+        const recomp::text::Canvas canvas{px, W, H};
+        const std::vector<OnlineRow> rows = OnlineRows();
+        std::vector<std::pair<std::string, recomp::text::Color>> lines;
+        for (int n = 0; n < static_cast<int>(rows.size()); n++) {
+            const OnlineRow &row = rows[n];
+            std::string text;
+            if (row.kind == 0) {
+                text = std::string("Play: < ") + kOnlineModes[std::clamp(onlineMode, 0, 2)] + " >  (Confirm starts it)";
+            } else if (row.kind == 1) {
+                const Feature *feature = FindFeature(row.feature);
+                const auto it = onlinePicks.find(row.feature);
+                const int value = it != onlinePicks.end() ? it->second : FeatureValue(row.feature.c_str());
+                const char *name = feature && value >= 0 && value < static_cast<int>(feature->choices.size()) ? feature->choices[value] : "?";
+                text = row.title + ": < " + name + " >";
+            } else {
+                text = row.title;
+            }
+            const bool on = n == std::clamp(onlineRow, 0, static_cast<int>(rows.size()) - 1);
+            lines.push_back({(on ? "> " : "  ") + text, on ? recomp::text::Color{255, 210, 80, 255} : recomp::text::Color{255, 255, 255, 255}});
+        }
+        lines.push_back({"Up/Down: row  Left/Right: change  Confirm  Back: close", {170, 170, 170, 255}});
+        float width = 0;
+        for (const auto &line : lines) {
+            width = std::max(width, recomp::text::TextWidth(line.first.c_str(), 1));
+        }
+        const float x = (W - width) / 2;
+        float y = H / 2.0f - 11.0f * static_cast<float>(lines.size());
+        canvas.Fill(x - 8, y - 6, width + 16, 22.0f * static_cast<float>(lines.size()) + 4, {20, 22, 30, 235});
+        if (panels) {
+            panels->push_back({static_cast<int>(x) - 8, static_cast<int>(y) - 6, static_cast<int>(width) + 17, 22 * static_cast<int>(lines.size()) + 4});
+        }
+        for (const auto &line : lines) {
+            canvas.Text(x, y, 1, 0, line.second, line.first.c_str());
+            y += 22;
+        }
+    } else if (net && leaving) {
         const recomp::text::Canvas canvas{px, W, H};
         const bool hosting = connecting;
         const char *question = net->Watching() ? "Stop watching?" : hostedFromMenu ? "Leave the match?" : hosting ? "Stop hosting and quit?" : "Leave the match?";
@@ -2595,6 +2664,141 @@ void Port::LeaveOnline() {
     }
 }
 
+
+void Port::OnlineEvent(int player, const std::string &text) {
+    for (size_t at = 0; at < text.size();) {
+        const size_t comma = std::min(text.find(',', at), text.size());
+        const std::string item = text.substr(at, comma - at);
+        at = comma + 1;
+        const size_t eq = item.find('=');
+        if (eq == std::string::npos) {
+            continue;
+        }
+        const std::string name = item.substr(0, eq);
+        if (name == "mode" && player == 0) {
+            const int mode = atoi(item.c_str() + eq + 1);
+            const size_t colon = item.find(':', eq);
+            const uint32_t seed = colon == std::string::npos ? 1 : static_cast<uint32_t>(strtoul(item.c_str() + colon + 1, nullptr, 10));
+            battle::StartOnline(*machine, mode, seed);
+        } else if (OwnRow(player, name)) {
+            const Feature *feature = FindFeature(name);
+            const int value = atoi(item.c_str() + eq + 1);
+            if (feature && value >= 0 && value < static_cast<int>(std::max<size_t>(feature->choices.size(), 2))) {
+                SetFeatureForNow(feature->name, value);
+            }
+        }
+    }
+}
+
+std::vector<Port::OnlineRow> Port::OnlineRows() const {
+    std::vector<OnlineRow> rows;
+    if (!net || connecting || net->Watching()) {
+        return rows;
+    }
+    const int me = net->Local();
+    if (net->Hosting()) {
+        rows.push_back({0, "", ""});
+    }
+    if (FindFeature(me == 0 ? "court_one" : "court_two")) {
+        rows.push_back({1, me == 0 ? "court_one" : "court_two", "Ball battle: your fighter"});
+    }
+    if (FindFeature("team_size")) {
+        const int size = FeatureValue("team_size") == 1 ? 3 : 2;
+        static const char *const kOrder[3] = {"first", "second", "third"};
+        for (int n = 0; n < size; n++) {
+            rows.push_back({1, "team_" + std::to_string(me + 1) + "_" + std::to_string(n + 1), std::string("Tag team: your ") + kOrder[n]});
+        }
+    }
+    rows.push_back({2, "", net->Hosting() && hostedFromMenu ? "Leave the match (play alone)" : "Leave the match"});
+    return rows;
+}
+
+void Port::OnlineMenu(unsigned pressed) {
+    const std::vector<OnlineRow> rows = OnlineRows();
+    if (rows.empty()) {
+        // (watching, or a host waiting: Confirm leaves, Back stays)
+        if (pressed & recomp::kMenuConfirm) {
+            LeaveOnline();
+        } else if (pressed & recomp::kMenuBack) {
+            leaving = false;
+        }
+        return;
+    }
+    const int count = static_cast<int>(rows.size());
+    onlineRow = std::clamp(onlineRow, 0, count - 1);
+    if (pressed & recomp::kMenuBack) {
+        leaving = false;
+        return;
+    }
+    if (pressed & recomp::kMenuUp) {
+        onlineRow = (onlineRow + count - 1) % count;
+    }
+    if (pressed & recomp::kMenuDown) {
+        onlineRow = (onlineRow + 1) % count;
+    }
+    const OnlineRow &row = rows[onlineRow];
+    const int way = (pressed & recomp::kMenuRight) ? 1 : (pressed & recomp::kMenuLeft) ? -1 : 0;
+    if (row.kind == 0) {
+        for (int n = 0; way && n < 3; n++) { // (the next mode this game has)
+            onlineMode = (onlineMode + way + 3) % 3;
+            if (OnlineModeHere(onlineMode)) {
+                break;
+            }
+        }
+        if (pressed & recomp::kMenuConfirm) {
+            const uint32_t seed = static_cast<uint32_t>(std::random_device()()) | 1;
+            net->Command("mode=" + std::to_string(onlineMode) + ":" + std::to_string(seed));
+            leaving = false;
+        }
+    } else if (row.kind == 1 && way) {
+        const Feature *feature = FindFeature(row.feature);
+        if (feature && !feature->choices.empty()) {
+            const int choices = static_cast<int>(feature->choices.size());
+            const auto it = onlinePicks.find(row.feature);
+            const int now = it != onlinePicks.end() ? it->second : FeatureValue(feature->name);
+            const int next = (now + way + choices) % choices;
+            onlinePicks[row.feature] = next;
+            net->Command(row.feature + "=" + std::to_string(next));
+        }
+    } else if (row.kind == 2 && (pressed & recomp::kMenuConfirm)) {
+        LeaveOnline();
+    }
+}
+
+// What the events that have come or been made say, on the screen as the chat's lines do: the host's mode, a player's
+// fighters
+void Port::HearEvents() {
+    for (const auto &[player, text] : net->TakeEvents()) {
+        if (text.rfind("hello,", 0) == 0) {
+            continue; // (a player's own fighters as they came in with: not news)
+        }
+        const std::string who = player == net->Local() ? "You" : net->Name(player).empty() ? (player == 0 ? "The host" : "Player 2") : net->Name(player);
+        for (size_t at = 0; at < text.size();) {
+            const size_t comma = std::min(text.find(',', at), text.size());
+            const std::string item = text.substr(at, comma - at);
+            at = comma + 1;
+            const size_t eq = item.find('=');
+            if (eq == std::string::npos) {
+                continue;
+            }
+            const std::string name = item.substr(0, eq);
+            const int value = atoi(item.c_str() + eq + 1);
+            std::string said;
+            if (name == "mode" && player == 0 && value >= 0 && value < 3) {
+                said = who + (value == 0 ? " went back to Versus" : std::string(" started ") + kOnlineModes[value]);
+            } else if (const Feature *feature = FindFeature(name); feature && OwnRow(player, name) && value >= 0 &&
+                                                                    value < static_cast<int>(feature->choices.size())) {
+                said = who + (player == net->Local() ? " picked " : " picked ") + feature->choices[value] +
+                       (name.rfind("court", 0) == 0 ? " (Ball battle)" : " (Tag team)");
+            }
+            if (!said.empty()) {
+                fprintf(stderr, "online: %s\n", said.c_str());
+                chat.push_back({said, tick + kChatTicks, player == net->Local()});
+            }
+        }
+    }
+}
+
 bool Port::StartOnline(std::string &error) {
     if (opt.rollbackTest || !opt.moviePlay.empty() || !opt.stateLoad.empty()) {
         error = "online play: not with --rollback-test, --movie or --state-load";
@@ -3330,6 +3534,12 @@ bool ParseArgs(int argc, char **argv, port::Options &o) {
             if (colon != std::string::npos && colon > 0 && o.netSay.find_first_not_of("0123456789") == colon) {
                 o.netSayAt = strtoull(o.netSay.c_str(), nullptr, 10);
                 o.netSay.erase(0, colon + 1);
+            }
+        } else if (a == "--net-command") {
+            const std::string v = next();
+            const size_t colon = v.find(':');
+            if (colon != std::string::npos) {
+                o.netCommands.push_back({strtoull(v.c_str(), nullptr, 10), v.substr(colon + 1)});
             }
         } else if (a == "--net-typing") {
             o.netTyping = next();

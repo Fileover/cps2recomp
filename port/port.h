@@ -81,6 +81,9 @@ struct Options {
     Netplay::Settings net;
     std::string netSay;         // --net-say [FRAME:]TEXT: (tests) the line said in the chat at FRAME of the match (120)
     uint64_t netSayAt = 120;
+    // --net-command FRAME:TEXT, again for more: (tests) an event this side makes at FRAME of the match (Netplay::Command:
+    // "mode=1:7" the ball battle with seed 7, "court_one=3" a fighter)
+    std::vector<std::pair<uint64_t, std::string>> netCommands;
     std::string netTyping;      // --net-typing TEXT: (pictures) a line shown as being typed, all through the match
 };
 
@@ -280,6 +283,20 @@ struct Port {
     uint64_t hostNoteUntil = 0;
     // Esc's question answered yes: the match left, and the game with it unless it was hosted from the menu
     void LeaveOnline();
+    // Online, the modes played in a match (Netplay::Command): an event of `player`'s, run on both sides before the
+    // frame it was given for: "mode=N:SEED" (the host's: battle::StartOnline) and "row=value" (a player's own fighters
+    // on the modes' pages: player 1's rows the host's, player 2's the other's), commas between
+    void OnlineEvent(int player, const std::string &text);
+    // Esc's overlay in a match: its rows (the host's mode, this player's fighters, leaving), and a menu press on it
+    struct OnlineRow {
+        int kind = 0; // 0 the mode, 1 a fighter's row (`feature`), 2 leave
+        std::string feature, title;
+    };
+    std::vector<OnlineRow> OnlineRows() const;
+    void OnlineMenu(unsigned pressed);
+    int onlineRow = 0, onlineMode = 1;
+    std::map<std::string, int> onlinePicks; // (this player's fighters as chosen, before their events have run)
+    void HearEvents();
     void Matched();
     void ArcadeFrame(); // (--net-arcade: the host's own play while it waits for the other player)
     // A window's match that ended with the other side gone: the host waits for them to come back (the same code, or
