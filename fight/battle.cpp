@@ -7,6 +7,8 @@
 #include "battle.h"
 #include "session.h"
 
+#include "court.h"
+
 #include "spare.h"
 #include "state.h"
 #include "tag.h"
@@ -170,7 +172,7 @@ namespace {
         return (CameraLeft() + CameraRight()) / 2;
     }
 
-    enum class Kind : int32_t { None, Survival, Endless, RingOut, Team };
+    enum class Kind : int32_t { None, Survival, Endless, RingOut, Team, Court };
     enum class Phase : int32_t { Starting, Fighting, Decided, Over, Falling, Dropping };
     // (the menu's choices can be changed while the battle goes on: read each frame)
     int ShuffleAfter() {
@@ -341,6 +343,7 @@ namespace {
         g_dropBack.Clear();
         g_atChoice.clear();
         g_open = false;
+        court::End();
         Wanted() = MatchWanted();
         CameraAt() = CameraWanted();
         Fast(false);
@@ -1061,18 +1064,36 @@ namespace {
         }
     }
 
+    uint32_t g_onlineSeed = 0; // (StartOnline's, for the Start it makes)
     void Start(Machine &machine, Kind kind) {
         d.endModes();
         End();
         SetFeature("training_mode", false);
         g.kind = kind;
         g.phase = Phase::Starting;
-        // (for tests, CPS2RECOMP_BATTLE_SEED=N: the same choices at random every time, so that a movie plays back)
+        // (for tests, CPS2RECOMP_BATTLE_SEED=N: the same choices at random every time, so that a movie plays back; online,
+        // the seed both sides were given: StartOnline)
         static const char *seed = getenv("CPS2RECOMP_BATTLE_SEED");
-        g.random = (seed ? static_cast<uint32_t>(strtoul(seed, nullptr, 10)) : std::random_device()()) | 1;
+        g.random = (g_onlineSeed ? g_onlineSeed : seed ? static_cast<uint32_t>(strtoul(seed, nullptr, 10)) : std::random_device()()) | 1;
+        g_onlineSeed = 0;
         g.coachRandom = g.random * 2654435761u | 1;
         if (kind == Kind::Team) {
             StartTeams();
+        } else if (kind == Kind::Court) {
+            // The fighters and the stage the menu's rows say (or at random); nobody the game's: the CPU's side is the
+            // court's own (court.cpp), as the game's computer knows nothing of a ball
+            g.characters[0] = ChosenCharacter("court_one");
+            g.characters[1] = ChosenCharacter("court_two");
+            if (g.characters[0] < 0) {
+                g.characters[0] = AnyCharacter(g.characters[1]);
+            }
+            if (g.characters[1] < 0) {
+                g.characters[1] = AnyCharacter(g.characters[0]);
+            }
+            g.computer[0] = g.computer[1] = false;
+            // (another game's stage, after the game's own: fought on its first, the other drawn behind: BattleStage)
+            const int stage = PlayersStage(); // (the menu's Stage page)
+            g.stage = stage >= 1 && stage <= d.stages ? stage : stage > d.stages ? 1 : AnyStage(0);
         } else if (kind != Kind::Endless) {
             g.characters[0] = -1; // (the player's choice)
             g.characters[1] = AnyCharacter();
@@ -1124,6 +1145,16 @@ namespace {
     }
     void StartRingOut(Machine &machine) {
         Start(machine, Kind::RingOut);
+    }
+    void StartCourt(Machine &machine) {
+        Start(machine, Kind::Court);
+    }
+    // The court's game begun, at the round's start: the camera held in the middle of the stage, the court the picture
+    void BeginCourt() {
+        static constexpr int kPoints[3] = {3, 5, 10};
+        CameraAt().x = Arena();
+        court::Begin(Arena(), CameraY(), SeenLeft(), SeenRight(), kPoints[std::clamp(FeatureValue("court_points"), 0, 2)],
+                     FeatureValue("court_opponent") == 0, std::clamp(FeatureValue("court_level"), 0, 2));
     }
     bool Chooses() {
         return (g.kind == Kind::Survival || g.kind == Kind::RingOut) && !g.computer[0]; // (the player chooses a character)
@@ -1207,6 +1238,9 @@ namespace {
                 if (Layered()) {
                     d.playSound(d.tuneOff); // (the music is the stage's, from its own machine)
                 }
+                if (g.kind == Kind::Court) {
+                    BeginCourt();
+                }
                 if (g.kind == Kind::RingOut) {
                     g.characters[1] = AnyCharacter(g.characters[1]); // (from here: who the next match is against)
                     Begin(g_next);
@@ -1251,6 +1285,10 @@ namespace {
         }
         if (g.kind == Kind::RingOut && g.phase == Phase::Fighting) {
             RingOutCoach(one, two);
+        }
+        if (g.kind == Kind::Court && g.phase == Phase::Fighting) {
+            CameraAt().x = Arena(); // (the whole court in the picture: the zoom closes in on the play)
+            court::BeforeFrame(machine, one, two);
         }
         if (g.kind == Kind::Team && g.tag && g.phase == Phase::Fighting) {
             TagBeforeFrame(one, two);
@@ -1687,6 +1725,7 @@ namespace {
             return;
         }
         std::vector<HudLine> lines;
+        std::vector<HudBox> boxes;
         int dark = 0;         // how far the fighters (or, with one stage, the whole picture) are faded, of 256
         bool layered = false; // the picture and sound have been put together already
         if (g.kind == Kind::RingOut && g.phase != Phase::Starting && g.phase != Phase::Over) {
@@ -1714,6 +1753,14 @@ namespace {
             } else if (g.phase == Phase::Dropping) {
                 g.since++;
                 HandOver();
+            }
+        } else if (g.kind == Kind::Court) {
+            // (no knock-out: the ball decides; a game won is shown, then the next begins where they stand)
+            if (g.phase == Phase::Fighting) {
+                court::Frame(machine, lines, boxes, CameraX(), CameraY(), SeenLeft(), SeenRight());
+                if (court::Over()) {
+                    court::Again();
+                }
             }
         } else if (g.phase == Phase::Fighting) {
             const uint8_t result = d.resultNow ? d.resultNow() : Ram8(d.result);
@@ -1848,7 +1895,7 @@ namespace {
             TeamLines(lines);
         }
         SetHud(std::move(lines));
-        SetBoxes({});
+        SetBoxes(std::move(boxes));
     }
 } // namespace
 
@@ -1856,8 +1903,8 @@ bool BattleMode() {
     return g.kind != Kind::None;
 }
 int BattleStage() {
-    // (the player's stage, the menu's Stage page: the survival's and the team battle's, and the endless battle's one stage)
-    const bool players = g.kind == Kind::Survival || g.kind == Kind::Team || (g.kind == Kind::Endless && g.way == kStageOne);
+    // (the player's stage, the menu's Stage page: the survival's, the team battle's, the ball battle's, and the endless battle's one stage)
+    const bool players = g.kind == Kind::Survival || g.kind == Kind::Team || g.kind == Kind::Court || (g.kind == Kind::Endless && g.way == kStageOne);
     const int choice = players ? PlayersStage() : 0;
     return choice > d.stages ? choice : 0;
 }
@@ -1865,10 +1912,10 @@ void EndBattle() {
     End();
 }
 bool BattleNoClock() {
-    return g.kind == Kind::Endless || g.kind == Kind::RingOut;
+    return g.kind == Kind::Endless || g.kind == Kind::RingOut || g.kind == Kind::Court;
 }
 bool BattleNoKnockOut() {
-    return g.kind == Kind::RingOut;
+    return g.kind == Kind::RingOut || g.kind == Kind::Court;
 }
 bool TeamBattle() {
     return g.kind == Kind::Team;
@@ -1938,7 +1985,19 @@ void BattleFrame(Machine &machine) {
         const bool fighting = (g.kind == Kind::Endless || g.kind == Kind::RingOut) && g.phase != Phase::Starting;
         const bool layered = fighting && Layered();
         machine.video.hideObject = layered ? d.notTheFighters : fighting ? d.thePanel : nullptr;
+        if (g.kind == Kind::Court && g.phase != Phase::Starting && court::Hidden()) {
+            machine.video.hideObject = court::Hidden(); // (the court's: the health bars and the clock, the gauge kept)
+        }
         machine.video.layerMask = layered ? 1 | d.panelLayers : 0xF;
+        if (g.kind == Kind::Court && g.phase != Phase::Starting) {
+            machine.video.layerMask &= ~court::HiddenLayers(); // (the court's: a panel that is a scroll screen)
+        }
+        // (the court's: the panel's bars, names and clock taken out of the object list; another's change left alone)
+        if (g.kind == Kind::Court && g.phase != Phase::Starting && court::HidesPanel()) {
+            machine.video.objectsTaken = court::TakeObjects;
+        } else if (machine.video.objectsTaken == court::TakeObjects) {
+            machine.video.objectsTaken = nullptr;
+        }
         machine.video.markObjects = layered;
         machine.video.markLayers = layered ? d.panelLayers : 0;
     }
@@ -1947,6 +2006,7 @@ void BattleFrame(Machine &machine) {
 void BattleState(Archive &ar) {
     ar.Mark(0x42415454);
     ar.Pod(g);
+    court::State(ar);
     ar.Vec(g_next.state);
     ar.Pod(g_next.ready);
     ar.Pod(g_next.frames);
@@ -2070,10 +2130,56 @@ int battle::RoundsToWin() {
     return d.roundsToWin;
 }
 
+bool battle::OnlineSets() {
+    return g_described && d.onlineSets;
+}
+
+bool battle::StartOnline(Machine &machine, int mode, uint32_t seed) {
+    if (!g_described) {
+        return false;
+    }
+    if (mode == 0) {
+        End();
+        machine.Reset();
+        return true;
+    }
+    if (mode == 1 && !court::Described()) {
+        return false;
+    }
+    // (each side a person; the game's own stages only, as another game's is drawn by a machine of that game's)
+    if (PlayersStage() > d.stages) {
+        SetFeatureForNow(session::kStageFeature, 0);
+    }
+    SetFeatureForNow(mode == 1 ? "court_opponent" : "team_opponent", 1);
+    g_onlineSeed = seed | 1;
+    Start(machine, mode == 1 ? Kind::Court : Kind::Team);
+    return true;
+}
+
+bool battle::TwoPeopleNow() {
+    if (!OnlineSets()) {
+        return false;
+    }
+    for (int side = 0; side < 2; ++side) {
+        const uint32_t player = Player(side);
+        if (!Ram8(player + d.active) || (Ram8(player + d.computer) != 0) != d.computerIsZero) {
+            return false;
+        }
+    }
+    return true;
+}
+
 void battle::Register(const Description &description) {
     d = description;
     g_described = true;
     Game &game = TheGame();
+    if (d.onlineSets) {
+        game.features.push_back({"online_set", "Online", "Set format",
+                                 "The host chooses Casual, first to 5 games or first to 10 games before connecting. "
+                                 "Both players see the score. After both confirm the winner, the result is shown briefly, "
+                                 "then both return to the launcher. Offline play is unchanged.",
+                                 0, {"Casual", "FT5", "FT10"}});
+    }
     // (the zoom that keeps the panel where it is: port/zoom.h)
     game.panel = d.thePanel;
     game.panelLayers = d.panelLayers;
@@ -2111,6 +2217,18 @@ void battle::Register(const Description &description) {
             choices.push_back(number.c_str());
         }
         game.features.push_back({"ringout_best", kRingOut, "Best", "The most ring outs in one go. (Left puts it back.)", 0, choices});
+    }
+    if (court::Described()) {
+        court::RegisterPage(kModes, StartCourt, d.fighterChoices); // (its stage: the menu's Stage page)
+        game.focusAlso = court::Focus;
+        // (the court's whole stage, wider than the wide picture, through its own camera: Port::Framed)
+        // (16:9 with the widescreen setting on, as recommended; 4:3 without)
+        game.framedColumns = [] {
+            return g.kind == Kind::Court && court::On() && d.wideSide && d.wideSide() > 0
+                       ? Video::kWidth + (FeatureOn("widescreen") ? 2 * Video::kWideSide : 0)
+                       : 0;
+        };
+        game.framedFollows = [] { return FeatureValue("court_camera") == 1; };
     }
     game.commands.push_back({"endless_start", kEndless, "Start",
                              "Two fighters played by the game: no bars, no clock, and the one knocked down is replaced. Press "

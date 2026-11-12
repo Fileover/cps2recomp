@@ -5,7 +5,7 @@
 - **Stage select, in every mode (the fighting games).** The in-game menu's first page has a **Stage** page, after
   Game: the game's own choice, or a stage by name, the game's own or another game's (with its favourites, as before).
   It now holds whatever is played: the board's one- and two-player games, training, survival, the team battle and the
-  endless battle's one stage; online, the match is fought on the host's. The Training page's Stage row and the team
+  endless battle's one stage (and Ball battle's: its own Stage row is gone too); online, the match is fought on the host's. The Training page's Stage row and the team
   battle's are gone (their settings, `training_stage` and `team_stage`, are no longer read: the one setting is
   `stage`), and the endless battle's row is now **Stages**: Shuffle, Scroll or One stage, the Stage page's. The ring
   out, Shuffle and Scroll and the stage viewer keep their own stages; with "Other games' stages" an arcade match with
@@ -16,7 +16,37 @@
     the bonus stages), so a one-player game there keeps its stages, and only another game's stage is shown over them.
   - In the games whose one-player game chose each next opponent's stage at a place the port did not watch (Vampire
     Savior and the games made from it, Street Fighter Alpha and Alpha 2, Zero 2 Alpha, Pocket Fighter), it now does.
+- **Ball battle and tag team online**: in an online match the host can switch to Ball battle or the Tag team battle
+  (and back to Versus) from Esc's overlay, and each player picks their own fighters there. The choices go with the
+  players' controls, frame-exact on both sides, rolled back like the controls; the modes' state is all in the save
+  state now (the court's per-game memory, the games' live tag). The online protocol is now 9
+  ([docs/ONLINE.md](docs/ONLINE.md#ball-battle-and-tag-team-online)).
+- **Ball battle** (the Vampire Savior games: Vampire Savior, Definitive, Vampire Savior 2, Vampire Hunter 2; Alternative modes > Ball battle): a ball game. A line splits the
+  stage and each fighter keeps to a half; attacks strike a big ball (light, medium, hard, special and gauge moves each
+  faster, the place struck deciding the angle and the spin, up or down held bending it), a crouching light kick chips
+  it up, three hits in a row make a power shot, and the ball makes whoever it hits reel or fall unless they block. The
+  fighters can hit each other too, and nobody loses health or is caught. A ball off an end of the court is the other
+  fighter's point; first to 3, 5 or 10, against the CPU (easy, medium, hard) or player 2. The court is as wide as each
+  stage is drawn (up to 768 columns), shown whole in a 16:9 frame or followed by its own camera. The toolkit's part
+  is `fight/court.h`; a game describes its boxes and its attacks' power ([docs/COURT.md](docs/COURT.md), with the
+  steps for the next game).
+- **Ball battle in the Street Fighter Alphas** (Alpha, Alpha 2, Zero 2 Alpha, Alpha 3; Alternative modes > Ball battle): the ball
+  game, as in the Vampire Savior games. The court is as wide as each stage is drawn (512 to 768 columns). In every game the
+  health bars, names and clock are not shown in a ball battle (health stays full and there is no clock); the super
+  gauges stay.
+- **The overlay's boxes under the zoom by distance**: hit boxes (and the court's ball) are drawn on the picture that is
+  zoomed, where they were drawn on the panel's layer and left out of it. Boxes can be round (`HudBox::round`).
 
+- **Online: watching a match** (from liquidmetalxy-debug, #331; recomp-common #64): a host who switches on **Allow
+  spectators** lets up to eight others watch. Once the match is under way its lobby entry offers **Watch**; the viewer
+  comes in at any point, from the host's game and both players' confirmed controls, a moment behind (an FT5 or FT10
+  set's score too). Viewers never reach the match, and the players never wait for them. The lobby list is now
+  **Online matches**. The online protocol is now 8, and the online service has a `/v1/watch` route.
+- **Online: first to 5 or 10** (from liquidmetalxy-debug, #242): in Marvel vs. Capcom and X-Men vs. Street Fighter
+  the host chooses **Online > Set format**: Casual (the default, and in Pure), FT5 or FT10, for both players. A strip
+  at the top shows the score; only finished games between the two players count (not draws, not the computer). When a
+  player reaches it, both games agree on the score, show the winner for two seconds and close, back to the launcher.
+  Both players need this version.
 - **The shoot-'em-ups (Giga Wing, Progear, Dimahoo): tester feedback.**
   - **Training mode**: practice is now called training mode, as in the fighting games.
   - **Hit boxes in every mode**: Player hit boxes, Enemy hit boxes and Bullet hit boxes (the enemies' shots, apart from
@@ -104,7 +134,7 @@
   (their pool of objects was never run, so they stood unmade and undrawn).
 - **Windows** (from Fileover, #208): a parent set's zip is found beside a game's zip when the path is written with
   backslashes, and the launcher opens without a console window beside it (recomp-common #62).
-  
+
 - **Online: the settings the match decides stay put** (#195): during an online match, the in-game menu no longer changes
   the host's board settings (game speed, difficulty, timer...), the other features that change play, or the cheats.
   A change there reached only one player's game, so the two drifted apart and the match stopped. The rows say the host

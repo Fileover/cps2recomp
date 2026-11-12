@@ -21,6 +21,7 @@
 // margin as a line in it: the camera's place across (its ends 64 nearer the middle), and keeping the players
 // inside the picture (64 further out on each side).
 #include "alternative.h"
+#include "court.h"
 #include "modes.h"
 #include "sfa2.h"
 #include "state.h"
@@ -33,12 +34,13 @@
 namespace cps2recomp {
 
 bool RingOutLetsOut(uint32_t player); // battle.cpp
+int BattleStage();                    // fight/battle.cpp
 bool TagIsOff(uint32_t player);       // livetag.cpp
 
 namespace {
     using namespace sfa2;
 
-    constexpr int kSide = Video::kMaxSide;
+    constexpr int kSide = Video::kWideSide;
     // The camera's record (a scroll screen's: the stage's own plane), and in it
     constexpr uint32_t kCamera = At(0xFF8280);
     constexpr uint32_t kCameraX = 0x20, kCameraShake = 0x50, kCameraBefore = 0x28, kCameraGoing = 0x3B;
@@ -53,8 +55,26 @@ namespace {
     bool g_shown = false; // fights are shown in the wide picture (played in it, or played as on the board)
     int g_side = 0, g_shift = 0, g_cameraBefore = 0;
 
+    // The court's (fight/court.h): the wide picture forced, the camera held in the stage's middle, and as much of the
+    // stage to each side of the board's picture as all its planes are drawn there (each stage's own, the same both
+    // ways, measured from the court's picture at Video::kMaxSide), so the court is as wide as the stage is drawn: the
+    // fighters walk and the ball goes out at its edges. (Another game's stage is drawn by that game, to 64 a side.)
+    // (Ryu's mountains are filled stripes past 64; Ken's yacht stretched at its ends; Charlie's hangar's city repeats; Guy's
+    // and Birdie's top planes end; Bison's trees end; Sakura's tower and Rolento's mural come round again, turned about)
+    constexpr int kCourtSides[kStages] = {64, 168, 192, 120, 192, 192, 192, 136, 140, 192, 96, 192, 192, 64, 72, 192, 192, 192};
+    int Side() {
+        if (!court::On()) {
+            return kSide;
+        }
+        if (const char *forced = getenv("SFA2_COURT_SIDE")) { // (for measuring a stage: its court at that side)
+            return std::clamp(atoi(forced), 0, static_cast<int>(Video::kMaxSide));
+        }
+        const unsigned stage = Ram16(kStage) / 2;
+        return BattleStage() > kStages || stage >= kStages ? kSide : kCourtSides[stage];
+    }
+
     int Margin() {
-        return g_play ? kSide : 0;
+        return g_play ? Side() : 0;
     }
     // How much further in than 64 the camera stops at each end of each stage, for the stage's own plane (the 16-pixel
     // scroll screen, which the players stand in) and its floor: where the wide picture would show them past what the
@@ -66,14 +86,14 @@ namespace {
                                            {17, 16}, {5, 5},   {29, 29}, {19, 19}, {0, 0},   {0, 0}};
     wide::Ends StageEnds() {
         const int stage = Ram16(kStage) / 2;
-        return stage < kStages ? kEnds[stage] : wide::Ends{};
+        return stage < kStages && !court::On() ? kEnds[stage] : wide::Ends{}; // (the court's sides are its own)
     }
     // How far short of the board's ends the camera stops, at each end, in the picture played in
     int LeftMargin() {
-        return g_play ? kSide + StageEnds().left : 0;
+        return g_play ? Side() + StageEnds().left : 0;
     }
     int RightMargin() {
-        return g_play ? kSide + StageEnds().right : 0;
+        return g_play ? Side() + StageEnds().right : 0;
     }
 
     // --- the camera ---
@@ -111,7 +131,8 @@ namespace {
         if (CameraAt().x >= 0) {
             // (a mode wants the camera at a place of its own: it goes there, as far as its ends let it)
             const int end0 = Ram16(camera + kCameraEndLeft) + LeftMargin(), end1 = Ram16(camera + kCameraEndRight) - RightMargin();
-            to = static_cast<uint16_t>(std::clamp(CameraAt().x, end0, end1));
+            // (the court's: the stage's middle, its ends there or crossed)
+            to = static_cast<uint16_t>(court::On() ? CameraAt().x : std::clamp(CameraAt().x, end0, end1));
             SetRam16(camera + kCameraX, to);
             SetLow16(c.d[2], 0);
             goto placed;
@@ -440,11 +461,11 @@ namespace {
     void SetWide(Machine &machine, int camera, int shown, const int planesShown[2]) {
         g_side = g_shift = 0;
         if (g_shown && OnStage(camera) && OnStage(shown)) {
-            g_side = kSide;
+            g_side = Side();
             // (the view's left edge is 64 left of the camera, and no further left than the camera's own end: nearer
             // the end than that, the stage is drawn to the side by what is missing. Played in the wide picture the
             // camera never goes there; with invisible walls it does, and the board's picture is then to one side)
-            g_shift = wide::ViewShift(shown, CameraLeftEnd(), CameraRightEnd(), kSide, StageEnds());
+            g_shift = wide::ViewShift(shown, CameraLeftEnd(), CameraRightEnd(), g_side, StageEnds());
         }
         Video::Wide &wide = machine.video.wide;
         wide.side = g_side;
@@ -456,11 +477,11 @@ namespace {
         if (g_side && stage < kStages) {
             const int end0 = CameraLeftEnd(), end1 = CameraRightEnd();
             const wide::Ends ends = StageEnds();
-            const int from = g_play ? end0 + kSide + ends.left : end0, to = g_play ? end1 - kSide - ends.right : end1;
+            const int from = g_play ? end0 + g_side + ends.left : end0, to = g_play ? end1 - g_side - ends.right : end1;
             for (int n = 0; n < 2; n++) {
                 const int16_t *places = n == 0 ? kPlaneEnds[stage].back : kPlaneEnds[stage].far;
                 if (places[1] > places[0]) {
-                    wide.scroll[n == 0 ? 0 : 2] = wide::FarScroll(places[1] - places[0], end1 - end0, shown, end0, end1, from, to, kSide, ends);
+                    wide.scroll[n == 0 ? 0 : 2] = wide::FarScroll(places[1] - places[0], end1 - end0, shown, end0, end1, from, to, g_side, ends);
                 }
             }
         }
@@ -491,8 +512,10 @@ void WidescreenBeforeFrame(Machine &machine) {
     const int camera = static_cast<int16_t>(Ram16(kCamera + kCameraX)), shown = g_cameraBefore;
     g_cameraBefore = camera;
     // (fights only; the stage viewer keeps the board's picture. With invisible walls the rules stay the board's)
-    g_shown = FeatureOn("widescreen") && InFight() && !StageViewer();
-    g_play = g_shown && !FeatureOn("widescreen_walls");
+    // (the court, fight/court.h: always the wide picture, played in it, for the room)
+    const bool court = court::On();
+    g_shown = (FeatureOn("widescreen") || court) && InFight() && !StageViewer();
+    g_play = g_shown && (!FeatureOn("widescreen_walls") || court);
     int planes[2];
     for (int n = 0; n < 2; n++) {
         planes[n] = g_planeBefore[n];

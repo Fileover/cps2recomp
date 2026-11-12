@@ -264,7 +264,7 @@ bool RingOutStep(M68K &c) {
 // picture changes are the game's own code with the margin in it, in place of the game's while the fight is played wide.
 
 namespace {
-    constexpr int kSide = Video::kMaxSide;
+    constexpr int kSide = Video::kWideSide;
 
     bool g_play = false;  // fights are played in the wide picture
     bool g_shown = false; // fights are shown in the wide picture (played in it, or played as on the board)

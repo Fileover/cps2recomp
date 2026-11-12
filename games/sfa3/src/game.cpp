@@ -26,6 +26,7 @@ void RegisterCheats();   // cheats.cpp
 void CheatsFrame(Machine &machine);
 void RegisterModes();    // modes.cpp
 void RegisterTraining(); // training.cpp
+void RegisterCourt();    // court.cpp (before the battle's: its page is among theirs)
 void RegisterBattle();   // battle.cpp
 void RegisterChoosing(); // choosing.cpp
 void ChoosingBeforeFrame(Machine &machine);
@@ -40,6 +41,7 @@ void ModelFrame(Machine &machine);
 void ModelState(Archive &ar);
 bool ModelViewer();
 void RegisterColours(); // colours.cpp
+void LiveTagState(Archive &ar);
 void RegisterLiveTag(); // livetag.cpp
 void RegisterStages();  // stages.cpp
 void LiveTagBeforeFrame(Machine &machine);
@@ -47,6 +49,7 @@ void LiveTagBeforeFrame(Machine &machine);
 void RegisterGame() {
     RegisterModes();
     RegisterTraining();
+    RegisterCourt();
     RegisterBattle();
     RegisterLiveTag();
     RegisterModel();
@@ -97,6 +100,7 @@ void RegisterGame() {
         BattleState(ar);
         ModelState(ar);
         WidescreenState(ar);
+        LiveTagState(ar);
     };
     // With the arcade timing, the game's own code runs in place of the rewrites but where they carry what the port adds
     // (game.h, rewritesNeeded): the modes, widescreen

@@ -46,6 +46,9 @@ struct Zoomed {
     SDL_FRect view;
     std::vector<SDL_Rect> keep;
     bool panel = false;
+    // A framed picture (runtime/game.h, Game::framedColumns): made at its own size, shown so and not zoomed; and the
+    // columns of the shape it is shown in (0: not framed)
+    int width = 0, height = 0, columns = 0;
 };
 
 class Presenter {

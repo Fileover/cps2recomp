@@ -33,6 +33,7 @@ void RegisterChoosing(); // choosing.cpp
 void ChoosingState(Archive &ar);
 void RegisterComputer(); // computer.cpp
 void RegisterLiveTag();  // livetag.cpp
+void RegisterDifficulty(); // difficulty.cpp
 void LiveTagBeforeFrame(Machine &machine);
 void RegisterWidescreen(); // widescreen.cpp
 void WidescreenBeforeFrame(Machine &machine);
@@ -48,6 +49,7 @@ void RegisterGame() {
     RegisterChoosing();
     RegisterComputer();
     RegisterLiveTag();
+    RegisterDifficulty();
     RegisterWidescreen();
     RegisterCoins();
     RegisterCheats();

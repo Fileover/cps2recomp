@@ -718,11 +718,10 @@ int RunWindowed(Port &port) {
                     heldAtClose = previousPad;
                 }
             } else if (port.leaving) {
-                // (online, "Leave the match?": Confirm leaves it, Back stays; this side's player stands still meanwhile)
-                if (menuPressed & recomp::kMenuConfirm) {
-                    port.LeaveOnline();
-                } else if (menuPressed & recomp::kMenuBack) {
-                    port.leaving = false;
+                // (online, Esc's overlay: the host's mode, this player's fighters, leaving: Port::OnlineMenu; this side's
+                // player stands still meanwhile)
+                if (menuPressed) {
+                    port.OnlineMenu(menuPressed);
                 }
                 heldAtClose = previousPad;
             }
@@ -738,7 +737,8 @@ int RunWindowed(Port &port) {
             static int shownColumns = columns, shownSize = scale;
             static Shape shownShape = DisplayShape();
             static bool shownTurned = Turned();
-            const int now = TheGame().widestPicture ? std::clamp(TheGame().widestPicture(), +Video::kWidth, +Video::kMaxWidth) : columns;
+            const int now = port.FramedColumns() ? port.FramedColumns()
+                            : TheGame().widestPicture ? std::clamp(TheGame().widestPicture(), +Video::kWidth, +Video::kMaxWidth) : columns;
             const int size = port.opt.scale > 0 ? port.opt.scale : WindowSize();
             if (now != shownColumns || DisplayShape() != shownShape || size != shownSize || Turned() != shownTurned) {
                 if (!(SDL_GetWindowFlags(window) & (SDL_WINDOW_FULLSCREEN | SDL_WINDOW_MAXIMIZED))) {
@@ -767,8 +767,10 @@ int RunWindowed(Port &port) {
         // (a vertical game's picture turned upright: as many columns as the board's lines, as many rows as its columns;
         // the menu stays as it is, over the turned picture in its middle: Port::MenuPicture)
         const bool turned = Turned();
+        // (a framed picture, Port::Framed: in the shape of its columns)
+        const int shapeColumns = port.FramedColumns() ? port.FramedColumns() : port.ShownWidth();
         const SDL_FRect where = turned ? FitPicture(width, height, Video::kHeight, port.ShownWidth(), DisplayShape(), DisplayScaling())
-                                       : FitPicture(width, height, port.ShownWidth(), Video::kHeight, DisplayShape(), DisplayScaling());
+                                       : FitPicture(width, height, shapeColumns, Video::kHeight, DisplayShape(), DisplayScaling());
         const SDL_FRect menuWhere = turned ? FitPicture(width, height, port.ShownWidth(), Video::kHeight, DisplayShape(), DisplayScaling()) : where;
         touch.Layout(width, height, where);
         int touchWidth = 0, touchHeight = 0;
@@ -865,7 +867,7 @@ int RunWindowed(Port &port) {
         // (--video gpu: the game's picture drawn on the GPU from the native records, with the readouts over it, when the
         // presenter draws with SDL_GPU and the GPU can draw the frame: gpu_picture.h; else the CPU's picture)
         bool drawn = false;
-        if (port.gpuWanted && presenter.UsesGpu() && !presenter.Shaded() && !turned) {
+        if (port.gpuWanted && presenter.UsesGpu() && !presenter.Shaded() && !turned && !port.FramedColumns()) {
             if (port.gpuPicture.Device() != presenter.Device()) {
                 port.gpuPicture.Close();
                 for (auto &g : port.guestPictures) {
@@ -902,7 +904,11 @@ int RunWindowed(Port &port) {
             presenter.Show(upright.data(), Video::kHeight, port.ShownWidth(), where, nullptr);
         } else if (!drawn) {
             const bool isZoomed = port.Windowed(shown, zoomed);
-            presenter.Show(shown.data(), port.ShownWidth(), Video::kHeight, where, isZoomed ? &zoomed : nullptr);
+            if (zoomed.columns) {
+                presenter.Show(shown.data(), zoomed.width, zoomed.height, where, nullptr); // (framed: Port::Framed)
+            } else {
+                presenter.Show(shown.data(), port.ShownWidth(), Video::kHeight, where, isZoomed ? &zoomed : nullptr);
+            }
         }
 
         if (!port.opt.unthrottled && !FastForward()) {

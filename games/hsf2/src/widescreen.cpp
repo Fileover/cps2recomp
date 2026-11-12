@@ -33,7 +33,7 @@ bool TagIsOff(uint32_t player); // livetag.cpp
 namespace {
     using namespace hsf2;
 
-    constexpr int kSide = Video::kMaxSide;
+    constexpr int kSide = Video::kWideSide;
     // The camera's record (hsf2.h, kCamera), and in it
     constexpr uint32_t kPlaceX = 0x06, kPlaceY = 0x0A, kMovedX = 0x30, kMovedY = 0x32, kGoingX = 0x24, kGoingY = 0x25;
     // A player's (from 0D9CCC and 00443E): its half width, and what moves where it is seen from (while it reaches out:

@@ -11,6 +11,7 @@
 //
 // For tests, SFA3_SWAP=FRAME:PLAYER:CHARACTER,... (hex character) swaps outside the team battle, at that frame or, with
 // SFA3_SWAP_FREE, as soon after as the player can act; SFA3_TAG_LOG writes the characters and the lying as they change.
+#include "state.h"
 #include "battle.h"
 #include "machine.h"
 #include "sfa3.h"
@@ -351,6 +352,18 @@ void LiveTagBeforeFrame(Machine &machine) {
 void RegisterLiveTag() {
     AddHook(HookAt(0x027C72), "TagEntrance", TagEntrance);
     AddHook(HookAt(0x027C68), "TagSetUp", TagSetUp);
+}
+
+// The swaps under way, in a save state (online play's rollback puts frames back in the middle of one)
+void LiveTagState(Archive &ar) {
+    if (ar.version != 0 && ar.version < 11) { // (a save state from before has none)
+        return;
+    }
+    ar.Pod(g_colours);
+    ar.Pod(g_place);
+    ar.Pod(g_placeX);
+    ar.Pod(g_placeY);
+    ar.Pod(g_off);
 }
 
 } // namespace cps2recomp

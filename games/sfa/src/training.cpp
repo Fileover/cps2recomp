@@ -11,9 +11,12 @@
 #include "sfa.h"
 
 #include <cstdio>
+#include <cstdlib>
 #include <iterator>
 
 namespace cps2recomp {
+
+void CourtStep(uint32_t player); // court.cpp
 
 bool RingOutStep(M68K &c); // battle.cpp
 
@@ -49,6 +52,7 @@ namespace {
             Return(c);
             return true;
         }
+        CourtStep(c.a[6] & 0xFFFFFF); // (what the court's ball has done to it: court.cpp)
         const uint32_t player = c.a[6] & 0xFFFFFF;
         const int n = PlayerOf(player);
         if (n < 0 || Ram8(player + kState) != 2 || !modes::RoundFought()) {

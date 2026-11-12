@@ -30,10 +30,12 @@ void RegisterModes(); // modes.cpp
 void ModesBeforeFrame(Machine &machine);
 void ModesFrame(Machine &machine);
 void ModesState(Archive &ar);
+void RegisterCourt();  // court.cpp (before the battle's: its page is among theirs)
 void RegisterBattle(); // battle.cpp
 void BattleBeforeFrame(Machine &machine);
 void BattleFrame(Machine &machine);
 void BattleState(Archive &ar);
+void LiveTagState(Archive &ar);
 void RegisterLiveTag(); // livetag.cpp
 void LiveTagBeforeFrame(Machine &machine);
 
@@ -66,6 +68,7 @@ void RegisterGame() {
     RegisterMusic();
     RegisterMachines();
     RegisterModes();
+    RegisterCourt();
     RegisterBattle();
     RegisterLiveTag();
     RegisterModel();
@@ -115,6 +118,7 @@ void RegisterGame() {
         BattleState(ar);
         ModelState(ar);
         WidescreenState(ar);
+        LiveTagState(ar);
     };
     // With the arcade timing, the game's own code runs in place of the rewrites but where they carry what the
     // port adds (game.h, rewritesNeeded): training mode, the modes of the sources' own, widescreen, the cheats

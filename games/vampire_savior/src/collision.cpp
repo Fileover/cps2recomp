@@ -9,6 +9,8 @@
 // where, and then the game's code for a hit that landed takes over.
 #include "vsav.h"
 
+#include "court.h"
+
 #include <utility>
 
 namespace cps2recomp {
@@ -276,6 +278,18 @@ namespace {
         uint32_t first = c.a[5] + 0x400, second = c.a[5] + 0x800;
         SetRam8(first + kPushCount, 0);
         SetRam8(second + kPushCount, 0);
+        if (court::On()) {
+            // The court: each kept on its half, short of the line down the middle (they never meet to be pushed apart)
+            for (int side = 0; side < 2; side++) {
+                const uint32_t player = side == 0 ? first : second;
+                const int x = static_cast<int16_t>(Ram16(player + kX));
+                const int kept = court::KeepToHalf(side, x, static_cast<int16_t>(Ram16(player + kHalfWidth)));
+                if (kept != x) {
+                    SetRam32(player + kX, static_cast<uint32_t>(kept) << 16);
+                }
+            }
+            return;
+        }
         if (Ram8(first + 0x148)) {
             SetRam8(first + 0x148, 0);
             SetRam8(second + 0x148, 0);
